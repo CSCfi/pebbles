@@ -1,0 +1,25 @@
+#!/bin/bash
+
+NAME="{{ application_name }}"
+SOCKFILE={{ server_sock_path }}
+NUM_WORKERS={{ gunicorn_num_workers }}
+MAX_REQUESTS={{ gunicorn_max_requests }}
+USER={{ application_user }}
+GROUP={{ application_group }}
+
+echo "Starting $NAME as `whoami`"
+
+cd {{ application_path }}
+source {{ virtualenv_path }}/bin/activate
+export PYTHONPATH={{ application_path }}:$PYTHONPATH
+
+RUNDIR=$(dirname $SOCKFILE)
+test -d $RUNDIR || mkdir -p $RUNDIR
+
+exec gunicorn resource_cloud.wsgi:app \
+        --workers $NUM_WORKERS \
+        --name $NAME \
+        --max-requests $MAX_REQUESTS \
+        --user=$USER --group=$GROUP \
+        --bind=unix:$SOCKFILE \
+        --log-level=debug
