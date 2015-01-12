@@ -1,0 +1,10 @@
+---
+
+- name: Create the application user
+  user: name={{ application_user }} state=present
+
+- name: Create the application group
+  group: name={{ application_group }} system=yes state=present
+
+- name: Add the application user to the application group
+  user: name={{ application_user }} group={{ application_group }} state=present
