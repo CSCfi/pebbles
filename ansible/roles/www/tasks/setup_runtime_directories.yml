@@ -25,6 +25,15 @@
     owner={{ application_user }} 
     group={{ application_group }}
 
+- name: Create config directory
+  file:
+    dest={{ application_config_dir }} 
+    mode=775 state=directory 
+    owner={{ application_user }} 
+    group={{ application_group }}
+
+
+
 - name: Set permission to the application log file
   file: path={{ application_log_file }}
         owner={{ application_user }}

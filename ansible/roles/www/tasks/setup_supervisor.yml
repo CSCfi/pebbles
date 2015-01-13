@@ -10,3 +10,6 @@
 
 - name: Update Supervisor to add the app in the process group
   command: supervisorctl update
+
+- name: Restart Supervisor
+  command: supervisorctl restart {{ application_name }}

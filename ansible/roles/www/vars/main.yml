@@ -9,6 +9,11 @@ domain: "localhost"
 application_name: "resource_cloud"
 application_user: "{{ application_name }}"
 application_group: "webapps"
+application_debug_logging: 'True'
+application_secret_key: "change me"
+application_config_dir: "/webapps/{{ application_name }}/config"
+application_config: "{{ application_config_dir }}/config.yaml"
+application_database_uri: "sqlite:///{{ runtime_path }}/db.sqlite"
 
 # nginx
 nginx_static_root: "/webapps/{{ application_name }}/static"

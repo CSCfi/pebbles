@@ -14,10 +14,11 @@
            /etc/nginx/sites-enabled/{{ application_name }}
            creates=/etc/nginx/sites-enabled/{{ application_name }}
 
-- name: Create static root for nginx
+- name: Link static root for nginx
   file:
+    src={{ application_path }}/{{ application_name }}/static
     dest={{ nginx_static_root }} 
-    mode=775 state=directory 
+    mode=775 state=link
     owner={{ application_user }} 
     group={{ application_group }}
 

@@ -16,10 +16,12 @@ export PYTHONPATH={{ application_path }}:$PYTHONPATH
 RUNDIR=$(dirname $SOCKFILE)
 test -d $RUNDIR || mkdir -p $RUNDIR
 
-exec gunicorn resource_cloud.wsgi:app \
+exec gunicorn 'resource_cloud.wsgi:app' \
         --workers $NUM_WORKERS \
         --name $NAME \
         --max-requests $MAX_REQUESTS \
         --user=$USER --group=$GROUP \
         --bind=unix:$SOCKFILE \
-        --log-level=debug
+        --log-level=debug \
+        --access-logfile={{application_log_dir}}/gunicorn_access.log \
+        --error-logfile={{application_log_dir}}/gunicorn_error.log
