@@ -6,6 +6,7 @@ from wsgi import auth
 from models import User, ActivationToken
 from forms import UserCreateForm, SessionCreateForm, ActivationForm
 
+import logging
 
 @app.route("/api/debug")
 def debug():
@@ -24,6 +25,8 @@ def verify_password(userid_or_token, password):
 
 user_fields = {
     'email': fields.String,
+    'is_active': fields.Boolean,
+    'is_admin': fields.Boolean,
 }
 
 token_fields = {
@@ -36,6 +39,7 @@ class UserView(restful.Resource):
     def post(self):
         form = UserCreateForm()
         if not form.validate_on_submit():
+            logging.warn("%s" % form.errors)
             return form.errors, 422
 
         user = User(form.email.data, form.password.data)
@@ -46,6 +50,7 @@ class UserView(restful.Resource):
     @marshal_with(user_fields)
     def get(self):
         return User.query.all()
+
 
 class SessionView(restful.Resource):
     @marshal_with(token_fields)
@@ -84,7 +89,7 @@ class ServiceView(restful.Resource):
     @auth.login_required
     @marshal_with(user_fields)
     def get(self):
-        return g.user
+        return User.query.all()
 
 api.add_resource(UserView, '/api/v1/users')
 api.add_resource(SessionView, '/api/v1/sessions')

@@ -1,0 +1,22 @@
+<div id="navbar" ng-controller="AuthController" class="navbar-collapse collapse">
+  <ul class="nav navbar-nav">
+    <li><a href="#/dashboard">Dashboard</a></li>
+    <li><a href="#/app">Link</a></li>
+  </ul>
+  <div ng-hide="isLoggedIn()" class="navbar-form navbar-right">
+    <form ng-submit="login()">
+      <div class="form-group">
+        <input type="email" id="email" name="email" ng-model="email" placeholder="Email" class="form-control">
+      </div>
+      <div class="form-group">
+        <input type="password" id="password" name="password" ng-model="password" placeholder="Password" class="form-control">
+      </div>
+      <input type="submit" class="btn btn-success" value="Sign in" />
+    </form>
+  </div>
+  <div ng-show="isLoggedIn()" class="navbar-form navbar-right">
+    <form ng-submit="logout()">
+      <button type="submit" class="btn btn-success">Log out</button>
+    </form>
+  </div>
+</div>
