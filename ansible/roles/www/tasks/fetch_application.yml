@@ -11,6 +11,12 @@
 - name: Install dependencies from requirements.txt
   pip: requirements={{ application_path }}/requirements.txt virtualenv={{ virtualenv_path }}
 
+- name: Install infrastructural dependencies from PyPI
+  pip: name={{ item }} virtualenv={{ virtualenv_path }}
+  with_items:
+      - celery
+      - gunicorn
+
 - name: Copy application configuration
   template: src=app_config.j2
             dest={{ application_config }}
