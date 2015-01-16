@@ -1,5 +1,5 @@
-<h1>Dashboard</h1>
 <div ng-controller="DashboardController">
+    <h1>Dashboard</h1>
     <table class="table table-striped">
         <thead>
             <tr><td>Email</td><td>Is active</td><td>Is admin</td></tr>
@@ -10,4 +10,21 @@
             </tr>
         </tbody>
     </table>
+    <h1>Service</h1>
+    <table class="table table-striped">
+        <thead>
+            <tr><td>Type</td><td>VCPUs</td><td>Max life-time</td><td></td></tr>
+        </thead>
+        <tbody>
+            <tr ng-repeat="service in services">
+                <td>{{ service.name }}</td><td>{{ service.vcpus }}</td><td>{{ service.max_life_time }}</td>
+                <td><button ng-click="call_task()" type="submit" class="btn btn-success">Run provisioning</button></td>
+            </tr>
+        </tbody>
+    </table>
+
+
 </div>
+
+
+

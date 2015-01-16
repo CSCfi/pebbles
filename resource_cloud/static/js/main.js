@@ -138,10 +138,19 @@ window.ResourceCloud = angular.module('resourceCloudApp', ['ngRoute', 'restangul
                             function($scope, $routeParams, authService, Restangular) {
     
     Restangular.setDefaultHeaders({token: authService.getToken()});
-    var baseAccounts = Restangular.all('services');
-    baseAccounts.getList().then(function(users) {
-          $scope.users = users;
+    var users = Restangular.all('users');
+    users.getList().then(function(response) {
+        $scope.users = response;
     });
+
+    var services = Restangular.all('services');
+    services.getList().then(function(response) {
+          $scope.services = response;
+    });
+    
+    $scope.call_task = function() {
+        services.post({})   
+    }
 }])
 .controller('AuthController', ['$scope', 'authService', function($scope, authService) {
     $scope.isLoggedIn = function() {

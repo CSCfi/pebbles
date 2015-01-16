@@ -6,6 +6,8 @@ from wsgi import auth
 from models import User, ActivationToken
 from forms import UserCreateForm, SessionCreateForm, ActivationForm
 
+from resource_cloud.tasks import run_provisioning
+
 import logging
 
 @app.route("/api/debug")
@@ -87,9 +89,13 @@ class ActivationView(restful.Resource):
 
 class ServiceView(restful.Resource):
     @auth.login_required
-    @marshal_with(user_fields)
     def get(self):
-        return User.query.all()
+        return [{'name': 'Standard cluster', 'vcpus': 4, 'max_life_time': 18000}]
+
+    def post(self):
+        user = User.verify_auth_token(auth.username())
+        run_provisioning.delay()
+        return ['%s' % user]
 
 api.add_resource(UserView, '/api/v1/users')
 api.add_resource(SessionView, '/api/v1/sessions')
