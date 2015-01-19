@@ -1,4 +1,4 @@
-from werkzeug import generate_password_hash, check_password_hash
+from flask.ext.bcrypt import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import uuid
 from wsgi import db, app
