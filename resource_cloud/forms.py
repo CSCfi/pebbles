@@ -15,7 +15,7 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
-class UserCreateForm(ModelForm):
+class UserForm(ModelForm):
     class Meta:
         model = User
 
