@@ -88,6 +88,7 @@ window.ResourceCloud = angular.module('resourceCloudApp', ['ngRoute', 'restangul
             var credentials = {'email': email, 'password': password};
             Session.create(credentials, true).then(function(response) {
                 me.setToken(response.token);
+                me.setAdminStatus(response.is_admin);
                 return deferred.resolve(response);
             }, function(response) {
                 if (response.status == 401) {
@@ -99,12 +100,23 @@ window.ResourceCloud = angular.module('resourceCloudApp', ['ngRoute', 'restangul
         },
 
         logout : function() {
+            var deferred = $q.defer();
             localStorageService.clearAll();
+            return deferred.promise;
         },
 
         isAuthenticated : function() {
             var token = this.getToken();
             if (token) {
+                return true;
+            }
+            localStorageService.clearAll();
+            return false;
+        },
+        
+        isAdmin : function() {
+            var adminStatus = this.getAdminStatus();
+            if (adminStatus == "true") {
                 return true;
             }
             return false;
@@ -116,6 +128,14 @@ window.ResourceCloud = angular.module('resourceCloudApp', ['ngRoute', 'restangul
 
         getToken : function() {
             return localStorageService.get('token');
+        },
+
+        setAdminStatus : function(isAdmin) {
+            localStorageService.set('isAdmin', isAdmin);
+        },
+
+        getAdminStatus : function() {
+            return localStorageService.get('isAdmin');
         }
     }
 }])
@@ -138,10 +158,30 @@ window.ResourceCloud = angular.module('resourceCloudApp', ['ngRoute', 'restangul
                             function($scope, $routeParams, authService, Restangular) {
     
     Restangular.setDefaultHeaders({token: authService.getToken()});
-    var users = Restangular.all('users');
-    users.getList().then(function(response) {
-        $scope.users = response;
-    });
+
+    if (authService.isAdmin()) {
+        var users = Restangular.all('users');
+        users.getList().then(function(response) {
+            $scope.users = response;
+        });
+
+        $scope.new_user = '';
+        $scope.add_user = function(email) {
+            var user_parameters = { email: email };
+            if (email) {
+                users.post(user_parameters).then(function(response) {
+                    $scope.users.push(response);
+                });
+            }
+        }
+
+        $scope.remove_user = function(user) {
+            user.remove().then(function() {
+                var index = $scope.users.indexOf(user);
+                if (index > -1) $scope.users.splice(index, 1);
+            });
+        }
+    }
 
     var services = Restangular.all('services');
     services.getList().then(function(response) {
@@ -152,7 +192,7 @@ window.ResourceCloud = angular.module('resourceCloudApp', ['ngRoute', 'restangul
         services.post({})   
     }
 }])
-.controller('AuthController', ['$scope', 'authService', function($scope, authService) {
+.controller('AuthController', ['$scope', '$location', 'authService', function($scope, $location, authService) {
     $scope.isLoggedIn = function() {
         return authService.isAuthenticated();
     };
@@ -166,5 +206,6 @@ window.ResourceCloud = angular.module('resourceCloudApp', ['ngRoute', 'restangul
         authService.logout();
         $scope.email = "";
         $scope.password = "";
+        $location.path("/");
     };
 }]);
