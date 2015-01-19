@@ -6,10 +6,18 @@
 # backwards compatibility). Please don't change it unless you know what
 # you're doing.
 Vagrant.configure(2) do |config|
+
   config.vm.box = "ubuntu/trusty64"
 
   config.vm.network "forwarded_port", guest: 80, host: 8080
   config.vm.network "forwarded_port", guest: 443, host: 8888
+
+  # if using docker, use a base image with sshd and remove default box config
+  config.vm.provider "docker" do |d, override|
+    d.image="ubuntu_with_ssh:14.04"
+    d.has_ssh=true
+    override.vm.box=nil
+  end
 
   # Enable provisioning with Ansible.
   config.vm.provision "ansible" do |ansible|
