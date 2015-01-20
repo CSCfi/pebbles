@@ -1,38 +1,14 @@
-- name: update key apt repositories to {{ apt_repository_url }}
-  apt_repository: repo="{{ item.repo }}" state="{{ item.state }}" update_cache=false
-  with_items:
-    - { repo: 'deb http://archive.ubuntu.com/ubuntu trusty main', state: 'absent' }
-    - { repo: 'deb {{ apt_repository_url }} trusty main', state: 'present' }
-    - { repo: 'deb http://archive.ubuntu.com/ubuntu trusty-updates main', state: 'absent' }
-    - { repo: 'deb-src {{ apt_repository_url }} trusty-updates main', state: 'present' }
-
-#- name: Mirrorize apt repo
-#  copy: src=roles/www/templates/etc/apt/sources.list dest=/etc/apt/sources.list
-
-- name: refresh repository metadata
-  apt: update_cache=yes
-
-- name: tools for debugging installation
-  apt: pkg={{item}} state=present
-  with_items:
-    - dstat
-    - lsof
+---
 
 - name: install dependencies
   apt: pkg={{item}} state=present
   with_items:
-    - git
-    - python
-    - python-pip
-    - python-dev
-    - python-virtualenv
     - nginx
-    - supervisor
     - rabbitmq-server
 
-- include: create_users_and_groups.yml
-- include: setup_virtualenv.yml
+- name: Enable rabbitmq-server on boot and make sure it is running
+  service: name=rabbitmq-server enabled=true state=started
+
 - include: setup_runtime_directories.yml
-- include: fetch_application.yml
-- include: setup_supervisor.yml
-- include: setup_nginx.yml 
+- include: setup_nginx.yml
+- include: setup_supervisor_config.yml

@@ -2,6 +2,14 @@
 - hosts: all
   sudo: True
   roles:
+      - common
+
+- hosts: www
+  sudo: True
+  roles:
       - www
-  vars:
-      deploy_mode: devel
+
+- hosts: worker
+  sudo: True
+  roles:
+      - worker
