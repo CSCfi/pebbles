@@ -1,14 +1,12 @@
-from wsgi import api, db, restful, app
 from flask import abort, g
 from flask.ext.restful import fields, marshal_with
+import logging
 
-from wsgi import auth
 from models import User, ActivationToken
 from forms import UserForm, SessionCreateForm, ActivationForm
 
+from wsgi import api, auth, db, restful, app
 from resource_cloud.tasks import run_provisioning
-
-import logging
 
 
 @app.route("/api/debug")
@@ -39,22 +37,45 @@ token_fields = {
 }
 
 
+class FirstUserView(restful.Resource):
+    @marshal_with(user_fields)
+    def post(self):
+        users = User.query.all()
+        form = UserForm()
+
+        if not form.validate_on_submit():
+            logging.warn("%s" % form.errors)
+            return form.errors, 422
+
+        if not users:
+            user = User(form.email.data, form.password.data, is_admin=True)
+            db.session.add(user)
+            db.session.commit()
+        else:
+            return abort(403)
+
+
 class UserList(restful.Resource):
+    @auth.login_required
     @marshal_with(user_fields)
     def post(self):
         form = UserForm()
         if not form.validate_on_submit():
             logging.warn("%s" % form.errors)
             return form.errors, 422
-
-        user = User(form.email.data, form.password.data, form.is_admin.data)
-        db.session.add(user)
+        new_user = User(form.email.data, form.password.data, form.is_admin.data)
+        db.session.add(new_user)
+        token = ActivationToken(new_user)
+        db.session.add(token)
         db.session.commit()
-        return user
+        return new_user
 
     @auth.login_required
     @marshal_with(user_fields)
     def get(self):
+        user = User.verify_auth_token(auth.username())
+        if not user.is_admin:
+            return abort(401)
         return User.query.all()
 
 
@@ -94,14 +115,17 @@ class ActivationView(restful.Resource):
         if not form.validate_on_submit():
             return form.errors, 422
 
-        token = ActivationToken.query.filter_by(token=form.token).first()
+        token = ActivationToken.query.filter_by(token=form.token.data).first()
         if not token:
-            return abort(403)
+            return abort(404)
 
         user = User.query.filter_by(id=token.user_id).first()
         if not user:
             return abort(410)
+        user.set_password(form.password.data)
         user.is_active = True
+
+        db.session.delete(token)
         db.session.commit()
 
         return user
@@ -117,8 +141,9 @@ class ServiceView(restful.Resource):
         run_provisioning.delay()
         return ['%s' % user]
 
+api.add_resource(FirstUserView, '/api/v1/initizlie')
 api.add_resource(UserList, '/api/v1/users')
 api.add_resource(UserView, '/api/v1/users/<string:user_id>')
 api.add_resource(SessionView, '/api/v1/sessions')
-api.add_resource(ActivationView, '/api/v1/activations')
+api.add_resource(ActivationView, '/api/v1/activations<string:activation_id>')
 api.add_resource(ServiceView, '/api/v1/services')

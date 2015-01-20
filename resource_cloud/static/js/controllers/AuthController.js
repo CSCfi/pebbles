@@ -3,6 +3,14 @@ app.controller('AuthController', ['$scope', '$location', 'AuthService', function
         return AuthService.isAuthenticated();
     };
 
+    $scope.isLoggedOut = function() {
+        return ! AuthService.isAuthenticated();
+    };
+
+    $scope.loginFormHidden = function(viewLocation) {
+        return $location.path().match(viewLocation) == viewLocation;
+    };
+
     $scope.login = function() {
         AuthService.login($scope.email, $scope.password).then(function() {
         })

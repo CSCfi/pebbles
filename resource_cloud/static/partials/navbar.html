@@ -3,7 +3,7 @@
     <li><a href="#/dashboard">Dashboard</a></li>
     <li><a href="#/app">Link</a></li>
   </ul>
-  <div ng-hide="isLoggedIn()" class="navbar-form navbar-right">
+  <div ng-show="isLoggedOut()" ng-hide="loginFormHidden('/activate')" class="navbar-form navbar-right">
     <form ng-submit="login()">
       <div class="form-group">
         <input type="email" id="email" name="email" ng-model="email" placeholder="Email" class="form-control">

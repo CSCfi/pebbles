@@ -22,7 +22,6 @@ class User(db.Model):
         else:
             self.set_password(uuid.uuid4().hex)
 
-
     def set_password(self, password):
         self.password = generate_password_hash(password)
 
