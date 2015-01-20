@@ -21,6 +21,11 @@ Vagrant.configure(2) do |config|
     override.vm.box=nil
   end
 
+  # if using virtualbox, run on two vcpus
+  config.vm.provider "virtualbox" do |v|
+    v.cpus = 2
+  end
+
   # Enable provisioning with Ansible.
   config.vm.provision "ansible" do |ansible|
     ansible.playbook = "ansible/playbook.yml"
