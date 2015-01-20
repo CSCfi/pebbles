@@ -32,11 +32,13 @@
     owner={{ application_user }} 
     group={{ application_group }}
 
-
-
 - name: Set permission to the application log file
   file: path={{ application_log_file }}
         owner={{ application_user }}
         group={{ application_group }}
         mode=0664
         state=file
+
+- name: Copy application configuration
+  template: src=app_config.j2
+            dest={{ application_config }}

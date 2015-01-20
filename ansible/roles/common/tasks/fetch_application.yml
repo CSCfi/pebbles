@@ -17,7 +17,4 @@
       - celery
       - gunicorn
 
-- name: Copy application configuration
-  template: src=app_config.j2
-            dest={{ application_config }}
 

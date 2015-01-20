@@ -1,0 +1,35 @@
+---
+# deploy mode: devel=git from shared directory, otherwise checkout from github
+deploy_mode: devel
+
+apt_repository_url: "http://www.nic.funet.fi/pub/mirrors/archive.ubuntu.com/"
+#apt_repository_url: "http://fi.mirrors.archive.ubuntu.com/ubuntu/"
+#apt_repository_url: "mirror://mirrors.ubuntu.com/mirrors.txt"
+
+virtualenv_path: "/webapps/{{ application_name }}/venv"
+runtime_path: "{{ virtualenv_path }}/run"
+server_sock_path: "{{ runtime_path }}/gunicorn.sock"
+application_path: "/webapps/{{ application_name }}/source"
+application_log_dir: "/webapps/{{ application_name }}/logs"
+application_log_file: "{{ application_log_dir }}/gunicorn.log"
+celery_log_file: "{{ application_log_dir }}/celery.log"
+domain: "localhost"
+application_name: "resource_cloud"
+application_user: "{{ application_name }}"
+application_group: "webapps"
+application_debug_logging: 'True'
+application_secret_key: "change me"
+application_config_dir: "/webapps/{{ application_name }}/config"
+application_config: "{{ application_config_dir }}/config.yaml"
+application_database_uri: "sqlite:///{{ runtime_path }}/db.sqlite"
+
+# nginx
+nginx_static_root: "/webapps/{{ application_name }}/static"
+nginx_access_log_file: "{{application_log_dir}}/nginx_access.log"
+nginx_error_log_file: "{{application_log_dir}}/nginx_error.log"
+nginx_ssl_crt: "/etc/nginx/ssl/server.crt"
+nginx_ssl_key: "/etc/nginx/ssl/server.key"
+
+# gunicorn
+gunicorn_num_workers: 4
+gunicorn_max_requests: 1

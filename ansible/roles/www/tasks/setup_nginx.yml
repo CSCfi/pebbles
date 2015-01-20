@@ -36,5 +36,5 @@
     creates=/etc/nginx/ssl/server.crt
   notify: restart nginx
 
-- name: Ensure Nginx service is started
+- name: Ensure Nginx service is started and enabled on boot
   service: name=nginx state=started enabled=yes
