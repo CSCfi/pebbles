@@ -2,7 +2,7 @@
 <!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
 <!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
 <!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
-<!--[if gt IE 8]><!--> <html ng-app="resourceCloudApp" ng-controller="ApplicationController" class="no-js"> <!--<![endif]-->
+<!--[if gt IE 8]><!--> <html ng-app="resourceCloudApp" class="no-js"> <!--<![endif]-->
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
@@ -57,7 +57,10 @@
     <script src="/js/vendor/bootstrap.min.js"></script>
 
     <script type="text/javascript" src="/js/main.js"></script>
-    <script type="text/javascript" src="/js/controllers/ApplicationCtrl.js"></script>
+    <script type="text/javascript" src="/js/services/Session.js"></script>
+    <script type="text/javascript" src="/js/services/AuthService.js"></script>
+    <script type="text/javascript" src="/js/controllers/AuthController.js"></script>
+    <script type="text/javascript" src="/js/controllers/DashboardController.js"></script>
     <script type="text/javascript" src="/js/factories/Session.js"></script>
 
     <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
