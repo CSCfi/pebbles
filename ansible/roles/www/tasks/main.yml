@@ -1,11 +1,25 @@
-- name: update apt repository to {{ apt_repository_url }}
-  apt_repository: repo='deb http://archive.ubuntu.com/ubuntu trusty main' state=absent
-  apt_repository: repo='deb-src http://archive.ubuntu.com/ubuntu trusty main' state=absent
-  apt_repository: repo='deb {{ apt_repository_url }} trusty main' state=present
-  apt_repository: repo='deb-src {{ apt_repository_url }} trusty main' state=present
+- name: update key apt repositories to {{ apt_repository_url }}
+  apt_repository: repo="{{ item.repo }}" state="{{ item.state }}" update_cache=false
+  with_items:
+    - { repo: 'deb http://archive.ubuntu.com/ubuntu trusty main', state: 'absent' }
+    - { repo: 'deb {{ apt_repository_url }} trusty main', state: 'present' }
+    - { repo: 'deb http://archive.ubuntu.com/ubuntu trusty-updates main', state: 'absent' }
+    - { repo: 'deb-src {{ apt_repository_url }} trusty-updates main', state: 'present' }
+
+#- name: Mirrorize apt repo
+#  copy: src=roles/www/templates/etc/apt/sources.list dest=/etc/apt/sources.list
+
+- name: refresh repository metadata
+  apt: update_cache=yes
+
+- name: tools for debugging installation
+  apt: pkg={{item}} state=present
+  with_items:
+    - dstat
+    - lsof
 
 - name: install dependencies
-  apt: pkg={{item}} state=present update_cache=yes cache_valid_time=36000
+  apt: pkg={{item}} state=present
   with_items:
     - git
     - python
