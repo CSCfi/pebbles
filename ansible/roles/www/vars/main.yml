@@ -1,6 +1,8 @@
 ---
 
 apt_repository_url: "http://www.nic.funet.fi/pub/mirrors/archive.ubuntu.com/"
+#apt_repository_url: "http://fi.mirrors.archive.ubuntu.com/ubuntu/"
+#apt_repository_url: "mirror://mirrors.ubuntu.com/mirrors.txt"
 
 virtualenv_path: "/webapps/{{ application_name }}/venv"
 runtime_path: "{{ virtualenv_path }}/run"
