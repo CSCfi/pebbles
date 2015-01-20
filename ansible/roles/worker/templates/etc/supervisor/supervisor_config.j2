@@ -1,0 +1,6 @@
+[program:celery]
+command = {{ virtualenv_path }}/bin/celery worker -A tasks --loglevel=INFO
+directory = {{ application_path }}/resource_cloud
+user = {{ application_user }}
+stdout_logfile = {{ celery_log_file }}
+redirect_stderr = true
