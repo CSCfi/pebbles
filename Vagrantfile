@@ -9,7 +9,7 @@ Vagrant.configure(2) do |config|
 
   config.vm.box = "ubuntu/trusty64"
 
-  config.vm.define "www" do |www|
+  config.vm.define "single" do |vm|
     config.vm.network "forwarded_port", guest: 80, host: 8080
     config.vm.network "forwarded_port", guest: 443, host: 8888
   end
@@ -29,5 +29,12 @@ Vagrant.configure(2) do |config|
   # Enable provisioning with Ansible.
   config.vm.provision "ansible" do |ansible|
     ansible.playbook = "ansible/playbook.yml"
+    ansible.groups = {
+      "www" => ["www","single"],
+      "worker" => ["worker","single"],
+      "all_groups:children" => ["www", "worker"]
+    }
+    ansible.verbose='vv'
   end
+
 end
