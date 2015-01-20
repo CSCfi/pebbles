@@ -9,43 +9,9 @@ Vagrant.configure(2) do |config|
 
   config.vm.box = "ubuntu/trusty64"
 
-  # needed for parallel ansible
-  config.ssh.insert_key = false
-
-  # www host
   config.vm.define "www" do |www|
-
-    www.vm.network "forwarded_port", guest: 80, host: 8080
-    www.vm.network "forwarded_port", guest: 443, host: 8888
-    www.vm.network "private_network", ip: "10.0.0.10"
-
-    # Enable parallel provisioning with Ansible.
-    config.vm.provision "ansible" do |ansible|
-      ansible.playbook = "ansible/playbook.yml"
-      ansible.limit = 'all'
-      ansible.groups = {
-        "www" => ["www"],
-        "worker" => ["worker"],
-        "all_groups:children" => ["www", "worker"]
-      }
-      ansible.verbose='vv'
-    end
-
-    www.vm.provider "docker" do |d|
-      d.name="www"
-    end
-
-  end
-
-  # worker node
-  config.vm.define "worker" do |worker|
-    # docker specific stuff
-    worker.vm.provider "docker" do |d|
-      d.link "www:www"
-      d.name="worker"
-    end
-
-    worker.vm.network "private_network", ip: "10.0.0.11"
+    config.vm.network "forwarded_port", guest: 80, host: 8080
+    config.vm.network "forwarded_port", guest: 443, host: 8888
   end
 
   # if using docker, use a base image with sshd and remove default box config
@@ -55,4 +21,8 @@ Vagrant.configure(2) do |config|
     override.vm.box=nil
   end
 
+  # Enable provisioning with Ansible.
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "ansible/playbook.yml"
+  end
 end
