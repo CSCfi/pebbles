@@ -1,4 +1,4 @@
-app.factory('authService', ['$q', 'localStorageService', 'Session', function($q, localStorageService, Session) {
+app.factory('AuthService', ['$q', 'localStorageService', 'Session', function($q, localStorageService, Session) {
     return {
         login : function(email, password) {
             var me = this;
