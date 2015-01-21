@@ -1,6 +1,7 @@
 from flask.ext.bcrypt import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import uuid
+import datetime
 from wsgi import db, app
 
 
@@ -8,12 +9,14 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
+    visual_id = db.Column(db.String(32))
     email = db.Column(db.String(120), unique=True)
     password = db.Column(db.String(100))
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
 
     def __init__(self, email, password=None, is_admin=False):
+        self.visual_id = uuid.uuid4().hex
         self.email = email.lower()
         self.is_admin = is_admin
         if password:
@@ -54,5 +57,32 @@ class ActivationToken(db.Model):
     def __init__(self, user):
         self.user_id = user.id
         self.token = uuid.uuid4().hex
+
+
+class Resource(db.Model):
+    __tablename__ = 'resources'
+    id = db.Column(db.Integer, primary_key=True)
+    visual_id = db.Column(db.String(32))
+    name = db.Column(db.String(64))
+
+    def __init__(self):
+        self.visual_id = uuid.uuid4().hex
+
+
+class ProvisionedResource(db.Model):
+    __tablename__ = 'provisioned_resources'
+    id = db.Column(db.Integer, primary_key=True)
+    visual_id = db.Column(db.String(32))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    resource_id = db.Column(db.Integer, db.ForeignKey('resources.id'))
+    provisioned_at = db.Column(db.DateTime)
+    state = db.String(db.String(32))
+
+    def __init__(self, resource_id, user_id):
+        self.resource_id = resource_id
+        self.user_id = user_id
+        self.visual_id = uuid.uuid4().hex
+        self.provisioned_at = datetime.datetime.utcnow()
+        self.state = 'starting'
 
 db.create_all()
