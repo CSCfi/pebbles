@@ -13,6 +13,7 @@ app.controller('AuthController', ['$scope', '$location', 'AuthService', function
 
     $scope.login = function() {
         AuthService.login($scope.email, $scope.password).then(function() {
+            $location.path("/dashboard");
         })
     };
 

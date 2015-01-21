@@ -27,12 +27,12 @@ app.controller('DashboardController', ['$scope', '$routeParams', 'AuthService', 
         }
     }
 
-    var services = Restangular.all('services');
-    services.getList().then(function(response) {
+    var resources = Restangular.all('resources');
+    resources.getList().then(function(response) {
           $scope.services = response;
     });
     
-    $scope.call_task = function() {
-        services.post({})   
+    $scope.provision = function(resource) {
+        resource.post();
     }
 }]);

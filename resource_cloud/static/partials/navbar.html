@@ -1,9 +1,9 @@
 <div id="navbar" ng-controller="AuthController" class="navbar-collapse collapse">
   <ul class="nav navbar-nav">
     <li><a href="#/dashboard">Dashboard</a></li>
-    <li><a href="#/app">Link</a></li>
+    <li><a href="#/account">Account</a></li>
   </ul>
-  <div ng-show="isLoggedOut()" ng-hide="loginFormHidden('/activate')" class="navbar-form navbar-right">
+  <div ng-show="isLoggedOut()" class="navbar-form navbar-right">
     <form ng-submit="login()">
       <div class="form-group">
         <input type="email" id="email" name="email" ng-model="email" placeholder="Email" class="form-control">

@@ -17,8 +17,14 @@ app.run(function($location, Restangular, AuthService) {
             switch(response.status) {
                 case 401:
                     AuthService.logout()
-                    $location.path('/session/create');
+                    $location.path('/');
                     break;
+                case 403:
+                    // Pass 403 Forbidden to controllers to handle
+                    return true;
+                case 409:
+                    // Pass 409 Conflict to controllers to handle
+                    return true;
                 default:
                     throw new Error('No handler for status code ' + response.status);
             }
@@ -59,7 +65,10 @@ app.config(function($routeProvider, RestangularProvider) {
 
     $routeProvider
         .when('/', {
-            templateUrl: partialsDir + '/welcome.html'
+            templateUrl: partialsDir + '/welcome.html',
+            resolve: {
+                redirectIfAuthenticated: redirectIfAuthenticated('/dashboard')
+            }
         })
         .when('/dashboard', {
             controller: 'DashboardController',
@@ -81,5 +90,9 @@ app.config(function($routeProvider, RestangularProvider) {
             resolve: {
                 redirectIfAuthenticated: redirectIfAuthenticated('/')
             }
+        })
+        .when('/initilize', {
+            controller: 'InitializationController',
+            templateUrl: partialsDir + '/initialize.html'
         });
 });
