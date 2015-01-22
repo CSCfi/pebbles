@@ -14,16 +14,16 @@ Vagrant.configure(2) do |config|
     config.vm.network "forwarded_port", guest: 443, host: 8888
   end
 
+  # if using virtualbox, run on two vcpus
+  config.vm.provider "virtualbox" do |v|
+    v.cpus = 2
+  end
+
   # if using docker, use a base image with sshd and remove default box config
   config.vm.provider "docker" do |d, override|
     d.image="ubuntu_with_ssh:14.04"
     d.has_ssh=true
     override.vm.box=nil
-  end
-
-  # if using virtualbox, run on two vcpus
-  config.vm.provider "virtualbox" do |v|
-    v.cpus = 2
   end
 
   # Enable provisioning with Ansible.
