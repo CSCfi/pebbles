@@ -4,10 +4,10 @@
   apt: pkg={{item}} state=present
   with_items:
     - nginx
-    - rabbitmq-server
+    - redis-server
 
-- name: Enable rabbitmq-server on boot and make sure it is running
-  service: name=rabbitmq-server enabled=true state=started
+- name: Enable redis-server on boot and make sure it is running
+  service: name=redis-server enabled=true state=started
 
 - include: setup_runtime_directories.yml
 - include: setup_nginx.yml

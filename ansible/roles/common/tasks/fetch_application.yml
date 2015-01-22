@@ -14,7 +14,7 @@
 - name: Install infrastructural dependencies from PyPI
   pip: name={{ item }} virtualenv={{ virtualenv_path }}
   with_items:
-      - celery
+      - celery[redis]
       - gunicorn
 
 
