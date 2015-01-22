@@ -5,7 +5,7 @@ import logging
 from models import User, ActivationToken, Resource, ProvisionedResource
 from forms import UserForm, SessionCreateForm, ActivationForm
 
-from wsgi import api, auth, db, restful, app
+from server import api, auth, db, restful, app
 from resource_cloud.tasks import run_provisioning
 
 

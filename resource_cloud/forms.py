@@ -4,7 +4,7 @@ from wtforms import StringField
 from wtforms.validators import DataRequired
 
 from models import User
-from wsgi import db
+from server import db
 
 BaseModelForm = model_form_factory(Form)
 

@@ -2,7 +2,7 @@ from flask.ext.bcrypt import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import uuid
 import datetime
-from wsgi import db, app
+from server import db, app
 
 
 class User(db.Model):
