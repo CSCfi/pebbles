@@ -25,7 +25,7 @@ def cov():
     import os
     cov = coverage.coverage(
         branch=True,
-        include='project/*'
+        include='resource_cloud/*'
     )
     cov.start()
     tests = unittest.TestLoader().discover('resource_cloud.tests')
@@ -34,10 +34,6 @@ def cov():
     cov.save()
     print('Coverage Summary:')
     cov.report()
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    covdir = os.path.join(basedir, 'coverage')
-    cov.html_report(directory=covdir)
-    cov.erase()
 
 if __name__ == '__main__':
         manager.run()

@@ -2,10 +2,10 @@ from flask import abort, g
 from flask.ext.restful import fields, marshal_with
 import logging
 
-from models import User, ActivationToken, Resource, ProvisionedResource
-from forms import UserForm, SessionCreateForm, ActivationForm
+from resource_cloud.models import User, ActivationToken, Resource, ProvisionedResource
+from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
 
-from server import api, auth, db, restful, app
+from resource_cloud.server import api, auth, db, restful, app
 from resource_cloud.tasks import run_provisioning
 
 
@@ -195,6 +195,7 @@ class ResourceView(restful.Resource):
     def get(self, resource_id):
         return Resource.query.filter_by(id=resource_id).first()
 
+    @auth.login_required
     def post(self, resource_id):
         user = User.verify_auth_token(auth.username())
         provision = ProvisionedResource.query.filter_by(resource_id=resource_id). \

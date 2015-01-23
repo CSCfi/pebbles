@@ -1,5 +1,5 @@
 from celery import Celery
-import config
+from resource_cloud.config import BaseConfig as config
 
 app = Celery('tasks', broker=config.MESSAGE_QUEUE_URI)
 

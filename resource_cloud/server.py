@@ -4,7 +4,8 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.httpauth import HTTPBasicAuth
 
 app = Flask(__name__)
-app.config.from_object('resource_cloud.config')
+app.config.from_object('resource_cloud.config.DevConfig')
+app.debug = True
 
 db = SQLAlchemy(app)
 

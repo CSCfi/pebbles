@@ -3,8 +3,8 @@ from wtforms_alchemy import model_form_factory
 from wtforms import StringField
 from wtforms.validators import DataRequired
 
-from models import User
-from server import db
+from resource_cloud.models import User
+from resource_cloud.server import db
 
 BaseModelForm = model_form_factory(Form)
 
