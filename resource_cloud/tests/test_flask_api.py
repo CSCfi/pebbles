@@ -36,9 +36,9 @@ class FlaskApiTestCase(BaseTestCase):
                                     headers=headers,
                                     data=json.dumps({'email': 'admin@admin.com',
                                                      'password': 'admin'}))
-        token = response.json['token']
+        token = '%s:' % response.json['token']
         headers = [('Accept', 'application/json')]
-        token_b64 = base64.b64encode(bytes('%s:' % token, 'ascii')).decode('ascii')
+        token_b64 = base64.b64encode(bytes(token.encode('ascii'))).decode('utf-8')
         headers.append(('Authorization', 'Basic %s' % token_b64))
         headers.append(('token', token_b64))
         response = self.client.get('/api/v1/users',
