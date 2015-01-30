@@ -2,11 +2,17 @@ from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 
 from resource_cloud.server import app, db
+from resource_cloud import models
 
 
 migrate = Migrate(app, db)
 manager = Manager(app)
-manager.add_command('db', MigrateCommand)
+manager.add_command('migrate', MigrateCommand)
+
+
+@manager.shell
+def make_context():
+    return dict(app=app, db=db, models=models)
 
 
 @manager.command
@@ -22,7 +28,6 @@ def cov():
     """Runs the unit tests with coverage."""
     import coverage
     import unittest
-    import os
     cov = coverage.coverage(
         branch=True,
         include='resource_cloud/*'
