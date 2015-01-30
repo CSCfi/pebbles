@@ -26,6 +26,10 @@ RUN echo -n 'vagrant:vagrant' | chpasswd
 RUN echo 'vagrant ALL=NOPASSWD: ALL' > /etc/sudoers.d/vagrant
 
 # faster deployment with packages pre-installed in the base image
-#RUN apt-get install -y git  python  python-pip  python-dev  python-virtualenv  nginx  supervisor  rabbitmq-server
+RUN apt-get install -y git python python-pip python-dev python-virtualenv nginx supervisor redis-server \
+                       libffi-dev libssl-dev
+
+# debugging tools for development
+RUN apt-get install -y tmux tree
 
 CMD /usr/sbin/sshd -D -o UseDNS=no -o UsePAM=no
