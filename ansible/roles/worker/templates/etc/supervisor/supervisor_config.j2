@@ -1,4 +1,4 @@
-[program:celery]
+[program:{{application_name}}-worker]
 command = {{ virtualenv_path }}/bin/celery worker -A resource_cloud.tasks --loglevel=INFO
 directory = {{ application_path }}
 user = {{ application_user }}

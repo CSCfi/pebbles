@@ -11,4 +11,4 @@
   command: supervisorctl update
 
 - name: Restart Supervisor
-  command: supervisorctl restart {{ application_name }}
+  command: supervisorctl restart {{ application_name }}-worker
