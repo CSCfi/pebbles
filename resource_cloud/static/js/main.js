@@ -16,9 +16,9 @@ app.run(function($location, Restangular, AuthService) {
         } else {
             switch(response.status) {
                 case 401:
-                    AuthService.logout()
+                    AuthService.logout();
                     $location.path('/');
-                    break;
+                    return false;
                 case 403:
                     // Pass 403 Forbidden to controllers to handle
                     return true;

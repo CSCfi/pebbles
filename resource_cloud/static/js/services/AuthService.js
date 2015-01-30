@@ -18,9 +18,7 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', function($q,
         },
 
         logout : function() {
-            var deferred = $q.defer();
             localStorageService.clearAll();
-            return deferred.promise;
         },
 
         isAuthenticated : function() {

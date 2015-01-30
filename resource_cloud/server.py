@@ -11,5 +11,6 @@ db = SQLAlchemy(app)
 
 api = restful.Api(app)
 auth = HTTPBasicAuth()
+auth.authenticate_header = lambda: "Authentication Required"
 
 import resource_cloud.views
