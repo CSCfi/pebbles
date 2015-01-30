@@ -8,6 +8,7 @@ class BaseConfig(object):
     SSL_VERIFY = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
     MESSAGE_QUEUE_URI = 'redis://localhost:6379/0'
+    PVC_CLUSTER_DATA_DIR = '/var/spool/pvc_clusters'
 
 
 class ProductionConfig(BaseConfig):

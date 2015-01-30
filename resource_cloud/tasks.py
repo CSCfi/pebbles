@@ -1,4 +1,6 @@
 import base64
+import os
+import random
 import time
 import requests
 from celery import Celery
@@ -14,7 +16,7 @@ app.conf.CELERY_TASK_SERIALIZER = 'json'
 def run_provisioning(token, resource_id):
     logger.info('provisioning triggered for %s' % resource_id)
 
-    time.sleep(5)
+    run_pvc_provisioning(token, resource_id)
 
     logger.info('provisioning done, notifying server')
     resp = update_resource_state(token, resource_id, 'running')
@@ -29,7 +31,7 @@ def run_provisioning(token, resource_id):
 def run_deprovisioning(token, resource_id):
     logger.info('deprovisioning triggered for %s' % resource_id)
 
-    time.sleep(5)
+    run_pvc_deprovisioning(token, resource_id)
 
     logger.info('deprovisioning done, notifying server')
     resp = update_resource_state(token, resource_id, 'deleted')
@@ -51,3 +53,25 @@ def update_resource_state(token, resource_id, state):
                           verify=config.SSL_VERIFY)
     logger.info('got response %s %s' % (resp.status_code, resp.reason))
     return resp
+
+
+def run_pvc_provisioning(token, resource_id):
+    res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, resource_id)
+
+    # will fail if there is already a directory for this resource
+    os.makedirs(res_dir)
+
+    # sleep for a while to emulate provisioning
+    t = random.randint(10, 30)
+    logger.info('sleeping for %s secs' % t)
+    time.sleep(t)
+
+
+def run_pvc_deprovisioning(token, resource_id):
+    res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, resource_id)
+
+    # sleep for a while to emulate deprovisioning
+    t = random.randint(10, 30)
+    logger.info('sleeping for %s secs' % t)
+    time.sleep(t)
+    os.rename(res_dir, '%s.deleted' % res_dir)
