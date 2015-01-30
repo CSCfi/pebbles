@@ -27,5 +27,4 @@ class SessionCreateForm(ModelForm):
 
 class ActivationForm(ModelForm):
     token = StringField('token', validators=[DataRequired()])
-    password1 = StringField('password1', validators=[DataRequired()])
-    password2 = StringField('password2', validators=[DataRequired()])
+    password = StringField('password', validators=[DataRequired()])
