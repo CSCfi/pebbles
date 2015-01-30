@@ -33,3 +33,6 @@ nginx_ssl_key: "/etc/nginx/ssl/server.key"
 # gunicorn
 gunicorn_num_workers: 4
 gunicorn_max_requests: 1
+
+# pouta-virtualcluster
+pvc_install_dir: /opt/pvc
