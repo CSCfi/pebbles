@@ -1,0 +1,18 @@
+---
+- name: Install pouta-virtualcluster package dependencies
+  apt: name={{ item }} state=present
+  with_items:
+      - python-openstackclient
+
+- name: Make base directory for pouta-virtualcluster
+  file: name={{ pvc_install_dir }} state=directory
+
+- name: Checkout pouta-virtualcluster from GitHub
+  git: repo=https://github.com/CSC-IT-Center-for-Science/pouta-virtualcluster.git dest={{ pvc_install_dir }}/
+
+- name: Make a base directory for provisioned cluster data
+  file: name={{ pvc_cluster_data_dir }} state=directory owner={{ application_user }}
+
+- name: Symlink pvc ansible playbooks
+  file: name={{ pvc_cluster_data_dir }}/ansible state=link src={{ pvc_install_dir}}/ansible
+

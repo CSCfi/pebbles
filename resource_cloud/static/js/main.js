@@ -91,7 +91,7 @@ app.config(function($routeProvider, RestangularProvider) {
                 redirectIfAuthenticated: redirectIfAuthenticated('/')
             }
         })
-        .when('/initilize', {
+        .when('/initialize', {
             controller: 'InitializationController',
             templateUrl: partialsDir + '/initialize.html'
         });

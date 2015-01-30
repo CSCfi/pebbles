@@ -1,4 +1,4 @@
-- name: update key apt repositories to {{ apt_repository_url }}
+- name: update key apt repositories
   apt_repository: repo="{{ item.repo }}" state="{{ item.state }}" update_cache=false
   with_items:
     - { repo: 'deb http://archive.ubuntu.com/ubuntu trusty main', state: 'absent' }
