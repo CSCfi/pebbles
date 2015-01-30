@@ -76,7 +76,7 @@ class ProvisionedResource(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     resource_id = db.Column(db.Integer, db.ForeignKey('resources.id'))
     provisioned_at = db.Column(db.DateTime)
-    state = db.String(db.String(32))
+    state = db.Column(db.String(32))
 
     def __init__(self, resource_id, user_id):
         self.resource_id = resource_id
@@ -84,5 +84,23 @@ class ProvisionedResource(db.Model):
         self.visual_id = uuid.uuid4().hex
         self.provisioned_at = datetime.datetime.utcnow()
         self.state = 'starting'
+
+
+class SystemToken(db.Model):
+    __tablename__ = 'system_tokens'
+
+    token = db.Column(db.String(32), primary_key=True)
+    role = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime)
+
+    def __init__(self, role):
+        self.role = role
+        self.token = uuid.uuid4().hex
+        self.created_at = datetime.datetime.utcnow()
+
+    @staticmethod
+    def verify(token):
+        return SystemToken.query.filter_by(token=token).first()
+
 
 db.create_all()

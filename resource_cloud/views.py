@@ -1,12 +1,14 @@
 from flask import abort, g
-from flask.ext.restful import fields, marshal_with
+from flask.ext.restful import fields, marshal_with, reqparse
 import logging
 
-from resource_cloud.models import User, ActivationToken, Resource, ProvisionedResource
+from resource_cloud.models import User, ActivationToken, Resource, ProvisionedResource, SystemToken
 from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
 
 from resource_cloud.server import api, auth, db, restful, app
-from resource_cloud.tasks import run_provisioning
+from resource_cloud.tasks import run_provisioning, run_deprovisioning
+
+USER_RESOURCE_LIMIT = 5
 
 
 @app.route("/api/debug")
@@ -16,6 +18,11 @@ def debug():
 
 @auth.verify_password
 def verify_password(userid_or_token, password):
+    # first check for system tokens
+    if SystemToken.verify(userid_or_token):
+        g.user = User('system', is_admin=True)
+        return True
+
     g.user = User.verify_auth_token(userid_or_token)
     if not g.user:
         g.user = User.query.filter_by(email=userid_or_token).first()
@@ -132,23 +139,30 @@ class ActivationView(restful.Resource):
 
         return user
 
+
 provision_fields = {
     'id': fields.String(attribute='visual_id'),
     'provisioned_at': fields.DateTime,
+    'state': fields.String,
 }
 
 
-class ProvisionList(restful.Resource):
+class ProvisionedResourceList(restful.Resource):
     @auth.login_required
     @marshal_with(provision_fields)
     def get(self):
         user = User.verify_auth_token(auth.username())
         if user.is_admin:
-            return ProvisionedResource.query.all()
-        return ProvisionedResource.query.filter_by(user_id=user.id)
+            return ProvisionedResource.query. \
+                filter(ProvisionedResource.state != 'deleted').all()
+        return ProvisionedResource.query.filter_by(user_id=user.id). \
+            filter((ProvisionedResource.state != 'deleted')).all()
 
 
-class ProvisionView(restful.Resource):
+class ProvisionedResourceView(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('state', type=str)
+
     @auth.login_required
     @marshal_with(provision_fields)
     def get(self, provision_id):
@@ -162,13 +176,34 @@ class ProvisionView(restful.Resource):
     @auth.login_required
     def delete(self, provision_id):
         user = User.verify_auth_token(auth.username())
-        resource = ProvisionedResource.query.filter_by(visual_id=provision_id). \
+        pr = ProvisionedResource.query.filter_by(visual_id=provision_id). \
             filter_by(user_id=user.id).first()
-        if not resource:
+        if not pr:
             abort(404)
-        # XXX: Send unprovisioning request to task queue
-        db.session.delete(resource)
+        pr.state = 'deleting'
+        token = SystemToken('provisioning')
+        db.session.add(token)
         db.session.commit()
+        run_deprovisioning.delay(token.token, pr.visual_id)
+
+    @auth.login_required
+    def patch(self, provision_id):
+        user = g.user
+        args = self.parser.parse_args()
+        print('got args %s' % args)
+        qr = ProvisionedResource.query.filter_by(visual_id=provision_id)
+        if not user.is_admin:
+            qr = qr.filter_by(user_id=user.id)
+        pr = qr.first()
+        if not pr:
+            abort(404)
+        if args['state']:
+            pr.state = args['state']
+            db.session.commit()
+            if args['state'] == 'deleting':
+                self.delete(provision_id)
+        pass
+
 
 resource_fields = {
     'id': fields.String(attribute='visual_id'),
@@ -198,15 +233,18 @@ class ResourceView(restful.Resource):
     @auth.login_required
     def post(self, resource_id):
         user = User.verify_auth_token(auth.username())
-        provision = ProvisionedResource.query.filter_by(resource_id=resource_id). \
-            filter_by(user_id=user.id).first()
-        if provision:
+        existingResources = ProvisionedResource.query.filter_by(resource_id=resource_id). \
+            filter_by(user_id=user.id).filter(ProvisionedResource.state != 'deleted').all()
+        if existingResources and len(existingResources) >= USER_RESOURCE_LIMIT:
             abort(409)
         provision = ProvisionedResource(resource_id, user.id)
+        token = SystemToken('provisioning')
         db.session.add(provision)
+        db.session.add(token)
         db.session.commit()
-        run_provisioning.delay()
+        run_provisioning.delay(token.token, provision.visual_id)
         return ['%s' % user]
+
 
 api.add_resource(FirstUserView, '/api/v1/initialize')
 api.add_resource(UserList, '/api/v1/users')
@@ -215,3 +253,6 @@ api.add_resource(SessionView, '/api/v1/sessions')
 api.add_resource(ActivationView, '/api/v1/activations/<string:activation_id>')
 api.add_resource(ResourceList, '/api/v1/resources')
 api.add_resource(ResourceView, '/api/v1/resources/<string:resource_id>')
+api.add_resource(ProvisionedResourceList, '/api/v1/provisioned_resources')
+api.add_resource(ProvisionedResourceView, '/api/v1/provisioned_resources/<string:provision_id>',
+                 methods=['GET', 'POST', 'DELETE', 'PATCH'])

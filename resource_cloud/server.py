@@ -12,6 +12,4 @@ db = SQLAlchemy(app)
 api = restful.Api(app)
 auth = HTTPBasicAuth()
 
-
-
 import resource_cloud.views
