@@ -1,0 +1,36 @@
+---
+cluster:
+  name: {{ cluster_name }}
+  description: Cluster deployed by resource_cloud
+  network: default
+  allow-traffic-from-sec-groups:
+    - bastion
+frontend:
+  sec-key: {{ security_key }}
+  image: Ubuntu-14.04
+  admin-user: cloud-user
+  flavor: {{ frontend_flavor }}
+  public-ip: {{ public_ip }}
+  volumes:
+    - name: local_data
+      size: 10
+    - name: shared_data
+      size: 10
+  groups:
+    - cluster_master
+    - hadoop_namenode
+    - hadoop_jobtracker
+    - spark_master
+node:
+  sec-key: {{ security_key }}
+  image: Ubuntu-14.04
+  admin-user: cloud-user
+  flavor: {{ node_flavor }}
+  volumes:
+    - name: local_data
+      size: 10
+  groups:
+    - cluster_slave
+    - hadoop_datanode
+    - hadoop_tasktracker
+    - spark_slave
