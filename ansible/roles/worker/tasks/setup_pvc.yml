@@ -2,6 +2,13 @@
 - name: Install pouta-virtualcluster package dependencies
   apt: name={{ item }} state=present
   with_items:
+      - python-yaml
+      - libffi-dev
+      - libssl-dev
+
+- name: Install OpenStack client from PIP
+  pip: name={{ item }} virtualenv={{ virtualenv_path }}
+  with_items:
       - python-openstackclient
 
 - name: Make base directory for pouta-virtualcluster
