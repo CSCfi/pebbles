@@ -1,35 +1,71 @@
 <div ng-controller="DashboardController">
     <h1>Dashboard</h1>
+
     <div ng-show="users">
         <h2>Users</h2>
         <table ng-show="users" class="table table-striped">
             <thead>
-                <tr><td>Email</td><td>Is active</td><td>Is admin</td><td></td></tr>
+            <tr>
+                <td>Email</td>
+                <td>Is active</td>
+                <td>Is admin</td>
+                <td></td>
+            </tr>
             </thead>
             <tbody>
-                <tr ng-repeat="user in users">
-                    <td>{{ user.email }}</td>
-                    <td>{{ user.is_active }}</td>
-                    <td>{{ user.is_admin}}</td>
-                    <td><button ng-click="remove_user(user)"; type="submit" class="btn btn-default">Remove</button></td>
-                </tr>
+            <tr ng-repeat="user in users">
+                <td>{{user.email}}</td>
+                <td>{{user.is_active}}</td>
+                <td>{{user.is_admin}}</td>
+                <td>
+                    <button ng-click="remove_user(user)" ; type="submit" class="btn btn-default">Remove</button>
+                </td>
+            </tr>
             </tbody>
         </table>
         <form>
             <input name="email" type="email" ng-model="new_user" required/>
-            <button ng-click="add_user(new_user)"; type="submit" class="btn btn-default">Invite</button>
+            <button ng-click="add_user(new_user)" ; type="submit" class="btn btn-default">Invite</button>
         </form>
     </div>
-    <h2>Service</h2>
+    <h2>Services</h2>
     <table class="table table-striped">
         <thead>
-            <tr><td>Type</td><td>VCPUs</td><td>Max life-time</td><td></td></tr>
+        <tr>
+            <td>Type</td>
+            <td>VCPUs</td>
+            <td>Max life-time</td>
+            <td></td>
+        </tr>
         </thead>
         <tbody>
-            <tr ng-repeat="service in services">
-                <td>{{ service.name }}</td><td>{{ service.vcpus }}</td><td>{{ service.max_life_time }}</td>
-                <td><button ng-click="provision(service)" type="submit" class="btn btn-default">Launch</button></td>
-            </tr>
+        <tr ng-repeat="service in services">
+            <td>{{service.name}}</td>
+            <td>{{service.vcpus}}</td>
+            <td>{{service.max_life_time}}</td>
+            <td>
+                <button ng-click="provision(service)" type="submit" class="btn btn-default">Launch</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <h2>Instances</h2>
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <td>id</td>
+            <td>state</td>
+            <td>actions</td>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="instance in instances">
+            <td>{{instance.id}}</td>
+            <td>{{instance.state}}</td>
+            <td>
+                <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger">Destroy</button>
+            </td>
+        </tr>
         </tbody>
     </table>
 
