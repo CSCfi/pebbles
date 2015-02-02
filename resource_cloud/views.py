@@ -66,8 +66,8 @@ class UserList(restful.Resource):
     def post(self):
         form = UserForm()
         if not form.validate_on_submit():
-            logging.warn("%s" % form.errors)
-            return form.errors, 422
+            logging.warn("validation error on user add: %s" % form.errors)
+            abort(422)
         new_user = User(form.email.data, form.password.data,
                         form.is_admin.data)
         db.session.add(new_user)
@@ -99,7 +99,8 @@ class UserView(restful.Resource):
     def delete(self, user_id):
         user = User.query.filter_by(visual_id=user_id).first()
         if not user:
-            return abort(404)
+            logging.warn("trying to delete non-existing user")
+            abort(404)
         db.session.delete(user)
         db.session.commit()
 
@@ -115,12 +116,14 @@ class SessionView(restful.Resource):
     def post(self):
         form = SessionCreateForm()
         if not form.validate_on_submit():
+            logging.warn("validation error on user login")
             return form.errors, 422
 
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
             return {'token': user.generate_auth_token(),
                     'is_admin': user.is_admin}
+        logging.warn("invalid login credentials for %s" % form.email.data)
         return abort(401)
 
 
@@ -176,8 +179,8 @@ class ProvisionedResourceView(restful.Resource):
         user = g.user
         resource = ProvisionedResource.query.filter_by(visual_id=provision_id)
         if not user.is_admin:
-            resource=resource.filter_by(user_id=user.id)
-        resource=resource.first()
+            resource = resource.filter_by(user_id=user.id)
+        resource = resource.first()
         if not resource:
             abort(404)
         return resource
@@ -209,7 +212,7 @@ class ProvisionedResourceView(restful.Resource):
 
         # TODO: add a model for state transitions
         if args['state']:
-            if args['state']=='deleting':
+            if args['state'] == 'deleting':
                 if pr.state in ['starting', 'running']:
                     pr.state = args['state']
                     self.delete(provision_id)
