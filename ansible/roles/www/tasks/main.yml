@@ -5,6 +5,7 @@
   with_items:
     - nginx
     - redis-server
+    - sqlite3
 
 - name: Enable redis-server on boot and make sure it is running
   service: name=redis-server enabled=true state=started
