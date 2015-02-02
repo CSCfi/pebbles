@@ -37,4 +37,10 @@ Vagrant.configure(2) do |config|
     ansible.verbose='vv'
   end
 
+  # history initialization for easy tmux access
+  # note on privileged: see https://github.com/mitchellh/vagrant/issues/1673
+  config.vm.provision "shell",
+    inline: "echo 'sudo tmux -f /vagrant/tmux.conf att' > /home/vagrant/.bash_history",
+    privileged: false
+
 end
