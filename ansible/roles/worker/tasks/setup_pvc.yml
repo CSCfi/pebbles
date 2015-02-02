@@ -5,11 +5,13 @@
       - python-yaml
       - libffi-dev
       - libssl-dev
+      - ansible
 
 - name: Install OpenStack client from PIP
   pip: name={{ item }} virtualenv={{ virtualenv_path }}
   with_items:
-      - python-openstackclient
+      - python-novaclient
+      - python-cinderclient
 
 - name: Make base directory for pouta-virtualcluster
   file: name={{ pvc_install_dir }} state=directory
