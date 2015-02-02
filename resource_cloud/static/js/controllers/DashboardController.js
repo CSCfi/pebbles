@@ -1,5 +1,5 @@
-app.controller('DashboardController', ['$scope', '$routeParams', '$interval', 'AuthService', 'Restangular',
-    function ($scope, $routeParams, $interval, AuthService, Restangular) {
+app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$interval', 'AuthService', 'Restangular',
+    function ($q, $scope, $routeParams, $interval, AuthService, Restangular) {
 
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
 

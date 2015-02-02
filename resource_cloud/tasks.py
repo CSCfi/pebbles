@@ -4,13 +4,39 @@ import random
 import time
 import requests
 from celery import Celery
-from resource_cloud.config import BaseConfig as config
 from celery.utils.log import get_task_logger
 import jinja2
+from flask import render_template
+from flask.ext.mail import Message
+from resource_cloud.app import get_app
+from resource_cloud.config import BaseConfig as config
 
 logger = get_task_logger(__name__)
 app = Celery('tasks', broker=config.MESSAGE_QUEUE_URI, backend=config.MESSAGE_QUEUE_URI)
 app.conf.CELERY_TASK_SERIALIZER = 'json'
+
+flask_app = get_app()
+
+
+@app.task(name="resource_cloud.tasks.send_mails")
+def send_mails(users):
+    with flask_app.test_request_context():
+        for email, token in users:
+            msg = Message('Resource-cloud activation')
+            msg.recipients = [email]
+            msg.sender = 'resource-cloud@csc.fi'
+            activation_url = '%s/#/activate/%s' % (flask_app.config['BASE_URL'],
+                                                   token)
+            msg.html = render_template('invitation.html',
+                                       activation_link=activation_url)
+            msg.body = render_template('invitation.txt',
+                                       activation_link=activation_url)
+            mail = flask_app.extensions.get('mail')
+            if not mail:
+                raise RuntimeError("mail extension is not configured")
+            if flask_app.config.get('MAIL_SUPPRESS_SEND'):
+                logger.info(msg.body)
+            mail.send(msg)
 
 
 @app.task(name="resource_cloud.tasks.run_provisioning")

@@ -9,6 +9,7 @@ class BaseConfig(object):
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
     MESSAGE_QUEUE_URI = 'redis://localhost:6379/0'
     PVC_CLUSTER_DATA_DIR = '/var/spool/pvc_clusters'
+    BASE_URL = 'https://localhost:8888'
 
 
 class ProductionConfig(BaseConfig):
@@ -18,6 +19,7 @@ class ProductionConfig(BaseConfig):
 
 class DevConfig(BaseConfig):
     SECRET_KEY = 'change_me'
+    MAIL_SUPPRESS_SEND = True
 
 
 class TestConfig(BaseConfig):
