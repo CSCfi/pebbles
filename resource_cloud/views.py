@@ -134,9 +134,6 @@ class ActivationList(restful.Resource):
         if not token:
             return abort(404)
 
-        logging.warn(token)
-        logging.warn(token.user_id)
-        logging.warn(token.token)
         user = User.query.filter_by(id=token.user_id).first()
         if not user:
             return abort(410)
