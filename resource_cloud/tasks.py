@@ -6,6 +6,8 @@ import requests
 from celery import Celery
 from resource_cloud.config import BaseConfig as config
 from celery.utils.log import get_task_logger
+import jinja2
+import names
 
 logger = get_task_logger(__name__)
 app = Celery('tasks', broker=config.MESSAGE_QUEUE_URI, backend=config.MESSAGE_QUEUE_URI)
@@ -60,6 +62,21 @@ def run_pvc_provisioning(token, resource_id):
 
     # will fail if there is already a directory for this resource
     os.makedirs(res_dir)
+
+    # generate pvc config for this cluster
+    THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+    j2env = jinja2.Environment(loader=jinja2.FileSystemLoader(THIS_DIR))
+    tc = j2env.get_template('templates/pvc-cluster.yml.jinja2')
+
+    c_name=names.get_first_name(gender='female').lower()
+
+    conf = tc.render(cluster_name=c_name, security_key='rc_master', frontend_flavor='mini', public_ip='86.50.168.206',
+                     node_flavor='mini', )
+
+    with open('%s/cluster.yml' % res_dir, 'w') as cf:
+        cf.write(conf)
+        cf.write('\n')
+
 
     # sleep for a while to emulate provisioning
     t = random.randint(10, 30)
