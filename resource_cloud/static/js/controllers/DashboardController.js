@@ -66,6 +66,6 @@ app.controller('DashboardController', ['$scope', '$routeParams', '$interval', 'A
                 provisionedResources.getList().then(function (response) {
                     $scope.instances = response;
                 });
-            }, 10000);
+            }, 60000);
         }
     }]);

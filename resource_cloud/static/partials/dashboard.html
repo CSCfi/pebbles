@@ -63,7 +63,7 @@
             <td>{{instance.name}}</td>
             <td>{{instance.state}}</td>
             <td>
-                <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger">Destroy</button>
+                <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger" ng-disabled="instance.state=='deleting'" >Destroy</button>
             </td>
         </tr>
         </tbody>
