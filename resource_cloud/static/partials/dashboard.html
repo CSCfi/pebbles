@@ -1,33 +1,7 @@
 <div ng-controller="DashboardController">
     <h1>Dashboard</h1>
 
-    <div ng-show="users">
-        <h2>Users</h2>
-        <table ng-show="users" class="table table-striped">
-            <thead>
-            <tr>
-                <td>Email</td>
-                <td>Is active</td>
-                <td>Is admin</td>
-                <td></td>
-            </tr>
-            </thead>
-            <tbody>
-            <tr ng-repeat="user in users">
-                <td>{{user.email}}</td>
-                <td>{{user.is_active}}</td>
-                <td>{{user.is_admin}}</td>
-                <td>
-                    <button ng-click="remove_user(user)" ; type="submit" class="btn btn-default">Remove</button>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-        <form>
-            <input name="email" type="email" ng-model="new_user" required/>
-            <button ng-click="add_user(new_user)" ; type="submit" class="btn btn-default">Invite</button>
-        </form>
-    </div>
+
     <h2>Services</h2>
     <table class="table table-striped">
         <thead>
