@@ -55,9 +55,24 @@ def update_resource_state(token, resource_id, state):
     logger.info('got response %s %s' % (resp.status_code, resp.reason))
     return resp
 
+def get_resource_data(token, resource_id):
+    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
+    headers = {'Accept': 'text/plain',
+               'Authorization': 'Basic %s' % auth}
+    url = 'https://localhost/api/v1/provisioned_resources/%s' % resource_id
+    resp = requests.get(url, headers=headers, verify=config.SSL_VERIFY)
+    logger.info('got response %s %s' % (resp.status_code, resp.reason))
+    return resp
 
 def run_pvc_provisioning(token, resource_id):
-    res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, resource_id)
+
+    resp=get_resource_data(token, resource_id)
+    if resp.status_code != 200:
+        raise RuntimeError('Cannot fetch data for resource %s, %s' % (resource_id, resp.reason))
+    r_data=resp.json()
+    c_name=r_data['name']
+
+    res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, c_name)
 
     # will fail if there is already a directory for this resource
     os.makedirs(res_dir)
@@ -67,13 +82,12 @@ def run_pvc_provisioning(token, resource_id):
     j2env = jinja2.Environment(loader=jinja2.FileSystemLoader(THIS_DIR))
     tc = j2env.get_template('templates/pvc-cluster.yml.jinja2')
 
-    conf = tc.render(cluster_name='test-'+resource_id, security_key='rc_master', frontend_flavor='mini', public_ip='86.50.168.206',
+    conf = tc.render(cluster_name=c_name, security_key='rc_master', frontend_flavor='mini', public_ip='86.50.168.206',
                      node_flavor='mini', )
 
     with open('%s/cluster.yml' % res_dir, 'w') as cf:
         cf.write(conf)
         cf.write('\n')
-
 
     # sleep for a while to emulate provisioning
     t = random.randint(10, 30)
@@ -82,10 +96,18 @@ def run_pvc_provisioning(token, resource_id):
 
 
 def run_pvc_deprovisioning(token, resource_id):
-    res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, resource_id)
+
+    resp=get_resource_data(token, resource_id)
+    if resp.status_code != 200:
+        raise RuntimeError('Cannot fetch data for resource %s, %s' % (resource_id, resp.reason))
+    r_data=resp.json()
+    c_name=r_data['name']
+
+    res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, c_name)
 
     # sleep for a while to emulate deprovisioning
     t = random.randint(10, 30)
     logger.info('sleeping for %s secs' % t)
     time.sleep(t)
     os.rename(res_dir, '%s.deleted' % res_dir)
+
