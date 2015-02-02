@@ -153,7 +153,7 @@ class ProvisionedResourceList(restful.Resource):
     @auth.login_required
     @marshal_with(provision_fields)
     def get(self):
-        user = User.verify_auth_token(auth.username())
+        user = g.user
         if user.is_admin:
             return ProvisionedResource.query. \
                 filter(ProvisionedResource.state != 'deleted').all()
@@ -168,16 +168,18 @@ class ProvisionedResourceView(restful.Resource):
     @auth.login_required
     @marshal_with(provision_fields)
     def get(self, provision_id):
-        user = User.verify_auth_token(auth.username())
-        resource = ProvisionedResource.query.filter_by(visual_id=provision_id). \
-            filter_by(user_id=user.id).first()
+        user = g.user
+        resource = ProvisionedResource.query.filter_by(visual_id=provision_id)
+        if not user.is_admin:
+            resource=resource.filter_by(user_id=user.id)
+        resource=resource.first()
         if not resource:
             abort(404)
         return resource
 
     @auth.login_required
     def delete(self, provision_id):
-        user = User.verify_auth_token(auth.username())
+        user = g.user
         pr = ProvisionedResource.query.filter_by(visual_id=provision_id). \
             filter_by(user_id=user.id).first()
         if not pr:
@@ -199,11 +201,17 @@ class ProvisionedResourceView(restful.Resource):
         pr = qr.first()
         if not pr:
             abort(404)
+
+        # TODO: add a model for state transitions
         if args['state']:
-            pr.state = args['state']
+            if args['state']=='deleting':
+                if pr.state in ['starting', 'running']:
+                    pr.state = args['state']
+                    self.delete(provision_id)
+            else:
+                pr.state = args['state']
+
             db.session.commit()
-            if args['state'] == 'deleting':
-                self.delete(provision_id)
         pass
 
 
