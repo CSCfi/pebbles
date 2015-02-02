@@ -3,11 +3,13 @@ from flask.ext.restful import fields, marshal_with, reqparse
 import logging
 import names
 
-from resource_cloud.models import User, ActivationToken, Resource, ProvisionedResource, SystemToken
+from resource_cloud.models import User, ActivationToken, Resource
+from resource_cloud.models import ProvisionedResource, SystemToken
 from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
 
 from resource_cloud.server import api, auth, db, restful, app
 from resource_cloud.tasks import run_provisioning, run_deprovisioning
+from resource_cloud.tasks import send_mails
 
 USER_RESOURCE_LIMIT = 5
 
@@ -69,9 +71,13 @@ class UserList(restful.Resource):
         new_user = User(form.email.data, form.password.data,
                         form.is_admin.data)
         db.session.add(new_user)
+        db.session.commit()
+
         token = ActivationToken(new_user)
         db.session.add(token)
         db.session.commit()
+
+        send_mails.delay([(new_user.email, token.token)])
         return new_user
 
     @auth.login_required
@@ -118,17 +124,19 @@ class SessionView(restful.Resource):
         return abort(401)
 
 
-class ActivationView(restful.Resource):
+class ActivationList(restful.Resource):
     @marshal_with(user_fields)
     def post(self):
         form = ActivationForm()
         if not form.validate_on_submit():
             return form.errors, 422
-
         token = ActivationToken.query.filter_by(token=form.token.data).first()
         if not token:
             return abort(404)
 
+        logging.warn(token)
+        logging.warn(token.user_id)
+        logging.warn(token.token)
         user = User.query.filter_by(id=token.user_id).first()
         if not user:
             return abort(410)
@@ -243,14 +251,14 @@ class ResourceView(restful.Resource):
         provision = ProvisionedResource(resource_id, user.id)
 
         # decide on a name that is not used currently
-        all_resources = ProvisionedResource.query.all()
+        # all_resources = ProvisionedResource.query.all()
         existing_names = [x.name for x in resources_for_user]
         # Note: the potential race is solved by unique constraint in database
         while True:
             c_name = names.get_first_name(gender='female').lower()
             if c_name not in existing_names:
                 break
-        provision.name=c_name
+        provision.name = c_name
         token = SystemToken('provisioning')
         db.session.add(provision)
         db.session.add(token)
@@ -263,9 +271,10 @@ api.add_resource(FirstUserView, '/api/v1/initialize')
 api.add_resource(UserList, '/api/v1/users')
 api.add_resource(UserView, '/api/v1/users/<string:user_id>')
 api.add_resource(SessionView, '/api/v1/sessions')
-api.add_resource(ActivationView, '/api/v1/activations/<string:activation_id>')
+api.add_resource(ActivationList, '/api/v1/activations')
 api.add_resource(ResourceList, '/api/v1/resources')
 api.add_resource(ResourceView, '/api/v1/resources/<string:resource_id>')
 api.add_resource(ProvisionedResourceList, '/api/v1/provisioned_resources')
-api.add_resource(ProvisionedResourceView, '/api/v1/provisioned_resources/<string:provision_id>',
+api.add_resource(ProvisionedResourceView,
+                 '/api/v1/provisioned_resources/<string:provision_id>',
                  methods=['GET', 'POST', 'DELETE', 'PATCH'])

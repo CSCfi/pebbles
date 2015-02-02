@@ -1,10 +1,8 @@
-app.controller('ActivationController', ['$scope', '$location', 'Restangular', function($scope, $location, Restangular) {
+app.controller('ActivationController', ['$scope', '$routeParams', '$location', 'Restangular', function($scope, $routeParams, $location, Restangular) {
     var activations = Restangular.all('activations');
-
     $scope.activate_user = function() {
-        /* XXX: Implement activation
-        activations.post(parameters).then(function(response) {
-        });
-        */
+        var token = $routeParams.token;
+        activations.post({token: token,
+                          password: $scope.password});
     };
 }]);
