@@ -53,14 +53,14 @@
     <table class="table table-striped">
         <thead>
         <tr>
-            <td>id</td>
+            <td>name</td>
             <td>state</td>
             <td>actions</td>
         </tr>
         </thead>
         <tbody>
         <tr ng-repeat="instance in instances">
-            <td>{{instance.id}}</td>
+            <td>{{instance.name}}</td>
             <td>{{instance.state}}</td>
             <td>
                 <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger">Destroy</button>

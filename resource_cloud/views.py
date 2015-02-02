@@ -1,6 +1,7 @@
 from flask import abort, g
 from flask.ext.restful import fields, marshal_with, reqparse
 import logging
+import names
 
 from resource_cloud.models import User, ActivationToken, Resource, ProvisionedResource, SystemToken
 from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
@@ -142,6 +143,7 @@ class ActivationView(restful.Resource):
 
 provision_fields = {
     'id': fields.String(attribute='visual_id'),
+    'name': fields.String,
     'provisioned_at': fields.DateTime,
     'state': fields.String,
 }
@@ -233,11 +235,22 @@ class ResourceView(restful.Resource):
     @auth.login_required
     def post(self, resource_id):
         user = User.verify_auth_token(auth.username())
-        existingResources = ProvisionedResource.query.filter_by(resource_id=resource_id). \
+        resources_for_user = ProvisionedResource.query.filter_by(resource_id=resource_id). \
             filter_by(user_id=user.id).filter(ProvisionedResource.state != 'deleted').all()
-        if existingResources and len(existingResources) >= USER_RESOURCE_LIMIT:
+        if resources_for_user and len(resources_for_user) >= USER_RESOURCE_LIMIT:
             abort(409)
+
         provision = ProvisionedResource(resource_id, user.id)
+
+        # decide on a name that is not used currently
+        all_resources = ProvisionedResource.query.all()
+        existing_names = [x.name for x in resources_for_user]
+        # Note: the potential race is solved by unique constraint in database
+        while True:
+            c_name = names.get_first_name(gender='female').lower()
+            if c_name not in existing_names:
+                break
+        provision.name=c_name
         token = SystemToken('provisioning')
         db.session.add(provision)
         db.session.add(token)
