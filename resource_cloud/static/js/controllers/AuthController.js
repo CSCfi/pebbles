@@ -17,6 +17,10 @@ app.controller('AuthController', ['$scope', '$location', 'AuthService', function
         })
     };
 
+    $scope.isAdmin = function() {
+        return AuthService.isAdmin();
+    };
+
     $scope.logout = function() {
         AuthService.logout();
         $scope.email = "";

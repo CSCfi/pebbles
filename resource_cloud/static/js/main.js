@@ -77,11 +77,11 @@ app.config(function($routeProvider, RestangularProvider) {
                 redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
             }
         })
-        .when('/services', {
-            controller: 'ServiceController',
-            templateUrl: partialsDir + '/services.html',
+        .when('/users', {
+            controller: 'UsersController',
+            templateUrl: partialsDir + '/users.html',
             resolve: {
-                redirectIfAuthenticated: redirectIfAuthenticated('/')
+                redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
             }
         })
         .when('/activate/:token', {
