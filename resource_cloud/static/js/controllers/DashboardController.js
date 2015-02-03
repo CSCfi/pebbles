@@ -35,11 +35,14 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
                 if (index > -1) $scope.instances[index].state='deleting';
             });
         }
-
-        $interval(function () {
-            var provisionedResources = Restangular.all('provisioned_resources');
-            provisionedResources.getList().then(function (response) {
-                $scope.instances = response;
-            });
+        var pollInterval = $interval(function () {
+            if (AuthService.isAuthenticated()) {
+                var provisionedResources = Restangular.all('provisioned_resources');
+                provisionedResources.getList().then(function (response) {
+                    $scope.instances = response;
+                });
+            } else {
+                $interval.cancel(pollInterval);
+            }
         }, 60000);
     }]);
