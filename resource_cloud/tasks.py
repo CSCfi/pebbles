@@ -11,7 +11,7 @@ from flask import render_template
 from flask.ext.mail import Message
 import stat
 from resource_cloud.app import get_app
-#from resource_cloud.config import BaseConfig as config
+# from resource_cloud.config import BaseConfig as config
 from resource_cloud.config import DevConfig as config
 
 logger = get_task_logger(__name__)
@@ -138,7 +138,7 @@ def run_pvc_provisioning(token, resource_id):
             p.wait()
     else:
         logger.info('faking provisioning, sleeping for a while')
-        time.sleep(random.randint(5,15))
+        time.sleep(random.randint(5, 15))
 
 
 def run_pvc_deprovisioning(token, resource_id):
@@ -160,7 +160,7 @@ def run_pvc_deprovisioning(token, resource_id):
             p.wait()
     else:
         logger.info('faking provisioning, sleeping for a while')
-        time.sleep(random.randint(5,15))
+        time.sleep(random.randint(5, 15))
 
     # use resource id as a part of the name to make tombstones always unique
     os.rename(res_dir, '%s.deleted.%s' % (res_dir, resource_id))
