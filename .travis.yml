@@ -5,7 +5,10 @@ python:
 # command to install dependencies
 install:
   - "pip install -r requirements.txt"
+  - "pip install pep8 --use-mirrors"
   - "pip install ."
+before_script:
+  - "pep8 --ignore=E501 resource_cloud"
 # command to run tests
 script: nosetests
 notifications:
