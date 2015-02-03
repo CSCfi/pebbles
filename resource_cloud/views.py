@@ -265,8 +265,8 @@ class ResourceView(restful.Resource):
         while True:
             c_name = names.get_first_name(gender='female').lower()
             if c_name not in existing_names:
+                provision.name = c_name
                 break
-        provision.name = c_name
         token = SystemToken('provisioning')
         db.session.add(provision)
         db.session.add(token)
