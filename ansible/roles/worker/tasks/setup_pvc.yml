@@ -17,7 +17,9 @@
   file: name={{ pvc_install_dir }} state=directory
 
 - name: Checkout pouta-virtualcluster from GitHub
-  git: repo=https://github.com/CSC-IT-Center-for-Science/pouta-virtualcluster.git dest={{ pvc_install_dir }}/
+  git: repo=https://github.com/CSC-IT-Center-for-Science/pouta-virtualcluster.git
+       dest={{ pvc_install_dir }}/
+       version={{ pvc_version }}
 
 - name: Make a base directory for provisioned cluster data
   file: name={{ pvc_cluster_data_dir }} state=directory owner={{ application_user }}
