@@ -2,12 +2,14 @@ import base64
 import os
 import random
 import time
+import subprocess
 import requests
 from celery import Celery
 from celery.utils.log import get_task_logger
 import jinja2
 from flask import render_template
 from flask.ext.mail import Message
+import stat
 from resource_cloud.app import get_app
 from resource_cloud.config import BaseConfig as config
 
@@ -81,6 +83,7 @@ def update_resource_state(token, resource_id, state):
     logger.info('got response %s %s' % (resp.status_code, resp.reason))
     return resp
 
+
 def get_resource_data(token, resource_id):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
@@ -90,13 +93,13 @@ def get_resource_data(token, resource_id):
     logger.info('got response %s %s' % (resp.status_code, resp.reason))
     return resp
 
-def run_pvc_provisioning(token, resource_id):
 
-    resp=get_resource_data(token, resource_id)
+def run_pvc_provisioning(token, resource_id):
+    resp = get_resource_data(token, resource_id)
     if resp.status_code != 200:
         raise RuntimeError('Cannot fetch data for resource %s, %s' % (resource_id, resp.reason))
-    r_data=resp.json()
-    c_name=r_data['name']
+    r_data = resp.json()
+    c_name = r_data['name']
 
     res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, c_name)
 
@@ -108,33 +111,48 @@ def run_pvc_provisioning(token, resource_id):
     j2env = jinja2.Environment(loader=jinja2.FileSystemLoader(THIS_DIR))
     tc = j2env.get_template('templates/pvc-cluster.yml.jinja2')
 
-    conf = tc.render(cluster_name=c_name, security_key='rc_master', frontend_flavor='mini', public_ip='86.50.168.206',
+    conf = tc.render(cluster_name='rc-%s' % c_name, security_key='rc-%s' % c_name, frontend_flavor='mini',
+                     public_ip='86.50.169.98',
                      node_flavor='mini', )
 
     with open('%s/cluster.yml' % res_dir, 'w') as cf:
         cf.write(conf)
         cf.write('\n')
 
-    # sleep for a while to emulate provisioning
-    t = random.randint(10, 30)
-    logger.info('sleeping for %s secs' % t)
-    time.sleep(t)
+    # generate keypair for this cluster
+    key_file = '%s/key.priv' % res_dir
+    if not os.path.isfile(key_file):
+        with open(key_file, 'w') as keyfile:
+            args = ['nova', 'keypair-add', 'rc-%s' % c_name]
+            p = subprocess.Popen(args, cwd=res_dir, stdout=keyfile)
+        os.chmod(key_file, stat.S_IRUSR)
+
+    # run provisioning
+    args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'up', '2']
+    with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
+        logger.info('spawning "%s"' % ' '.join(args))
+        p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
+        logger.info('spawning done, waiting')
+        p.wait()
 
 
 def run_pvc_deprovisioning(token, resource_id):
-
-    resp=get_resource_data(token, resource_id)
+    resp = get_resource_data(token, resource_id)
     if resp.status_code != 200:
         raise RuntimeError('Cannot fetch data for resource %s, %s' % (resource_id, resp.reason))
-    r_data=resp.json()
-    c_name=r_data['name']
+    r_data = resp.json()
+    c_name = r_data['name']
 
     res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, c_name)
 
-    # sleep for a while to emulate deprovisioning
-    t = random.randint(10, 30)
-    logger.info('sleeping for %s secs' % t)
-    time.sleep(t)
+    # run deprovisioning
+    args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'down']
+    with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
+        logger.info('spawning "%s"' % ' '.join(args))
+        p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
+        logger.info('spawning done, waiting')
+        p.wait()
+
     # use resource id as a part of the name to make tombstones always unique
     os.rename(res_dir, '%s.deleted.%s' % (res_dir, resource_id))
 
