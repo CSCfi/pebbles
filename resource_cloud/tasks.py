@@ -11,7 +11,8 @@ from flask import render_template
 from flask.ext.mail import Message
 import stat
 from resource_cloud.app import get_app
-from resource_cloud.config import BaseConfig as config
+#from resource_cloud.config import BaseConfig as config
+from resource_cloud.config import DevConfig as config
 
 logger = get_task_logger(__name__)
 app = Celery('tasks', broker=config.MESSAGE_QUEUE_URI, backend=config.MESSAGE_QUEUE_URI)
@@ -119,21 +120,25 @@ def run_pvc_provisioning(token, resource_id):
         cf.write(conf)
         cf.write('\n')
 
-    # generate keypair for this cluster
-    key_file = '%s/key.priv' % res_dir
-    if not os.path.isfile(key_file):
-        with open(key_file, 'w') as keyfile:
-            args = ['nova', 'keypair-add', 'rc-%s' % c_name]
-            p = subprocess.Popen(args, cwd=res_dir, stdout=keyfile)
-        os.chmod(key_file, stat.S_IRUSR)
+    if not config.FAKE_PROVISIONING:
+        # generate keypair for this cluster
+        key_file = '%s/key.priv' % res_dir
+        if not os.path.isfile(key_file):
+            with open(key_file, 'w') as keyfile:
+                args = ['nova', 'keypair-add', 'rc-%s' % c_name]
+                p = subprocess.Popen(args, cwd=res_dir, stdout=keyfile)
+            os.chmod(key_file, stat.S_IRUSR)
 
-    # run provisioning
-    args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'up', '2']
-    with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
-        logger.info('spawning "%s"' % ' '.join(args))
-        p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
-        logger.info('spawning done, waiting')
-        p.wait()
+        # run provisioning
+        args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'up', '2']
+        with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
+            logger.info('spawning "%s"' % ' '.join(args))
+            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
+            logger.info('spawning done, waiting')
+            p.wait()
+    else:
+        logger.info('faking provisioning, sleeping for a while')
+        time.sleep(random.randint(5,15))
 
 
 def run_pvc_deprovisioning(token, resource_id):
@@ -145,13 +150,17 @@ def run_pvc_deprovisioning(token, resource_id):
 
     res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, c_name)
 
-    # run deprovisioning
-    args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'down']
-    with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
-        logger.info('spawning "%s"' % ' '.join(args))
-        p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
-        logger.info('spawning done, waiting')
-        p.wait()
+    if not config.FAKE_PROVISIONING:
+        # run deprovisioning
+        args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'down']
+        with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
+            logger.info('spawning "%s"' % ' '.join(args))
+            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
+            logger.info('spawning done, waiting')
+            p.wait()
+    else:
+        logger.info('faking provisioning, sleeping for a while')
+        time.sleep(random.randint(5,15))
 
     # use resource id as a part of the name to make tombstones always unique
     os.rename(res_dir, '%s.deleted.%s' % (res_dir, resource_id))
