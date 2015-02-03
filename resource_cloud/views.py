@@ -2,14 +2,17 @@ from flask import abort, g
 from flask.ext.restful import fields, marshal_with, reqparse
 import logging
 import names
+from functools import wraps
 
 from resource_cloud.models import User, ActivationToken, Resource
-from resource_cloud.models import ProvisionedResource, SystemToken
+from resource_cloud.models import ProvisionedResource, SystemToken, Keypair
 from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
 
 from resource_cloud.server import api, auth, db, restful, app
 from resource_cloud.tasks import run_provisioning, run_deprovisioning
 from resource_cloud.tasks import send_mails
+
+from resource_cloud.utils import generate_ssh_keypair
 
 USER_RESOURCE_LIMIT = 5
 
@@ -17,6 +20,15 @@ USER_RESOURCE_LIMIT = 5
 @app.route("/api/debug")
 def debug():
     return "%s" % app.config['SQLALCHEMY_DATABASE_URI']
+
+
+def requires_admin(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not g.user.is_admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
 
 
 @auth.verify_password
@@ -62,6 +74,7 @@ class FirstUserView(restful.Resource):
 
 class UserList(restful.Resource):
     @auth.login_required
+    @requires_admin
     @marshal_with(user_fields)
     def post(self):
         form = UserForm()
@@ -83,20 +96,24 @@ class UserList(restful.Resource):
     @auth.login_required
     @marshal_with(user_fields)
     def get(self):
-        user = User.verify_auth_token(auth.username())
-        if not user.is_admin:
-            return abort(401)
-        return User.query.all()
+        if g.user.is_admin:
+            return User.query.all()
+        return [g.user]
 
 
 class UserView(restful.Resource):
     @auth.login_required
     @marshal_with(user_fields)
     def get(self, user_id):
+        if not g.user.is_admin and user_id != g.user.visual_id:
+            abort(403)
         return User.query.filter_by(visual_id=user_id).first()
 
     @auth.login_required
+    @requires_admin
     def delete(self, user_id):
+        if not g.user.is_admin:
+            abort(403)
         user = User.query.filter_by(visual_id=user_id).first()
         if not user:
             logging.warn("trying to delete non-existing user")
@@ -104,6 +121,53 @@ class UserView(restful.Resource):
         db.session.delete(user)
         db.session.commit()
 
+
+public_key_fields = {
+    'id': fields.String(attribute='visual_id'),
+    'name': fields.String,
+    'public_key': fields.String
+}
+
+private_key_fields = {
+    'private_key': fields.String
+}
+
+
+class KeypairList(restful.Resource):
+    @auth.login_required
+    @marshal_with(public_key_fields)
+    def get(self, user_id):
+        if g.user.is_admin:
+            return Keypair.query.all()
+
+        elif user_id != g.user.visual_id:
+            abort(403)
+
+        return Keypair.query.filter_by(user_id=g.user.id)
+
+    @auth.login_required
+    @marshal_with(private_key_fields)
+    def post(self, user_id):
+        if user_id != g.user.visual_id:
+            abort(403)
+        priv, pub = generate_ssh_keypair()
+        key = Keypair()
+        key.user_id = g.user.id
+        key.public_key = pub
+        db.session.add(key)
+        db.session.commit()
+        return {'private_key': priv}
+
+
+class KeypairView(restful.Resource):
+    @auth.login_required
+    @marshal_with(public_key_fields)
+    def get(self, user_id, keypair_id):
+        pass
+
+    @auth.login_required
+    def delete(self, user_id, keypair_id):
+        pass
 
 token_fields = {
     'token': fields.String,
@@ -250,7 +314,7 @@ class ResourceView(restful.Resource):
 
     @auth.login_required
     def post(self, resource_id):
-        user = User.verify_auth_token(auth.username())
+        user = g.user
         resources_for_user = ProvisionedResource.query.filter_by(resource_id=resource_id). \
             filter_by(user_id=user.id).filter(ProvisionedResource.state != 'deleted').all()
         if resources_for_user and len(resources_for_user) >= USER_RESOURCE_LIMIT:
@@ -278,6 +342,8 @@ class ResourceView(restful.Resource):
 api.add_resource(FirstUserView, '/api/v1/initialize')
 api.add_resource(UserList, '/api/v1/users')
 api.add_resource(UserView, '/api/v1/users/<string:user_id>')
+api.add_resource(KeypairList, '/api/v1/users/<string:user_id>/keypairs')
+api.add_resource(KeypairView, '/api/v1/users/<string:user_id>/keypairs/<string:keypair_id>')
 api.add_resource(SessionView, '/api/v1/sessions')
 api.add_resource(ActivationList, '/api/v1/activations')
 api.add_resource(ResourceList, '/api/v1/resources')

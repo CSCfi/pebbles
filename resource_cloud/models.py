@@ -48,6 +48,18 @@ class User(db.Model):
         return '<User %r>' % self.email
 
 
+class Keypair(db.Model):
+    __tablename__ = 'keypairs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    visual_id = db.Column(db.String(32))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    public_key = db.Column(db.String(450))
+
+    def __init__(self):
+        self.visual_id = uuid.uuid4().hex
+
+
 class ActivationToken(db.Model):
     __tablename__ = 'activation_tokens'
 
