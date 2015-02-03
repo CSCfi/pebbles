@@ -164,4 +164,3 @@ def run_pvc_deprovisioning(token, resource_id):
 
     # use resource id as a part of the name to make tombstones always unique
     os.rename(res_dir, '%s.deleted.%s' % (res_dir, resource_id))
-
