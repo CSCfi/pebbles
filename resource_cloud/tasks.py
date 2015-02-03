@@ -135,5 +135,6 @@ def run_pvc_deprovisioning(token, resource_id):
     t = random.randint(10, 30)
     logger.info('sleeping for %s secs' % t)
     time.sleep(t)
-    os.rename(res_dir, '%s.deleted' % res_dir)
+    # use resource id as a part of the name to make tombstones always unique
+    os.rename(res_dir, '%s.deleted.%s' % (res_dir, resource_id))
 
