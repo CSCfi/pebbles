@@ -259,8 +259,8 @@ class ResourceView(restful.Resource):
         provision = ProvisionedResource(resource_id, user.id)
 
         # decide on a name that is not used currently
-        # all_resources = ProvisionedResource.query.all()
-        existing_names = [x.name for x in resources_for_user]
+        all_resources = ProvisionedResource.query.all()
+        existing_names = [x.name for x in all_resources]
         # Note: the potential race is solved by unique constraint in database
         while True:
             c_name = names.get_first_name(gender='female').lower()
