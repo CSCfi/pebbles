@@ -84,6 +84,13 @@ app.config(function($routeProvider, RestangularProvider) {
                 redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
             }
         })
+        .when('/account', {
+            controller: 'AccountController',
+            templateUrl: partialsDir + '/account.html',
+            resolve: {
+                redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
+            }
+        })
         .when('/activate/:token', {
             controller: 'ActivationController',
             templateUrl: partialsDir + '/activation.html',
