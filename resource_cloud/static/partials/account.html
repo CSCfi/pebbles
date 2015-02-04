@@ -1,4 +1,22 @@
 <div ng-controller="AccountController">
     <h1>Account</h1>
+    <div class="row">
+        <div class="col-md-4">
+            <h2>SSH Keys</h2>
+            <button ng-click="generate_key()" class="btn btn-lg btn-primary">Generate SSH Key</button>
+            <a ng-show="key_downloadable()" id="content" download="resource_cloud.key" ng-href="{{key_url()}}">Download</a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <h2>Change Password</h2>
+            <form name="form" class="form-activate" ng-submit="update_password()">
+                <input type="password" class="form-control" ng-model="password" placeholder="Password" required>
 
+                <input type="password" class="form-control" ng-model="verify" placeholder="Verify password" required>
+
+                <button class="btn btn-lg btn-primary btn-block" type="submit">Change</button>
+            </form>
+        </div>
+    </div>
 </div>

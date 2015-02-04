@@ -171,6 +171,7 @@ class KeypairView(restful.Resource):
 
 token_fields = {
     'token': fields.String,
+    'user_id': fields.String,
     'is_admin': fields.Boolean,
 }
 
@@ -186,7 +187,8 @@ class SessionView(restful.Resource):
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
             return {'token': user.generate_auth_token(),
-                    'is_admin': user.is_admin}
+                    'is_admin': user.is_admin,
+                    'user_id': user.visual_id}
         logging.warn("invalid login credentials for %s" % form.email.data)
         return abort(401)
 

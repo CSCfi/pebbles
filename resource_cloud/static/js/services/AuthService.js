@@ -7,6 +7,7 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', function($q,
             Session.create(credentials, true).then(function(response) {
                 me.setToken(response.token);
                 me.setAdminStatus(response.is_admin);
+                me.setUserId(response.user_id);
                 return deferred.resolve(response);
             }, function(response) {
                 if (response.status == 401) {
@@ -36,6 +37,14 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', function($q,
                 return true;
             }
             return false;
+        },
+
+        setUserId : function(userId) {
+            localStorageService.set('userId', userId);
+        },
+
+        getUserId : function() {
+            return localStorageService.get('userId');
         },
 
         setToken : function(token) {

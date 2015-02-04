@@ -33,9 +33,11 @@ app.run(function($location, Restangular, AuthService) {
     });
 });
 
-app.config(function($routeProvider, RestangularProvider) {
+app.config(function($routeProvider, $compileProvider, RestangularProvider) {
     RestangularProvider.setBaseUrl('/api/v1');
     var partialsDir = '../partials';
+
+    $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|blob):/);
 
     var redirectIfAuthenticated = function(route) {
         return function($location, $q, AuthService) {
