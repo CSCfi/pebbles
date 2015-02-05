@@ -13,14 +13,14 @@ frontend:
   public-ip: {{ public_ip }}
   volumes:
     - name: local_data
-      size: 10
+      size: 1
     - name: shared_data
-      size: 10
+      size: 1
   groups:
     - cluster_master
-    - hadoop_namenode
-    - hadoop_jobtracker
-    - spark_master
+#    - hadoop_namenode
+#    - hadoop_jobtracker
+#    - spark_master
 node:
   sec-key: {{ security_key }}
   image: Ubuntu-14.04
@@ -28,9 +28,9 @@ node:
   flavor: {{ node_flavor }}
   volumes:
     - name: local_data
-      size: 10
+      size: 1
   groups:
     - cluster_slave
-    - hadoop_datanode
-    - hadoop_tasktracker
-    - spark_slave
+#    - hadoop_datanode
+#    - hadoop_tasktracker
+#    - spark_slave
