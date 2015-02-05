@@ -31,6 +31,7 @@ def requires_admin(f):
         if not g.user.is_admin:
             abort(403)
         return f(*args, **kwargs)
+
     return decorated
 
 
@@ -271,6 +272,7 @@ provision_fields = {
     'name': fields.String,
     'provisioned_at': fields.DateTime,
     'state': fields.String,
+    'user_id': fields.String,
 }
 
 
@@ -280,11 +282,17 @@ class ProvisionedResourceList(restful.Resource):
     def get(self):
         user = g.user
         if user.is_admin:
-            return ProvisionedResource.query. \
+            reslist = ProvisionedResource.query. \
                 filter(ProvisionedResource.state != 'deleted').all()
-        return ProvisionedResource.query.filter_by(user_id=user.id). \
-            filter((ProvisionedResource.state != 'deleted')).all()
+        else:
+            reslist = ProvisionedResource.query.filter_by(user_id=user.id). \
+                filter((ProvisionedResource.state != 'deleted')).all()
 
+        for res in reslist:
+            res_owner = User.query.filter_by(id=res.user_id).first()
+            res.user_id = res_owner.visual_id
+
+        return reslist
 
 class ProvisionedResourceView(restful.Resource):
     parser = reqparse.RequestParser()
@@ -300,6 +308,8 @@ class ProvisionedResourceView(restful.Resource):
         resource = resource.first()
         if not resource:
             abort(404)
+        res_owner = User.query.filter_by(id=resource.user_id).first()
+        resource.user_id = res_owner.visual_id
         return resource
 
     @auth.login_required
