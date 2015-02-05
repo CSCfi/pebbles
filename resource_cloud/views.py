@@ -6,7 +6,7 @@ from functools import wraps
 
 from resource_cloud.models import User, ActivationToken, Resource
 from resource_cloud.models import ProvisionedResource, SystemToken, Keypair
-from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
+from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm, ChangePasswordForm
 
 from resource_cloud.server import api, auth, db, restful, app
 from resource_cloud.tasks import run_provisioning, run_deprovisioning
@@ -68,6 +68,7 @@ class FirstUserView(restful.Resource):
             user.is_active = True
             db.session.add(user)
             db.session.commit()
+            return user
         else:
             return abort(403)
 
@@ -108,6 +109,20 @@ class UserView(restful.Resource):
         if not g.user.is_admin and user_id != g.user.visual_id:
             abort(403)
         return User.query.filter_by(visual_id=user_id).first()
+
+    @auth.login_required
+    @marshal_with(user_fields)
+    def put(self, user_id):
+        if not g.user.is_admin and user_id != g.user.visual_id:
+            abort(403)
+        form = ChangePasswordForm()
+        if not form.validate_on_submit():
+            logging.warn("validation error on change password: %s" % form.errors)
+            abort(422)
+        g.user.set_password(form.password.data)
+        db.session.add(g.user)
+        db.session.commit()
+        return g.user
 
     @auth.login_required
     @requires_admin

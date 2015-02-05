@@ -1,8 +1,9 @@
-app.controller('AccountController', ['$scope', 'AuthService', 'Restangular',
-                             function($scope,   AuthService,   Restangular) {
+app.controller('AccountController', ['$scope', '$timeout', 'AuthService', 'Restangular',
+                             function($scope,   $timeout,   AuthService,   Restangular) {
     var user = Restangular.one('users', AuthService.getUserId());
     var key = null;
     var key_url = null;
+    var change_password_result = ""
 
     $scope.key_url = function() {
         return key_url;
@@ -20,5 +21,31 @@ app.controller('AccountController', ['$scope', 'AuthService', 'Restangular',
             key = response.private_key;
             key_url = window.URL.createObjectURL(new Blob([key], {type: "application/octet-stream"}));
         });
+    };
+
+    $scope.change_password_msg_visible = function() {
+        if (change_password_result == "") {
+            return false;
+        }
+        return true;
+    }
+
+    $scope.change_password_msg = function() {
+        return change_password_result;
+    }
+
+    $scope.update_password = function() {
+        console.log(user);
+        var params = { password: $scope.user.password };
+        user.password = $scope.user.password;
+        user.put()
+        user.put(params).then(function(response) {
+            change_password_result = "Password changed";
+        }, function(response) {
+            change_password_result = "Unable to change password";
+        });
+        $timeout(function() {
+            change_password_result = "";
+        }, 10000)
     };
 }]);

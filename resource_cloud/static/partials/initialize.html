@@ -1,15 +1,16 @@
 <div class="col-md-4 col-md-offset-4" ng-controller="InitializationController">
     <div ng-hide="isInitialized()">
-        <form name="form" class="form-activate" ng-submit="initialize_user()">
+        <form name="initializationForm" class="form-activate" ng-submit="initialize_user()">
             <h2 class="form-signin-heading">Create admin account</h2>
 
-            <input type="email" class="form-control" ng-model="email" placeholder="Email" required autofocus>
+            <input type="email" class="form-control" ng-model="user.email" placeholder="Email" required autofocus>
 
-            <input type="password" class="form-control" ng-model="password" placeholder="Password" required>
+            <input type="password" class="form-control" ng-model="user.password"  data-ng-class="{'ng-invalid':initializationForm.confirmPassword.$error.match}" placeholder="Password" required>
+            <input type="password" class="form-control" name="confirmPassword" ng-model="user.passwordConfirm" match="user.password" placeholder="Verify password" required>
+            <div data-ng-show="initializationForm.confirmPassword.$error.match" class="alert alert-danger" role="alert">Passwords do not match!</div>
+            <div data-ng-hide="initializationForm.confirmPassword.$error.match" class="alert alert-info" role="alert">This will create your admin account</div>
 
-            <input type="password" class="form-control" ng-model="verify" placeholder="Verify password" required>
-
-            <button class="btn btn-lg btn-primary btn-block" type="submit">Create</button>
+            <button class="btn btn-lg btn-primary btn-block" ng-disabled="initializationForm.$invalid" type="submit">Create</button>
         </form>
     </div>
     <div ng-show="isInitialized()" class="alert alert-danger" role="alert">

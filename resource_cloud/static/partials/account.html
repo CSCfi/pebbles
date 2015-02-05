@@ -10,12 +10,12 @@
     <div class="row">
         <div class="col-md-4">
             <h2>Change Password</h2>
-            <form name="form" class="form-activate" ng-submit="update_password()">
-                <input type="password" class="form-control" ng-model="password" placeholder="Password" required>
-
-                <input type="password" class="form-control" ng-model="verify" placeholder="Verify password" required>
-
-                <button class="btn btn-lg btn-primary btn-block" type="submit">Change</button>
+            <form name="changePasswordForm" class="form-activate" ng-submit="update_password()">
+                <input type="password" class="form-control" ng-model="user.password"  data-ng-class="{'ng-invalid':changePasswordForm.confirmPassword.$error.match}" placeholder="Password" required>
+                <input type="password" class="form-control" name="confirmPassword" ng-model="user.passwordConfirm" match="user.password" placeholder="Verify password" required>
+                <div data-ng-show="changePasswordForm.confirmPassword.$error.match" class="alert alert-danger" role="alert">Passwords do not match!</div>
+                <div ng-show="change_password_msg_visible()" class="alert alert-info" role="alert">{{ change_password_msg() }}</div>
+                <button class="btn btn-lg btn-primary btn-block" ng-disabled="changePasswordForm.$invalid" type="submit">Change</button>
             </form>
         </div>
     </div>

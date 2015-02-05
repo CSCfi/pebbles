@@ -20,6 +20,10 @@ class UserForm(ModelForm):
         model = User
 
 
+class ChangePasswordForm(ModelForm):
+    password = StringField('password', validators=[DataRequired()])
+
+
 class SessionCreateForm(ModelForm):
     email = StringField('email', validators=[DataRequired()])
     password = StringField('password', validators=[DataRequired()])

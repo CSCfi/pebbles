@@ -3,17 +3,13 @@ app.controller('InitializationController', ['$scope', '$location', 'Restangular'
     var initialized = false;
 
     $scope.initialize_user = function() {
-        var params = { email: $scope.email,
-                       password: $scope.password};
-        if ($scope.verify == $scope.password) {
-            initialize.post(params).then(function(response) {
-                $location.path("/");
-            }, function(response) {
-                initialized = true;
-            });
-        } else {
-            console.log("passwords did not match");
-        }
+        var params = { email: $scope.user.email,
+                       password: $scope.user.password};
+        initialize.post(params).then(function(response) {
+            $location.path("/");
+        }, function(response) {
+            initialized = true;
+        });
     };
 
     $scope.isInitialized = function() {
