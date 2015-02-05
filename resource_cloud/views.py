@@ -3,11 +3,13 @@ from flask.ext.restful import fields, marshal_with, reqparse
 from sqlalchemy import desc
 import logging
 import names
+import re
 from functools import wraps
 
 from resource_cloud.models import User, ActivationToken, Resource
 from resource_cloud.models import ProvisionedResource, SystemToken, Keypair
-from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm, ChangePasswordForm
+from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
+from resource_cloud.forms import ChangePasswordForm
 
 from resource_cloud.server import api, auth, db, restful, app
 from resource_cloud.tasks import run_provisioning, run_deprovisioning
@@ -75,6 +77,25 @@ class FirstUserView(restful.Resource):
 
 
 class UserList(restful.Resource):
+    def address_list(value):
+        return set(x for x in re.split(r",| |\n|\t", value) if x and '@' in x)
+
+    parser = reqparse.RequestParser()
+    parser.add_argument('addresses', type=address_list)
+
+    def add_user(self, email, password=None, is_admin=False):
+        user = User(email, password, is_admin)
+        db.session.add(user)
+        db.session.commit()
+
+        token = ActivationToken(user)
+        db.session.add(token)
+        db.session.commit()
+
+        send_mails.delay([(user.email, token.token)])
+
+        return user
+
     @auth.login_required
     @requires_admin
     @marshal_with(user_fields)
@@ -83,17 +104,8 @@ class UserList(restful.Resource):
         if not form.validate_on_submit():
             logging.warn("validation error on user add: %s" % form.errors)
             abort(422)
-        new_user = User(form.email.data, form.password.data,
-                        form.is_admin.data)
-        db.session.add(new_user)
-        db.session.commit()
-
-        token = ActivationToken(new_user)
-        db.session.add(token)
-        db.session.commit()
-
-        send_mails.delay([(new_user.email, token.token)])
-        return new_user
+        user = self.add_user(form.email.data, form.password.data, form.is_admin.data)
+        return user
 
     @auth.login_required
     @marshal_with(user_fields)
@@ -101,6 +113,19 @@ class UserList(restful.Resource):
         if g.user.is_admin:
             return User.query.all()
         return [g.user]
+
+    @auth.login_required
+    @requires_admin
+    @marshal_with(user_fields)
+    def patch(self):
+        try:
+            args = self.parser.parse_args()
+        except:
+            abort(422)
+        addresses = args.addresses
+        for address in addresses:
+            self.add_user(address)
+        return User.query.all()
 
 
 class UserView(restful.Resource):
@@ -368,7 +393,9 @@ class ResourceView(restful.Resource):
 
 
 api.add_resource(FirstUserView, '/api/v1/initialize')
-api.add_resource(UserList, '/api/v1/users')
+api.add_resource(UserList,
+                 '/api/v1/users',
+                 methods=['GET', 'POST', 'PATCH'])
 api.add_resource(UserView, '/api/v1/users/<string:user_id>')
 api.add_resource(KeypairList, '/api/v1/users/<string:user_id>/keypairs')
 api.add_resource(KeypairView, '/api/v1/users/<string:user_id>/keypairs/<string:keypair_id>')
