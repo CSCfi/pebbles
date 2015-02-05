@@ -14,6 +14,8 @@ from resource_cloud.app import get_app
 # from resource_cloud.config import BaseConfig as config
 from resource_cloud.config import DevConfig as config
 
+# config.FAKE_PROVISIONING=False
+
 logger = get_task_logger(__name__)
 app = Celery('tasks', broker=config.MESSAGE_QUEUE_URI, backend=config.MESSAGE_QUEUE_URI)
 app.conf.CELERY_TASK_SERIALIZER = 'json'
@@ -96,6 +98,15 @@ def get_resource_data(token, resource_id):
     logger.info('got response %s %s' % (resp.status_code, resp.reason))
     return resp
 
+def get_user_key_data(token, user_id):
+    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
+    headers = {'Accept': 'text/plain',
+               'Authorization': 'Basic %s' % auth}
+    url = 'https://localhost/api/v1/users/%s/keypairs' % user_id
+    resp = requests.get(url, headers=headers, verify=config.SSL_VERIFY)
+    logger.info('got response %s %s' % (resp.status_code, resp.reason))
+    return resp
+
 
 def run_pvc_provisioning(token, resource_id):
     resp = get_resource_data(token, resource_id)
@@ -122,6 +133,12 @@ def run_pvc_provisioning(token, resource_id):
         cf.write(conf)
         cf.write('\n')
 
+    # fetch user public key and save it
+    key_data=get_user_key_data(token, r_data['user_id']).json()
+    user_key_file = '%s/userkey.pub' % res_dir
+    with open(user_key_file, 'w') as kf:
+        kf.write(key_data[0]['public_key'])
+
     if not config.FAKE_PROVISIONING:
         # generate keypair for this cluster
         key_file = '%s/key.priv' % res_dir
@@ -138,6 +155,15 @@ def run_pvc_provisioning(token, resource_id):
             p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr, env=create_pvc_env())
             logger.info('waiting for process to finish')
             p.wait()
+
+        # add user key for ssh access
+        args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'add_key', 'userkey.pub']
+        with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
+            logger.info('spawning "%s"' % ' '.join(args))
+            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr, env=create_pvc_env())
+            logger.info('waiting for process to finish')
+            p.wait()
+
     else:
         logger.info('faking provisioning, sleeping for a while')
         time.sleep(random.randint(5, 15))
