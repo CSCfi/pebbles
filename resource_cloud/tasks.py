@@ -46,6 +46,8 @@ def send_mails(users):
 def run_provisioning(token, resource_id):
     logger.info('provisioning triggered for %s' % resource_id)
 
+    update_resource_state(token, resource_id, 'provisioning')
+
     run_pvc_provisioning(token, resource_id)
 
     logger.info('provisioning done, notifying server')
@@ -134,7 +136,7 @@ def run_pvc_provisioning(token, resource_id):
         with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
             logger.info('spawning "%s"' % ' '.join(args))
             p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
-            logger.info('spawning done, waiting')
+            logger.info('waiting for process to finish')
             p.wait()
     else:
         logger.info('faking provisioning, sleeping for a while')
@@ -156,8 +158,25 @@ def run_pvc_deprovisioning(token, resource_id):
         with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
             logger.info('spawning "%s"' % ' '.join(args))
             p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
-            logger.info('spawning done, waiting')
+            logger.info('waiting for process to finish')
             p.wait()
+
+        # clean generated security and server groups
+        args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'cleanup']
+        with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
+            logger.info('spawning "%s"' % ' '.join(args))
+            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
+            logger.info('waiting for process to finish')
+            p.wait()
+
+        # destroy volumes
+        args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'destroy_volumes']
+        with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
+            logger.info('spawning "%s"' % ' '.join(args))
+            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
+            logger.info('waiting for process to finish')
+            p.wait()
+
     else:
         logger.info('faking provisioning, sleeping for a while')
         time.sleep(random.randint(5, 15))
