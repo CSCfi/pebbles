@@ -4,7 +4,7 @@ app.controller('ActivationController', ['$scope', '$routeParams', '$location', '
 
     $scope.activate_user = function() {
         var token = $routeParams.token;
-        activations.post({token: token, password: $scope.password}).then(function(resp) {
+        activations.post({token: token, password: $scope.user.password}).then(function(resp) {
             activationSuccess = true;
         });
     };
