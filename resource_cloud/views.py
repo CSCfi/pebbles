@@ -294,6 +294,7 @@ class ProvisionedResourceList(restful.Resource):
 
         return reslist
 
+
 class ProvisionedResourceView(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('state', type=str)

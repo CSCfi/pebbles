@@ -98,6 +98,7 @@ def get_resource_data(token, resource_id):
     logger.info('got response %s %s' % (resp.status_code, resp.reason))
     return resp
 
+
 def get_user_key_data(token, user_id):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
@@ -134,7 +135,7 @@ def run_pvc_provisioning(token, resource_id):
         cf.write('\n')
 
     # fetch user public key and save it
-    key_data=get_user_key_data(token, r_data['user_id']).json()
+    key_data = get_user_key_data(token, r_data['user_id']).json()
     user_key_file = '%s/userkey.pub' % res_dir
     with open(user_key_file, 'w') as kf:
         kf.write(key_data[0]['public_key'])
