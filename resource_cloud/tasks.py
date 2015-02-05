@@ -135,7 +135,7 @@ def run_pvc_provisioning(token, resource_id):
         args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'up', '2']
         with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
             logger.info('spawning "%s"' % ' '.join(args))
-            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
+            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr, env=create_pvc_env())
             logger.info('waiting for process to finish')
             p.wait()
     else:
@@ -157,7 +157,7 @@ def run_pvc_deprovisioning(token, resource_id):
         args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'down']
         with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
             logger.info('spawning "%s"' % ' '.join(args))
-            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
+            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr, env=create_pvc_env())
             logger.info('waiting for process to finish')
             p.wait()
 
@@ -165,7 +165,7 @@ def run_pvc_deprovisioning(token, resource_id):
         args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'cleanup']
         with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
             logger.info('spawning "%s"' % ' '.join(args))
-            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
+            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr, env=create_pvc_env())
             logger.info('waiting for process to finish')
             p.wait()
 
@@ -173,7 +173,7 @@ def run_pvc_deprovisioning(token, resource_id):
         args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'destroy_volumes']
         with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
             logger.info('spawning "%s"' % ' '.join(args))
-            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr)
+            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr, env=create_pvc_env())
             logger.info('waiting for process to finish')
             p.wait()
 
@@ -183,3 +183,9 @@ def run_pvc_deprovisioning(token, resource_id):
 
     # use resource id as a part of the name to make tombstones always unique
     os.rename(res_dir, '%s.deleted.%s' % (res_dir, resource_id))
+
+
+def create_pvc_env():
+    env = os.environ.copy()
+    env['PYTHONUNBUFFERED'] = '1'
+    return env
