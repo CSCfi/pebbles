@@ -17,7 +17,7 @@ app.controller('AccountController', ['$scope', '$timeout', 'AuthService', 'Resta
     };
 
     $scope.generate_key = function() {
-        user.post('keypairs').then(function(response) {
+        user.post('keypairs/create').then(function(response) {
             key = response.private_key;
             key_url = window.URL.createObjectURL(new Blob([key], {type: "application/octet-stream"}));
         });

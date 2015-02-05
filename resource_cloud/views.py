@@ -1,5 +1,6 @@
 from flask import abort, g
 from flask.ext.restful import fields, marshal_with, reqparse
+from sqlalchemy import desc
 import logging
 import names
 from functools import wraps
@@ -139,12 +140,7 @@ class UserView(restful.Resource):
 
 public_key_fields = {
     'id': fields.String(attribute='visual_id'),
-    'name': fields.String,
     'public_key': fields.String
-}
-
-private_key_fields = {
-    'private_key': fields.String
 }
 
 
@@ -152,26 +148,14 @@ class KeypairList(restful.Resource):
     @auth.login_required
     @marshal_with(public_key_fields)
     def get(self, user_id):
-        if g.user.is_admin:
-            return Keypair.query.all()
-
-        elif user_id != g.user.visual_id:
+        if not g.user.is_admin and user_id != g.user.visual_id:
             abort(403)
 
-        return Keypair.query.filter_by(user_id=g.user.id)
-
-    @auth.login_required
-    @marshal_with(private_key_fields)
-    def post(self, user_id):
+        user = g.user
         if user_id != g.user.visual_id:
-            abort(403)
-        priv, pub = generate_ssh_keypair()
-        key = Keypair()
-        key.user_id = g.user.id
-        key.public_key = pub
-        db.session.add(key)
-        db.session.commit()
-        return {'private_key': priv}
+            user = User.query.filter_by(visual_id=user_id).first()
+
+        return Keypair.query.filter_by(user_id=user.id).order_by(desc("id")).all()
 
 
 class KeypairView(restful.Resource):
@@ -183,6 +167,33 @@ class KeypairView(restful.Resource):
     @auth.login_required
     def delete(self, user_id, keypair_id):
         pass
+
+
+private_key_fields = {
+    'private_key': fields.String
+}
+
+
+class CreateKeyPair(restful.Resource):
+    @auth.login_required
+    @marshal_with(private_key_fields)
+    def post(self, user_id):
+        if user_id != g.user.visual_id:
+            abort(403)
+        priv, pub = generate_ssh_keypair()
+
+        for keypair in Keypair.query.filter_by(user_id=g.user.id).all():
+            db.session.delete(keypair)
+        db.session.commit()
+
+        key = Keypair()
+        key.user_id = g.user.id
+        key.public_key = pub
+        db.session.add(key)
+        db.session.commit()
+
+        return {'private_key': priv}
+
 
 token_fields = {
     'token': fields.String,
@@ -361,6 +372,7 @@ api.add_resource(UserList, '/api/v1/users')
 api.add_resource(UserView, '/api/v1/users/<string:user_id>')
 api.add_resource(KeypairList, '/api/v1/users/<string:user_id>/keypairs')
 api.add_resource(KeypairView, '/api/v1/users/<string:user_id>/keypairs/<string:keypair_id>')
+api.add_resource(CreateKeyPair, '/api/v1/users/<string:user_id>/keypairs/create')
 api.add_resource(SessionView, '/api/v1/sessions')
 api.add_resource(ActivationList, '/api/v1/activations')
 api.add_resource(ResourceList, '/api/v1/resources')
