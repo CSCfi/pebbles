@@ -54,5 +54,5 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             } else {
                 $interval.cancel(pollInterval);
             }
-        }, 60000);
+        }, 10000);
     }]);
