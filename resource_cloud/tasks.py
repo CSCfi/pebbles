@@ -14,7 +14,7 @@ from resource_cloud.app import get_app
 # from resource_cloud.config import BaseConfig as config
 from resource_cloud.config import DevConfig as config
 
-# config.FAKE_PROVISIONING=False
+#config.FAKE_PROVISIONING = False
 
 logger = get_task_logger(__name__)
 app = Celery('tasks', broker=config.MESSAGE_QUEUE_URI, backend=config.MESSAGE_QUEUE_URI)
@@ -99,6 +99,16 @@ def get_resource_data(token, resource_id):
     return resp
 
 
+def get_resource_description(token, resource_id):
+    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
+    headers = {'Accept': 'text/plain',
+               'Authorization': 'Basic %s' % auth}
+    url = 'https://localhost/api/v1/resources/%s' % resource_id
+    resp = requests.get(url, headers=headers, verify=config.SSL_VERIFY)
+    logger.info('got response %s %s' % (resp.status_code, resp.reason))
+    return resp
+
+
 def get_user_key_data(token, user_id):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
@@ -109,12 +119,12 @@ def get_user_key_data(token, user_id):
     return resp
 
 
-def run_pvc_provisioning(token, resource_id):
-    resp = get_resource_data(token, resource_id)
+def run_pvc_provisioning(token, provisioned_resource_id):
+    resp = get_resource_data(token, provisioned_resource_id)
     if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for resource %s, %s' % (resource_id, resp.reason))
-    r_data = resp.json()
-    c_name = r_data['name']
+        raise RuntimeError('Cannot fetch data for provisioned_resource %s, %s' % (provisioned_resource_id, resp.reason))
+    pr_data = resp.json()
+    c_name = pr_data['name']
 
     res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, c_name)
 
@@ -122,23 +132,23 @@ def run_pvc_provisioning(token, resource_id):
     os.makedirs(res_dir)
 
     # generate pvc config for this cluster
-    THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-    j2env = jinja2.Environment(loader=jinja2.FileSystemLoader(THIS_DIR))
-    tc = j2env.get_template('templates/pvc-cluster.yml.jinja2')
-
+    resp=get_resource_description(token, pr_data['resource_id'])
+    if resp.status_code != 200:
+        raise RuntimeError('Cannot fetch data for resource %s, %s' % (pr_data['resource_id'], resp.reason))
+    r_data = resp.json()
+    tc = jinja2.Template(r_data['config'])
     conf = tc.render(cluster_name='rc-%s' % c_name, security_key='rc-%s' % c_name, frontend_flavor='mini',
                      public_ip='86.50.169.98',
                      node_flavor='mini', )
-
     with open('%s/cluster.yml' % res_dir, 'w') as cf:
         cf.write(conf)
         cf.write('\n')
 
     # fetch user public key and save it
-    key_data = get_user_key_data(token, r_data['user_id']).json()
+    key_data = get_user_key_data(token, pr_data['user_id']).json()
     user_key_file = '%s/userkey.pub' % res_dir
     if not key_data:
-        update_resource_state(token, resource_id, 'failed')
+        update_resource_state(token, provisioned_resource_id, 'failed')
         raise RuntimeError("User's public key missing")
 
     with open(user_key_file, 'w') as kf:
