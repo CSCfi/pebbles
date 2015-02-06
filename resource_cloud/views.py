@@ -341,7 +341,7 @@ class ProvisionedResourceView(restful.Resource):
         # TODO: add a model for state transitions
         if args['state']:
             if args['state'] == 'deleting':
-                if pr.state in ['starting', 'running']:
+                if pr.state in ['starting', 'running', 'failed']:
                     pr.state = args['state']
                     self.delete(provision_id)
             else:

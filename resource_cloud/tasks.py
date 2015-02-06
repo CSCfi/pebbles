@@ -137,6 +137,10 @@ def run_pvc_provisioning(token, resource_id):
     # fetch user public key and save it
     key_data = get_user_key_data(token, r_data['user_id']).json()
     user_key_file = '%s/userkey.pub' % res_dir
+    if not key_data:
+        update_resource_state(token, resource_id, 'failed')
+        raise RuntimeError("User's public key missing")
+
     with open(user_key_file, 'w') as kf:
         kf.write(key_data[0]['public_key'])
 
