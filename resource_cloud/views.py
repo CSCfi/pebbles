@@ -9,7 +9,7 @@ from functools import wraps
 from resource_cloud.models import User, ActivationToken, Resource
 from resource_cloud.models import ProvisionedResource, SystemToken, Keypair
 from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
-from resource_cloud.forms import ChangePasswordForm
+from resource_cloud.forms import ChangePasswordForm, UpdateResourceConfigForm
 
 from resource_cloud.server import api, auth, db, restful, app
 from resource_cloud.tasks import run_provisioning, run_deprovisioning
@@ -353,9 +353,10 @@ class ProvisionedResourceView(restful.Resource):
 
 resource_fields = {
     'id': fields.String(attribute='visual_id'),
-    'vcpus': fields.String,
-    'max_life_time': fields.String,
+    'vcpus': fields.String(default="4"),
+    'max_life_time': fields.String(default="36000"),
     'name': fields.String,
+    'config': fields.String,
 }
 
 
@@ -363,11 +364,14 @@ class ResourceList(restful.Resource):
     @auth.login_required
     @marshal_with(resource_fields)
     def get(self):
-        return [{'visual_id': '9b8ccf23d37a4dd785e6674ff08b688b',
-                 'vcpus': 4,
-                 'max_life_time': 36000,
-                 'name': 'dummy'}]
-        # return Resource.query.all()
+        resources = Resource.query.all()
+        if not resources:
+            resource = Resource()
+            resource.name = "dummy"
+            resource.config = ""
+            db.session.add(resource)
+            db.session.commit()
+        return Resource.query.all()
 
 
 class ResourceView(restful.Resource):
@@ -375,6 +379,19 @@ class ResourceView(restful.Resource):
     @marshal_with(resource_fields)
     def get(self, resource_id):
         return Resource.query.filter_by(id=resource_id).first()
+
+    @auth.login_required
+    @requires_admin
+    def put(self, resource_id):
+        form = UpdateResourceConfigForm()
+        if not form.validate_on_submit():
+            return form.errors, 422
+        logging.warn(form)
+
+        resource = Resource.query.filter_by(visual_id=resource_id).first()
+        resource.config = form.config.data
+        db.session.add(resource)
+        db.session.commit()
 
     @auth.login_required
     def post(self, resource_id):

@@ -76,6 +76,7 @@ class Resource(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     visual_id = db.Column(db.String(32))
     name = db.Column(db.String(64))
+    config = db.Column(db.Text)
 
     def __init__(self):
         self.visual_id = uuid.uuid4().hex

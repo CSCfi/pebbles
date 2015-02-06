@@ -20,6 +20,10 @@ class UserForm(ModelForm):
         model = User
 
 
+class UpdateResourceConfigForm(ModelForm):
+    config = StringField('config', validators=[DataRequired()])
+
+
 class ChangePasswordForm(ModelForm):
     password = StringField('password', validators=[DataRequired()])
 
