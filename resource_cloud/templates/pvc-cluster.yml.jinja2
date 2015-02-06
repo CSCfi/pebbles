@@ -5,6 +5,8 @@ cluster:
   network: default
   allow-traffic-from-sec-groups:
     - bastion
+  ext-secgroup-rules:
+    - tcp 22 22 192.168.1.1/32
 frontend:
   sec-key: {{ security_key }}
   image: Ubuntu-14.04
