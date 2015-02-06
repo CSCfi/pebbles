@@ -368,7 +368,8 @@ class ResourceList(restful.Resource):
         if not resources:
             resource = Resource()
             resource.name = "dummy"
-            resource.config = ""
+            with open('/webapps/resource_cloud/source/resource_cloud/templates/pvc-cluster.yml.jinja2') as fd:
+                resource.config = fd.read()
             db.session.add(resource)
             db.session.commit()
         return Resource.query.all()
