@@ -123,6 +123,7 @@ class UserList(restful.Resource):
             args = self.parser.parse_args()
         except:
             abort(422)
+            return
         addresses = args.addresses
         for address in addresses:
             self.add_user(address)
@@ -273,6 +274,7 @@ provision_fields = {
     'provisioned_at': fields.DateTime,
     'state': fields.String,
     'user_id': fields.String,
+    'resource_id': fields.String,
 }
 
 
@@ -291,6 +293,8 @@ class ProvisionedResourceList(restful.Resource):
         for res in reslist:
             res_owner = User.query.filter_by(id=res.user_id).first()
             res.user_id = res_owner.visual_id
+            res_parent = Resource.query.filter_by(visual_id=res.resource_id).first()
+            res.resource_id = res_parent.visual_id
 
         return reslist
 
@@ -311,6 +315,9 @@ class ProvisionedResourceView(restful.Resource):
             abort(404)
         res_owner = User.query.filter_by(id=resource.user_id).first()
         resource.user_id = res_owner.visual_id
+        res_parent = Resource.query.filter_by(visual_id=resource.resource_id).first()
+        resource.resource_id = res_parent.visual_id
+
         return resource
 
     @auth.login_required
@@ -379,7 +386,7 @@ class ResourceView(restful.Resource):
     @auth.login_required
     @marshal_with(resource_fields)
     def get(self, resource_id):
-        return Resource.query.filter_by(id=resource_id).first()
+        return Resource.query.filter_by(visual_id=resource_id).first()
 
     @auth.login_required
     @requires_admin
