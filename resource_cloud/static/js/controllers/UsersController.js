@@ -26,8 +26,6 @@ app.controller('UsersController', ['$q', '$scope', '$interval', 'AuthService', '
             }
 
             $scope.invite_users = function() {
-                console.log("invite users:");
-                console.log($scope.invitedUsers);
                 var params = {addresses: $scope.invitedUsers};
                 users.patch(params).then(function(response) {
                     $scope.users = response;

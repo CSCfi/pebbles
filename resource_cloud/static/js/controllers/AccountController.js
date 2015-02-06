@@ -36,7 +36,6 @@ app.controller('AccountController', ['$scope', '$timeout', 'AuthService', 'Resta
     }
 
     $scope.update_password = function() {
-        console.log(user);
         var params = { password: $scope.user.password };
         user.password = $scope.user.password;
         user.put()
