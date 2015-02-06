@@ -14,7 +14,7 @@ from resource_cloud.app import get_app
 # from resource_cloud.config import BaseConfig as config
 from resource_cloud.config import DevConfig as config
 
-#config.FAKE_PROVISIONING = False
+# config.FAKE_PROVISIONING = False
 
 logger = get_task_logger(__name__)
 app = Celery('tasks', broker=config.MESSAGE_QUEUE_URI, backend=config.MESSAGE_QUEUE_URI)
@@ -132,7 +132,7 @@ def run_pvc_provisioning(token, provisioned_resource_id):
     os.makedirs(res_dir)
 
     # generate pvc config for this cluster
-    resp=get_resource_description(token, pr_data['resource_id'])
+    resp = get_resource_description(token, pr_data['resource_id'])
     if resp.status_code != 200:
         raise RuntimeError('Cannot fetch data for resource %s, %s' % (pr_data['resource_id'], resp.reason))
     r_data = resp.json()
