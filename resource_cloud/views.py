@@ -10,6 +10,7 @@ from resource_cloud.models import User, ActivationToken, Resource
 from resource_cloud.models import ProvisionedResource, SystemToken, Keypair
 from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
 from resource_cloud.forms import ChangePasswordForm, UpdateResourceConfigForm
+from resource_cloud.forms import ProvisionedResourceForm
 
 from resource_cloud.server import api, auth, db, restful, app
 from resource_cloud.tasks import run_provisioning, run_deprovisioning
@@ -284,19 +285,66 @@ class ProvisionedResourceList(restful.Resource):
     def get(self):
         user = g.user
         if user.is_admin:
-            reslist = ProvisionedResource.query. \
+            provisions = ProvisionedResource.query. \
                 filter(ProvisionedResource.state != 'deleted').all()
         else:
-            reslist = ProvisionedResource.query.filter_by(user_id=user.id). \
+            provisions = ProvisionedResource.query.filter_by(user_id=user.id). \
                 filter((ProvisionedResource.state != 'deleted')).all()
 
-        for res in reslist:
-            res_owner = User.query.filter_by(id=res.user_id).first()
-            res.user_id = res_owner.visual_id
-            res_parent = Resource.query.filter_by(visual_id=res.resource_id).first()
-            res.resource_id = res_parent.visual_id
+        for provision in provisions:
+            if user.is_admin:
+                res_owner = User.query.filter_by(id=provision.user_id).first()
+                provision.user_id = res_owner.visual_id
+            else:
+                provision.user_id = user.visual_id
 
-        return reslist
+            res_parent = Resource.query.filter_by(visual_id=provision.resource_id).first()
+
+            if not res_parent:
+                logging.warn("provisioned provision %s has a reference to "
+                             "non-existing provision" % provision.visual_id)
+                continue
+
+            provision.resource_id = res_parent.visual_id
+
+        return provisions
+
+    @auth.login_required
+    def post(self):
+        user = g.user
+
+        form = ProvisionedResourceForm()
+        if not form.validate_on_submit():
+            logging.warn("validation error on user login")
+            return form.errors, 422
+
+        resource_id = form.resource.data
+
+        resource = Resource.query.filter_by(visual_id=resource_id).first()
+        if not resource:
+            abort(404)
+
+        resources_for_user = ProvisionedResource.query.filter_by(resource_id=resource_id). \
+            filter_by(user_id=user.id).filter(ProvisionedResource.state != 'deleted').all()
+        if resources_for_user and len(resources_for_user) >= USER_RESOURCE_LIMIT:
+            abort(409)
+
+        provision = ProvisionedResource(resource.id, user.id)
+
+        # decide on a name that is not used currently
+        all_resources = ProvisionedResource.query.all()
+        existing_names = [x.name for x in all_resources]
+        # Note: the potential race is solved by unique constraint in database
+        while True:
+            c_name = names.get_first_name(gender='female').lower()
+            if c_name not in existing_names:
+                provision.name = c_name
+                break
+        token = SystemToken('provisioning')
+        db.session.add(provision)
+        db.session.add(token)
+        db.session.commit()
+        run_provisioning.delay(token.token, provision.visual_id)
 
 
 class ProvisionedResourceView(restful.Resource):
@@ -307,18 +355,23 @@ class ProvisionedResourceView(restful.Resource):
     @marshal_with(provision_fields)
     def get(self, provision_id):
         user = g.user
-        resource = ProvisionedResource.query.filter_by(visual_id=provision_id)
+        provision = ProvisionedResource.query.filter_by(visual_id=provision_id)
         if not user.is_admin:
-            resource = resource.filter_by(user_id=user.id)
-        resource = resource.first()
-        if not resource:
+            provision = provision.filter_by(user_id=user.id)
+        provision = provision.first()
+        if not provision:
             abort(404)
-        res_owner = User.query.filter_by(id=resource.user_id).first()
-        resource.user_id = res_owner.visual_id
-        res_parent = Resource.query.filter_by(visual_id=resource.resource_id).first()
-        resource.resource_id = res_parent.visual_id
 
-        return resource
+        if user.is_admin:
+            res_owner = User.query.filter_by(id=provision.user_id).first()
+            provision.user_id = res_owner.visual_id
+        else:
+            provision.user_id = user.visual_id
+
+        res_parent = Resource.query.filter_by(id=provision.resource_id).first()
+        provision.resource_id = res_parent.visual_id
+
+        return provision
 
     @auth.login_required
     def delete(self, provision_id):
@@ -337,7 +390,6 @@ class ProvisionedResourceView(restful.Resource):
     def patch(self, provision_id):
         user = g.user
         args = self.parser.parse_args()
-        print('got args %s' % args)
         qr = ProvisionedResource.query.filter_by(visual_id=provision_id)
         if not user.is_admin:
             qr = qr.filter_by(user_id=user.id)
@@ -355,7 +407,6 @@ class ProvisionedResourceView(restful.Resource):
                 pr.state = args['state']
 
             db.session.commit()
-        pass
 
 
 resource_fields = {
@@ -400,32 +451,6 @@ class ResourceView(restful.Resource):
         resource.config = form.config.data
         db.session.add(resource)
         db.session.commit()
-
-    @auth.login_required
-    def post(self, resource_id):
-        user = g.user
-        resources_for_user = ProvisionedResource.query.filter_by(resource_id=resource_id). \
-            filter_by(user_id=user.id).filter(ProvisionedResource.state != 'deleted').all()
-        if resources_for_user and len(resources_for_user) >= USER_RESOURCE_LIMIT:
-            abort(409)
-
-        provision = ProvisionedResource(resource_id, user.id)
-
-        # decide on a name that is not used currently
-        all_resources = ProvisionedResource.query.all()
-        existing_names = [x.name for x in all_resources]
-        # Note: the potential race is solved by unique constraint in database
-        while True:
-            c_name = names.get_first_name(gender='female').lower()
-            if c_name not in existing_names:
-                provision.name = c_name
-                break
-        token = SystemToken('provisioning')
-        db.session.add(provision)
-        db.session.add(token)
-        db.session.commit()
-        run_provisioning.delay(token.token, provision.visual_id)
-        return ['%s' % user]
 
 
 api.add_resource(FirstUserView, '/api/v1/initialize')

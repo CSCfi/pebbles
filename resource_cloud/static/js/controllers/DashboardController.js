@@ -28,7 +28,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             currentService.put();
         }
         $scope.provision = function (resource) {
-            resource.post().then(function (response) {
+            provisionedResources.post({ resource: resource.id }).then(function (response) {
                     provisionedResources.getList().then(function (response) {
                             $scope.instances = response;
                         }

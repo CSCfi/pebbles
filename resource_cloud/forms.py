@@ -28,6 +28,10 @@ class ChangePasswordForm(ModelForm):
     password = StringField('password', validators=[DataRequired()])
 
 
+class ProvisionedResourceForm(ModelForm):
+    resource = StringField('resource_id', validators=[DataRequired()])
+
+
 class SessionCreateForm(ModelForm):
     email = StringField('email', validators=[DataRequired()])
     password = StringField('password', validators=[DataRequired()])
