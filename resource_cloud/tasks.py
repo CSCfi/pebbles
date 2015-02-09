@@ -1,7 +1,7 @@
 import base64
+import select
+import shlex
 import os
-import random
-import time
 import subprocess
 import requests
 from celery import Celery
@@ -89,38 +89,64 @@ def update_resource_state(token, resource_id, state):
     return resp
 
 
-def get_resource_data(token, resource_id):
+def do_get(token, object_url):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
-    url = 'https://localhost/api/v1/provisioned_resources/%s' % resource_id
+
+    url = 'https://localhost/api/v1/%s' % object_url
     resp = requests.get(url, headers=headers, verify=config.SSL_VERIFY)
-    logger.info('got response %s %s' % (resp.status_code, resp.reason))
+    logger.debug('got response %s %s' % (resp.status_code, resp.reason))
+    return resp
+
+
+def get_provisioned_resource_data(token, provisioned_resource_id):
+    resp = do_get(token, 'provisioned_resources/%s' % provisioned_resource_id)
     return resp
 
 
 def get_resource_description(token, resource_id):
-    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
-    headers = {'Accept': 'text/plain',
-               'Authorization': 'Basic %s' % auth}
-    url = 'https://localhost/api/v1/resources/%s' % resource_id
-    resp = requests.get(url, headers=headers, verify=config.SSL_VERIFY)
-    logger.info('got response %s %s' % (resp.status_code, resp.reason))
-    return resp
+    return do_get(token, 'resources/%s' % resource_id)
 
 
 def get_user_key_data(token, user_id):
-    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
-    headers = {'Accept': 'text/plain',
-               'Authorization': 'Basic %s' % auth}
-    url = 'https://localhost/api/v1/users/%s/keypairs' % user_id
-    resp = requests.get(url, headers=headers, verify=config.SSL_VERIFY)
-    logger.info('got response %s %s' % (resp.status_code, resp.reason))
-    return resp
+    return do_get(token, 'users/%s/keypairs' % user_id)
+
+
+def run_logged_process(cmd, cwd='.', shell=False, env=None):
+    if shell:
+        args = [cmd]
+    else:
+        args = shlex.split(cmd)
+
+    p = subprocess.Popen(args, cwd=cwd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+    poller = select.poll()
+    poller.register(p.stdout)
+    poller.register(p.stderr)
+    with open('%s/pvc_stdout.log' % cwd, 'a') as stdout, open('%s/pvc_stderr.log' % cwd, 'a') as stderr:
+        stdout_open = stderr_open = True
+        while stdout_open or stderr_open:
+            poll_results = poller.poll(500)
+            for fd, mask in poll_results:
+                if fd == p.stdout.fileno():
+                    if mask & select.POLLIN > 0:
+                        line = p.stdout.readline()
+                        stdout.write(line)
+                        logger.debug('STDOUT: ' + line.strip('\n'))
+                    elif mask & select.POLLHUP > 0:
+                        stdout_open = False
+
+                elif fd == p.stderr.fileno():
+                    if mask & select.POLLIN > 0:
+                        line = p.stderr.readline()
+                        stderr.write(line)
+                        logger.info('STDERR: ' + line.strip('\n'))
+                    elif mask & select.POLLHUP > 0:
+                        stderr_open = False
 
 
 def run_pvc_provisioning(token, provisioned_resource_id):
-    resp = get_resource_data(token, provisioned_resource_id)
+    resp = get_provisioned_resource_data(token, provisioned_resource_id)
     if resp.status_code != 200:
         raise RuntimeError('Cannot fetch data for provisioned_resource %s, %s' % (provisioned_resource_id, resp.reason))
     pr_data = resp.json()
@@ -161,31 +187,27 @@ def run_pvc_provisioning(token, provisioned_resource_id):
             with open(key_file, 'w') as keyfile:
                 args = ['nova', 'keypair-add', 'rc-%s' % c_name]
                 p = subprocess.Popen(args, cwd=res_dir, stdout=keyfile)
+                p.wait()
             os.chmod(key_file, stat.S_IRUSR)
 
         # run provisioning
-        args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'up', '2']
-        with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
-            logger.info('spawning "%s"' % ' '.join(args))
-            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr, env=create_pvc_env())
-            logger.info('waiting for process to finish')
-            p.wait()
+        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py up 2'
+        logger.debug('spawning "%s"' % cmd)
+        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env())
 
         # add user key for ssh access
-        args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'add_key', 'userkey.pub']
-        with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
-            logger.info('spawning "%s"' % ' '.join(args))
-            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr, env=create_pvc_env())
-            logger.info('waiting for process to finish')
-            p.wait()
+        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py add_key userkey.pub'
+        logger.debug('spawning "%s"' % cmd)
+        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env())
 
     else:
-        logger.info('faking provisioning, sleeping for a while')
-        time.sleep(random.randint(5, 15))
+        logger.info('faking provisioning')
+        cmd = 'time ping -c 10 localhost'
+        run_logged_process(cmd=cmd, cwd=res_dir, shell=True)
 
 
 def run_pvc_deprovisioning(token, resource_id):
-    resp = get_resource_data(token, resource_id)
+    resp = get_provisioned_resource_data(token, resource_id)
     if resp.status_code != 200:
         raise RuntimeError('Cannot fetch data for resource %s, %s' % (resource_id, resp.reason))
     r_data = resp.json()
@@ -195,32 +217,21 @@ def run_pvc_deprovisioning(token, resource_id):
 
     if not config.FAKE_PROVISIONING:
         # run deprovisioning
-        args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'down']
-        with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
-            logger.info('spawning "%s"' % ' '.join(args))
-            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr, env=create_pvc_env())
-            logger.info('waiting for process to finish')
-            p.wait()
+        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py down'
+        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env())
 
         # clean generated security and server groups
-        args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'cleanup']
-        with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
-            logger.info('spawning "%s"' % ' '.join(args))
-            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr, env=create_pvc_env())
-            logger.info('waiting for process to finish')
-            p.wait()
+        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py cleanup'
+        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env())
 
         # destroy volumes
-        args = ['/webapps/resource_cloud/venv/bin/python', '/opt/pvc/python/poutacluster.py', 'destroy_volumes']
-        with open('%s/pvc_stdout.log' % res_dir, 'a') as stdout, open('%s/pvc_stderr.log' % res_dir, 'a') as stderr:
-            logger.info('spawning "%s"' % ' '.join(args))
-            p = subprocess.Popen(args, cwd=res_dir, stdout=stdout, stderr=stderr, env=create_pvc_env())
-            logger.info('waiting for process to finish')
-            p.wait()
+        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py destroy_volumes'
+        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env())
 
     else:
-        logger.info('faking provisioning, sleeping for a while')
-        time.sleep(random.randint(5, 15))
+        logger.info('faking deprovisioning')
+        cmd = 'time ping -c 5 localhost'
+        run_logged_process(cmd=cmd, cwd=res_dir, shell=True)
 
     # use resource id as a part of the name to make tombstones always unique
     os.rename(res_dir, '%s.deleted.%s' % (res_dir, resource_id))
