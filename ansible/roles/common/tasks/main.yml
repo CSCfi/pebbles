@@ -15,6 +15,7 @@
     - dstat
     - lsof
     - bash-completion
+    - time
 
 - name: install dependencies
   apt: pkg={{item}} state=present
