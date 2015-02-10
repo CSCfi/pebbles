@@ -81,6 +81,7 @@ class FirstUserView(restful.Resource):
 
 
 class UserList(restful.Resource):
+    @staticmethod
     def address_list(value):
         return set(x for x in re.split(r",| |\n|\t", value) if x and '@' in x)
 
