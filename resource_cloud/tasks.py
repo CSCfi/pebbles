@@ -11,11 +11,16 @@ from flask import render_template
 from flask.ext.mail import Message
 import stat
 import time
+import logging
 from resource_cloud.app import get_app
 # from resource_cloud.config import BaseConfig as config
 from resource_cloud.config import DevConfig as config
 
-# config.FAKE_PROVISIONING = False
+config.FAKE_PROVISIONING = False
+
+# tune requests to give less spam in development environment with self signed certificate
+requests.packages.urllib3.disable_warnings()
+logging.getLogger("requests").setLevel(logging.WARNING)
 
 logger = get_task_logger(__name__)
 app = Celery('tasks', broker=config.MESSAGE_QUEUE_URI, backend=config.MESSAGE_QUEUE_URI)
@@ -265,6 +270,11 @@ def run_pvc_deprovisioning(token, provisioned_resource_id):
         # destroy volumes
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py destroy_volumes'
         run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env(), log_uploader=uploader)
+
+        # remove generated key from OpenStack
+        args = ['nova', 'keypair-delete', 'rc-%s' % c_name]
+        p = subprocess.Popen(args, cwd=res_dir)
+        p.wait()
 
     else:
         logger.info('faking deprovisioning')
