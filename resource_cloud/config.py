@@ -10,6 +10,7 @@ class BaseConfig(object):
     MESSAGE_QUEUE_URI = 'redis://localhost:6379/0'
     PVC_CLUSTER_DATA_DIR = '/var/spool/pvc_clusters'
     BASE_URL = 'https://localhost:8888'
+    MAX_CONTENT_LENGTH = 1024 * 1024
     FAKE_PROVISIONING = False
 
 
