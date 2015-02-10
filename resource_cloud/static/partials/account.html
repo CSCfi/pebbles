@@ -2,31 +2,44 @@
     <h1>Account</h1>
     <div class="row">
         <div class="col-md-12">
-            <h2>SSH Keys</h2>
+            <h2>Manage SSH Keys <button class="btn btn-small" type="button" data-toggle="collapse" data-target="#collapseSSHHelp" aria-expanded="false" aria-controls="collapseSSHHelp">
+                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+            </h2>
         </div>
     </div>
-    <div class="row">
-        <div class="col-md-7 col-xs-10">
-            <button ng-click="generate_key()" class="btn btn-lg btn-primary">Generate Keypair</button>
-            <a type="button" ng-disabled="!key_downloadable()" class="btn btn-lg btn-primary" id="content" download="resource_cloud.key" ng-href="{{key_url()}}">Download Private Key</a>
-        </div>
-        <div class="col-md-1 col-xs-2">
-            <button class="btn btn-lg" type="button" data-toggle="collapse" data-target="#collapseSSHHelp" aria-expanded="false" aria-controls="collapseSSHHelp">
-                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-            </button>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-8 col-xs-12">
-            <div ng-show="key_downloadable()" class="alert alert-warning" role="alert">
-                Your private key is not stored in the Resource Cloud. To use it later, you must download it now.
-            </div>
 
+    <div class="row">
+        <div class="col-md-8 xol-xs-12">
             <div class="collapse" id="collapseSSHHelp">
                 <div class="well">SSH keys are used to access your resources like instantiated clusters. You can generate your public and private keys, or upload your existing public key. New keys will be used with every new resource created.</div>
             </div>
         </div>
     </div>
+
+    <div class="row">
+        <div class="col-md-7 col-xs-10">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Generate a new keypair</h3>
+                </div>
+                <div class="panel-body">
+                    <button ng-click="generate_key()" class="btn btn-lg btn-primary">Generate Keypair</button>
+                    <a type="button" ng-disabled="!key_downloadable()" class="btn btn-lg btn-primary" id="content" download="resource_cloud.key" ng-href="{{key_url()}}">Download Private Key</a>
+                </div>
+                <div class="panel-heading">
+                    <h3 class="panel-title">or upload existing public key</h3>
+                </div>
+                <div class="panel-body">
+                    <div class="col-md-5 btn btn-lg btn-primary" ng-file-select ng-model="files">Upload Public Key</div>
+                    <div class="col-md-7">
+                        <div class="alert alert-success" ng-show="upload_success()" role="alert"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span> Ok</div>
+                        <div class="alert alert-danger" ng-show="upload_error()" role="alert"><span class="glyphicon glyphicon-bullhorn" aria-hidden="true"></span> Upload failed, not a valid public key</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-6">
             <h2>Change Password</h2>

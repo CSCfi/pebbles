@@ -6,6 +6,7 @@ from sqlalchemy import desc
 import logging
 import names
 import re
+import werkzeug
 from functools import wraps
 
 from resource_cloud.models import User, ActivationToken, Resource
@@ -226,6 +227,39 @@ class CreateKeyPair(restful.Resource):
         return {'private_key': priv}
 
 
+class UploadKeyPair(restful.Resource):
+    @auth.login_required
+    def post(self, user_id):
+        parser = reqparse.RequestParser()
+        parser.add_argument('file', type=werkzeug.datastructures.FileStorage, location='files')
+
+        if user_id != g.user.visual_id:
+            abort(403)
+        args = parser.parse_args()
+        if 'file' not in args:
+            abort(422)
+
+        existing_key = None
+        for keypair in Keypair.query.filter_by(user_id=g.user.id).all():
+            existing_key = keypair.public_key
+            db.session.delete(keypair)
+        db.session.commit()
+
+        key = Keypair()
+        key.user_id = g.user.id
+        try:
+            uploaded_key = args['file'].read()
+            key.public_key = uploaded_key
+            logging.warn(type(key))
+            db.session.add(key)
+            db.session.commit()
+        except:
+            key.public_key = existing_key
+            db.session.add(key)
+            db.session.commit()
+            abort(422)
+
+
 token_fields = {
     'token': fields.String,
     'user_id': fields.String,
@@ -251,25 +285,24 @@ class SessionView(restful.Resource):
 
 
 class ActivationList(restful.Resource):
-    @marshal_with(user_fields)
     def post(self):
         form = ActivationForm()
         if not form.validate_on_submit():
             return form.errors, 422
+
         token = ActivationToken.query.filter_by(token=form.token.data).first()
         if not token:
-            return abort(404)
+            return abort(410)
 
         user = User.query.filter_by(id=token.user_id).first()
         if not user:
             return abort(410)
+
         user.set_password(form.password.data)
         user.is_active = True
 
         db.session.delete(token)
         db.session.commit()
-
-        return user
 
 
 provision_fields = {
@@ -527,6 +560,7 @@ api.add_resource(UserView, '/api/v1/users/<string:user_id>')
 api.add_resource(KeypairList, '/api/v1/users/<string:user_id>/keypairs')
 api.add_resource(KeypairView, '/api/v1/users/<string:user_id>/keypairs/<string:keypair_id>')
 api.add_resource(CreateKeyPair, '/api/v1/users/<string:user_id>/keypairs/create')
+api.add_resource(UploadKeyPair, '/api/v1/users/<string:user_id>/keypairs/upload')
 api.add_resource(SessionView, '/api/v1/sessions')
 api.add_resource(ActivationList, '/api/v1/activations')
 api.add_resource(ResourceList, '/api/v1/resources')
