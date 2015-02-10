@@ -10,6 +10,7 @@ import jinja2
 from flask import render_template
 from flask.ext.mail import Message
 import stat
+import time
 from resource_cloud.app import get_app
 # from resource_cloud.config import BaseConfig as config
 from resource_cloud.config import DevConfig as config
@@ -76,17 +77,37 @@ def run_deprovisioning(token, resource_id):
     return 'error: %s %s' % (resp.status_code, resp.reason)
 
 
-def update_resource_state(token, resource_id, state):
+def update_resource_state(token, provisioned_resource_id, state):
     payload = {'state': state}
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Content-type': 'application/x-www-form-urlencoded',
                'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
-    url = 'https://localhost/api/v1/provisioned_resources/%s' % resource_id
+    url = 'https://localhost/api/v1/provisioned_resources/%s' % provisioned_resource_id
     resp = requests.patch(url, data=payload, headers=headers,
                           verify=config.SSL_VERIFY)
-    logger.info('got response %s %s' % (resp.status_code, resp.reason))
+    logger.debug('got response %s %s' % (resp.status_code, resp.reason))
     return resp
+
+
+def upload_provisioning_log(token, provisioned_resource_id, log_type, log_text):
+    payload = {'text': log_text, 'type': log_type}
+    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
+    headers = {'Content-type': 'application/x-www-form-urlencoded',
+               'Accept': 'text/plain',
+               'Authorization': 'Basic %s' % auth}
+    url = 'https://localhost/api/v1/provisioned_resources/%s/logs' % provisioned_resource_id
+    resp = requests.patch(url, data=payload, headers=headers,
+                          verify=config.SSL_VERIFY)
+    logger.debug('got response %s %s' % (resp.status_code, resp.reason))
+    return resp
+
+
+def create_prov_log_uploader(token, provisioned_resource_id, log_type):
+    def uploader(text):
+        upload_provisioning_log(token, provisioned_resource_id, log_type, text)
+
+    return uploader
 
 
 def do_get(token, object_url):
@@ -113,7 +134,7 @@ def get_user_key_data(token, user_id):
     return do_get(token, 'users/%s/keypairs' % user_id)
 
 
-def run_logged_process(cmd, cwd='.', shell=False, env=None):
+def run_logged_process(cmd, cwd='.', shell=False, env=None, log_uploader=None):
     if shell:
         args = [cmd]
     else:
@@ -123,6 +144,8 @@ def run_logged_process(cmd, cwd='.', shell=False, env=None):
     poller = select.poll()
     poller.register(p.stdout)
     poller.register(p.stderr)
+    log_buffer = []
+    last_upload = time.time()
     with open('%s/pvc_stdout.log' % cwd, 'a') as stdout, open('%s/pvc_stderr.log' % cwd, 'a') as stderr:
         stdout_open = stderr_open = True
         while stdout_open or stderr_open:
@@ -131,18 +154,31 @@ def run_logged_process(cmd, cwd='.', shell=False, env=None):
                 if fd == p.stdout.fileno():
                     if mask & select.POLLIN > 0:
                         line = p.stdout.readline()
-                        stdout.write(line)
                         logger.debug('STDOUT: ' + line.strip('\n'))
+                        stdout.write(line)
+                        log_buffer.append('STDOUT %s' % line)
                     elif mask & select.POLLHUP > 0:
                         stdout_open = False
 
                 elif fd == p.stderr.fileno():
                     if mask & select.POLLIN > 0:
                         line = p.stderr.readline()
-                        stderr.write(line)
                         logger.info('STDERR: ' + line.strip('\n'))
+                        stderr.write(line)
+                        if log_uploader:
+                            log_buffer.append('STDERR %s' % line)
+
                     elif mask & select.POLLHUP > 0:
                         stderr_open = False
+
+            if log_uploader and (last_upload < time.time() - 10 or len(log_buffer) > 100):
+                if len(log_buffer) > 0:
+                    log_uploader(''.join(log_buffer))
+                    log_buffer = []
+                    last_upload = time.time()
+
+    if log_uploader and len(log_buffer) > 0:
+        log_uploader(''.join(log_buffer))
 
 
 def run_pvc_provisioning(token, provisioned_resource_id):
@@ -180,6 +216,7 @@ def run_pvc_provisioning(token, provisioned_resource_id):
     with open(user_key_file, 'w') as kf:
         kf.write(key_data[0]['public_key'])
 
+    uploader = create_prov_log_uploader(token, provisioned_resource_id, log_type='provisioning')
     if not config.FAKE_PROVISIONING:
         # generate keypair for this cluster
         key_file = '%s/key.priv' % res_dir
@@ -193,48 +230,49 @@ def run_pvc_provisioning(token, provisioned_resource_id):
         # run provisioning
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py up 2'
         logger.debug('spawning "%s"' % cmd)
-        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env())
+        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env(), log_uploader=uploader)
 
         # add user key for ssh access
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py add_key userkey.pub'
         logger.debug('spawning "%s"' % cmd)
-        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env())
+        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env(), log_uploader=uploader)
 
     else:
         logger.info('faking provisioning')
         cmd = 'time ping -c 10 localhost'
-        run_logged_process(cmd=cmd, cwd=res_dir, shell=True)
+        run_logged_process(cmd=cmd, cwd=res_dir, shell=True, log_uploader=uploader)
 
 
-def run_pvc_deprovisioning(token, resource_id):
-    resp = get_provisioned_resource_data(token, resource_id)
+def run_pvc_deprovisioning(token, provisioned_resource_id):
+    resp = get_provisioned_resource_data(token, provisioned_resource_id)
     if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for resource %s, %s' % (resource_id, resp.reason))
+        raise RuntimeError('Cannot fetch data for resource %s, %s' % (provisioned_resource_id, resp.reason))
     r_data = resp.json()
     c_name = r_data['name']
 
     res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, c_name)
 
+    uploader = create_prov_log_uploader(token, provisioned_resource_id, log_type='deprovisioning')
     if not config.FAKE_PROVISIONING:
         # run deprovisioning
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py down'
-        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env())
+        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env(), log_uploader=uploader)
 
         # clean generated security and server groups
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py cleanup'
-        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env())
+        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env(), log_uploader=uploader)
 
         # destroy volumes
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py destroy_volumes'
-        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env())
+        run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env(), log_uploader=uploader)
 
     else:
         logger.info('faking deprovisioning')
         cmd = 'time ping -c 5 localhost'
-        run_logged_process(cmd=cmd, cwd=res_dir, shell=True)
+        run_logged_process(cmd=cmd, cwd=res_dir, shell=True, log_uploader=uploader)
 
     # use resource id as a part of the name to make tombstones always unique
-    os.rename(res_dir, '%s.deleted.%s' % (res_dir, resource_id))
+    os.rename(res_dir, '%s.deleted.%s' % (res_dir, provisioned_resource_id))
 
 
 def create_pvc_env():

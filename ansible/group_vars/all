@@ -25,6 +25,7 @@ application_database_uri: "sqlite:///{{ runtime_path }}/db.sqlite"
 
 # nginx
 nginx_static_root: "/webapps/{{ application_name }}/static"
+nginx_log_file_root: "/webapps/{{ application_name }}/provisioning_logs"
 nginx_access_log_file: "{{application_log_dir}}/nginx_access.log"
 nginx_error_log_file: "{{application_log_dir}}/nginx_error.log"
 nginx_ssl_crt: "/etc/nginx/ssl/server.crt"
