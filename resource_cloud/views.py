@@ -1,3 +1,5 @@
+import uuid
+import os
 from flask import abort, g
 from flask.ext.restful import fields, marshal_with, reqparse
 from sqlalchemy import desc
@@ -409,6 +411,69 @@ class ProvisionedResourceView(restful.Resource):
             db.session.commit()
 
 
+class ProvisionedResourceLogs(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('type', type=str)
+    parser.add_argument('text', type=str)
+
+    @staticmethod
+    def get_base_dir_and_filename(prov_res_id, log_type):
+        log_dir = '/webapps/resource_cloud/provisioning_logs/%s' % prov_res_id
+
+        # make sure the directory for this provisioned resource exists
+        if not os.path.isdir(log_dir):
+            os.mkdir(log_dir, 0o755)
+
+        # check if we already have a file with the correct extension
+        log_file_name = None
+        for filename in os.listdir(log_dir):
+            if filename.endswith('.' + log_type):
+                log_file_name = filename
+        if not log_file_name:
+            log_file_name = '%s.%s' % (uuid.uuid4().hex, log_type)
+
+        return log_dir, log_file_name
+
+    @auth.login_required
+    def get(self, provision_id):
+        user = g.user
+        provision = ProvisionedResource.query.filter_by(visual_id=provision_id)
+        if not user.is_admin:
+            provision = provision.filter_by(user_id=user.id)
+        provision = provision.first()
+        if not provision:
+            abort(404)
+
+        res = []
+        for log_type in ['provisioning', 'deprovisioning']:
+            log_dir, log_file_name = self.get_base_dir_and_filename(provision_id, log_type)
+            res.append({'url': '/provisioning_logs/%s/%s' % (provision_id, log_file_name), 'type': log_type})
+
+        return res
+
+    @auth.login_required
+    @requires_admin
+    def patch(self, provision_id):
+        args = self.parser.parse_args()
+        pr = ProvisionedResource.query.filter_by(visual_id=provision_id).first()
+        if not pr:
+            abort(404)
+
+        log_type = args['type']
+        if not log_type:
+            abort(403)
+
+        if log_type in ('provisioning', 'deprovisioning'):
+            log_dir, log_file_name = self.get_base_dir_and_filename(provision_id, log_type)
+
+            with open('%s/%s' % (log_dir, log_file_name), 'a') as logfile:
+                logfile.write(args['text'])
+        else:
+            abort(403)
+
+        return 'ok'
+
+
 resource_fields = {
     'id': fields.String(attribute='visual_id'),
     'vcpus': fields.String(default="4"),
@@ -469,3 +534,6 @@ api.add_resource(ProvisionedResourceList, '/api/v1/provisioned_resources')
 api.add_resource(ProvisionedResourceView,
                  '/api/v1/provisioned_resources/<string:provision_id>',
                  methods=['GET', 'POST', 'DELETE', 'PATCH'])
+api.add_resource(ProvisionedResourceLogs,
+                 '/api/v1/provisioned_resources/<string:provision_id>/logs',
+                 methods=['GET', 'PATCH'])
