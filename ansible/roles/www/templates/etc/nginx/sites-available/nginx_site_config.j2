@@ -40,6 +40,12 @@ server {
     }
     location / {
         alias {{ nginx_static_root }}/;
+        autoindex off;
     }
+    location /provisioning_logs {
+        alias {{ nginx_log_file_root }}/;
+        autoindex off;
+    }
+
     location = /favicon.ico { log_not_found off; access_log off; }
 }
