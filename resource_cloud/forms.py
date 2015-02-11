@@ -26,7 +26,10 @@ class UpdateResourceConfigForm(ModelForm):
 
 
 class ChangePasswordForm(ModelForm):
-    password = StringField('password', validators=[DataRequired()])
+    password = StringField('password', validators=[DataRequired(), Length(
+        min=8,
+        max=MAX_PASSWORD_LENGTH, message=("Password must be between %(min)d and "
+                                          "%(max)d characters long"))])
 
 
 class ProvisionedResourceForm(ModelForm):
@@ -40,6 +43,7 @@ class SessionCreateForm(ModelForm):
 
 class ActivationForm(ModelForm):
     token = StringField('token', validators=[DataRequired()])
-    password = StringField('password', validators=[DataRequired(), Length(min=8,
-                           max=MAX_PASSWORD_LENGTH, message=("Password must be between %(min)d and "
-                                                             "%(max)d characters long"))])
+    password = StringField('password', validators=[DataRequired(), Length(
+        min=8,
+        max=MAX_PASSWORD_LENGTH, message=("Password must be between %(min)d and "
+                                          "%(max)d characters long"))])
