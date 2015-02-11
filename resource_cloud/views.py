@@ -143,7 +143,6 @@ class UserView(restful.Resource):
         return User.query.filter_by(visual_id=user_id).first()
 
     @auth.login_required
-    @marshal_with(user_fields)
     def put(self, user_id):
         if not g.user.is_admin and user_id != g.user.visual_id:
             abort(403)
@@ -154,7 +153,6 @@ class UserView(restful.Resource):
         g.user.set_password(form.password.data)
         db.session.add(g.user)
         db.session.commit()
-        return g.user
 
     @auth.login_required
     @requires_admin

@@ -1,5 +1,5 @@
-app.controller('AccountController', ['$scope', '$timeout', 'AuthService', 'Restangular',
-                             function($scope,   $timeout,   AuthService,   Restangular) {
+app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 'Restangular',
+                             function($q,   $scope,   $timeout,   AuthService,   Restangular) {
     var user = Restangular.one('users', AuthService.getUserId());
     var key = null;
     var key_url = null;
@@ -38,8 +38,7 @@ app.controller('AccountController', ['$scope', '$timeout', 'AuthService', 'Resta
     $scope.update_password = function() {
         var params = { password: $scope.user.password };
         user.password = $scope.user.password;
-        user.put()
-        user.put(params).then(function(response) {
+        user.put().then(function(response) {
             change_password_result = "Password changed";
         }, function(response) {
             var deferred = $q.defer();
