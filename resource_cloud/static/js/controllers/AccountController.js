@@ -80,7 +80,14 @@ app.controller('AccountController', ['$scope', '$timeout', 'AuthService', '$uplo
         user.put(params).then(function(response) {
             change_password_result = "Password changed";
         }, function(response) {
-            change_password_result = "Unable to change password";
+            var deferred = $q.defer();
+            if (response.status == 422) {
+                activation_success = false;
+                change_password_result = response.data.password.join(', ');
+                return deferred.reject(false);
+            } else {
+                throw new Error("No handler for status code " + response.status);
+            }
         });
         $timeout(function() {
             change_password_result = "";

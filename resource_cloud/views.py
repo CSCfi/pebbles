@@ -70,7 +70,7 @@ class FirstUserView(restful.Resource):
 
         if not users:
             if not form.validate_on_submit():
-                logging.warn("%s" % form.errors)
+                logging.warn("validation error on first user creation")
                 return form.errors, 422
             user = User(form.email.data, form.password.data, is_admin=True)
             user.is_active = True
@@ -151,7 +151,7 @@ class UserView(restful.Resource):
         form = ChangePasswordForm()
         if not form.validate_on_submit():
             logging.warn("validation error on change password: %s" % form.errors)
-            abort(422)
+            return form.errors, 422
         g.user.set_password(form.password.data)
         db.session.add(g.user)
         db.session.commit()
@@ -543,6 +543,7 @@ class ResourceView(restful.Resource):
     def put(self, resource_id):
         form = UpdateResourceConfigForm()
         if not form.validate_on_submit():
+            logging.warn("validation error on update resource config")
             return form.errors, 422
         logging.warn(form)
 
