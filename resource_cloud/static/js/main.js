@@ -1,6 +1,6 @@
 'use strict';
 
-var app = angular.module('resourceCloudApp', ['ngRoute', 'restangular', 'LocalStorageModule', 'validation.match']);
+var app = angular.module('resourceCloudApp', ['ngRoute', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload']);
 
 app.run(function($location, Restangular, AuthService) {
     Restangular.setFullRequestInterceptor(function(element, operation, route, url, headers, params, httpConfig) {
@@ -24,6 +24,12 @@ app.run(function($location, Restangular, AuthService) {
                     return true;
                 case 409:
                     // Pass 409 Conflict to controllers to handle
+                    return true;
+                case 410:
+                    // Pass 410 Gone to controllers to handle
+                    return true;
+                case 422:
+                    // Pass 422 Unprocessable entity to controllers to handle
                     return true;
                 default:
                     throw new Error('No handler for status code ' + response.status);
