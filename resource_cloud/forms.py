@@ -1,9 +1,9 @@
 from flask.ext.wtf import Form
 from wtforms_alchemy import model_form_factory
-from wtforms import StringField
-from wtforms.validators import DataRequired
+from wtforms import BooleanField, StringField
+from wtforms.validators import DataRequired, Email, Length
 
-from resource_cloud.models import User
+from resource_cloud.models import MAX_PASSWORD_LENGTH
 from resource_cloud.server import db
 
 BaseModelForm = model_form_factory(Form)
@@ -16,8 +16,9 @@ class ModelForm(BaseModelForm):
 
 
 class UserForm(ModelForm):
-    class Meta:
-        model = User
+    email = StringField('email', validators=[DataRequired(), Email()])
+    password = StringField('password', default=None)
+    is_admin = BooleanField('is_admin', default=False)
 
 
 class UpdateResourceConfigForm(ModelForm):
@@ -25,7 +26,10 @@ class UpdateResourceConfigForm(ModelForm):
 
 
 class ChangePasswordForm(ModelForm):
-    password = StringField('password', validators=[DataRequired()])
+    password = StringField('password', validators=[DataRequired(), Length(
+        min=8,
+        max=MAX_PASSWORD_LENGTH, message=("Password must be between %(min)d and "
+                                          "%(max)d characters long"))])
 
 
 class ProvisionedResourceForm(ModelForm):
@@ -39,4 +43,7 @@ class SessionCreateForm(ModelForm):
 
 class ActivationForm(ModelForm):
     token = StringField('token', validators=[DataRequired()])
-    password = StringField('password', validators=[DataRequired()])
+    password = StringField('password', validators=[DataRequired(), Length(
+        min=8,
+        max=MAX_PASSWORD_LENGTH, message=("Password must be between %(min)d and "
+                                          "%(max)d characters long"))])

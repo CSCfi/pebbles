@@ -1,5 +1,5 @@
-app.controller('AccountController', ['$scope', '$timeout', 'AuthService', '$upload', 'Restangular',
-                             function($scope,   $timeout,   AuthService,   $upload,   Restangular) {
+app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', '$upload', 'Restangular',
+                             function($q,   $scope,   $timeout,   AuthService,   $upload,   Restangular) {
     var user = Restangular.one('users', AuthService.getUserId());
     var key = null;
     var key_url = null;
@@ -76,11 +76,17 @@ app.controller('AccountController', ['$scope', '$timeout', 'AuthService', '$uplo
     $scope.update_password = function() {
         var params = { password: $scope.user.password };
         user.password = $scope.user.password;
-        user.put()
-        user.put(params).then(function(response) {
+        user.put().then(function(response) {
             change_password_result = "Password changed";
         }, function(response) {
-            change_password_result = "Unable to change password";
+            var deferred = $q.defer();
+            if (response.status == 422) {
+                activation_success = false;
+                change_password_result = response.data.password.join(', ');
+                return deferred.reject(false);
+            } else {
+                throw new Error("No handler for status code " + response.status);
+            }
         });
         $timeout(function() {
             change_password_result = "";

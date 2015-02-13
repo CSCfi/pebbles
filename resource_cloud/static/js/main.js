@@ -25,6 +25,12 @@ app.run(function($location, Restangular, AuthService) {
                 case 409:
                     // Pass 409 Conflict to controllers to handle
                     return true;
+                case 410:
+                    // Pass 410 Gone to controllers to handle
+                    return true;
+                case 422:
+                    // Pass 422 Unprocessable entity to controllers to handle
+                    return true;
                 default:
                     throw new Error('No handler for status code ' + response.status);
             }

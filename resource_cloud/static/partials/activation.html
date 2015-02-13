@@ -1,5 +1,5 @@
 <div class="col-md-6 col-md-offset-3" ng-controller="ActivationController">
-    <form ng-hide="activationSuccess()" name="activationForm" class="form-activate" ng-submit="activate_user()">
+    <form ng-hide="activation_success()" name="activationForm" class="form-activate" ng-submit="activate_user()">
         <h2 class="form-signin-heading">Activate your account</h2>
             <input type="password" class="form-control" ng-model="user.password"  data-ng-class="{'ng-invalid':activationForm.confirmPassword.$error.match}" placeholder="Password" required autofocus>
             <input type="password" class="form-control" name="confirmPassword" ng-model="user.passwordConfirm" match="user.password" placeholder="Verify password" required>
@@ -7,8 +7,11 @@
 
             <button class="btn btn-lg btn-primary btn-block" ng-disabled="activationForm.$invalid" type="submit">Activate</button>
   </form>
-  <div ng-show="activationSuccess()" class="alert alert-success" role="alert">
+  <div ng-show="activation_success()" class="alert alert-success" role="alert">
       <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span>
-      <span class="sr-only">Success:</span>User activated
+      <span class="sr-only">Success:</span> User activated
+  </div>
+  <div ng-show="activation_error()" class="alert alert-danger" role="alert">
+      <span class="sr-only">Error:</span> Activation error: {{ get_error_msg() }}
   </div>
 </div>
