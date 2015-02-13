@@ -255,8 +255,6 @@ def run_pvc_provisioning(token, provisioned_resource_id):
         if public_ip:
             do_provisioned_resource_patch(token, provisioned_resource_id, {'public_ip': public_ip})
 
-
-
     else:
         logger.info('faking provisioning')
         cmd = 'time ping -c 10 localhost'
