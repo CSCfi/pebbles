@@ -91,6 +91,7 @@ class ProvisionedResource(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     resource_id = db.Column(db.Integer, db.ForeignKey('resources.id'))
     name = db.Column(db.String(64), unique=True)
+    public_ip = db.Column(db.String(64))
     provisioned_at = db.Column(db.DateTime)
     state = db.Column(db.String(32))
 

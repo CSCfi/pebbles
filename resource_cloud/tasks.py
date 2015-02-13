@@ -1,4 +1,5 @@
 import base64
+from random import randint
 import select
 import shlex
 import os
@@ -54,12 +55,12 @@ def send_mails(users):
 def run_provisioning(token, resource_id):
     logger.info('provisioning triggered for %s' % resource_id)
 
-    update_resource_state(token, resource_id, 'provisioning')
+    do_provisioned_resource_patch(token, resource_id, {'state': 'provisioning'})
 
     run_pvc_provisioning(token, resource_id)
 
     logger.info('provisioning done, notifying server')
-    resp = update_resource_state(token, resource_id, 'running')
+    resp = do_provisioned_resource_patch(token, resource_id, {'state': 'running'})
 
     if resp.status_code == 200:
         return 'ok'
@@ -74,7 +75,7 @@ def run_deprovisioning(token, resource_id):
     run_pvc_deprovisioning(token, resource_id)
 
     logger.info('deprovisioning done, notifying server')
-    resp = update_resource_state(token, resource_id, 'deleted')
+    resp = do_provisioned_resource_patch(token, resource_id, {'state': 'deleted'})
 
     if resp.status_code == 200:
         return 'ok'
@@ -82,8 +83,7 @@ def run_deprovisioning(token, resource_id):
     return 'error: %s %s' % (resp.status_code, resp.reason)
 
 
-def update_resource_state(token, provisioned_resource_id, state):
-    payload = {'state': state}
+def do_provisioned_resource_patch(token, provisioned_resource_id, payload):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Content-type': 'application/x-www-form-urlencoded',
                'Accept': 'text/plain',
@@ -215,7 +215,7 @@ def run_pvc_provisioning(token, provisioned_resource_id):
     key_data = get_user_key_data(token, pr_data['user_id']).json()
     user_key_file = '%s/userkey.pub' % res_dir
     if not key_data:
-        update_resource_state(token, provisioned_resource_id, 'failed')
+        do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'failed'})
         raise RuntimeError("User's public key missing")
 
     with open(user_key_file, 'w') as kf:
@@ -246,6 +246,8 @@ def run_pvc_provisioning(token, provisioned_resource_id):
         logger.info('faking provisioning')
         cmd = 'time ping -c 10 localhost'
         run_logged_process(cmd=cmd, cwd=res_dir, shell=True, log_uploader=uploader)
+        do_provisioned_resource_patch(token, provisioned_resource_id, {'public_ip': '%s.%s.%s.%s' % (
+            randint(1, 254), randint(1, 254), randint(1, 254), randint(1, 254))})
 
 
 def run_pvc_deprovisioning(token, provisioned_resource_id):
