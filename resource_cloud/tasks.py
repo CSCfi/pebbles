@@ -161,6 +161,7 @@ def run_logged_process(cmd, cwd='.', shell=False, env=None, log_uploader=None):
                         line = p.stdout.readline()
                         logger.debug('STDOUT: ' + line.strip('\n'))
                         stdout.write(line)
+                        stdout.flush()
                         log_buffer.append('STDOUT %s' % line)
                     elif mask & select.POLLHUP > 0:
                         stdout_open = False
@@ -170,6 +171,7 @@ def run_logged_process(cmd, cwd='.', shell=False, env=None, log_uploader=None):
                         line = p.stderr.readline()
                         logger.info('STDERR: ' + line.strip('\n'))
                         stderr.write(line)
+                        stderr.flush()
                         if log_uploader:
                             log_buffer.append('STDERR %s' % line)
 
@@ -204,9 +206,7 @@ def run_pvc_provisioning(token, provisioned_resource_id):
         raise RuntimeError('Cannot fetch data for resource %s, %s' % (pr_data['resource_id'], resp.reason))
     r_data = resp.json()
     tc = jinja2.Template(r_data['config'])
-    conf = tc.render(cluster_name='rc-%s' % c_name, security_key='rc-%s' % c_name, frontend_flavor='mini',
-                     public_ip='86.50.169.98',
-                     node_flavor='mini', )
+    conf = tc.render(cluster_name='rc-%s' % c_name, security_key='rc-%s' % c_name)
     with open('%s/cluster.yml' % res_dir, 'w') as cf:
         cf.write(conf)
         cf.write('\n')
@@ -241,6 +241,21 @@ def run_pvc_provisioning(token, provisioned_resource_id):
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py add_key userkey.pub'
         logger.debug('spawning "%s"' % cmd)
         run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env(), log_uploader=uploader)
+
+        # get public IP
+        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py info'
+        p = subprocess.Popen(shlex.split(cmd), cwd=res_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        public_ip = None
+        for line in out.splitlines():
+            line = line.strip()
+            if line.startswith('public ip:'):
+                public_ip = line.split(':')[1]
+                break
+        if public_ip:
+            do_provisioned_resource_patch(token, provisioned_resource_id, {'public_ip': public_ip})
+
+
 
     else:
         logger.info('faking provisioning')
