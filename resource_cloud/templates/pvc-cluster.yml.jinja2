@@ -11,8 +11,8 @@ frontend:
   sec-key: {{ security_key }}
   image: Ubuntu-14.04
   admin-user: cloud-user
-  flavor: {{ frontend_flavor }}
-  public-ip: {{ public_ip }}
+  flavor: mini
+  public-ip: auto
   volumes:
     - name: local_data
       size: 1
@@ -27,7 +27,7 @@ node:
   sec-key: {{ security_key }}
   image: Ubuntu-14.04
   admin-user: cloud-user
-  flavor: {{ node_flavor }}
+  flavor: mini
   volumes:
     - name: local_data
       size: 1
