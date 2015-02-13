@@ -16,7 +16,7 @@ from resource_cloud.app import get_app
 # from resource_cloud.config import BaseConfig as config
 from resource_cloud.config import DevConfig as config
 
-config.FAKE_PROVISIONING = False
+config.FAKE_PROVISIONING = True
 
 # tune requests to give less spam in development environment with self signed certificate
 requests.packages.urllib3.disable_warnings()
