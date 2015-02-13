@@ -3,7 +3,7 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
     var user = Restangular.one('users', AuthService.getUserId());
     var key = null;
     var key_url = null;
-    var change_password_result = ""
+    var change_password_result = "";
     var upload_ok = null;
 
     $scope.upload_error = function() {
@@ -11,14 +11,14 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
             return true;
         }
         return false;
-    }
+    };
 
     $scope.upload_success = function () {
         if (upload_ok) {
             return true;
         }
         return false;
-    }
+    };
 
     $scope.$watch('files', function () {
         $scope.upload($scope.files);
@@ -41,18 +41,18 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
                 });
             }
         }
-    }
+    };
 
     $scope.key_url = function() {
         return key_url;
-    }
+    };
 
     $scope.key_downloadable = function() {
         if (key) {
             return true;
         }
         return false;
-    }
+    };
 
     $scope.generate_key = function() {
         key = null;
@@ -60,18 +60,18 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
             key = response.private_key;
             key_url = window.URL.createObjectURL(new Blob([key], {type: "application/octet-stream"}));
         });
-    }
+    };
 
     $scope.change_password_msg_visible = function() {
         if (change_password_result == "") {
             return false;
         }
         return true;
-    }
+    };
 
     $scope.change_password_msg = function() {
         return change_password_result;
-    }
+    };
 
     $scope.update_password = function() {
         var params = { password: $scope.user.password };
@@ -91,5 +91,5 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
         $timeout(function() {
             change_password_result = "";
         }, 10000)
-    }
+    };
 }]);
