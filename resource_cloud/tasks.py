@@ -213,12 +213,12 @@ def run_pvc_provisioning(token, provisioned_resource_id):
         cf.write('\n')
 
     # figure out the number of nodes from config provisioning-data
-    cluster_config=yaml.load(conf)
+    cluster_config = yaml.load(conf)
     if 'provisioning_data' in cluster_config.keys() and 'num_nodes' in cluster_config['provisioning_data'].keys():
-        num_nodes=int(cluster_config['provisioning_data']['num_nodes'])
+        num_nodes = int(cluster_config['provisioning_data']['num_nodes'])
     else:
         logger.warn('number of nodes in cluster not defined, using default: 2')
-        num_nodes=2
+        num_nodes = 2
 
     # fetch user public key and save it
     key_data = get_user_key_data(token, pr_data['user_id']).json()
