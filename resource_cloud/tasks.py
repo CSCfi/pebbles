@@ -13,6 +13,7 @@ from flask.ext.mail import Message
 import stat
 import time
 import logging
+import yaml
 from resource_cloud.app import get_app
 # from resource_cloud.config import BaseConfig as config
 from resource_cloud.config import DevConfig as config
@@ -211,6 +212,14 @@ def run_pvc_provisioning(token, provisioned_resource_id):
         cf.write(conf)
         cf.write('\n')
 
+    # figure out the number of nodes from config provisioning-data
+    cluster_config=yaml.load(conf)
+    if 'provisioning_data' in cluster_config.keys() and 'num_nodes' in cluster_config['provisioning_data'].keys():
+        num_nodes=int(cluster_config['provisioning_data']['num_nodes'])
+    else:
+        logger.warn('number of nodes in cluster not defined, using default: 2')
+        num_nodes=2
+
     # fetch user public key and save it
     key_data = get_user_key_data(token, pr_data['user_id']).json()
     user_key_file = '%s/userkey.pub' % res_dir
@@ -233,7 +242,7 @@ def run_pvc_provisioning(token, provisioned_resource_id):
             os.chmod(key_file, stat.S_IRUSR)
 
         # run provisioning
-        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py up 2'
+        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py up %d' % num_nodes
         logger.debug('spawning "%s"' % cmd)
         run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env(), log_uploader=uploader)
 
