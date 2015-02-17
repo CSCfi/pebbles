@@ -7,6 +7,7 @@ import logging
 import names
 import re
 import werkzeug
+import datetime
 from functools import wraps
 
 from resource_cloud.models import User, ActivationToken, Resource
@@ -74,7 +75,9 @@ class FirstUserView(restful.Resource):
                 return form.errors, 422
             user = User(form.email.data, form.password.data, is_admin=True)
             user.is_active = True
+            worker = User('worker@resource_cloud', app.config['SECRET_KEY'], is_admin=True)
             db.session.add(user)
+            db.session.add(worker)
             db.session.commit()
             return user
         else:
@@ -309,6 +312,7 @@ provision_fields = {
     'id': fields.String(attribute='visual_id'),
     'name': fields.String,
     'provisioned_at': fields.DateTime,
+    'lifetime_left': fields.Integer,
     'state': fields.String,
     'user_id': fields.String,
     'resource_id': fields.String,
@@ -335,14 +339,16 @@ class ProvisionedResourceList(restful.Resource):
             else:
                 provision.user_id = user.visual_id
 
-            res_parent = Resource.query.filter_by(visual_id=provision.resource_id).first()
+            res_parent = Resource.query.filter_by(id=provision.resource_id).first()
 
             if not res_parent:
-                logging.warn("provisioned provision %s has a reference to "
-                             "non-existing provision" % provision.visual_id)
+                logging.warn("provisioned resource %s has a reference to "
+                             "non-existing resource" % provision.visual_id)
                 continue
 
             provision.resource_id = res_parent.visual_id
+            age = datetime.datetime.utcnow() - provision.provisioned_at
+            provision.lifetime_left = max(res_parent.max_lifetime - age.total_seconds(), 0)
 
         return provisions
 
@@ -517,7 +523,7 @@ class ProvisionedResourceLogs(restful.Resource):
 resource_fields = {
     'id': fields.String(attribute='visual_id'),
     'vcpus': fields.String(default="4"),
-    'max_life_time': fields.String(default="36000"),
+    'max_lifetime': fields.Integer,
     'name': fields.String,
     'config': fields.String,
 }

@@ -79,6 +79,7 @@ class Resource(db.Model):
     visual_id = db.Column(db.String(32))
     name = db.Column(db.String(64))
     config = db.Column(db.Text)
+    max_lifetime = db.Column(db.Integer, default=3600)
 
     def __init__(self):
         self.visual_id = uuid.uuid4().hex

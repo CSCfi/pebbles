@@ -12,6 +12,7 @@ class BaseConfig(object):
     BASE_URL = 'https://localhost:8888'
     MAX_CONTENT_LENGTH = 1024 * 1024
     FAKE_PROVISIONING = False
+    SENDER_EMAIL = 'resource_cloud@csc.fi'
 
 
 class ProductionConfig(BaseConfig):
