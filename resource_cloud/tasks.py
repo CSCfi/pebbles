@@ -5,15 +5,20 @@ import shlex
 import os
 import subprocess
 import requests
-from celery import Celery
-from celery.utils.log import get_task_logger
+import json
 import jinja2
-from flask import render_template
-from flask.ext.mail import Message
 import stat
 import time
 import logging
 import yaml
+
+from celery import Celery
+from celery.utils.log import get_task_logger
+from celery.schedules import crontab
+
+from flask import render_template
+from flask.ext.mail import Message
+
 from resource_cloud.app import get_app
 # from resource_cloud.config import BaseConfig as config
 from resource_cloud.config import DevConfig as config
@@ -27,8 +32,25 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 logger = get_task_logger(__name__)
 app = Celery('tasks', broker=config.MESSAGE_QUEUE_URI, backend=config.MESSAGE_QUEUE_URI)
 app.conf.CELERY_TASK_SERIALIZER = 'json'
+app.conf.CELERYBEAT_SCHEDULE = {
+    'deprovision-expired-every-minute': {
+        'task': 'resource_cloud.tasks.deprovision_expired',
+        'schedule': crontab(minute='*/1'),
+    },
+}
+app.conf.CELERY_TIMEZONE = 'UTC'
 
 flask_app = get_app()
+
+
+@app.task(name="resource_cloud.tasks.deprovision_expired")
+def deprovision_expired():
+    token = get_token()
+    provisioned_resources = get_provisioned_resources(token)
+    for provisioned_resource in provisioned_resources:
+        if not provisioned_resource.get('lifetime_left'):
+            logger.info('timed deprovisioning triggered for %s' % provisioned_resource.get('id'))
+            run_deprovisioning.delay(token, provisioned_resource.get('id'))
 
 
 @app.task(name="resource_cloud.tasks.send_mails")
@@ -37,7 +59,7 @@ def send_mails(users):
         for email, token in users:
             msg = Message('Resource-cloud activation')
             msg.recipients = [email]
-            msg.sender = 'resource-cloud@csc.fi'
+            msg.sender = flask_app.config.get('SENDER_EMAIL')
             activation_url = '%s/#/activate/%s' % (flask_app.config['BASE_URL'],
                                                    token)
             msg.html = render_template('invitation.html',
@@ -116,6 +138,17 @@ def create_prov_log_uploader(token, provisioned_resource_id, log_type):
     return uploader
 
 
+def get_token():
+    auth_url = 'https://localhost/api/v1/sessions'
+    auth_credentials = {'email': 'worker@resource_cloud',
+                        'password': flask_app.config['SECRET_KEY']}
+    try:
+        r = requests.post(auth_url, auth_credentials, verify=config.SSL_VERIFY)
+        return json.loads(r.text).get('token')
+    except:
+        return None
+
+
 def do_get(token, object_url):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
@@ -127,17 +160,32 @@ def do_get(token, object_url):
     return resp
 
 
-def get_provisioned_resource_data(token, provisioned_resource_id):
+def get_provisioned_resources(token):
+    resp = do_get(token, 'provisioned_resources')
+    if resp.status_code != 200:
+        raise RuntimeError('Cannot fetch data for provisioned resources, %s' % resp.reason)
+    return resp.json()
+
+
+def get_provisioned_resource(token, provisioned_resource_id):
     resp = do_get(token, 'provisioned_resources/%s' % provisioned_resource_id)
-    return resp
+    if resp.status_code != 200:
+        raise RuntimeError('Cannot fetch data for provisioned resource %s, %s' % (provisioned_resource_id, resp.reason))
+    return resp.json()
 
 
 def get_resource_description(token, resource_id):
-    return do_get(token, 'resources/%s' % resource_id)
+    resp = do_get(token, 'resources/%s' % resource_id)
+    if resp.status_code != 200:
+        raise RuntimeError('Cannot fetch data for resource %s, %s' % (resource_id, resp.reason))
+    return resp.json()
 
 
-def get_user_key_data(token, user_id):
-    return do_get(token, 'users/%s/keypairs' % user_id)
+def get_user_keypairs(token, user_id):
+    resp = do_get(token, 'users/%s/keypairs' % user_id)
+    if resp.status_code != 200:
+        raise RuntimeError('Cannot fetch keypairs for user %s, %s' % (user_id, resp.reason))
+    return resp.json()
 
 
 def run_logged_process(cmd, cwd='.', shell=False, env=None, log_uploader=None):
@@ -190,24 +238,19 @@ def run_logged_process(cmd, cwd='.', shell=False, env=None, log_uploader=None):
 
 
 def run_pvc_provisioning(token, provisioned_resource_id):
-    resp = get_provisioned_resource_data(token, provisioned_resource_id)
-    if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for provisioned_resource %s, %s' % (provisioned_resource_id, resp.reason))
-    pr_data = resp.json()
-    c_name = pr_data['name']
+    provisioned_resource = get_provisioned_resource(token, provisioned_resource_id)
+    cluster_name = provisioned_resource['name']
 
-    res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, c_name)
+    res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, cluster_name)
 
     # will fail if there is already a directory for this resource
     os.makedirs(res_dir)
 
     # generate pvc config for this cluster
-    resp = get_resource_description(token, pr_data['resource_id'])
-    if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for resource %s, %s' % (pr_data['resource_id'], resp.reason))
-    r_data = resp.json()
-    tc = jinja2.Template(r_data['config'])
-    conf = tc.render(cluster_name='rc-%s' % c_name, security_key='rc-%s' % c_name)
+    resource = get_resource_description(token, provisioned_resource['resource_id'])
+    tc = jinja2.Template(resource['config'])
+    conf = tc.render(cluster_name='rc-%s' % cluster_name, security_key='rc-%s' % cluster_name,
+                     frontend_flavor='mini', public_ip='86.50.169.98', node_flavor='mini', )
     with open('%s/cluster.yml' % res_dir, 'w') as cf:
         cf.write(conf)
         cf.write('\n')
@@ -221,14 +264,14 @@ def run_pvc_provisioning(token, provisioned_resource_id):
         num_nodes = 2
 
     # fetch user public key and save it
-    key_data = get_user_key_data(token, pr_data['user_id']).json()
+    keys = get_user_keypairs(token, provisioned_resource['user_id'])
     user_key_file = '%s/userkey.pub' % res_dir
-    if not key_data:
+    if not keys:
         do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'failed'})
         raise RuntimeError("User's public key missing")
 
     with open(user_key_file, 'w') as kf:
-        kf.write(key_data[0]['public_key'])
+        kf.write(keys[0]['public_key'])
 
     uploader = create_prov_log_uploader(token, provisioned_resource_id, log_type='provisioning')
     if not config.FAKE_PROVISIONING:
@@ -236,7 +279,7 @@ def run_pvc_provisioning(token, provisioned_resource_id):
         key_file = '%s/key.priv' % res_dir
         if not os.path.isfile(key_file):
             with open(key_file, 'w') as keyfile:
-                args = ['nova', 'keypair-add', 'rc-%s' % c_name]
+                args = ['nova', 'keypair-add', 'rc-%s' % cluster_name]
                 p = subprocess.Popen(args, cwd=res_dir, stdout=keyfile)
                 p.wait()
             os.chmod(key_file, stat.S_IRUSR)
@@ -273,13 +316,11 @@ def run_pvc_provisioning(token, provisioned_resource_id):
 
 
 def run_pvc_deprovisioning(token, provisioned_resource_id):
-    resp = get_provisioned_resource_data(token, provisioned_resource_id)
-    if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for resource %s, %s' % (provisioned_resource_id, resp.reason))
-    r_data = resp.json()
-    c_name = r_data['name']
+    provisioned_resource = get_provisioned_resource(token, provisioned_resource_id)
 
-    res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, c_name)
+    cluster_name = provisioned_resource['name']
+
+    res_dir = '%s/%s' % (config.PVC_CLUSTER_DATA_DIR, cluster_name)
 
     uploader = create_prov_log_uploader(token, provisioned_resource_id, log_type='deprovisioning')
     if not config.FAKE_PROVISIONING:
@@ -296,7 +337,7 @@ def run_pvc_deprovisioning(token, provisioned_resource_id):
         run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env(), log_uploader=uploader)
 
         # remove generated key from OpenStack
-        args = ['nova', 'keypair-delete', 'rc-%s' % c_name]
+        args = ['nova', 'keypair-delete', 'rc-%s' % cluster_name]
         p = subprocess.Popen(args, cwd=res_dir)
         p.wait()
 

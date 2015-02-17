@@ -1,9 +1,10 @@
 import os
+from base64 import b64encode
 
 
 class BaseConfig(object):
     DEBUG = True
-    SECRET_KEY = os.urandom(24)
+    SECRET_KEY = b64encode(os.urandom(24)).decode('utf-8')
     WTF_CSRF_ENABLED = False
     SSL_VERIFY = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
@@ -12,6 +13,7 @@ class BaseConfig(object):
     BASE_URL = 'https://localhost:8888'
     MAX_CONTENT_LENGTH = 1024 * 1024
     FAKE_PROVISIONING = False
+    SENDER_EMAIL = 'resource_cloud@csc.fi'
 
 
 class ProductionConfig(BaseConfig):
