@@ -10,6 +10,7 @@ import jinja2
 import stat
 import time
 import logging
+import yaml
 
 from celery import Celery
 from celery.utils.log import get_task_logger
@@ -254,6 +255,14 @@ def run_pvc_provisioning(token, provisioned_resource_id):
         cf.write(conf)
         cf.write('\n')
 
+    # figure out the number of nodes from config provisioning-data
+    cluster_config = yaml.load(conf)
+    if 'provisioning_data' in cluster_config.keys() and 'num_nodes' in cluster_config['provisioning_data'].keys():
+        num_nodes = int(cluster_config['provisioning_data']['num_nodes'])
+    else:
+        logger.warn('number of nodes in cluster not defined, using default: 2')
+        num_nodes = 2
+
     # fetch user public key and save it
     keys = get_user_keypairs(token, provisioned_resource['user_id'])
     user_key_file = '%s/userkey.pub' % res_dir
@@ -276,7 +285,7 @@ def run_pvc_provisioning(token, provisioned_resource_id):
             os.chmod(key_file, stat.S_IRUSR)
 
         # run provisioning
-        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py up 2'
+        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py up %d' % num_nodes
         logger.debug('spawning "%s"' % cmd)
         run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env(), log_uploader=uploader)
 
