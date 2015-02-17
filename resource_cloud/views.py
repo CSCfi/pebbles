@@ -89,7 +89,8 @@ class UserList(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('addresses', type=address_list)
 
-    def add_user(self, email, password=None, is_admin=False):
+    @staticmethod
+    def add_user(email, password=None, is_admin=False):
         user = User(email, password, is_admin)
         db.session.add(user)
         db.session.commit()
@@ -283,7 +284,8 @@ class SessionView(restful.Resource):
 
 
 class ActivationList(restful.Resource):
-    def post(self):
+    @staticmethod
+    def post():
         form = ActivationForm()
         if not form.validate_on_submit():
             return form.errors, 422
@@ -310,6 +312,7 @@ provision_fields = {
     'state': fields.String,
     'user_id': fields.String,
     'resource_id': fields.String,
+    'public_ip': fields.String,
 }
 
 
@@ -384,6 +387,7 @@ class ProvisionedResourceList(restful.Resource):
 class ProvisionedResourceView(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('state', type=str)
+    parser.add_argument('public_ip', type=str)
 
     @auth.login_required
     @marshal_with(provision_fields)
@@ -440,6 +444,10 @@ class ProvisionedResourceView(restful.Resource):
             else:
                 pr.state = args['state']
 
+            db.session.commit()
+
+        if args['public_ip']:
+            pr.public_ip = args['public_ip']
             db.session.commit()
 
 

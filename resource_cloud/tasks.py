@@ -1,4 +1,5 @@
 import base64
+from random import randint
 import select
 import shlex
 import os
@@ -54,12 +55,12 @@ def send_mails(users):
 def run_provisioning(token, resource_id):
     logger.info('provisioning triggered for %s' % resource_id)
 
-    update_resource_state(token, resource_id, 'provisioning')
+    do_provisioned_resource_patch(token, resource_id, {'state': 'provisioning'})
 
     run_pvc_provisioning(token, resource_id)
 
     logger.info('provisioning done, notifying server')
-    resp = update_resource_state(token, resource_id, 'running')
+    resp = do_provisioned_resource_patch(token, resource_id, {'state': 'running'})
 
     if resp.status_code == 200:
         return 'ok'
@@ -74,7 +75,7 @@ def run_deprovisioning(token, resource_id):
     run_pvc_deprovisioning(token, resource_id)
 
     logger.info('deprovisioning done, notifying server')
-    resp = update_resource_state(token, resource_id, 'deleted')
+    resp = do_provisioned_resource_patch(token, resource_id, {'state': 'deleted'})
 
     if resp.status_code == 200:
         return 'ok'
@@ -82,8 +83,7 @@ def run_deprovisioning(token, resource_id):
     return 'error: %s %s' % (resp.status_code, resp.reason)
 
 
-def update_resource_state(token, provisioned_resource_id, state):
-    payload = {'state': state}
+def do_provisioned_resource_patch(token, provisioned_resource_id, payload):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Content-type': 'application/x-www-form-urlencoded',
                'Accept': 'text/plain',
@@ -161,6 +161,7 @@ def run_logged_process(cmd, cwd='.', shell=False, env=None, log_uploader=None):
                         line = p.stdout.readline()
                         logger.debug('STDOUT: ' + line.strip('\n'))
                         stdout.write(line)
+                        stdout.flush()
                         log_buffer.append('STDOUT %s' % line)
                     elif mask & select.POLLHUP > 0:
                         stdout_open = False
@@ -170,6 +171,7 @@ def run_logged_process(cmd, cwd='.', shell=False, env=None, log_uploader=None):
                         line = p.stderr.readline()
                         logger.info('STDERR: ' + line.strip('\n'))
                         stderr.write(line)
+                        stderr.flush()
                         if log_uploader:
                             log_buffer.append('STDERR %s' % line)
 
@@ -204,9 +206,7 @@ def run_pvc_provisioning(token, provisioned_resource_id):
         raise RuntimeError('Cannot fetch data for resource %s, %s' % (pr_data['resource_id'], resp.reason))
     r_data = resp.json()
     tc = jinja2.Template(r_data['config'])
-    conf = tc.render(cluster_name='rc-%s' % c_name, security_key='rc-%s' % c_name, frontend_flavor='mini',
-                     public_ip='86.50.169.98',
-                     node_flavor='mini', )
+    conf = tc.render(cluster_name='rc-%s' % c_name, security_key='rc-%s' % c_name)
     with open('%s/cluster.yml' % res_dir, 'w') as cf:
         cf.write(conf)
         cf.write('\n')
@@ -215,7 +215,7 @@ def run_pvc_provisioning(token, provisioned_resource_id):
     key_data = get_user_key_data(token, pr_data['user_id']).json()
     user_key_file = '%s/userkey.pub' % res_dir
     if not key_data:
-        update_resource_state(token, provisioned_resource_id, 'failed')
+        do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'failed'})
         raise RuntimeError("User's public key missing")
 
     with open(user_key_file, 'w') as kf:
@@ -242,10 +242,25 @@ def run_pvc_provisioning(token, provisioned_resource_id):
         logger.debug('spawning "%s"' % cmd)
         run_logged_process(cmd=cmd, cwd=res_dir, env=create_pvc_env(), log_uploader=uploader)
 
+        # get public IP
+        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py info'
+        p = subprocess.Popen(shlex.split(cmd), cwd=res_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        public_ip = None
+        for line in out.splitlines():
+            line = line.strip()
+            if line.startswith('public ip:'):
+                public_ip = line.split(':')[1]
+                break
+        if public_ip:
+            do_provisioned_resource_patch(token, provisioned_resource_id, {'public_ip': public_ip})
+
     else:
         logger.info('faking provisioning')
         cmd = 'time ping -c 10 localhost'
         run_logged_process(cmd=cmd, cwd=res_dir, shell=True, log_uploader=uploader)
+        do_provisioned_resource_patch(token, provisioned_resource_id, {'public_ip': '%s.%s.%s.%s' % (
+            randint(1, 254), randint(1, 254), randint(1, 254), randint(1, 254))})
 
 
 def run_pvc_deprovisioning(token, provisioned_resource_id):
