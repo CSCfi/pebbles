@@ -1,6 +1,7 @@
 import os
 from base64 import b64encode
 
+
 class BaseConfig(object):
     DEBUG = True
     SECRET_KEY = b64encode(os.urandom(24)).decode('utf-8')
