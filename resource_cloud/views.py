@@ -76,6 +76,7 @@ class FirstUserView(restful.Resource):
             user = User(form.email.data, form.password.data, is_admin=True)
             user.is_active = True
             worker = User('worker@resource_cloud', app.config['SECRET_KEY'], is_admin=True)
+            worker.is_active = True
             db.session.add(user)
             db.session.add(worker)
             db.session.commit()

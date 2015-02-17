@@ -1,9 +1,9 @@
 import os
-
+from base64 import b64encode
 
 class BaseConfig(object):
     DEBUG = True
-    SECRET_KEY = os.urandom(24)
+    SECRET_KEY = b64encode(os.urandom(24)).decode('utf-8')
     WTF_CSRF_ENABLED = False
     SSL_VERIFY = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
