@@ -39,6 +39,10 @@ def deprovision_expired():
     token = get_token()
     provisioned_resources = get_provisioned_resources(token)
     for provisioned_resource in provisioned_resources:
+        logger.debug('checking provisioned resource for expiration %s' % provisioned_resource)
+
+        if not provisioned_resource.get('state') in ['running']:
+            continue
         if not provisioned_resource.get('lifetime_left'):
             logger.info('timed deprovisioning triggered for %s' % provisioned_resource.get('id'))
             run_deprovisioning.delay(token, provisioned_resource.get('id'))
