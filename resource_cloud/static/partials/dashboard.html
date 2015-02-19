@@ -34,7 +34,8 @@
             <td>name</td>
             <td>state</td>
             <td>public IP</td>
-            <td>state</td>
+            <td>Life-time left</td>
+            <td>actions</td>
         </tr>
         </thead>
         <tbody>
@@ -42,6 +43,7 @@
             <td>{{instance.name}}</td>
             <td>{{instance.state}}</td>
             <td>{{instance.public_ip}}</td>
+            <td>{{instance.lifetime_left}}</td>
             <td>
                 <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger" ng-disabled="instance.state=='deleting'" >Destroy</button>
             </td>
