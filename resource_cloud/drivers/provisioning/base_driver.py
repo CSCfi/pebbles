@@ -35,6 +35,7 @@ class ProvisioningDriverBase(object):
 
     def deprovision(self, token, provisioned_resource_id):
         self.logger.debug('starting deprovisioning')
+        self.do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'deprovisioning'})
         try:
             self.logger.debug('calling subclass do_deprovision')
             self.do_deprovision(token, provisioned_resource_id)
