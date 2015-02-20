@@ -348,8 +348,10 @@ class ProvisionedResourceList(restful.Resource):
                 continue
 
             provision.resource_id = res_parent.visual_id
-            age = datetime.datetime.utcnow() - provision.provisioned_at
-            provision.lifetime_left = max(res_parent.max_lifetime - age.total_seconds(), 0)
+            age = 0
+            if provision.provisioned_at:
+                age = (datetime.datetime.utcnow() - provision.provisioned_at).total_seconds()
+            provision.lifetime_left = max(res_parent.max_lifetime - age, 0)
 
         return provisions
 
@@ -450,10 +452,13 @@ class ProvisionedResourceView(restful.Resource):
                     self.delete(provision_id)
             else:
                 pr.state = args['state']
+                if pr.state == 'running' and user.is_admin:
+                    if not pr.provisioned_at:
+                        pr.provisioned_at = datetime.datetime.utcnow()
 
             db.session.commit()
 
-        if args['public_ip']:
+        if args['public_ip'] and user.is_admin:
             pr.public_ip = args['public_ip']
             db.session.commit()
 

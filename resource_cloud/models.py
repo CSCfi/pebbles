@@ -100,7 +100,6 @@ class ProvisionedResource(db.Model):
         self.resource_id = resource_id
         self.user_id = user_id
         self.visual_id = uuid.uuid4().hex
-        self.provisioned_at = datetime.datetime.utcnow()
         self.state = 'starting'
 
 
