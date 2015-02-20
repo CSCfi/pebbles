@@ -453,7 +453,8 @@ class ProvisionedResourceView(restful.Resource):
             else:
                 pr.state = args['state']
                 if pr.state == 'running' and user.is_admin:
-                    pr.provisioned_at = datetime.datetime.utcnow()
+                    if not pr.provisioned_at:
+                        pr.provisioned_at = datetime.datetime.utcnow()
 
             db.session.commit()
 
