@@ -30,8 +30,8 @@ setup(
 
     entry_points={
         'resource_cloud.drivers.provisioning': [
-            'dummy = resource_cloud.drivers.provisioning.dummy_driver:DummyDriver',
-            'pvc_cmdline = resource_cloud.drivers.provisioning.pvc_cmdline_driver:PvcCmdLineDriver',
+            'DummyDriver = resource_cloud.drivers.provisioning.dummy_driver:DummyDriver',
+            'PvcCmdLineDriver = resource_cloud.drivers.provisioning.pvc_cmdline_driver:PvcCmdLineDriver',
         ],
     },
 
