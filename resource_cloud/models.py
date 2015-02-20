@@ -5,6 +5,8 @@ import datetime
 from resource_cloud.server import db, app
 
 MAX_PASSWORD_LENGTH = 100
+MAX_EMAIL_LENGTH = 128
+MAX_NAME_LENGTH = 128
 
 
 class User(db.Model):
@@ -12,7 +14,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     visual_id = db.Column(db.String(32))
-    email = db.Column(db.String(120), unique=True)
+    email = db.Column(db.String(MAX_EMAIL_LENGTH), unique=True)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
@@ -77,8 +79,10 @@ class Resource(db.Model):
     __tablename__ = 'resources'
     id = db.Column(db.Integer, primary_key=True)
     visual_id = db.Column(db.String(32))
-    name = db.Column(db.String(64))
+    name = db.Column(db.String(MAX_NAME_LENGTH))
     config = db.Column(db.Text)
+    is_enabled = db.Column(db.Boolean, default=False)
+    plugin = db.Column(db.String(128))
     max_lifetime = db.Column(db.Integer, default=3600)
 
     def __init__(self):

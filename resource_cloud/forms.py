@@ -3,7 +3,7 @@ from wtforms_alchemy import model_form_factory
 from wtforms import BooleanField, StringField
 from wtforms.validators import DataRequired, Email, Length
 
-from resource_cloud.models import MAX_PASSWORD_LENGTH
+from resource_cloud.models import MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH
 from resource_cloud.server import db
 
 BaseModelForm = model_form_factory(Form)
@@ -16,13 +16,16 @@ class ModelForm(BaseModelForm):
 
 
 class UserForm(ModelForm):
-    email = StringField('email', validators=[DataRequired(), Email()])
+    email = StringField('email', validators=[DataRequired(), Email(), Length(max=MAX_EMAIL_LENGTH)])
     password = StringField('password', default=None)
     is_admin = BooleanField('is_admin', default=False)
 
 
-class UpdateResourceConfigForm(ModelForm):
+class ResourceForm(ModelForm):
+    name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
     config = StringField('config', validators=[DataRequired()])
+    plugin = StringField('plugin', validators=[DataRequired()])
+    is_enabled = BooleanField('is_enabled', default=False)
 
 
 class ChangePasswordForm(ModelForm):

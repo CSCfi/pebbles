@@ -1,6 +1,6 @@
 import uuid
 import os
-from flask import abort, g
+from flask import abort, g, request
 from flask.ext.restful import fields, marshal_with, reqparse
 from sqlalchemy import desc
 import logging
@@ -13,7 +13,7 @@ from functools import wraps
 from resource_cloud.models import User, ActivationToken, Resource
 from resource_cloud.models import ProvisionedResource, SystemToken, Keypair
 from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
-from resource_cloud.forms import ChangePasswordForm, UpdateResourceConfigForm
+from resource_cloud.forms import ChangePasswordForm, ResourceForm
 from resource_cloud.forms import ProvisionedResourceForm
 
 from resource_cloud.server import api, auth, db, restful, app
@@ -253,7 +253,6 @@ class UploadKeyPair(restful.Resource):
         try:
             uploaded_key = args['file'].read()
             key.public_key = uploaded_key
-            logging.warn(type(key))
             db.session.add(key)
             db.session.commit()
         except:
@@ -531,6 +530,8 @@ resource_fields = {
     'vcpus': fields.String(default="4"),
     'max_lifetime': fields.Integer,
     'name': fields.String,
+    'is_enabled': fields.Boolean,
+    'plugin': fields.String,
     'config': fields.String,
 }
 
@@ -539,15 +540,25 @@ class ResourceList(restful.Resource):
     @auth.login_required
     @marshal_with(resource_fields)
     def get(self):
-        resources = Resource.query.all()
-        if not resources:
-            resource = Resource()
-            resource.name = "dummy"
-            with open('/webapps/resource_cloud/source/resource_cloud/templates/pvc-cluster.yml.jinja2') as fd:
-                resource.config = fd.read()
-            db.session.add(resource)
-            db.session.commit()
-        return Resource.query.all()
+        if g.user.is_admin and request.args.get('show_deactivated'):
+            return Resource.query.all()
+        return Resource.query.filter_by(is_enabled=True).all()
+
+    @auth.login_required
+    @requires_admin
+    def post(self):
+        form = ResourceForm()
+        if not form.validate_on_submit():
+            logging.warn("validation error on create resource")
+            return form.errors, 422
+
+        resource = Resource()
+        resource.name = form.name.data
+        resource.plugin = form.plugin.data
+        resource.config = form.config.data
+
+        db.session.add(resource)
+        db.session.commit()
 
 
 class ResourceView(restful.Resource):
@@ -559,35 +570,51 @@ class ResourceView(restful.Resource):
     @auth.login_required
     @requires_admin
     def put(self, resource_id):
-        form = UpdateResourceConfigForm()
+        form = ResourceForm()
         if not form.validate_on_submit():
             logging.warn("validation error on update resource config")
             return form.errors, 422
-        logging.warn(form)
 
         resource = Resource.query.filter_by(visual_id=resource_id).first()
+        resource.name = form.name.data
         resource.config = form.config.data
+        resource.plugin = form.plugin.data
+        resource.is_enabled = form.is_enabled.data
+
         db.session.add(resource)
         db.session.commit()
 
 
-api.add_resource(FirstUserView, '/api/v1/initialize')
+class PluginList(restful.Resource):
+    @auth.login_required
+    @requires_admin
+    def get(self):
+        with open('/webapps/resource_cloud/source/resource_cloud/templates/pvc-cluster.yml.jinja2') as fd:
+            return [{
+                "name": "dummy",
+                "plugin": "DummyDriver",
+                "config": fd.read()}]
+
+
+api_root = '/api/v1'
+api.add_resource(FirstUserView, api_root + '/initialize')
 api.add_resource(UserList,
-                 '/api/v1/users',
+                 api_root + '/users',
                  methods=['GET', 'POST', 'PATCH'])
-api.add_resource(UserView, '/api/v1/users/<string:user_id>')
-api.add_resource(KeypairList, '/api/v1/users/<string:user_id>/keypairs')
-api.add_resource(KeypairView, '/api/v1/users/<string:user_id>/keypairs/<string:keypair_id>')
-api.add_resource(CreateKeyPair, '/api/v1/users/<string:user_id>/keypairs/create')
-api.add_resource(UploadKeyPair, '/api/v1/users/<string:user_id>/keypairs/upload')
-api.add_resource(SessionView, '/api/v1/sessions')
-api.add_resource(ActivationList, '/api/v1/activations')
-api.add_resource(ResourceList, '/api/v1/resources')
-api.add_resource(ResourceView, '/api/v1/resources/<string:resource_id>')
-api.add_resource(ProvisionedResourceList, '/api/v1/provisioned_resources')
+api.add_resource(UserView, api_root + '/users/<string:user_id>')
+api.add_resource(KeypairList, api_root + '/users/<string:user_id>/keypairs')
+api.add_resource(KeypairView, api_root + '/users/<string:user_id>/keypairs/<string:keypair_id>')
+api.add_resource(CreateKeyPair, api_root + '/users/<string:user_id>/keypairs/create')
+api.add_resource(UploadKeyPair, api_root + '/users/<string:user_id>/keypairs/upload')
+api.add_resource(SessionView, api_root + '/sessions')
+api.add_resource(ActivationList, api_root + '/activations')
+api.add_resource(ResourceList, api_root + '/resources')
+api.add_resource(ResourceView, api_root + '/resources/<string:resource_id>')
+api.add_resource(ProvisionedResourceList, api_root + '/provisioned_resources')
 api.add_resource(ProvisionedResourceView,
-                 '/api/v1/provisioned_resources/<string:provision_id>',
+                 api_root + '/provisioned_resources/<string:provision_id>',
                  methods=['GET', 'POST', 'DELETE', 'PATCH'])
 api.add_resource(ProvisionedResourceLogs,
-                 '/api/v1/provisioned_resources/<string:provision_id>/logs',
+                 api_root + '/provisioned_resources/<string:provision_id>/logs',
                  methods=['GET', 'PATCH'])
+api.add_resource(PluginList, api_root + '/plugins')
