@@ -96,7 +96,9 @@ class ProvisioningDriverBase(object):
 
     def get_provisioned_resource_data(self, token, provisioned_resource_id):
         resp = self.do_get(token, 'provisioned_resources/%s' % provisioned_resource_id)
-        return resp
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot fetch data for provisioned resources, %s' % resp.reason)
+        return resp.json()
 
     def get_resource_description(self, token, resource_id):
         return self.do_get(token, 'resources/%s' % resource_id)

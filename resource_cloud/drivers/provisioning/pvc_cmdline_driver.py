@@ -12,12 +12,7 @@ from resource_cloud.drivers.provisioning import base_driver
 
 class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
     def do_provision(self, token, provisioned_resource_id):
-        resp = self.get_provisioned_resource_data(token, provisioned_resource_id)
-        if resp.status_code != 200:
-            raise RuntimeError(
-                'Cannot fetch data for provisioned_resource %s, %s' % (provisioned_resource_id, resp.reason))
-
-        pr_data = resp.json()
+        pr_data = self.get_provisioned_resource_data(token, provisioned_resource_id)
         c_name = pr_data['name']
 
         res_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, c_name)
@@ -88,11 +83,8 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
             self.do_provisioned_resource_patch(token, provisioned_resource_id, {'public_ip': public_ip})
 
     def do_deprovision(self, token, provisioned_resource_id):
-        resp = self.get_provisioned_resource_data(token, provisioned_resource_id)
-        if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for resource %s, %s' % (provisioned_resource_id, resp.reason))
-        r_data = resp.json()
-        c_name = r_data['name']
+        pr_data = self.get_provisioned_resource_data(token, provisioned_resource_id)
+        c_name = pr_data['name']
 
         res_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, c_name)
 
