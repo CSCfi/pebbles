@@ -84,18 +84,9 @@ def get_provisioning_manager():
     return mgr
 
 
-def get_provisioning_type(resource_id, token):
-    r_data = get_provisioned_resource_parent_data(token, resource_id).json()
-    # dirrrrty, will be removed when resource gets a provisioning_type -field
-    # can't load yaml because jinja2 template is not processed yet
-    names = ['dummy']
-    for line in r_data['config'].splitlines():
-        if ':' in line:
-            key, val = line.strip().split(':')
-            if key == 'provisioning_type':
-                names = [val.strip()]
-                break
-    return names
+def get_provisioning_type(provisioned_resource_id, token):
+    resource = get_provisioned_resource_parent_data(token, provisioned_resource_id)
+    return resource.get('plugin')
 
 
 @app.task(name="resource_cloud.tasks.run_provisioning")
@@ -103,9 +94,9 @@ def run_provisioning(token, provisioned_resource_id):
     logger.info('provisioning triggered for %s' % provisioned_resource_id)
     mgr = get_provisioning_manager()
 
-    names = get_provisioning_type(provisioned_resource_id, token)
+    plugin = get_provisioning_type(provisioned_resource_id, token)
 
-    res = mgr.map_method(names, 'provision', token, provisioned_resource_id)
+    res = mgr.map_method([plugin], 'provision', token, provisioned_resource_id)
     logger.debug(res)
 
     logger.info('provisioning done, notifying server')
@@ -117,9 +108,9 @@ def run_deprovisioning(token, provisioned_resource_id):
 
     mgr = get_provisioning_manager()
 
-    names = get_provisioning_type(provisioned_resource_id, token)
+    plugin = get_provisioning_type(provisioned_resource_id, token)
 
-    res = mgr.map_method(names, 'deprovision', token, provisioned_resource_id)
+    res = mgr.map_method([plugin], 'deprovision', token, provisioned_resource_id)
     logger.debug(res)
 
     logger.info('deprovisioning done, notifying server')
@@ -175,4 +166,4 @@ def get_provisioned_resource_parent_data(token, provisioned_resource_id):
     if resp.status_code != 200:
         raise RuntimeError('Error loading resource data: %s, %s' % (resource_id, resp.reason))
 
-    return resp
+    return resp.json()
