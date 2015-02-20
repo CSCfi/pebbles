@@ -1,12 +1,12 @@
-[program:{{application_name}}-worker]
-command = {{ virtualenv_path }}/bin/celery worker -A resource_cloud.tasks --loglevel=INFO
+[program:{{ application_name }}-worker]
+command = {{ virtualenv_path }}/bin/celery worker -A resource_cloud.tasks --loglevel={{ 'DEBUG' if deploy_mode == 'devel' else 'INFO' }}
 directory = {{ application_path }}
-user = {{ application_user }}
+user = {{ application_user }}
 stdout_logfile = {{ celery_log_file }}
 redirect_stderr = true
 
-[program:{{application_name}}-periodic-worker]
-command = {{ virtualenv_path }}/bin/celery  -A resource_cloud.tasks beat -s {{runtime_path }}/celerybeat-schedule --pidfile {{ runtime_path }}/celerybeat.pid -f {{ celerybeat_log_file }}
+[program:{{ application_name }}-periodic-worker]
+command = {{ virtualenv_path }}/bin/celery  -A resource_cloud.tasks beat -s {{ runtime_path }}/celerybeat-schedule --pidfile {{ runtime_path }}/celerybeat.pid -f {{ celerybeat_log_file }}
 directory = {{ application_path }}
-user = {{ application_user }}
+user = {{ application_user }}
 redirect_stderr = true
