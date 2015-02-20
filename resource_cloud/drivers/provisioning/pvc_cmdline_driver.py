@@ -12,21 +12,22 @@ from resource_cloud.drivers.provisioning import base_driver
 
 class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
     def do_provision(self, token, provisioned_resource_id):
-        pr_data = self.get_provisioned_resource_data(token, provisioned_resource_id)
-        c_name = pr_data['name']
+        provisioned_resource = self.get_provisioned_resource_data(token, provisioned_resource_id)
+        cluster_name = provisioned_resource['name']
 
-        res_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, c_name)
+        res_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, cluster_name)
 
         # will fail if there is already a directory for this resource
         os.makedirs(res_dir)
 
         # generate pvc config for this cluster
-        resp = self.get_resource_description(token, pr_data['resource_id'])
+        resp = self.get_resource_description(token, provisioned_resource['resource_id'])
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for resource %s, %s' % (pr_data['resource_id'], resp.reason))
+            raise RuntimeError(
+                'Cannot fetch data for resource %s, %s' % (provisioned_resource['resource_id'], resp.reason))
         r_data = resp.json()
         tc = jinja2.Template(r_data['config'])
-        conf = tc.render(cluster_name='rc-%s' % c_name, security_key='rc-%s' % c_name)
+        conf = tc.render(cluster_name='rc-%s' % cluster_name, security_key='rc-%s' % cluster_name)
         with open('%s/cluster.yml' % res_dir, 'w') as cf:
             cf.write(conf)
             cf.write('\n')
@@ -40,7 +41,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
             num_nodes = 2
 
         # fetch user public key and save it
-        key_data = self.get_user_key_data(token, pr_data['user_id']).json()
+        key_data = self.get_user_key_data(token, provisioned_resource['user_id']).json()
         user_key_file = '%s/userkey.pub' % res_dir
         if not key_data:
             self.do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'failed'})
@@ -54,7 +55,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         key_file = '%s/key.priv' % res_dir
         if not os.path.isfile(key_file):
             with open(key_file, 'w') as keyfile:
-                args = ['nova', 'keypair-add', 'rc-%s' % c_name]
+                args = ['nova', 'keypair-add', 'rc-%s' % cluster_name]
                 p = subprocess.Popen(args, cwd=res_dir, stdout=keyfile)
                 p.wait()
             os.chmod(key_file, stat.S_IRUSR)
@@ -83,10 +84,10 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
             self.do_provisioned_resource_patch(token, provisioned_resource_id, {'public_ip': public_ip})
 
     def do_deprovision(self, token, provisioned_resource_id):
-        pr_data = self.get_provisioned_resource_data(token, provisioned_resource_id)
-        c_name = pr_data['name']
+        provisioned_resource = self.get_provisioned_resource_data(token, provisioned_resource_id)
+        cluster_name = provisioned_resource['name']
 
-        res_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, c_name)
+        res_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, cluster_name)
 
         uploader = self.create_prov_log_uploader(token, provisioned_resource_id, log_type='deprovisioning')
         # run deprovisioning
@@ -102,7 +103,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         self.run_logged_process(cmd=cmd, cwd=res_dir, env=self.create_pvc_env(), log_uploader=uploader)
 
         # remove generated key from OpenStack
-        args = ['nova', 'keypair-delete', 'rc-%s' % c_name]
+        args = ['nova', 'keypair-delete', 'rc-%s' % cluster_name]
         p = subprocess.Popen(args, cwd=res_dir)
         p.wait()
 
