@@ -10,11 +10,11 @@ import werkzeug
 import datetime
 from functools import wraps
 
-from resource_cloud.models import User, ActivationToken, Resource
+from resource_cloud.models import User, ActivationToken, Resource, Plugin
 from resource_cloud.models import ProvisionedResource, SystemToken, Keypair
 from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
 from resource_cloud.forms import ChangePasswordForm, ResourceForm
-from resource_cloud.forms import ProvisionedResourceForm
+from resource_cloud.forms import PluginForm, ProvisionedResourceForm
 
 from resource_cloud.server import api, auth, db, restful, app
 from resource_cloud.tasks import run_provisioning, run_deprovisioning
@@ -585,15 +585,41 @@ class ResourceView(restful.Resource):
         db.session.commit()
 
 
+plugin_fields = {
+    'id': fields.String(attribute='visual_id'),
+    'name': fields.String,
+    'schema': fields.Raw,
+    'form': fields.Raw,
+    'model': fields.String,
+}
+
+
 class PluginList(restful.Resource):
     @auth.login_required
     @requires_admin
+    @marshal_with(plugin_fields)
     def get(self):
-        with open('/webapps/resource_cloud/source/resource_cloud/templates/pvc-cluster.yml.jinja2') as fd:
-            return [{
-                "name": "dummy",
-                "plugin": "DummyDriver",
-                "config": fd.read()}]
+        return Plugin.query.all()
+
+    @auth.login_required
+    @requires_admin
+    def post(self):
+        form = PluginForm()
+        if not form.validate_on_submit():
+            logging.warn("validation error on update resource config")
+            return form.errors, 422
+
+        plugin = Plugin.query.filter_by(name=form.plugin.data).first()
+        if not plugin:
+            plugin = Plugin()
+            plugin.name = form.plugin.data
+
+        plugin.schema = form.schema.data
+        plugin.form = form.schema.data
+        plugin.model = form.model.data
+
+        db.session.add(plugin)
+        db.session.commit()
 
 
 api_root = '/api/v1'

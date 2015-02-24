@@ -6,14 +6,12 @@
         <thead>
         <tr>
             <td>Name</td>
-            <td>Plugin</td>
             <td></td>
         </tr>
         </thead>
         <tbody>
         <tr ng-repeat="plugin in plugins">
             <td>{{plugin.name}}</td>
-            <td>{{plugin.plugin}}
             <td>
                 <button ng-click="selectResource(plugin)" type="button" class="btn btn-default" data-toggle="modal" data-target="#resourceCreate">
                   Create Service

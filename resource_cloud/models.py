@@ -75,6 +75,20 @@ class ActivationToken(db.Model):
         self.token = uuid.uuid4().hex
 
 
+class Plugin(db.Model):
+    __tablename__ = 'plugins'
+
+    id = db.Column(db.Integer, primary_key=True)
+    visual_id = db.Column(db.String(32))
+    name = db.Column(db.String(32))
+    schema = db.Column(db.Text)
+    form = db.Column(db.Text)
+    model = db.Column(db.Text)
+
+    def __init__(self):
+        self.visual_id = uuid.uuid4().hex
+
+
 class Resource(db.Model):
     __tablename__ = 'resources'
     id = db.Column(db.Integer, primary_key=True)
@@ -82,7 +96,7 @@ class Resource(db.Model):
     name = db.Column(db.String(MAX_NAME_LENGTH))
     config = db.Column(db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
-    plugin = db.Column(db.String(128))
+    plugin = db.Column(db.Integer, db.ForeignKey('plugins.id'))
     max_lifetime = db.Column(db.Integer, default=3600)
 
     def __init__(self):

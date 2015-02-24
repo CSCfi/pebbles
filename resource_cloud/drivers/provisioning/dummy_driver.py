@@ -8,6 +8,10 @@ from resource_cloud.drivers.provisioning import base_driver
 
 
 class DummyDriver(base_driver.ProvisioningDriverBase):
+    def get_configuration(self):
+        from resource_cloud.drivers.provisioning.dummy_driver_config import CONFIG
+        return CONFIG
+
     def do_provision(self, token, provisioned_resource_id):
         provisioned_resource = self.get_provisioned_resource_data(token, provisioned_resource_id)
         cluster_name = provisioned_resource['name']

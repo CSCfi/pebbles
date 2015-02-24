@@ -28,6 +28,10 @@ app.conf.CELERYBEAT_SCHEDULE = {
         'task': 'resource_cloud.tasks.deprovision_expired',
         'schedule': crontab(minute='*/1'),
     },
+    'check-plugins-every-minute': {
+        'task': 'resource_cloud.tasks.get_plugins',
+        'schedule': crontab(minute='*/1'),
+    }
 }
 app.conf.CELERY_TIMEZONE = 'UTC'
 
@@ -116,6 +120,23 @@ def run_deprovisioning(token, provisioned_resource_id):
     logger.info('deprovisioning done, notifying server')
 
 
+@app.task(name="resource_cloud.tasks.get_plugins")
+def get_plugins():
+    logger.info('provisioning plugins queried from worker')
+    token = get_token()
+    mgr = get_provisioning_manager()
+    for plugin in mgr.names():
+        payload = {}
+        payload['plugin'] = plugin
+
+        config = mgr.map_method([plugin], 'get_configuration')[0]
+        logging.warn(config)
+        for key in ('schema', 'form', 'model'):
+            payload[key] = json.dumps(config.get(key, {}))
+
+        do_post(token, 'plugins', payload)
+
+
 def get_token():
     auth_url = 'https://localhost/api/v1/sessions'
     auth_credentials = {'email': 'worker@resource_cloud',
@@ -134,6 +155,16 @@ def do_get(token, object_url):
 
     url = 'https://localhost/api/v1/%s' % object_url
     resp = requests.get(url, headers=headers, verify=ActiveConfig.SSL_VERIFY)
+    logger.debug('got response %s %s' % (resp.status_code, resp.reason))
+    return resp
+
+
+def do_post(token, api_path, data):
+    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
+    headers = {'Accept': 'text/plain',
+               'Authorization': 'Basic %s' % auth}
+    url = 'https://localhost/api/v1/%s' % api_path
+    resp = requests.post(url, data, headers=headers, verify=ActiveConfig.SSL_VERIFY)
     logger.debug('got response %s %s' % (resp.status_code, resp.reason))
     return resp
 
