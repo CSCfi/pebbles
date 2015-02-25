@@ -590,7 +590,7 @@ plugin_fields = {
     'name': fields.String,
     'schema': fields.Raw,
     'form': fields.Raw,
-    'model': fields.String,
+    'model': fields.Raw,
 }
 
 
@@ -599,7 +599,14 @@ class PluginList(restful.Resource):
     @requires_admin
     @marshal_with(plugin_fields)
     def get(self):
-        return Plugin.query.all()
+        import json
+        return [{
+            "name": x.name,
+            'visual_id': x.visual_id,
+            'schema': json.loads(x.schema),
+            'form': json.loads(x.form),
+            'model': json.loads(x.model)
+        } for x in Plugin.query.all()]
 
     @auth.login_required
     @requires_admin
@@ -615,10 +622,29 @@ class PluginList(restful.Resource):
             plugin.name = form.plugin.data
 
         plugin.schema = form.schema.data
-        plugin.form = form.schema.data
+        plugin.form = form.form.data
         plugin.model = form.model.data
 
         db.session.add(plugin)
+        db.session.commit()
+
+    @auth.login_required
+    @requires_admin
+    def put(self, plugin_id):
+        form = PluginForm()
+        if not form.validate_on_submit():
+            logging.warn("validation error on update resource config")
+            return form.errors, 422
+
+        plugin = Plugin.query.filter_by(visual_id=plugin_id).first()
+        if not plugin:
+            abort(404)
+
+        plugin.schema = form.schema.data
+        plugin.form = form.form.data
+        plugin.model = form.model.data
+
+        db.session.add(resource)
         db.session.commit()
 
 

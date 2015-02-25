@@ -40,6 +40,10 @@ CONFIG = {
         }
     },
     "form": [
+        {
+            "type": "help",
+            "helpvalue": "<h4>Dummy config</h4>"
+        },
         "*",
         {
             "type": "submit",

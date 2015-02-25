@@ -1,6 +1,5 @@
 <div ng-controller="ConfigureController">
     <h1>Configure Services</h1>
-    
     <h2>Plugins</h2>
     <table class="table table-striped">
         <thead>
@@ -13,7 +12,7 @@
         <tr ng-repeat="plugin in plugins">
             <td>{{plugin.name}}</td>
             <td>
-                <button ng-click="selectResource(plugin)" type="button" class="btn btn-default" data-toggle="modal" data-target="#resourceCreate">
+                <button ng-click="selectPlugin(plugin)" type="button" class="btn btn-default" data-toggle="modal" data-target="#resourceCreate">
                   Create Service
                 </button>
             </td>
@@ -50,20 +49,20 @@
         <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="myModalLabel">Create Service</h4>
+            <h4 class="modal-title">Create Service</h4>
           </div>
-          <form name="resourceCreateForm" class="form-activate" ng-submit="create()">
-              <div class="modal-body">
-                    <label for="config">Name:</label>
-                    <input ng-model="name" class="form-control" type="text" id="name"></input>
-                    <label for="config">Config:</label>
-                    <textarea ng-model="config" class="form-control" rows="10" id="config"></textarea>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-primary">Create Service</button>
-              </div>
-          </form>
+          <div class="modal-body">
+              <form
+                name="ngform"
+                class="form-activate"
+                sf-model="selectedPlugin.model"
+                sf-form="selectedPlugin.form"
+                sf-schema="selectedPlugin.schema"
+                ng-submit="submitForm(ngform, selectedPlugin.model)">
+                <label for="config">Name:</label>
+                <input ng-model="name" class="form-control" type="text" id="name"></input>
+              </form>
+          </div>
         </div>
       </div>
     </div>
@@ -73,12 +72,12 @@
         <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="myModalLabel">Update Resource Config</h4>
+            <h4 class="modal-title">Update Resource Config</h4>
           </div>
           <form name="resourceConfigForm" class="form-activate" ng-submit="updateConfig()">
               <div class="modal-body">
                     <label for="config">Config:</label>
-                    <textarea ng-model="config" class="form-control" rows="10" id="config"></textarea>
+                    <textarea ng-model="currentResource.config" class="form-control" rows="10" id="config"></textarea>
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
@@ -88,7 +87,4 @@
         </div>
       </div>
     </div>
-
-
-
 </div>

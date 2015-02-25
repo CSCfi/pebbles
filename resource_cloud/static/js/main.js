@@ -1,6 +1,6 @@
 'use strict';
 
-var app = angular.module('resourceCloudApp', ['ngRoute', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload']);
+var app = angular.module('resourceCloudApp', ['ngRoute', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload', 'schemaForm']);
 
 app.run(function($location, Restangular, AuthService) {
     Restangular.setFullRequestInterceptor(function(element, operation, route, url, headers, params, httpConfig) {

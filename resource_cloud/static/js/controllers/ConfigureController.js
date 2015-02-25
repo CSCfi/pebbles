@@ -1,5 +1,5 @@
-app.controller('ConfigureController', ['$q', '$scope', '$interval', 'AuthService', 'Restangular',
-                              function ($q,   $scope,   $interval,   AuthService,   Restangular) {
+app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'AuthService', 'Restangular',
+                              function ($q,   $scope,   $http,   $interval,   AuthService,   Restangular) {
 
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
 
@@ -15,41 +15,49 @@ app.controller('ConfigureController', ['$q', '$scope', '$interval', 'AuthService
             $scope.resources = response;
         });
 
+        $scope.submitForm = function(form, model) {
+            console.log($scope.selectedPlugin.name);
+            console.log(form);
+            console.log(model);
+            console.log(form.$valid);
+        }
         $scope.create = function () {
-            resources.post({ plugin: $scope.plugin, name: $scope.name, config: $scope.config }).then(function (response) {
-                    resources.getList({show_deactivated: true}).then(function (response) {
-                            $scope.resources = response;
-                        }
-                    )
-                }
-            );
-            $('#resourceCreate').modal('hide')
+            if (form.$valid) {
+                resources.post({ plugin: $scope.plugin, name: $scope.name, config: $scope.config }).then(function (response) {
+                        resources.getList({show_deactivated: true}).then(function (response) {
+                                $scope.resources = response;
+                            }
+                        )
+                    }
+                );
+                $('#resourceCreate').modal('hide')
+            }
         }
 
-        var currentResource = null;
+        $scope.selectPlugin = function(plugin) {
+            console.log(plugin);
+            $scope.selectedPlugin = plugin;
+        }
 
         $scope.selectResource = function(resource) {
-            currentResource = resource;
-            $scope.name = currentResource.name;
-            $scope.config = currentResource.config;
-            $scope.plugin = currentResource.plugin;
+            $scope.currentResource = resource;
         }
 
         $scope.createResource = function() {
-            currentResource.name = $scope.name;
-            currentResource.config = $scope.config;
-            currentResource.plugin = $scope.plugin;
-            resources.post(currentResource);
+            var newResource = {};
+            newResource.name = $scope.name;
+            newResource.config = $scope.config;
+            newResource.plugin = $scope.plugin;
+            resources.post(newResource);
         }
 
         $scope.updateConfig = function() {
-            currentResource.name = $scope.name;
-            currentResource.plugin = $scope.plugin;
-            currentResource.config = $scope.config;
-            currentResource.put();
+            $scope.currentResource.put();
             $('#resourceConfig').modal('hide')
 
         }
+
+        
 
         $scope.activate = function (resource) {
             resource.is_enabled = true;
