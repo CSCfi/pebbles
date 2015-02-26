@@ -1,12 +1,22 @@
 from flask.ext.bcrypt import generate_password_hash, check_password_hash
+from sqlalchemy.ext.hybrid import hybrid_property
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import uuid
+import json
 import datetime
 from resource_cloud.server import db, app
 
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
 MAX_NAME_LENGTH = 128
+
+
+def load_column(column):
+    try:
+        value = json.loads(column)
+    except:
+        value = {}
+    return value
 
 
 class User(db.Model):
@@ -81,9 +91,33 @@ class Plugin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     visual_id = db.Column(db.String(32))
     name = db.Column(db.String(32))
-    schema = db.Column(db.Text)
-    form = db.Column(db.Text)
-    model = db.Column(db.Text)
+    _schema = db.Column('schema', db.Text)
+    _form = db.Column('form', db.Text)
+    _model = db.Column('model', db.Text)
+
+    @hybrid_property
+    def schema(self):
+        return load_column(self._schema)
+
+    @schema.setter
+    def schema(self, value):
+        self._schema = json.dumps(value)
+
+    @hybrid_property
+    def form(self):
+        return load_column(self._form)
+
+    @form.setter
+    def form(self, value):
+        self._form = json.dumps(value)
+
+    @hybrid_property
+    def model(self):
+        return load_column(self._model)
+
+    @model.setter
+    def model(self, value):
+        self._model = json.dumps(value)
 
     def __init__(self):
         self.visual_id = uuid.uuid4().hex
@@ -94,13 +128,21 @@ class Resource(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     visual_id = db.Column(db.String(32))
     name = db.Column(db.String(MAX_NAME_LENGTH))
-    config = db.Column(db.Text)
+    _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     plugin = db.Column(db.Integer, db.ForeignKey('plugins.id'))
     max_lifetime = db.Column(db.Integer, default=3600)
 
     def __init__(self):
         self.visual_id = uuid.uuid4().hex
+
+    @hybrid_property
+    def config(self):
+        return load_column(self._config)
+
+    @config.setter
+    def config(self, value):
+        self._config = json.dumps(value)
 
 
 class ProvisionedResource(db.Model):

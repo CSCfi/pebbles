@@ -52,14 +52,14 @@
             <h4 class="modal-title">Create Service</h4>
           </div>
           <div class="modal-body">
-              <form
-                name="ngform"
-                class="form-activate"
-                sf-model="selectedPlugin.model"
-                sf-form="selectedPlugin.form"
-                sf-schema="selectedPlugin.schema"
-                ng-submit="submitForm(ngform, selectedPlugin.model)">
-              </form>
+            <form
+              name="ngform"
+              class="form-activate"
+              sf-model="selectedPlugin.model"
+              sf-form="selectedPlugin.form"
+              sf-schema="selectedPlugin.schema"
+              ng-submit="submitForm(ngform, selectedPlugin.model)">
+            </form>
           </div>
         </div>
       </div>
@@ -72,15 +72,14 @@
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <h4 class="modal-title">Update Resource Config</h4>
           </div>
-          <form name="resourceConfigForm" class="form-activate" ng-submit="updateConfig()">
-              <div class="modal-body">
-                    <label for="config">Config:</label>
-                    <textarea ng-model="currentResource.config" class="form-control" rows="10" id="config"></textarea>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-primary">Save changes</button>
-              </div>
+          <form
+            name="ngform2"
+            class="form-activate"
+            sf-model="selectedResource.config"
+            sf-form="selectedResource.form"
+            sf-schema="selectedResource.schema"
+            ng-submit="updateResource(ngform2, selectedResource.config)">
+          </form>
           </form>
         </div>
       </div>

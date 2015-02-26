@@ -1,6 +1,6 @@
 import uuid
 import os
-from flask import abort, g, request
+from flask import abort, g
 from flask.ext.restful import fields, marshal_with, reqparse
 from sqlalchemy import desc
 import json
@@ -366,7 +366,7 @@ class ProvisionedResourceList(restful.Resource):
 
         resource_id = form.resource.data
 
-        resource = Resource.query.filter_by(visual_id=resource_id).first()
+        resource = Resource.query.filter_by(visual_id=resource_id).filter_by(is_enabled=True).first()
         if not resource:
             abort(404)
 
@@ -528,12 +528,13 @@ class ProvisionedResourceLogs(restful.Resource):
 
 resource_fields = {
     'id': fields.String(attribute='visual_id'),
-    'vcpus': fields.String(default="4"),
     'max_lifetime': fields.Integer,
     'name': fields.String,
     'is_enabled': fields.Boolean,
     'plugin': fields.String,
-    'config': fields.String,
+    'config': fields.Raw,
+    'schema': fields.Raw,
+    'form': fields.Raw
 }
 
 
@@ -541,9 +542,17 @@ class ResourceList(restful.Resource):
     @auth.login_required
     @marshal_with(resource_fields)
     def get(self):
-        if g.user.is_admin and request.args.get('show_deactivated'):
-            return Resource.query.all()
-        return Resource.query.filter_by(is_enabled=True).all()
+        query = Resource.query
+        if not g.user.is_admin:
+            query = query.filter_by(is_enabled=True)
+
+        results = []
+        for resource in query.all():
+            plugin = Plugin.query.filter_by(visual_id=resource.plugin).first()
+            resource.schema = plugin.schema
+            resource.form = plugin.form
+            results.append(resource)
+        return results
 
     @auth.login_required
     @requires_admin
@@ -556,7 +565,8 @@ class ResourceList(restful.Resource):
         resource = Resource()
         resource.name = form.name.data
         resource.plugin = form.plugin.data
-        resource.config = json.dumps(form.config.data)
+        resource.config = form.config.data
+
         if 'maximum_lifetime' in form.config.data:
             try:
                 resource.max_lifetime = int(form.config.data['maximum_lifetime'])
@@ -583,7 +593,13 @@ class ResourceView(restful.Resource):
 
         resource = Resource.query.filter_by(visual_id=resource_id).first()
         resource.name = form.name.data
-        resource.config = json.dumps(form.config.data)
+        resource.config = form.config.data
+        if 'maximum_lifetime' in resource.config:
+            try:
+                resource.max_lifetime = int(resource.config['maximum_lifetime'])
+            except:
+                pass
+
         resource.plugin = form.plugin.data
         resource.is_enabled = form.is_enabled.data
 
@@ -616,14 +632,7 @@ class PluginList(restful.Resource):
     @requires_admin
     @marshal_with(plugin_fields)
     def get(self):
-        import json
-        return [{
-            "name": x.name,
-            'visual_id': x.visual_id,
-            'schema': json.loads(x.schema),
-            'form': json.loads(x.form),
-            'model': json.loads(x.model)
-        } for x in Plugin.query.all()]
+        return Plugin.query.all()
 
     @auth.login_required
     @requires_admin
@@ -638,9 +647,9 @@ class PluginList(restful.Resource):
             plugin = Plugin()
             plugin.name = form.plugin.data
 
-        plugin.schema = form.schema.data
-        plugin.form = form.form.data
-        plugin.model = form.model.data
+        plugin.schema = json.loads(form.schema.data)
+        plugin.form = json.loads(form.form.data)
+        plugin.model = json.loads(form.model.data)
 
         db.session.add(plugin)
         db.session.commit()

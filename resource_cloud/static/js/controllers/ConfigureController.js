@@ -27,26 +27,28 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
                 $('#resourceCreate').modal('hide')
             }
         }
-        $scope.create = function () {
+        $scope.updateResource = function (form, model) {
             if (form.$valid) {
-                resources.post({ plugin: $scope.plugin, name: $scope.name, config: $scope.config }).then(function (response) {
+                $scope.selectedResource.config = model;
+                $scope.selectedResource.put().then(function (response) {
                         resources.getList({show_deactivated: true}).then(function (response) {
                                 $scope.resources = response;
                             }
                         )
                     }
                 );
-                $('#resourceCreate').modal('hide')
+                $('#resourceConfig').modal('hide')
             }
         }
 
         $scope.selectPlugin = function(plugin) {
             $scope.selectedPlugin = plugin;
-            $scope.$broadcast('schemaFormRedraw')
+            $scope.$broadcast('schemaFormRedraw');
         }
 
         $scope.selectResource = function(resource) {
-            $scope.currentResource = resource;
+            $scope.selectedResource = resource;
+            $scope.$broadcast('schemaFormRedraw');
         }
 
         $scope.createResource = function() {
@@ -58,7 +60,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
         }
 
         $scope.updateConfig = function() {
-            $scope.currentResource.put();
+            $scope.selectedResource.put();
             $('#resourceConfig').modal('hide')
 
         }
