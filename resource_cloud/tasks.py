@@ -29,7 +29,7 @@ app.conf.CELERYBEAT_SCHEDULE = {
         'schedule': crontab(minute='*/1'),
     },
     'check-plugins-every-minute': {
-        'task': 'resource_cloud.tasks.get_plugins',
+        'task': 'resource_cloud.tasks.publish_plugins',
         'schedule': crontab(minute='*/1'),
     }
 }
@@ -88,9 +88,10 @@ def get_provisioning_manager():
     return mgr
 
 
-def get_provisioning_type(provisioned_resource_id, token):
+def get_provisioning_type(token, provisioned_resource_id):
     resource = get_provisioned_resource_parent_data(token, provisioned_resource_id)
-    return resource.get('plugin')
+    plugin_id = resource['plugin']
+    return get_plugin_data(token, plugin_id)['name']
 
 
 @app.task(name="resource_cloud.tasks.run_provisioning")
@@ -98,10 +99,9 @@ def run_provisioning(token, provisioned_resource_id):
     logger.info('provisioning triggered for %s' % provisioned_resource_id)
     mgr = get_provisioning_manager()
 
-    plugin = get_provisioning_type(provisioned_resource_id, token)
+    plugin = get_provisioning_type(token, provisioned_resource_id)
 
-    res = mgr.map_method([plugin], 'provision', token, provisioned_resource_id)
-    logger.debug(res)
+    mgr.map_method([plugin], 'provision', token, provisioned_resource_id)
 
     logger.info('provisioning done, notifying server')
 
@@ -112,16 +112,15 @@ def run_deprovisioning(token, provisioned_resource_id):
 
     mgr = get_provisioning_manager()
 
-    plugin = get_provisioning_type(provisioned_resource_id, token)
+    plugin = get_provisioning_type(token, provisioned_resource_id)
 
-    res = mgr.map_method([plugin], 'deprovision', token, provisioned_resource_id)
-    logger.debug(res)
+    mgr.map_method([plugin], 'deprovision', token, provisioned_resource_id)
 
     logger.info('deprovisioning done, notifying server')
 
 
-@app.task(name="resource_cloud.tasks.get_plugins")
-def get_plugins():
+@app.task(name="resource_cloud.tasks.publish_plugins")
+def publish_plugins():
     logger.info('provisioning plugins queried from worker')
     token = get_token()
     mgr = get_provisioning_manager()
@@ -130,7 +129,6 @@ def get_plugins():
         payload['plugin'] = plugin
 
         config = mgr.map_method([plugin], 'get_configuration')[0]
-        logging.warn(config)
         for key in ('schema', 'form', 'model'):
             payload[key] = json.dumps(config.get(key, {}))
 
@@ -196,5 +194,13 @@ def get_provisioned_resource_parent_data(token, provisioned_resource_id):
     resp = do_get(token, 'resources/%s' % resource_id)
     if resp.status_code != 200:
         raise RuntimeError('Error loading resource data: %s, %s' % (resource_id, resp.reason))
+
+    return resp.json()
+
+
+def get_plugin_data(token, plugin_id):
+    resp = do_get(token, 'plugins/%s' % plugin_id)
+    if resp.status_code != 200:
+        raise RuntimeError('Error loading plugin data: %s, %s' % (plugin_id, resp.reason))
 
     return resp.json()

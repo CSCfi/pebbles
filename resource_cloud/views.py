@@ -3,6 +3,7 @@ import os
 from flask import abort, g, request
 from flask.ext.restful import fields, marshal_with, reqparse
 from sqlalchemy import desc
+import json
 import logging
 import names
 import re
@@ -555,7 +556,12 @@ class ResourceList(restful.Resource):
         resource = Resource()
         resource.name = form.name.data
         resource.plugin = form.plugin.data
-        resource.config = form.config.data
+        resource.config = json.dumps(form.config.data)
+        if 'maximum_lifetime' in form.config.data:
+            try:
+                resource.max_lifetime = int(form.config.data['maximum_lifetime'])
+            except:
+                pass
 
         db.session.add(resource)
         db.session.commit()
@@ -577,7 +583,7 @@ class ResourceView(restful.Resource):
 
         resource = Resource.query.filter_by(visual_id=resource_id).first()
         resource.name = form.name.data
-        resource.config = form.config.data
+        resource.config = json.dumps(form.config.data)
         resource.plugin = form.plugin.data
         resource.is_enabled = form.is_enabled.data
 
@@ -592,6 +598,17 @@ plugin_fields = {
     'form': fields.Raw,
     'model': fields.Raw,
 }
+
+
+class PluginView(restful.Resource):
+    @auth.login_required
+    @requires_admin
+    @marshal_with(plugin_fields)
+    def get(self, plugin_id):
+        plugin = Plugin.query.filter_by(visual_id=plugin_id).first()
+        if not plugin:
+            abort(404)
+        return plugin
 
 
 class PluginList(restful.Resource):
@@ -628,25 +645,6 @@ class PluginList(restful.Resource):
         db.session.add(plugin)
         db.session.commit()
 
-    @auth.login_required
-    @requires_admin
-    def put(self, plugin_id):
-        form = PluginForm()
-        if not form.validate_on_submit():
-            logging.warn("validation error on update resource config")
-            return form.errors, 422
-
-        plugin = Plugin.query.filter_by(visual_id=plugin_id).first()
-        if not plugin:
-            abort(404)
-
-        plugin.schema = form.schema.data
-        plugin.form = form.form.data
-        plugin.model = form.model.data
-
-        db.session.add(resource)
-        db.session.commit()
-
 
 api_root = '/api/v1'
 api.add_resource(FirstUserView, api_root + '/initialize')
@@ -670,3 +668,4 @@ api.add_resource(ProvisionedResourceLogs,
                  api_root + '/provisioned_resources/<string:provision_id>/logs',
                  methods=['GET', 'PATCH'])
 api.add_resource(PluginList, api_root + '/plugins')
+api.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')

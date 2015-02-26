@@ -25,17 +25,27 @@ CONFIG = {
                     }
                 }
             },
-            "apps": {
+            "capabilities": {
                 "type": "array",
-                "title": "Installed apps",
+                "title": "Select capabilities",
                 "items": {
                     "type": "string",
                     "enum": [
-                        "vim",
-                        "emacs",
-                        "cowsay"
+                        "Capability A",
+                        "Capability B",
+                        "Capability C"
                     ]
                 }
+            },
+            "maximum_lifetime": {
+                "type": "integer",
+                "title": "Maximum life-time (seconds)",
+                "default": 3600
+            },
+            "maximum_instances_per_user": {
+                "type": "integer",
+                "title": "Maximum instances per user",
+                "default": 1
             }
         }
     },
@@ -44,15 +54,19 @@ CONFIG = {
             "type": "help",
             "helpvalue": "<h4>Dummy config</h4>"
         },
-        "*",
+        "name",
+        "capabilities",
+        "maximum_lifetime",
+        "maximum_instances_per_user",
+        "secgroup-rules",
         {
             "type": "submit",
             "style": "btn-info",
-            "title": "OK"
+            "title": "Create"
         }
     ],
     "model": {
         "name": "bar",
-        "apps": ["vim", "cowsay"]
+        "capabilities": ["Capability A"]
     }
 }

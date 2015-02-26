@@ -20,9 +20,18 @@ class ProvisioningDriverBase(object):
 
     def get_configuration(self):
         return {
-            'schema': {},
-            'form': [{'type': 'help', 'helpvalue': 'config is empty'}, "*"],
-            'model': {}}
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'name': {
+                        'type': 'string'
+                    }
+                },
+            }, 'form': [
+                {'type': 'help', 'helpvalue': 'config is empty'},
+                '*',
+                {'style': 'btn-info', 'title': 'Create', 'type': 'submit'}
+            ], 'model': {}}
 
     def provision(self, token, provisioned_resource_id):
         self.logger.debug('starting provisioning')

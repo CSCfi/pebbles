@@ -16,10 +16,16 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
         });
 
         $scope.submitForm = function(form, model) {
-            console.log($scope.selectedPlugin.name);
-            console.log(form);
-            console.log(model);
-            console.log(form.$valid);
+            if (form.$valid) {
+                resources.post({ plugin: $scope.selectedPlugin.id, name: model.name, config: model }).then(function (response) {
+                        resources.getList({show_deactivated: true}).then(function (response) {
+                                $scope.resources = response;
+                            }
+                        )
+                    }
+                );
+                $('#resourceCreate').modal('hide')
+            }
         }
         $scope.create = function () {
             if (form.$valid) {
@@ -35,8 +41,8 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
         }
 
         $scope.selectPlugin = function(plugin) {
-            console.log(plugin);
             $scope.selectedPlugin = plugin;
+            $scope.$broadcast('schemaFormRedraw')
         }
 
         $scope.selectResource = function(resource) {
