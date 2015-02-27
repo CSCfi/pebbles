@@ -11,6 +11,11 @@ from resource_cloud.drivers.provisioning import base_driver
 
 
 class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
+    def get_configuration(self):
+        from resource_cloud.drivers.provisioning.pvc_cmdline_driver_config import CONFIG
+
+        return CONFIG
+
     def do_provision(self, token, provisioned_resource_id):
         provisioned_resource = self.get_provisioned_resource_data(token, provisioned_resource_id)
         cluster_name = provisioned_resource['name']
@@ -26,7 +31,12 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
             raise RuntimeError(
                 'Cannot fetch data for resource %s, %s' % (provisioned_resource['resource_id'], resp.reason))
         r_data = resp.json()
-        tc = jinja2.Template(r_data['config'])
+
+        # generate pvc config for this cluster
+        this_dir = os.path.dirname(os.path.abspath(__file__))
+        j2env = jinja2.Environment(loader=jinja2.FileSystemLoader(this_dir))
+        tc = j2env.get_template('pvc-cluster.yml.jinja2')
+        # r_data['config']
         conf = tc.render(cluster_name='rc-%s' % cluster_name, security_key='rc-%s' % cluster_name)
         with open('%s/cluster.yml' % res_dir, 'w') as cf:
             cf.write(conf)

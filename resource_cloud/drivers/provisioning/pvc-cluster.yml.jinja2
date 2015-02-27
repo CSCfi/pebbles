@@ -19,6 +19,7 @@ frontend:
     - name: shared_data
       size: 1
   groups:
+    - common
     - cluster_master
 #    - hadoop_namenode
 #    - hadoop_jobtracker
@@ -32,6 +33,7 @@ node:
     - name: local_data
       size: 1
   groups:
+    - common
     - cluster_slave
 #    - hadoop_datanode
 #    - hadoop_tasktracker
