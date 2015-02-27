@@ -129,7 +129,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
             },
             'Ganglia': {
                 'frontend': ['ganglia_master'],
-                'node': ['ganglia_slave']
+                'node': ['ganglia_monitor']
             },
             'Spark': {
                 'frontend': ['spark_master'],
