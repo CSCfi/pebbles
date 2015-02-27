@@ -3,6 +3,7 @@ import os
 from flask import abort, g
 from flask.ext.restful import fields, marshal_with, reqparse
 from sqlalchemy import desc
+import json
 import logging
 import names
 import re
@@ -10,11 +11,11 @@ import werkzeug
 import datetime
 from functools import wraps
 
-from resource_cloud.models import User, ActivationToken, Resource
+from resource_cloud.models import User, ActivationToken, Resource, Plugin
 from resource_cloud.models import ProvisionedResource, SystemToken, Keypair
 from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
-from resource_cloud.forms import ChangePasswordForm, UpdateResourceConfigForm
-from resource_cloud.forms import ProvisionedResourceForm
+from resource_cloud.forms import ChangePasswordForm, ResourceForm
+from resource_cloud.forms import PluginForm, ProvisionedResourceForm
 
 from resource_cloud.server import api, auth, db, restful, app
 from resource_cloud.tasks import run_provisioning, run_deprovisioning
@@ -253,7 +254,6 @@ class UploadKeyPair(restful.Resource):
         try:
             uploaded_key = args['file'].read()
             key.public_key = uploaded_key
-            logging.warn(type(key))
             db.session.add(key)
             db.session.commit()
         except:
@@ -366,7 +366,7 @@ class ProvisionedResourceList(restful.Resource):
 
         resource_id = form.resource.data
 
-        resource = Resource.query.filter_by(visual_id=resource_id).first()
+        resource = Resource.query.filter_by(visual_id=resource_id).filter_by(is_enabled=True).first()
         if not resource:
             abort(404)
 
@@ -528,10 +528,13 @@ class ProvisionedResourceLogs(restful.Resource):
 
 resource_fields = {
     'id': fields.String(attribute='visual_id'),
-    'vcpus': fields.String(default="4"),
     'max_lifetime': fields.Integer,
     'name': fields.String,
-    'config': fields.String,
+    'is_enabled': fields.Boolean,
+    'plugin': fields.String,
+    'config': fields.Raw,
+    'schema': fields.Raw,
+    'form': fields.Raw
 }
 
 
@@ -539,15 +542,39 @@ class ResourceList(restful.Resource):
     @auth.login_required
     @marshal_with(resource_fields)
     def get(self):
-        resources = Resource.query.all()
-        if not resources:
-            resource = Resource()
-            resource.name = "dummy"
-            with open('/webapps/resource_cloud/source/resource_cloud/templates/pvc-cluster.yml.jinja2') as fd:
-                resource.config = fd.read()
-            db.session.add(resource)
-            db.session.commit()
-        return Resource.query.all()
+        query = Resource.query
+        if not g.user.is_admin:
+            query = query.filter_by(is_enabled=True)
+
+        results = []
+        for resource in query.all():
+            plugin = Plugin.query.filter_by(visual_id=resource.plugin).first()
+            resource.schema = plugin.schema
+            resource.form = plugin.form
+            results.append(resource)
+        return results
+
+    @auth.login_required
+    @requires_admin
+    def post(self):
+        form = ResourceForm()
+        if not form.validate_on_submit():
+            logging.warn("validation error on create resource")
+            return form.errors, 422
+
+        resource = Resource()
+        resource.name = form.name.data
+        resource.plugin = form.plugin.data
+        resource.config = form.config.data
+
+        if 'maximum_lifetime' in form.config.data:
+            try:
+                resource.max_lifetime = int(form.config.data['maximum_lifetime'])
+            except:
+                pass
+
+        db.session.add(resource)
+        db.session.commit()
 
 
 class ResourceView(restful.Resource):
@@ -559,35 +586,95 @@ class ResourceView(restful.Resource):
     @auth.login_required
     @requires_admin
     def put(self, resource_id):
-        form = UpdateResourceConfigForm()
+        form = ResourceForm()
         if not form.validate_on_submit():
             logging.warn("validation error on update resource config")
             return form.errors, 422
-        logging.warn(form)
 
         resource = Resource.query.filter_by(visual_id=resource_id).first()
+        resource.name = form.name.data
         resource.config = form.config.data
+        if 'maximum_lifetime' in resource.config:
+            try:
+                resource.max_lifetime = int(resource.config['maximum_lifetime'])
+            except:
+                pass
+
+        resource.plugin = form.plugin.data
+        resource.is_enabled = form.is_enabled.data
+
         db.session.add(resource)
         db.session.commit()
 
 
-api.add_resource(FirstUserView, '/api/v1/initialize')
+plugin_fields = {
+    'id': fields.String(attribute='visual_id'),
+    'name': fields.String,
+    'schema': fields.Raw,
+    'form': fields.Raw,
+    'model': fields.Raw,
+}
+
+
+class PluginView(restful.Resource):
+    @auth.login_required
+    @requires_admin
+    @marshal_with(plugin_fields)
+    def get(self, plugin_id):
+        plugin = Plugin.query.filter_by(visual_id=plugin_id).first()
+        if not plugin:
+            abort(404)
+        return plugin
+
+
+class PluginList(restful.Resource):
+    @auth.login_required
+    @requires_admin
+    @marshal_with(plugin_fields)
+    def get(self):
+        return Plugin.query.all()
+
+    @auth.login_required
+    @requires_admin
+    def post(self):
+        form = PluginForm()
+        if not form.validate_on_submit():
+            logging.warn("validation error on update resource config")
+            return form.errors, 422
+
+        plugin = Plugin.query.filter_by(name=form.plugin.data).first()
+        if not plugin:
+            plugin = Plugin()
+            plugin.name = form.plugin.data
+
+        plugin.schema = json.loads(form.schema.data)
+        plugin.form = json.loads(form.form.data)
+        plugin.model = json.loads(form.model.data)
+
+        db.session.add(plugin)
+        db.session.commit()
+
+
+api_root = '/api/v1'
+api.add_resource(FirstUserView, api_root + '/initialize')
 api.add_resource(UserList,
-                 '/api/v1/users',
+                 api_root + '/users',
                  methods=['GET', 'POST', 'PATCH'])
-api.add_resource(UserView, '/api/v1/users/<string:user_id>')
-api.add_resource(KeypairList, '/api/v1/users/<string:user_id>/keypairs')
-api.add_resource(KeypairView, '/api/v1/users/<string:user_id>/keypairs/<string:keypair_id>')
-api.add_resource(CreateKeyPair, '/api/v1/users/<string:user_id>/keypairs/create')
-api.add_resource(UploadKeyPair, '/api/v1/users/<string:user_id>/keypairs/upload')
-api.add_resource(SessionView, '/api/v1/sessions')
-api.add_resource(ActivationList, '/api/v1/activations')
-api.add_resource(ResourceList, '/api/v1/resources')
-api.add_resource(ResourceView, '/api/v1/resources/<string:resource_id>')
-api.add_resource(ProvisionedResourceList, '/api/v1/provisioned_resources')
+api.add_resource(UserView, api_root + '/users/<string:user_id>')
+api.add_resource(KeypairList, api_root + '/users/<string:user_id>/keypairs')
+api.add_resource(KeypairView, api_root + '/users/<string:user_id>/keypairs/<string:keypair_id>')
+api.add_resource(CreateKeyPair, api_root + '/users/<string:user_id>/keypairs/create')
+api.add_resource(UploadKeyPair, api_root + '/users/<string:user_id>/keypairs/upload')
+api.add_resource(SessionView, api_root + '/sessions')
+api.add_resource(ActivationList, api_root + '/activations')
+api.add_resource(ResourceList, api_root + '/resources')
+api.add_resource(ResourceView, api_root + '/resources/<string:resource_id>')
+api.add_resource(ProvisionedResourceList, api_root + '/provisioned_resources')
 api.add_resource(ProvisionedResourceView,
-                 '/api/v1/provisioned_resources/<string:provision_id>',
+                 api_root + '/provisioned_resources/<string:provision_id>',
                  methods=['GET', 'POST', 'DELETE', 'PATCH'])
 api.add_resource(ProvisionedResourceLogs,
-                 '/api/v1/provisioned_resources/<string:provision_id>/logs',
+                 api_root + '/provisioned_resources/<string:provision_id>/logs',
                  methods=['GET', 'PATCH'])
+api.add_resource(PluginList, api_root + '/plugins')
+api.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')

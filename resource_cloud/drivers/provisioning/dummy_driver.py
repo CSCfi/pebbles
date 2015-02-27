@@ -1,13 +1,15 @@
 from random import randint
 
 import os
-import jinja2
-import yaml
 
 from resource_cloud.drivers.provisioning import base_driver
 
 
 class DummyDriver(base_driver.ProvisioningDriverBase):
+    def get_configuration(self):
+        from resource_cloud.drivers.provisioning.dummy_driver_config import CONFIG
+        return CONFIG
+
     def do_provision(self, token, provisioned_resource_id):
         provisioned_resource = self.get_provisioned_resource_data(token, provisioned_resource_id)
         cluster_name = provisioned_resource['name']
@@ -22,20 +24,6 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         if resp.status_code != 200:
             raise RuntimeError(
                 'Cannot fetch data for resource %s, %s' % (provisioned_resource['resource_id'], resp.reason))
-        r_data = resp.json()
-        tc = jinja2.Template(r_data['config'])
-        conf = tc.render(cluster_name='rc-%s' % cluster_name, security_key='rc-%s' % cluster_name)
-        with open('%s/cluster.yml' % res_dir, 'w') as cf:
-            cf.write(conf)
-            cf.write('\n')
-
-        # figure out the number of nodes from config provisioning-data
-        cluster_config = yaml.load(conf)
-        if 'provisioning_data' in cluster_config.keys() and 'num_nodes' in cluster_config['provisioning_data'].keys():
-            num_nodes = int(cluster_config['provisioning_data']['num_nodes'])
-        else:
-            self.logger.warn('number of nodes in cluster not defined, using default: 2')
-            num_nodes = 2
 
         # fetch user public key and save it
         key_data = self.get_user_key_data(token, provisioned_resource['user_id']).json()

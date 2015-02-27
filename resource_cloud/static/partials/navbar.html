@@ -2,6 +2,7 @@
   <ul class="nav navbar-nav">
     <li><a ng-show="isLoggedIn()" href="#/dashboard">Dashboard</a></li>
     <li><a ng-show="isAdmin()" href="#/users">Users</a></li>
+    <li><a ng-show="isAdmin()" href="#/configure">Configure</a></li>
     <li><a ng-show="isLoggedIn()" href="#/account">Account</a></li>
   </ul>
   <div ng-show="isLoggedOut()" class="navbar-form navbar-right">

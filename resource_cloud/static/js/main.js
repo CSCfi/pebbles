@@ -1,6 +1,6 @@
 'use strict';
 
-var app = angular.module('resourceCloudApp', ['ngRoute', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload']);
+var app = angular.module('resourceCloudApp', ['ngRoute', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload', 'schemaForm']);
 
 app.run(function($location, Restangular, AuthService) {
     Restangular.setFullRequestInterceptor(function(element, operation, route, url, headers, params, httpConfig) {
@@ -88,6 +88,13 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
         .when('/users', {
             controller: 'UsersController',
             templateUrl: partialsDir + '/users.html',
+            resolve: {
+                redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
+            }
+        })
+        .when('/configure', {
+            controller: 'ConfigureController',
+            templateUrl: partialsDir + '/configure.html',
             resolve: {
                 redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
             }

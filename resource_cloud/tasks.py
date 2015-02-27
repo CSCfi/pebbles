@@ -28,6 +28,10 @@ app.conf.CELERYBEAT_SCHEDULE = {
         'task': 'resource_cloud.tasks.deprovision_expired',
         'schedule': crontab(minute='*/1'),
     },
+    'check-plugins-every-minute': {
+        'task': 'resource_cloud.tasks.publish_plugins',
+        'schedule': crontab(minute='*/1'),
+    }
 }
 app.conf.CELERY_TIMEZONE = 'UTC'
 
@@ -84,18 +88,10 @@ def get_provisioning_manager():
     return mgr
 
 
-def get_provisioning_type(resource_id, token):
-    r_data = get_provisioned_resource_parent_data(token, resource_id).json()
-    # dirrrrty, will be removed when resource gets a provisioning_type -field
-    # can't load yaml because jinja2 template is not processed yet
-    names = ['dummy']
-    for line in r_data['config'].splitlines():
-        if ':' in line:
-            key, val = line.strip().split(':')
-            if key == 'provisioning_type':
-                names = [val.strip()]
-                break
-    return names
+def get_provisioning_type(token, provisioned_resource_id):
+    resource = get_provisioned_resource_parent_data(token, provisioned_resource_id)
+    plugin_id = resource['plugin']
+    return get_plugin_data(token, plugin_id)['name']
 
 
 @app.task(name="resource_cloud.tasks.run_provisioning")
@@ -103,10 +99,9 @@ def run_provisioning(token, provisioned_resource_id):
     logger.info('provisioning triggered for %s' % provisioned_resource_id)
     mgr = get_provisioning_manager()
 
-    names = get_provisioning_type(provisioned_resource_id, token)
+    plugin = get_provisioning_type(token, provisioned_resource_id)
 
-    res = mgr.map_method(names, 'provision', token, provisioned_resource_id)
-    logger.debug(res)
+    mgr.map_method([plugin], 'provision', token, provisioned_resource_id)
 
     logger.info('provisioning done, notifying server')
 
@@ -117,12 +112,27 @@ def run_deprovisioning(token, provisioned_resource_id):
 
     mgr = get_provisioning_manager()
 
-    names = get_provisioning_type(provisioned_resource_id, token)
+    plugin = get_provisioning_type(token, provisioned_resource_id)
 
-    res = mgr.map_method(names, 'deprovision', token, provisioned_resource_id)
-    logger.debug(res)
+    mgr.map_method([plugin], 'deprovision', token, provisioned_resource_id)
 
     logger.info('deprovisioning done, notifying server')
+
+
+@app.task(name="resource_cloud.tasks.publish_plugins")
+def publish_plugins():
+    logger.info('provisioning plugins queried from worker')
+    token = get_token()
+    mgr = get_provisioning_manager()
+    for plugin in mgr.names():
+        payload = {}
+        payload['plugin'] = plugin
+
+        config = mgr.map_method([plugin], 'get_configuration')[0]
+        for key in ('schema', 'form', 'model'):
+            payload[key] = json.dumps(config.get(key, {}))
+
+        do_post(token, 'plugins', payload)
 
 
 def get_token():
@@ -143,6 +153,16 @@ def do_get(token, object_url):
 
     url = 'https://localhost/api/v1/%s' % object_url
     resp = requests.get(url, headers=headers, verify=ActiveConfig.SSL_VERIFY)
+    logger.debug('got response %s %s' % (resp.status_code, resp.reason))
+    return resp
+
+
+def do_post(token, api_path, data):
+    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
+    headers = {'Accept': 'text/plain',
+               'Authorization': 'Basic %s' % auth}
+    url = 'https://localhost/api/v1/%s' % api_path
+    resp = requests.post(url, data, headers=headers, verify=ActiveConfig.SSL_VERIFY)
     logger.debug('got response %s %s' % (resp.status_code, resp.reason))
     return resp
 
@@ -175,4 +195,12 @@ def get_provisioned_resource_parent_data(token, provisioned_resource_id):
     if resp.status_code != 200:
         raise RuntimeError('Error loading resource data: %s, %s' % (resource_id, resp.reason))
 
-    return resp
+    return resp.json()
+
+
+def get_plugin_data(token, plugin_id):
+    resp = do_get(token, 'plugins/%s' % plugin_id)
+    if resp.status_code != 200:
+        raise RuntimeError('Error loading plugin data: %s, %s' % (plugin_id, resp.reason))
+
+    return resp.json()

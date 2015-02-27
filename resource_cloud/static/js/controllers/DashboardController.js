@@ -13,20 +13,6 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             $scope.instances = response;
         });
 
-        $scope.showAdminOptions = function() {
-            return AuthService.isAdmin();
-        }
-
-        var currentService = null;
-        $scope.selectService = function(service) {
-            currentService = service;
-            $scope.config = currentService.config;
-        }
-
-        $scope.updateConfig = function() {
-            currentService.config = $scope.config;
-            currentService.put();
-        }
         $scope.provision = function (resource) {
             provisionedResources.post({ resource: resource.id }).then(function (response) {
                     provisionedResources.getList().then(function (response) {
@@ -34,8 +20,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
                         }
                     )
                 }
-            )
-            ;
+            );
         }
 
         $scope.deprovision = function (provisionedResource) {
