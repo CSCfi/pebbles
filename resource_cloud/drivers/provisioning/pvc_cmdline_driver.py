@@ -5,7 +5,6 @@ import os
 
 import jinja2
 import stat
-import yaml
 
 from resource_cloud.drivers.provisioning import base_driver
 
@@ -26,26 +25,18 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         os.makedirs(res_dir)
 
         # generate pvc config for this cluster
-        resp = self.get_resource_description(token, provisioned_resource['resource_id'])
-        if resp.status_code != 200:
-            raise RuntimeError(
-                'Cannot fetch data for resource %s, %s' % (provisioned_resource['resource_id'], resp.reason))
-        r_data = resp.json()
+        resource_config = self.get_resource_description(token, provisioned_resource['resource_id'])['config']
 
-        # generate pvc config for this cluster
-        this_dir = os.path.dirname(os.path.abspath(__file__))
-        j2env = jinja2.Environment(loader=jinja2.FileSystemLoader(this_dir))
-        tc = j2env.get_template('pvc-cluster.yml.jinja2')
-        # r_data['config']
-        conf = tc.render(cluster_name='rc-%s' % cluster_name, security_key='rc-%s' % cluster_name)
+        self.logger.debug('Resource config: %s' % resource_config)
+
+        cluster_config = self.create_cluster_config(resource_config, cluster_name)
         with open('%s/cluster.yml' % res_dir, 'w') as cf:
-            cf.write(conf)
+            cf.write(cluster_config)
             cf.write('\n')
 
         # figure out the number of nodes from config provisioning-data
-        cluster_config = yaml.load(conf)
-        if 'provisioning_data' in cluster_config.keys() and 'num_nodes' in cluster_config['provisioning_data'].keys():
-            num_nodes = int(cluster_config['provisioning_data']['num_nodes'])
+        if 'number_of_nodes' in resource_config:
+            num_nodes = int(resource_config['number_of_nodes'])
         else:
             self.logger.warn('number of nodes in cluster not defined, using default: 2')
             num_nodes = 2
@@ -119,3 +110,67 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
 
         # use resource id as a part of the name to make tombstones always unique
         os.rename(res_dir, '%s.deleted.%s' % (res_dir, provisioned_resource_id))
+
+    @staticmethod
+    def create_cluster_config(user_config, cluster_name):
+
+        software_to_groups = {
+            'Common': {
+                'frontend': ['common'],
+                'node': ['common']
+            },
+            'Cluster': {
+                'frontend': ['cluster_master'],
+                'node': ['cluster_slave']
+            },
+            'GridEngine': {
+                'frontend': ['ge_master'],
+                'node': ['ge_slave']
+            },
+            'Ganglia': {
+                'frontend': ['ganglia_master'],
+                'node': ['ganglia_slave']
+            },
+            'Spark': {
+                'frontend': ['spark_master'],
+                'node': ['spark_slave']
+            },
+            'Hadoop': {
+                'frontend': ['hadoop_jobtracker', 'hadoop_namenode'],
+                'node': ['hadoop_tasktracker', 'hadoop_datanode']
+            },
+        }
+
+        frontend_groups = []
+        node_groups = []
+        for soft in user_config['software']:
+            frontend_groups.extend(software_to_groups[soft]['frontend'])
+            node_groups.extend(software_to_groups[soft]['node'])
+
+        # generate pvc config for this cluster
+        this_dir = os.path.dirname(os.path.abspath(__file__))
+
+        j2env = jinja2.Environment(loader=jinja2.FileSystemLoader(this_dir), trim_blocks=True)
+        tc = j2env.get_template('pvc-cluster.yml.jinja2')
+        cluster_config = tc.render(
+            cluster_name='rc-%s' % cluster_name,
+            security_key='rc-%s' % cluster_name,
+            frontend_groups=frontend_groups,
+            node_groups=node_groups,
+            **user_config
+        )
+        return cluster_config
+
+# testing templating
+if __name__ == '__main__':
+    resource_config = {
+        "name": "pvc",
+        "software": ['Common', 'Cluster', 'Ganglia', 'Hadoop', 'Spark'],
+        'firewall_rules': ["tcp 22 22 193.166.85.0/24"],
+        'frontend_flavor': 'mini',
+        'frontend_image': 'Ubuntu-14.04',
+        'node_flavor': 'mini',
+        'node_image': 'Ubuntu-14.04',
+    }
+    cluster_config = PvcCmdLineDriver.create_cluster_config(resource_config, 'test_name')
+    print cluster_config

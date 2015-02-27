@@ -5,39 +5,29 @@ cluster:
   network: default
   allow-traffic-from-sec-groups:
     - bastion
+{% if firewall_rules is defined %}
   ext-secgroup-rules:
-    - tcp 22 22 192.168.1.1/32
+{% for rule in firewall_rules %}
+    - {{ rule }}
+{% endfor %}
+{% endif %}
+
 frontend:
   sec-key: {{ security_key }}
-  image: Ubuntu-14.04
+  image: {{ frontend_image }}
   admin-user: cloud-user
-  flavor: mini
+  flavor: {{ frontend_flavor }}
   public-ip: auto
-  volumes:
-    - name: local_data
-      size: 1
-    - name: shared_data
-      size: 1
   groups:
-    - common
-    - cluster_master
-#    - hadoop_namenode
-#    - hadoop_jobtracker
-#    - spark_master
+{% for group in frontend_groups %}
+    - {{ group }}
+{% endfor %}
+
 node:
   sec-key: {{ security_key }}
-  image: Ubuntu-14.04
+  image: {{ node_image }}
   admin-user: cloud-user
-  flavor: mini
-  volumes:
-    - name: local_data
-      size: 1
+  flavor: {{ node_flavor }}
   groups:
-    - common
-    - cluster_slave
-#    - hadoop_datanode
-#    - hadoop_tasktracker
-#    - spark_slave
-
-provisioning_data:
-  num_nodes: 2
+{% for group in node_groups %}    - {{ group }}
+{% endfor %}
