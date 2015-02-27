@@ -1,6 +1,6 @@
 from flask.ext.wtf import Form
 from wtforms_alchemy import model_form_factory
-from wtforms import BooleanField, StringField, TextField
+from wtforms import BooleanField, StringField
 from wtforms.validators import DataRequired, Email, Length
 
 from resource_cloud.models import MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH
@@ -11,7 +11,7 @@ BaseModelForm = model_form_factory(Form)
 
 class ModelForm(BaseModelForm):
     @classmethod
-    def get_session(self):
+    def get_session(cls):
         return db.session
 
 
@@ -54,6 +54,6 @@ class ActivationForm(ModelForm):
 
 class PluginForm(ModelForm):
     plugin = StringField('plugin', validators=[DataRequired()])
-    schema = TextField('schema', validators=[DataRequired()])
-    form = TextField('form', validators=[DataRequired()])
-    model = TextField('model', validators=[DataRequired()])
+    schema = StringField('schema', validators=[DataRequired()])
+    form = StringField('form', validators=[DataRequired()])
+    model = StringField('model', validators=[DataRequired()])
