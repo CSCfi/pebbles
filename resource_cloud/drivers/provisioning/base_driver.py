@@ -27,7 +27,8 @@ class ProvisioningDriverBase(object):
                         'type': 'string'
                     }
                 },
-            }, 'form': [
+            },
+            'form': [
                 {'type': 'help', 'helpvalue': 'config is empty'},
                 '*',
                 {'style': 'btn-info', 'title': 'Create', 'type': 'submit'}
@@ -44,7 +45,7 @@ class ProvisioningDriverBase(object):
             self.logger.debug('finishing provisioning')
             self.do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'running'})
         except Exception as e:
-            self.logger.debug('do_provision raised e')
+            self.logger.debug('do_provision raised %s' % e)
             self.do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'failed'})
             raise e
 
@@ -58,7 +59,7 @@ class ProvisioningDriverBase(object):
             self.logger.debug('finishing deprovisioning')
             self.do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'deleted'})
         except Exception as e:
-            self.logger.debug('do_deprovision raised e')
+            self.logger.debug('do_deprovision raised %s' % e)
             self.do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'failed'})
             raise e
 
@@ -116,7 +117,10 @@ class ProvisioningDriverBase(object):
         return resp.json()
 
     def get_resource_description(self, token, resource_id):
-        return self.do_get(token, 'resources/%s' % resource_id)
+        resp = self.do_get(token, 'resources/%s' % resource_id)
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot fetch data for provisioned resources, %s' % resp.reason)
+        return resp.json()
 
     def get_user_key_data(self, token, user_id):
         return self.do_get(token, 'users/%s/keypairs' % user_id)
