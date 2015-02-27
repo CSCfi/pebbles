@@ -38,6 +38,7 @@ CONFIG = {
                 'type': 'string',
                 'title': 'Frontend image',
                 'enum': [
+                    'dac-re-trusty-1.2',
                     'Ubuntu-14.04',
                     'CentOS-6.6',
                 ]
@@ -57,6 +58,7 @@ CONFIG = {
                 'type': 'string',
                 'title': 'Node image',
                 'enum': [
+                    'dac-re-trusty-1.2',
                     'Ubuntu-14.04',
                     'CentOS-6.6',
                 ]
