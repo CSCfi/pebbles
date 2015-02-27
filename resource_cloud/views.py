@@ -17,7 +17,7 @@ from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
 from resource_cloud.forms import ChangePasswordForm, ResourceForm
 from resource_cloud.forms import PluginForm, ProvisionedResourceForm
 
-from resource_cloud.server import api, auth, db, restful, app
+from resource_cloud.server import auth, db, restful, app
 from resource_cloud.tasks import run_provisioning, run_deprovisioning
 from resource_cloud.tasks import send_mails
 
@@ -654,12 +654,11 @@ class PluginList(restful.Resource):
         db.session.add(plugin)
         db.session.commit()
 
+
 def setup_resource_urls(api_service):
     api_root = '/api/v1'
     api_service.add_resource(FirstUserView, api_root + '/initialize')
-    api_service.add_resource(UserList,
-                     api_root + '/users',
-                     methods=['GET', 'POST', 'PATCH'])
+    api_service.add_resource(UserList, api_root + '/users', methods=['GET', 'POST', 'PATCH'])
     api_service.add_resource(UserView, api_root + '/users/<string:user_id>')
     api_service.add_resource(KeypairList, api_root + '/users/<string:user_id>/keypairs')
     api_service.add_resource(KeypairView, api_root + '/users/<string:user_id>/keypairs/<string:keypair_id>')
@@ -670,11 +669,15 @@ def setup_resource_urls(api_service):
     api_service.add_resource(ResourceList, api_root + '/resources')
     api_service.add_resource(ResourceView, api_root + '/resources/<string:resource_id>')
     api_service.add_resource(ProvisionedResourceList, api_root + '/provisioned_resources')
-    api_service.add_resource(ProvisionedResourceView,
-                     api_root + '/provisioned_resources/<string:provision_id>',
-                     methods=['GET', 'POST', 'DELETE', 'PATCH'])
-    api_service.add_resource(ProvisionedResourceLogs,
-                     api_root + '/provisioned_resources/<string:provision_id>/logs',
-                     methods=['GET', 'PATCH'])
+    api_service.add_resource(
+        ProvisionedResourceView,
+        api_root + '/provisioned_resources/<string:provision_id>',
+        methods=['GET', 'POST', 'DELETE', 'PATCH']
+    )
+    api_service.add_resource(
+        ProvisionedResourceLogs,
+        api_root + '/provisioned_resources/<string:provision_id>/logs',
+        methods=['GET', 'PATCH']
+    )
     api_service.add_resource(PluginList, api_root + '/plugins')
     api_service.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')
