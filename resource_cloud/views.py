@@ -17,7 +17,7 @@ from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
 from resource_cloud.forms import ChangePasswordForm, ResourceForm
 from resource_cloud.forms import PluginForm, ProvisionedResourceForm
 
-from resource_cloud.server import api, auth, db, restful, app
+from resource_cloud.server import auth, db, restful, app
 from resource_cloud.tasks import run_provisioning, run_deprovisioning
 from resource_cloud.tasks import send_mails
 
@@ -655,26 +655,29 @@ class PluginList(restful.Resource):
         db.session.commit()
 
 
-api_root = '/api/v1'
-api.add_resource(FirstUserView, api_root + '/initialize')
-api.add_resource(UserList,
-                 api_root + '/users',
-                 methods=['GET', 'POST', 'PATCH'])
-api.add_resource(UserView, api_root + '/users/<string:user_id>')
-api.add_resource(KeypairList, api_root + '/users/<string:user_id>/keypairs')
-api.add_resource(KeypairView, api_root + '/users/<string:user_id>/keypairs/<string:keypair_id>')
-api.add_resource(CreateKeyPair, api_root + '/users/<string:user_id>/keypairs/create')
-api.add_resource(UploadKeyPair, api_root + '/users/<string:user_id>/keypairs/upload')
-api.add_resource(SessionView, api_root + '/sessions')
-api.add_resource(ActivationList, api_root + '/activations')
-api.add_resource(ResourceList, api_root + '/resources')
-api.add_resource(ResourceView, api_root + '/resources/<string:resource_id>')
-api.add_resource(ProvisionedResourceList, api_root + '/provisioned_resources')
-api.add_resource(ProvisionedResourceView,
-                 api_root + '/provisioned_resources/<string:provision_id>',
-                 methods=['GET', 'POST', 'DELETE', 'PATCH'])
-api.add_resource(ProvisionedResourceLogs,
-                 api_root + '/provisioned_resources/<string:provision_id>/logs',
-                 methods=['GET', 'PATCH'])
-api.add_resource(PluginList, api_root + '/plugins')
-api.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')
+def setup_resource_urls(api_service):
+    api_root = '/api/v1'
+    api_service.add_resource(FirstUserView, api_root + '/initialize')
+    api_service.add_resource(UserList, api_root + '/users', methods=['GET', 'POST', 'PATCH'])
+    api_service.add_resource(UserView, api_root + '/users/<string:user_id>')
+    api_service.add_resource(KeypairList, api_root + '/users/<string:user_id>/keypairs')
+    api_service.add_resource(KeypairView, api_root + '/users/<string:user_id>/keypairs/<string:keypair_id>')
+    api_service.add_resource(CreateKeyPair, api_root + '/users/<string:user_id>/keypairs/create')
+    api_service.add_resource(UploadKeyPair, api_root + '/users/<string:user_id>/keypairs/upload')
+    api_service.add_resource(SessionView, api_root + '/sessions')
+    api_service.add_resource(ActivationList, api_root + '/activations')
+    api_service.add_resource(ResourceList, api_root + '/resources')
+    api_service.add_resource(ResourceView, api_root + '/resources/<string:resource_id>')
+    api_service.add_resource(ProvisionedResourceList, api_root + '/provisioned_resources')
+    api_service.add_resource(
+        ProvisionedResourceView,
+        api_root + '/provisioned_resources/<string:provision_id>',
+        methods=['GET', 'POST', 'DELETE', 'PATCH']
+    )
+    api_service.add_resource(
+        ProvisionedResourceLogs,
+        api_root + '/provisioned_resources/<string:provision_id>/logs',
+        methods=['GET', 'PATCH']
+    )
+    api_service.add_resource(PluginList, api_root + '/plugins')
+    api_service.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')
