@@ -5,7 +5,7 @@ cluster:
   network: default
   allow-traffic-from-sec-groups:
     - bastion
-{% if firewall_rules is defined %}
+{% if firewall_rules is defined and firewall_rules|length > 0 %}
   ext-secgroup-rules:
 {% for rule in firewall_rules %}
     - {{ rule }}
