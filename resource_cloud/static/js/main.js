@@ -19,11 +19,11 @@ app.run(function($location, Restangular, AuthService) {
                     AuthService.logout();
                     $location.path('/');
                     return false;
-                case 404:
-                    // Pass 404 Not found to controllers to handle
-                    return true;
                 case 403:
                     // Pass 403 Forbidden to controllers to handle
+                    return true;
+                case 404:
+                    // Pass 404 Not found to controllers to handle
                     return true;
                 case 409:
                     // Pass 409 Conflict to controllers to handle
