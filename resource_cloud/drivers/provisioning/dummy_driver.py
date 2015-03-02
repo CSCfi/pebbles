@@ -19,11 +19,8 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         # will fail if there is already a directory for this resource
         os.makedirs(res_dir)
 
-        # generate pvc config for this cluster
-        resp = self.get_resource_description(token, provisioned_resource['resource_id'])
-        if resp.status_code != 200:
-            raise RuntimeError(
-                'Cannot fetch data for resource %s, %s' % (provisioned_resource['resource_id'], resp.reason))
+        # fetch config for this cluster
+        config = self.get_resource_description(token, provisioned_resource['resource_id'])
 
         # fetch user public key and save it
         key_data = self.get_user_key_data(token, provisioned_resource['user_id']).json()

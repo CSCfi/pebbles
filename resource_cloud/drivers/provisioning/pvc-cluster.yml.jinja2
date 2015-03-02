@@ -1,0 +1,33 @@
+---
+cluster:
+  name: {{ cluster_name }}
+  description: Cluster deployed by resource_cloud
+  network: default
+  allow-traffic-from-sec-groups:
+    - bastion
+{% if firewall_rules is defined and firewall_rules|length > 0 %}
+  ext-secgroup-rules:
+{% for rule in firewall_rules %}
+    - {{ rule }}
+{% endfor %}
+{% endif %}
+
+frontend:
+  sec-key: {{ security_key }}
+  image: {{ frontend_image }}
+  admin-user: cloud-user
+  flavor: {{ frontend_flavor }}
+  public-ip: auto
+  groups:
+{% for group in frontend_groups %}
+    - {{ group }}
+{% endfor %}
+
+node:
+  sec-key: {{ security_key }}
+  image: {{ node_image }}
+  admin-user: cloud-user
+  flavor: {{ node_flavor }}
+  groups:
+{% for group in node_groups %}    - {{ group }}
+{% endfor %}
