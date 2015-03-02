@@ -35,6 +35,10 @@ class ChangePasswordForm(ModelForm):
                                           "%(max)d characters long"))])
 
 
+class PasswordResetRequestForm(ModelForm):
+    email = StringField('email', validators=[DataRequired(), Email(), Length(max=MAX_EMAIL_LENGTH)])
+
+
 class ProvisionedResourceForm(ModelForm):
     resource = StringField('resource_id', validators=[DataRequired()])
 
@@ -45,7 +49,6 @@ class SessionCreateForm(ModelForm):
 
 
 class ActivationForm(ModelForm):
-    token = StringField('token', validators=[DataRequired()])
     password = StringField('password', validators=[DataRequired(), Length(
         min=8,
         max=MAX_PASSWORD_LENGTH, message=("Password must be between %(min)d and "

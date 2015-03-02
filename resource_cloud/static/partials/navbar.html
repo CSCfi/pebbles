@@ -13,8 +13,11 @@
       <div class="form-group">
         <input type="password" id="password" name="password" ng-model="password" placeholder="Password" class="form-control">
       </div>
-      <input type="submit" class="btn btn-success" value="Sign in" />
+      <div class="form-group">
+        <input type="submit" class="btn btn-success" value="Sign in" />
+      </div>
     </form>
+
   </div>
   <div ng-show="isLoggedIn()" class="navbar-form navbar-right">
     <form ng-submit="logout()">

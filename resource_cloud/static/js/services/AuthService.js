@@ -1,4 +1,5 @@
-app.factory('AuthService', ['$q', 'localStorageService', 'Session', function($q, localStorageService, Session) {
+app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular',
+                    function($q,   localStorageService,   Session,   Restangular) {
     return {
         login : function(email, password) {
             var me = this;
@@ -30,7 +31,19 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', function($q,
             localStorageService.clearAll();
             return false;
         },
-        
+
+        changePasswordWithToken : function(token_id, password) {
+            return $q(function(resolve, reject) {
+                var token = Restangular.one('activations', token_id);
+                token.customPOST({password: password}).then(function(response) {
+                    resolve({status: 200});
+                }, function(response) {
+                    console.log("Changing password caused an exception, HTTP Error code " + response.status);
+                    reject({status: response.status});
+                });
+            });
+        },
+
         isAdmin : function() {
             var adminStatus = this.getAdminStatus();
             if (adminStatus == "true") {

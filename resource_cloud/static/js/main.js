@@ -19,6 +19,9 @@ app.run(function($location, Restangular, AuthService) {
                     AuthService.logout();
                     $location.path('/');
                     return false;
+                case 404:
+                    // Pass 404 Not found to controllers to handle
+                    return true;
                 case 403:
                     // Pass 403 Forbidden to controllers to handle
                     return true;
@@ -116,5 +119,13 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
         .when('/initialize', {
             controller: 'InitializationController',
             templateUrl: partialsDir + '/initialize.html'
+        })
+        .when('/reset_password/:token', {
+            controller: 'ResetPasswordController',
+            templateUrl: partialsDir + '/reset_password.html'
+        })
+        .when('/reset_password', {
+            controller: 'ResetPasswordController',
+            templateUrl: partialsDir + '/reset_password.html'
         });
 });
