@@ -13,7 +13,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr ng-repeat="service in services">
+        <tr ng-repeat="service in services | filter : { is_enabled: 'true' }">
             <td>{{service.name}}</td>
             <td>{{service.vcpus}}</td>
             <td>{{service.max_lifetime}}</td>
