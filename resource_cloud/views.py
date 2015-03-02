@@ -382,7 +382,7 @@ class ProvisionedResourceList(restful.Resource):
         existing_names = [x.name for x in all_resources]
         # Note: the potential race is solved by unique constraint in database
         while True:
-            c_name = names.get_first_name(gender='female').lower()
+            c_name = names.get_first_name().lower()
             if c_name not in existing_names:
                 provision.name = c_name
                 break
