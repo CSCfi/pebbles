@@ -10,10 +10,45 @@ from resource_cloud.drivers.provisioning import base_driver
 
 
 class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
+    @staticmethod
+    def run_nova_list(object_type):
+        cmd = 'nova %s-list' % object_type
+        p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        if p.returncode:
+            raise RuntimeError('Could not run %s list: """%s""" ' % (object_type, err))
+
+        res = []
+        lines = [x for x in out.splitlines() if not x.startswith('+')]
+        field_names = [x.strip() for x in lines[0].split('|')[1:-1]]
+        for line in lines[1:]:
+            object_data = {}
+            fields = [x.strip() for x in line.split('|')[1:-1]]
+            for i in range(0, len(field_names)):
+                object_data[field_names[i]] = fields[i]
+            res.append(object_data)
+
+        return res
+
     def get_configuration(self):
         from resource_cloud.drivers.provisioning.pvc_cmdline_driver_config import CONFIG
 
-        return CONFIG
+        images = self.run_nova_list('image')
+        self.logger.debug('images: %s' % images)
+
+        flavors = self.run_nova_list('flavor')
+        self.logger.debug('flavors: %s' % flavors)
+
+        config = CONFIG.copy()
+        image_names = [x['Name'] for x in images]
+        config['schema']['properties']['frontend_image']['enum'] = image_names
+        config['schema']['properties']['node_image']['enum'] = image_names
+
+        flavor_names = [x['Name'] for x in flavors]
+        config['schema']['properties']['frontend_flavor']['enum'] = flavor_names
+        config['schema']['properties']['node_flavor']['enum'] = flavor_names
+
+        return config
 
     def do_provision(self, token, provisioned_resource_id):
         provisioned_resource = self.get_provisioned_resource_data(token, provisioned_resource_id)

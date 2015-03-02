@@ -28,42 +28,26 @@ CONFIG = {
                 'type': 'string',
                 'title': 'Frontend flavor',
                 'enum': [
-                    'mini',
-                    'small',
-                    'medium',
-                    'fullnode',
                 ]
             },
             'frontend_image': {
                 'type': 'string',
                 'title': 'Frontend image',
                 'enum': [
-                    'dac-re-trusty-1.2',
-                    'Ubuntu-14.04',
-                    'CentOS-6.6',
                 ]
             },
-
             'node_flavor': {
                 'type': 'string',
                 'title': 'Node flavor',
                 'enum': [
-                    'mini',
-                    'small',
-                    'medium',
-                    'fullnode',
                 ]
             },
             'node_image': {
                 'type': 'string',
                 'title': 'Node image',
                 'enum': [
-                    'dac-re-trusty-1.2',
-                    'Ubuntu-14.04',
-                    'CentOS-6.6',
                 ]
             },
-
             'number_of_nodes': {
                 'type': 'integer',
                 'title': 'Number of worker nodes',
@@ -112,11 +96,11 @@ CONFIG = {
     ],
     'model': {
         'name': 'pvc',
-        # 'capabilities': ['Common', 'Cluster', 'Ganglia', 'Hadoop', 'Spark'],
         'software': ['Common', ],
         'frontend_flavor': 'mini',
         'frontend_image': 'Ubuntu-14.04',
         'node_flavor': 'mini',
         'node_image': 'Ubuntu-14.04',
+        'firewall_rules': ['tcp 22 22 192.168.1.0/24']
     }
 }
