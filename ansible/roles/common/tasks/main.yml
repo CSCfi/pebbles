@@ -1,10 +1,7 @@
 - name: update key apt repositories
-  apt_repository: repo="{{ item.repo }}" state="{{ item.state }}" update_cache=false
-  with_items:
-    - { repo: 'deb http://archive.ubuntu.com/ubuntu trusty main', state: 'absent' }
-    - { repo: 'deb {{ apt_repository_url }} trusty main', state: 'present' }
-    - { repo: 'deb http://archive.ubuntu.com/ubuntu trusty-updates main', state: 'absent' }
-    - { repo: 'deb-src {{ apt_repository_url }} trusty-updates main', state: 'present' }
+  template: src=etc/apt/sources.list.j2
+            dest=/etc/apt/sources.list
+            backup=yes
 
 - name: refresh repository metadata
   apt: update_cache=yes
