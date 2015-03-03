@@ -14,30 +14,32 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
         });
 
         $scope.provision = function (resource) {
-            provisionedResources.post({ resource: resource.id }).then(function (response) {
+            provisionedResources.post({resource: resource.id}).then(function (response) {
                     provisionedResources.getList().then(function (response) {
                             $scope.instances = response;
                         }
                     )
                 }
             );
-        }
+        };
 
         $scope.deprovision = function (provisionedResource) {
-            provisionedResource.patch({state:'deleting'}).then(function () {
+            provisionedResource.patch({state: 'deleting'}).then(function () {
                 var index = $scope.instances.indexOf(provisionedResource);
-                if (index > -1) $scope.instances[index].state='deleting';
+                if (index > -1) $scope.instances[index].state = 'deleting';
             });
-        }
+        };
 
-        var pollInterval = $interval(function () {
+        var statePollInterval = $interval(function () {
             if (AuthService.isAuthenticated()) {
                 var provisionedResources = Restangular.all('provisioned_resources');
                 provisionedResources.getList().then(function (response) {
                     $scope.instances = response;
                 });
             } else {
-                $interval.cancel(pollInterval);
+                $interval.cancel(statePollInterval);
             }
         }, 10000);
-    }]);
+    }
+])
+;

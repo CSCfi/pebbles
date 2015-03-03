@@ -1,0 +1,14 @@
+<div ng-controller="DashboardController">
+    <h1>Instance {{ instance.name }} details</h1>
+    <dl>
+        <dt>Name:</dt>
+        <dd>{{ instance.name }}</dd>
+        <dt>Service:</dt>
+        <dd>{{ service.name }}</dd>
+    </dl>
+    <button ng-click="refreshLogs(instance)" type="submit" class="btn">Refresh log</button>
+    <dt><button class="btn" ng-click="isCollapsed = !isCollapsed">Show provisioning log</button></dt>
+    <dd>
+        <div ng-model="logs" ng-show="isCollapsed"><pre>{{ logs['provisioning'] }}</pre></div>
+    </dd>
+</div>
