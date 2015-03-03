@@ -440,6 +440,11 @@ class ProvisionedResourceView(restful.Resource):
 
         provision.logs = ProvisionedResourceLogs.get_logfile_urls(provision.visual_id)
 
+        age = 0
+        if provision.provisioned_at:
+            age = (datetime.datetime.utcnow() - provision.provisioned_at).total_seconds()
+        provision.lifetime_left = max(res_parent.max_lifetime - age, 0)
+
         return provision
 
     @auth.login_required
@@ -501,12 +506,10 @@ class ProvisionedResourceLogs(restful.Resource):
         # check if we already have a file with the correct extension
         log_file_name = None
         for filename in os.listdir(log_dir):
-            if filename.endswith('.' + log_type):
+            if filename.endswith('.' + log_type + '.txt'):
                 log_file_name = filename
         if not log_file_name and create_missing_filename:
-            log_file_name = '%s.%s' % (uuid.uuid4().hex, log_type)
-        else:
-            log_file_name=None
+            log_file_name = '%s.%s.txt' % (uuid.uuid4().hex, log_type)
 
         return log_dir, log_file_name
 
@@ -518,18 +521,6 @@ class ProvisionedResourceLogs(restful.Resource):
             if log_file_name:
                 res.append({'url': '/provisioning_logs/%s/%s' % (provision_id, log_file_name), 'type': log_type})
         return res
-
-    @auth.login_required
-    def get(self, provision_id):
-        user = g.user
-        provision = ProvisionedResource.query.filter_by(visual_id=provision_id)
-        if not user.is_admin:
-            provision = provision.filter_by(user_id=user.id)
-        provision = provision.first()
-        if not provision:
-            abort(404)
-
-        return self.get_logfile_urls(provision_id)
 
     @auth.login_required
     @requires_admin
@@ -544,7 +535,8 @@ class ProvisionedResourceLogs(restful.Resource):
             abort(403)
 
         if log_type in ('provisioning', 'deprovisioning'):
-            log_dir, log_file_name = self.get_base_dir_and_filename(provision_id, log_type, create_missing_filename=True)
+            log_dir, log_file_name = self.get_base_dir_and_filename(provision_id, log_type,
+                                                                    create_missing_filename=True)
 
             with open('%s/%s' % (log_dir, log_file_name), 'a') as logfile:
                 logfile.write(args['text'])
