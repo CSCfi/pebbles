@@ -335,6 +335,7 @@ provision_fields = {
     'user_id': fields.String,
     'resource_id': fields.String,
     'public_ip': fields.String,
+    'logs': fields.Raw,
 }
 
 
@@ -356,6 +357,8 @@ class ProvisionedResourceList(restful.Resource):
                 provision.user_id = res_owner.visual_id
             else:
                 provision.user_id = user.visual_id
+
+            provision.logs = ProvisionedResourceLogs.get_logfile_urls(provision.visual_id)
 
             res_parent = Resource.query.filter_by(id=provision.resource_id).first()
 
@@ -435,6 +438,8 @@ class ProvisionedResourceView(restful.Resource):
         res_parent = Resource.query.filter_by(id=provision.resource_id).first()
         provision.resource_id = res_parent.visual_id
 
+        provision.logs = ProvisionedResourceLogs.get_logfile_urls(provision.visual_id)
+
         return provision
 
     @auth.login_required
@@ -486,7 +491,7 @@ class ProvisionedResourceLogs(restful.Resource):
     parser.add_argument('text', type=str)
 
     @staticmethod
-    def get_base_dir_and_filename(prov_res_id, log_type):
+    def get_base_dir_and_filename(prov_res_id, log_type, create_missing_filename=False):
         log_dir = '/webapps/resource_cloud/provisioning_logs/%s' % prov_res_id
 
         # make sure the directory for this provisioned resource exists
@@ -498,10 +503,19 @@ class ProvisionedResourceLogs(restful.Resource):
         for filename in os.listdir(log_dir):
             if filename.endswith('.' + log_type):
                 log_file_name = filename
-        if not log_file_name:
+        if not log_file_name and create_missing_filename:
             log_file_name = '%s.%s' % (uuid.uuid4().hex, log_type)
 
         return log_dir, log_file_name
+
+    @staticmethod
+    def get_logfile_urls(provision_id):
+        res = []
+        for log_type in ['provisioning', 'deprovisioning']:
+            log_dir, log_file_name = ProvisionedResourceLogs.get_base_dir_and_filename(provision_id, log_type)
+            if log_file_name:
+                res.append({'url': '/provisioning_logs/%s/%s' % (provision_id, log_file_name), 'type': log_type})
+        return res
 
     @auth.login_required
     def get(self, provision_id):
@@ -513,12 +527,7 @@ class ProvisionedResourceLogs(restful.Resource):
         if not provision:
             abort(404)
 
-        res = []
-        for log_type in ['provisioning', 'deprovisioning']:
-            log_dir, log_file_name = self.get_base_dir_and_filename(provision_id, log_type)
-            res.append({'url': '/provisioning_logs/%s/%s' % (provision_id, log_file_name), 'type': log_type})
-
-        return res
+        return self.get_logfile_urls(provision_id)
 
     @auth.login_required
     @requires_admin
@@ -533,7 +542,7 @@ class ProvisionedResourceLogs(restful.Resource):
             abort(403)
 
         if log_type in ('provisioning', 'deprovisioning'):
-            log_dir, log_file_name = self.get_base_dir_and_filename(provision_id, log_type)
+            log_dir, log_file_name = self.get_base_dir_and_filename(provision_id, log_type, create_missing_filename=True)
 
             with open('%s/%s' % (log_dir, log_file_name), 'a') as logfile:
                 logfile.write(args['text'])
