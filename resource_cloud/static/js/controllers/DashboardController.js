@@ -30,16 +30,33 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             });
         };
 
-        var statePollInterval = $interval(function () {
-            if (AuthService.isAuthenticated()) {
-                var provisionedResources = Restangular.all('provisioned_resources');
-                provisionedResources.getList().then(function (response) {
-                    $scope.instances = response;
-                });
-            } else {
-                $interval.cancel(statePollInterval);
+        var stop;
+        $scope.startPolling = function() {
+            if (angular.isDefined(stop)) {
+                return;
             }
-        }, 10000);
-    }
-])
-;
+            stop = $interval(function () {
+                if (AuthService.isAuthenticated()) {
+                    var provisionedResources = Restangular.all('provisioned_resources');
+                    provisionedResources.getList().then(function (response) {
+                        $scope.instances = response;
+                    });
+                } else {
+                    $interval.cancel(pollInterval);
+                }
+            }, 10000);
+        };
+
+        $scope.stopPolling = function() {
+            if (angular.isDefined(stop)) {
+                $interval.cancel(stop);
+                stop = undefined;
+            }
+        }
+
+        $scope.$on('$destroy', function() {
+            $scope.stopPolling();
+        });
+
+        $scope.startPolling();
+    }]);
