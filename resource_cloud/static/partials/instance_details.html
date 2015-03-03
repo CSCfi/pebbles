@@ -15,12 +15,9 @@
         <dd>{{ instance.public_ip }}</dd>
         <dt>Logs:</dt>
         <dd ng-repeat="log in instance.logs">
-            <a href="{{ log.url }}">{{ log.type }}</a>
+         <label>Latest entries in {{ log.type }} log</label>
+         <pre>{{ logs[log.type] | limitTo: "-1000" }}</pre>
+         <a href="{{ log.url }}">Full log</a>
         </dd>
     </dl>
-
-    <div hidden="true">
-        <pre>{{ logs['provisioning'] }}</pre>
-        <button id="btnFetchLogs" ng-click="fetchLogs(instance)" type="submit" class="btn">Fetch log</button>
-    </div>
 </div>
