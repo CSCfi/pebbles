@@ -88,6 +88,13 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
                 redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
             }
         })
+        .when('/instance_details/:instance_id', {
+            controller: 'InstanceDetailsController',
+            templateUrl: partialsDir + '/instance_details.html',
+            resolve: {
+                redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
+            }
+        })
         .when('/users', {
             controller: 'UsersController',
             templateUrl: partialsDir + '/users.html',
