@@ -10,13 +10,18 @@ from resource_cloud.drivers.provisioning import base_driver
 
 
 class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
-    @staticmethod
-    def run_nova_list(object_type):
+    def run_nova_list(self, object_type):
         cmd = 'nova %s-list' % object_type
-        p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except OSError as e:
+            self.logger.warn('Could not run %s list ("nova" missing from path?): """%s""" ' % (object_type, e))
+            return {}
+
         out, err = p.communicate()
         if p.returncode:
-            raise RuntimeError('Could not run %s list: """%s""" ' % (object_type, err))
+            self.logger.warn('Could not run %s list: """%s""" ' % (object_type, err))
+            return {}
 
         res = []
         lines = [x for x in out.splitlines() if not x.startswith('+')]
