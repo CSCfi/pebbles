@@ -13,11 +13,10 @@
         <dd>{{ instance.lifetime_left }}</dd>
         <dt>Public IP:</dt>
         <dd>{{ instance.public_ip }}</dd>
-        <dt>Logs:</dt>
-        <dd ng-repeat="log in instance.logs">
+        <div ng-repeat="log in instance.logs">
          <label>Latest entries in {{ log.type }} log</label>
          <pre>{{ logs[log.type] | limitTo: "-1000" }}</pre>
          <a href="{{ log.url }}">Full log</a>
-        </dd>
+        </div>
     </dl>
 </div>
