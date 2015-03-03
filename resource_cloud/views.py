@@ -505,6 +505,8 @@ class ProvisionedResourceLogs(restful.Resource):
                 log_file_name = filename
         if not log_file_name and create_missing_filename:
             log_file_name = '%s.%s' % (uuid.uuid4().hex, log_type)
+        else:
+            log_file_name=None
 
         return log_dir, log_file_name
 
