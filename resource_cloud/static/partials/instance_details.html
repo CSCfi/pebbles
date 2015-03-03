@@ -1,0 +1,22 @@
+<div>
+    <h1>Instance &quot;{{ instance.name }}&quot;</h1>
+    <dl>
+        <dt>ID:</dt>
+        <dd>{{ instance.id }}</dd>
+        <dt>Service:</dt>
+        <dd>{{ service.name }}</dd>
+        <dt>State:</dt>
+        <dd>{{ instance.state }}</dd>
+        <dt>Provisioned at:</dt>
+        <dd>{{ instance.provisioned_at }}</dd>
+        <dt>Lifetime left:</dt>
+        <dd>{{ instance.lifetime_left }}</dd>
+        <dt>Public IP:</dt>
+        <dd>{{ instance.public_ip }}</dd>
+        <div ng-repeat="log in instance.logs">
+         <label>Latest entries in {{ log.type }} log</label>
+         <pre>{{ logs[log.type] | limitTo: "-1000" }}</pre>
+         <a href="{{ log.url }}">Full log</a>
+        </div>
+    </dl>
+</div>
