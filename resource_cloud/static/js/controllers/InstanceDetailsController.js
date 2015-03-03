@@ -14,6 +14,8 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
                 Restangular.one('resources', instance.resource_id).get().then(function (response) {
                     $scope.service = response;
                 });
+            }).then(function () {
+                    $scope.fetchLogs(instance);
             });
         };
         $scope.refresh();
