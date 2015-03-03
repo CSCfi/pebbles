@@ -1,5 +1,5 @@
-app.controller('ActivationController', ['$q', '$scope', '$routeParams', '$location', 'Restangular',
-                               function( $q,   $scope,   $routeParams,   $location,   Restangular) {
+app.controller('ActivationController', ['$q', '$scope', '$routeParams', '$location', 'Restangular', 'AuthService',
+                               function( $q,   $scope,   $routeParams,   $location,   Restangular,   AuthService) {
     var activations = Restangular.all('activations');
     var activation_success = undefined;
     var error_msg = "";
@@ -11,19 +11,15 @@ app.controller('ActivationController', ['$q', '$scope', '$routeParams', '$locati
     $scope.activate_user = function() {
         error_msg = "";
         var token = $routeParams.token;
-        activations.post({token: token, password: $scope.user.password}).then(function(resp) {
+        var promise = AuthService.changePasswordWithToken(token, $scope.user.password);
+        promise.then(function(response) {
             activation_success = true;
         }, function(response) {
-            console.log(response);
-            var deferred = $q.defer();
+            activation_success = false;
             if (response.status == 422) {
-                activation_success = false;
                 error_msg = response.data.password.join(', ');
-                return deferred.reject(false);
             } else if (response.status == 410) {
-                activation_success = false;
                 error_msg = 'Invalid activation token, check your activation link';
-                return deferred.reject(false);
             } else {
                 throw new Error("No handler for status code " + response.status);
             }

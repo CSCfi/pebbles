@@ -14,7 +14,8 @@ from functools import wraps
 from resource_cloud.models import User, ActivationToken, Resource, Plugin
 from resource_cloud.models import ProvisionedResource, SystemToken, Keypair
 from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
-from resource_cloud.forms import ChangePasswordForm, ResourceForm
+from resource_cloud.forms import ChangePasswordForm, PasswordResetRequestForm
+from resource_cloud.forms import ResourceForm
 from resource_cloud.forms import PluginForm, ProvisionedResourceForm
 
 from resource_cloud.server import auth, db, restful, app
@@ -287,14 +288,13 @@ class SessionView(restful.Resource):
         return abort(401)
 
 
-class ActivationList(restful.Resource):
-    @staticmethod
-    def post():
+class ActivationView(restful.Resource):
+    def post(self, token_id):
         form = ActivationForm()
         if not form.validate_on_submit():
             return form.errors, 422
 
-        token = ActivationToken.query.filter_by(token=form.token.data).first()
+        token = ActivationToken.query.filter_by(token=token_id).first()
         if not token:
             return abort(410)
 
@@ -307,6 +307,23 @@ class ActivationList(restful.Resource):
 
         db.session.delete(token)
         db.session.commit()
+
+
+class ActivationList(restful.Resource):
+    def post(self):
+        form = PasswordResetRequestForm()
+        if not form.validate_on_submit():
+            return form.errors, 422
+
+        user = User.query.filter_by(email=form.email.data).first()
+        if not user:
+            return
+
+        token = ActivationToken(user)
+
+        db.session.add(token)
+        db.session.commit()
+        send_mails.delay([(user.email, token.token)])
 
 
 provision_fields = {
@@ -666,18 +683,17 @@ def setup_resource_urls(api_service):
     api_service.add_resource(UploadKeyPair, api_root + '/users/<string:user_id>/keypairs/upload')
     api_service.add_resource(SessionView, api_root + '/sessions')
     api_service.add_resource(ActivationList, api_root + '/activations')
+    api_service.add_resource(ActivationView, api_root + '/activations/<string:token_id>')
     api_service.add_resource(ResourceList, api_root + '/resources')
     api_service.add_resource(ResourceView, api_root + '/resources/<string:resource_id>')
     api_service.add_resource(ProvisionedResourceList, api_root + '/provisioned_resources')
     api_service.add_resource(
         ProvisionedResourceView,
         api_root + '/provisioned_resources/<string:provision_id>',
-        methods=['GET', 'POST', 'DELETE', 'PATCH']
-    )
+        methods=['GET', 'POST', 'DELETE', 'PATCH'])
     api_service.add_resource(
         ProvisionedResourceLogs,
         api_root + '/provisioned_resources/<string:provision_id>/logs',
-        methods=['GET', 'PATCH']
-    )
+        methods=['GET', 'PATCH'])
     api_service.add_resource(PluginList, api_root + '/plugins')
     api_service.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')
