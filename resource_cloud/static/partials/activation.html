@@ -1,4 +1,4 @@
-<div class="col-md-6 col-md-offset-3" ng-controller="ActivationController">
+<div class="col-md-6 col-md-offset-3">
     <form ng-hide="activation_success()" name="activationForm" class="form-activate" ng-submit="activate_user()">
         <h2 class="form-signin-heading">Activate your account</h2>
             <input type="password" class="form-control" ng-model="user.password" ng-minlength="8"  data-ng-class="{'ng-invalid':activationForm.confirmPassword.$error.match}" placeholder="Password" required autofocus>
