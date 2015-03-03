@@ -128,11 +128,11 @@ def publish_plugins():
         payload = {}
         payload['plugin'] = plugin
 
-        res=mgr.map_method([plugin], 'get_configuration')
+        res = mgr.map_method([plugin], 'get_configuration')
         if not len(res):
             logger.warn('plugin returned empty configuration: %s' % plugin)
             continue
-        config=res[0]
+        config = res[0]
 
         for key in ('schema', 'form', 'model'):
             payload[key] = json.dumps(config.get(key, {}))

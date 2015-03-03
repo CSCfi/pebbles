@@ -10,7 +10,6 @@ from resource_cloud.drivers.provisioning import base_driver
 
 
 class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
-
     def run_nova_list(self, object_type):
         cmd = 'nova %s-list' % object_type
         try:
