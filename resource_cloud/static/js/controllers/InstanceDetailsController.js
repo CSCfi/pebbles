@@ -15,7 +15,7 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
                     $scope.service = response;
                 });
             }).then(function () {
-                    $scope.fetchLogs(instance);
+                $scope.fetchLogs(instance);
             });
         };
         $scope.refresh();
@@ -27,12 +27,12 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
                     $scope.instance = instance;
                 });
             }
-            for (var i = 0; i < instance.logs.length; i++) {
+            angular.forEach(instance.logs, function (log) {
                 $http(
                     {
                         method: "GET",
-                        url: instance.logs[i].url,
-                        log_type: instance.logs[i].type,
+                        url: log.url,
+                        log_type: log.type,
                         headers: {
                             token: AuthService.getToken(),
                             Authorization: "Basic " + AuthService.getToken()
@@ -45,7 +45,7 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
                         $scope.logs[log_type] = data;
                     }
                 );
-            }
+            });
         };
 
         var statePollInterval = $interval(function () {
