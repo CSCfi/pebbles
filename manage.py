@@ -1,4 +1,4 @@
-from flask.ext.script import Manager
+from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
 
 from resource_cloud.server import app, db
@@ -10,10 +10,10 @@ manager = Manager(app)
 manager.add_command('migrate', MigrateCommand)
 
 
-@manager.shell
-def make_context():
+def _make_context():
     return dict(app=app, db=db, models=models)
 
+manager.add_command("shell", Shell(make_context=_make_context))
 
 @manager.command
 def test():
