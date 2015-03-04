@@ -3,7 +3,7 @@ import base64
 import json
 
 from resource_cloud.tests.base import db, BaseTestCase
-from resource_cloud.models import User, Resource, Plugin
+from resource_cloud.models import User, Resource, Plugin, ActivationToken
 
 
 class FlaskApiTestCase(BaseTestCase):
@@ -23,6 +23,7 @@ class FlaskApiTestCase(BaseTestCase):
         r2.name = "EnabledTestResource"
         r2.plugin = p1.visual_id
         r2.is_enabled = True
+        self.known_resource_id = r2.visual_id
         db.session.add(r1)
         db.session.add(r2)
         db.session.commit()
@@ -39,7 +40,7 @@ class FlaskApiTestCase(BaseTestCase):
             headers['Content-Type'] = 'application/json'
 
         headers = [(x, y) for x, y in headers.items()]
-        return methods[method](path, headers=headers, data=data)
+        return methods[method](path, headers=headers, data=data, content_type='application/json')
 
     def make_authenticated_request(self, method='GET', path='/', headers={}, data=None, creds=None):
         assert creds is not None
@@ -62,7 +63,7 @@ class FlaskApiTestCase(BaseTestCase):
             'Authorization': 'Basic %s' % token_b64,
             'token': token_b64
         }
-        return methods[method](path, headers=headers, data=data)
+        return methods[method](path, headers=headers, data=data, content_type='application/json')
 
     def make_authenticated_admin_request(self, method='GET', path='/', headers={}, data=None):
         return self.make_authenticated_request(method, path, headers, data, creds={'email': 'admin@admin.com', 'password': 'admin'})
@@ -129,6 +130,74 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/resources')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
+
+    def test_anonymous_invite_user(self):
+        data = {'email': 'test@test.com', 'password': 'test', 'is_admin': True}
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(data))
+        self.assert_401(response)
+
+    def test_user_invite_user(self):
+        data = {'email': 'test@test.com', 'password': 'test', 'is_admin': True}
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(data))
+        self.assert_403(response)
+
+    def test_admin_invite_user(self):
+        data = {'email': 'test@test.com', 'password': 'test', 'is_admin': True}
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(data))
+        self.assert_200(response)
+        user = User.query.filter_by(email='test@test.com').first()
+        self.assertIsNotNone(user)
+        self.assertTrue(user.is_admin)
+
+    def test_accept_invite(self):
+        user = User.query.filter_by(email='test@test.com').first()
+        self.assertIsNone(user)
+        data = {'email': 'test@test.com', 'password': None, 'is_admin': True}
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(data))
+        self.assert_200(response)
+        user = User.query.filter_by(email='test@test.com').first()
+        self.assertIsNotNone(user)
+        self.assertFalse(user.is_active)
+        token = ActivationToken.query.filter_by(user_id=user.id).first()
+        self.assertIsNotNone(token)
+        data = {'password': 'testtest'}
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/activations/%s' % token.token,
+            data=json.dumps(data))
+        self.assert_200(response)
+        user = User.query.filter_by(email='test@test.com').first()
+        self.assertIsNotNone(user)
+        self.assertTrue(user.is_active)
+
+    def test_anonymous_create_instance(self):
+        data = {'resource_id': self.known_resource_id}
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/provisioned_resources',
+            data=json.dumps(data))
+        self.assert_401(response)
+
+    def test_user_create_instance(self):
+        data = {'resource': self.known_resource_id}
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/provisioned_resources',
+            data=json.dumps(data))
+        self.assert_200(response)
+
 
 if __name__ == '__main__':
     unittest.main()
