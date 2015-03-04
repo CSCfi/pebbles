@@ -30,3 +30,5 @@ class DevConfig(BaseConfig):
 class TestConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     PRESERVE_CONTEXT_ON_EXCEPTION = False
+    MAIL_SUPPRESS_SEND = True
+    FAKE_PROVISIONING = True
