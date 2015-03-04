@@ -85,7 +85,7 @@ class FlaskApiTestCase(BaseTestCase):
 
     def test_user_get_users(self):
         response = self.make_authenticated_user_request(path='/api/v1/users')
-        self.assertEqual(len(json.loads(response.data)), 1)
+        self.assertEqual(len(response.json), 1)
         self.assert_200(response)
 
     def test_admin_get_users(self):
@@ -119,19 +119,16 @@ class FlaskApiTestCase(BaseTestCase):
     def test_anonymous_get_resources(self):
         response = self.make_request(path='/api/v1/resources')
         self.assert_401(response)
-        self.assert_401(response)
 
     def test_user_get_resources(self):
         response = self.make_authenticated_user_request(path='/api/v1/resources')
         self.assert_200(response)
-        resources = json.loads(response.data)
-        self.assertEqual(len(resources), 1)
+        self.assertEqual(len(response.json), 1)
 
     def test_admin_get_resources(self):
         response = self.make_authenticated_admin_request(path='/api/v1/resources')
         self.assert_200(response)
-        resources = json.loads(response.data)
-        self.assertEqual(len(resources), 2)
+        self.assertEqual(len(response.json), 2)
 
 if __name__ == '__main__':
     unittest.main()
