@@ -14,6 +14,7 @@ class BaseConfig(object):
     MAX_CONTENT_LENGTH = 1024 * 1024
     FAKE_PROVISIONING = False
     SENDER_EMAIL = 'resource_cloud@csc.fi'
+    SKIP_TASK_QUEUE = False
 
 
 class ProductionConfig(BaseConfig):
@@ -32,3 +33,4 @@ class TestConfig(BaseConfig):
     PRESERVE_CONTEXT_ON_EXCEPTION = False
     MAIL_SUPPRESS_SEND = True
     FAKE_PROVISIONING = True
+    SKIP_TASK_QUEUE = True
