@@ -66,10 +66,12 @@ class FlaskApiTestCase(BaseTestCase):
         return methods[method](path, headers=headers, data=data, content_type='application/json')
 
     def make_authenticated_admin_request(self, method='GET', path='/', headers={}, data=None):
-        return self.make_authenticated_request(method, path, headers, data, creds={'email': 'admin@admin.com', 'password': 'admin'})
+        return self.make_authenticated_request(method, path, headers, data,
+                                               creds={'email': 'admin@admin.com', 'password': 'admin'})
 
     def make_authenticated_user_request(self, method='GET', path='/', headers={}, data=None):
-        return self.make_authenticated_request(method, path, headers, data, creds={'email': 'user@user.com', 'password': 'user'})
+        return self.make_authenticated_request(method, path, headers, data,
+                                               creds={'email': 'user@user.com', 'password': 'user'})
 
     def test_first_user(self):
         db.drop_all()
