@@ -11,7 +11,7 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
                 instance = response;
                 $scope.instance = response;
             }).then(function () {
-                Restangular.one('resources', instance.resource_id).get().then(function (response) {
+                Restangular.one('blueprints', instance.blueprint_id).get().then(function (response) {
                     $scope.blueprint = response;
                 });
             }).then(function () {

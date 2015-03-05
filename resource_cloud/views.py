@@ -15,7 +15,7 @@ from resource_cloud.models import User, ActivationToken, Blueprint, Plugin
 from resource_cloud.models import Instance, SystemToken, Keypair
 from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
 from resource_cloud.forms import ChangePasswordForm, PasswordResetRequestForm
-from resource_cloud.forms import ResourceForm
+from resource_cloud.forms import BlueprintForm
 from resource_cloud.forms import PluginForm, InstanceForm
 
 from resource_cloud.server import auth, db, restful, app
@@ -24,7 +24,7 @@ from resource_cloud.tasks import send_mails
 
 from resource_cloud.utils import generate_ssh_keypair
 
-USER_RESOURCE_LIMIT = 5
+USER_INSTANCE_LIMIT = 5
 
 
 @app.route("/api/debug")
@@ -363,17 +363,17 @@ class InstanceList(restful.Resource):
 
             instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
 
-            res_parent = Blueprint.query.filter_by(id=instance.resource_id).first()
+            blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
 
-            if not res_parent:
+            if not blueprint:
                 logging.warn("instance %s has a reference to non-existing blueprint" % instance.visual_id)
                 continue
 
-            instance.resource_id = res_parent.visual_id
+            instance.blueprint_id = blueprint.visual_id
             age = 0
             if instance.provisioned_at:
                 age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
-            instance.lifetime_left = max(res_parent.max_lifetime - age, 0)
+            instance.lifetime_left = max(blueprint.max_lifetime - age, 0)
 
         return instances
 
@@ -386,22 +386,22 @@ class InstanceList(restful.Resource):
             logging.warn("validation error on user login")
             return form.errors, 422
 
-        resource_id = form.resource.data
+        blueprint_id = form.resource.data
 
-        resource = Blueprint.query.filter_by(visual_id=resource_id).filter_by(is_enabled=True).first()
-        if not resource:
+        blueprint = Blueprint.query.filter_by(visual_id=blueprint_id).filter_by(is_enabled=True).first()
+        if not blueprint:
             abort(404)
 
-        resources_for_user = Instance.query.filter_by(resource_id=resource_id). \
+        blueprints_for_user = Instance.query.filter_by(blueprint_id=blueprint_id). \
             filter_by(user_id=user.id).filter(Instance.state != 'deleted').all()
-        if resources_for_user and len(resources_for_user) >= USER_RESOURCE_LIMIT:
+        if blueprints_for_user and len(blueprints_for_user) >= USER_INSTANCE_LIMIT:
             abort(409)
 
-        instance = Instance(resource.id, user.id)
+        instance = Instance(blueprint.id, user.id)
 
         # decide on a name that is not used currently
-        all_resources = Instance.query.all()
-        existing_names = [x.name for x in all_resources]
+        all_instances = Instance.query.all()
+        existing_names = [x.name for x in all_instances]
         # Note: the potential race is solved by unique constraint in database
         while True:
             c_name = names.get_first_name().lower()
@@ -439,8 +439,8 @@ class InstanceView(restful.Resource):
         else:
             instance.user_id = user.visual_id
 
-        res_parent = Blueprint.query.filter_by(id=instance.resource_id).first()
-        instance.resource_id = res_parent.visual_id
+        res_parent = Blueprint.query.filter_by(id=instance.blueprint_id).first()
+        instance.blueprint_id = res_parent.visual_id
 
         instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
 
@@ -551,7 +551,7 @@ class InstanceLogs(restful.Resource):
         return 'ok'
 
 
-resource_fields = {
+blueprint_fields = {
     'id': fields.String(attribute='visual_id'),
     'max_lifetime': fields.Integer,
     'name': fields.String,
@@ -563,72 +563,72 @@ resource_fields = {
 }
 
 
-class ResourceList(restful.Resource):
+class BlueprintList(restful.Resource):
     @auth.login_required
-    @marshal_with(resource_fields)
+    @marshal_with(blueprint_fields)
     def get(self):
         query = Blueprint.query
         if not g.user.is_admin:
             query = query.filter_by(is_enabled=True)
 
         results = []
-        for resource in query.all():
-            plugin = Plugin.query.filter_by(visual_id=resource.plugin).first()
-            resource.schema = plugin.schema
-            resource.form = plugin.form
-            results.append(resource)
+        for blueprint in query.all():
+            plugin = Plugin.query.filter_by(visual_id=blueprint.plugin).first()
+            blueprint.schema = plugin.schema
+            blueprint.form = plugin.form
+            results.append(blueprint)
         return results
 
     @auth.login_required
     @requires_admin
     def post(self):
-        form = ResourceForm()
+        form = BlueprintForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on create resource")
+            logging.warn("validation error on create blueprint")
             return form.errors, 422
 
-        resource = Blueprint()
-        resource.name = form.name.data
-        resource.plugin = form.plugin.data
-        resource.config = form.config.data
+        blueprint = Blueprint()
+        blueprint.name = form.name.data
+        blueprint.plugin = form.plugin.data
+        blueprint.config = form.config.data
 
         if 'maximum_lifetime' in form.config.data:
             try:
-                resource.max_lifetime = int(form.config.data['maximum_lifetime'])
+                blueprint.max_lifetime = int(form.config.data['maximum_lifetime'])
             except:
                 pass
 
-        db.session.add(resource)
+        db.session.add(blueprint)
         db.session.commit()
 
 
-class ResourceView(restful.Resource):
+class BlueprintView(restful.Resource):
     @auth.login_required
-    @marshal_with(resource_fields)
-    def get(self, resource_id):
-        return Blueprint.query.filter_by(visual_id=resource_id).first()
+    @marshal_with(blueprint_fields)
+    def get(self, blueprint_id):
+        return Blueprint.query.filter_by(visual_id=blueprint_id).first()
 
     @auth.login_required
     @requires_admin
-    def put(self, resource_id):
-        form = ResourceForm()
+    def put(self, blueprint_id):
+        form = BlueprintForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on update resource config")
+            logging.warn("validation error on update blueprint config")
             return form.errors, 422
 
-        resource = Blueprint.query.filter_by(visual_id=resource_id).first()
-        resource.name = form.name.data
-        resource.config = form.config.data
-        if 'maximum_lifetime' in resource.config:
+        blueprint = Blueprint.query.filter_by(visual_id=blueprint_id).first()
+        blueprint.name = form.name.data
+        blueprint.config = form.config.data
+        if 'maximum_lifetime' in blueprint.config:
             try:
-                resource.max_lifetime = int(resource.config['maximum_lifetime'])
+                blueprint.max_lifetime = int(blueprint.config['maximum_lifetime'])
             except:
                 pass
 
-        resource.plugin = form.plugin.data
-        resource.is_enabled = form.is_enabled.data
+        blueprint.plugin = form.plugin.data
+        blueprint.is_enabled = form.is_enabled.data
 
-        db.session.add(resource)
+        db.session.add(blueprint)
         db.session.commit()
 
 
@@ -664,7 +664,7 @@ class PluginList(restful.Resource):
     def post(self):
         form = PluginForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on update resource config")
+            logging.warn("validation error on update blueprint config")
             return form.errors, 422
 
         plugin = Plugin.query.filter_by(name=form.plugin.data).first()
@@ -692,8 +692,8 @@ def setup_resource_urls(api_service):
     api_service.add_resource(SessionView, api_root + '/sessions')
     api_service.add_resource(ActivationList, api_root + '/activations')
     api_service.add_resource(ActivationView, api_root + '/activations/<string:token_id>')
-    api_service.add_resource(ResourceList, api_root + '/resources')
-    api_service.add_resource(ResourceView, api_root + '/resources/<string:blueprint_id>')
+    api_service.add_resource(BlueprintList, api_root + '/blueprints')
+    api_service.add_resource(BlueprintView, api_root + '/blueprints/<string:blueprint_id>')
     api_service.add_resource(InstanceList, api_root + '/instances')
     api_service.add_resource(
         InstanceView,

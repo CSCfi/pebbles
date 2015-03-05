@@ -17,13 +17,13 @@ class FlaskApiTestCase(BaseTestCase):
         db.session.add(p1)
 
         r1 = Blueprint()
-        r1.name = "TestResource"
+        r1.name = "TestBlueprint"
         r1.plugin = p1.visual_id
         r2 = Blueprint()
-        r2.name = "EnabledTestResource"
+        r2.name = "EnabledTestBlueprint"
         r2.plugin = p1.visual_id
         r2.is_enabled = True
-        self.known_resource_id = r2.visual_id
+        self.known_blueprint_id = r2.visual_id
         db.session.add(r1)
         db.session.add(r2)
         db.session.commit()
@@ -117,17 +117,17 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/plugins/%s' % self.known_plugin_id)
         self.assert_200(response)
 
-    def test_anonymous_get_resources(self):
-        response = self.make_request(path='/api/v1/resources')
+    def test_anonymous_get_blueprints(self):
+        response = self.make_request(path='/api/v1/blueprints')
         self.assert_401(response)
 
-    def test_user_get_resources(self):
-        response = self.make_authenticated_user_request(path='/api/v1/resources')
+    def test_user_get_blueprints(self):
+        response = self.make_authenticated_user_request(path='/api/v1/blueprints')
         self.assert_200(response)
         self.assertEqual(len(response.json), 1)
 
-    def test_admin_get_resources(self):
-        response = self.make_authenticated_admin_request(path='/api/v1/resources')
+    def test_admin_get_blueprints(self):
+        response = self.make_authenticated_admin_request(path='/api/v1/blueprints')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
 
@@ -183,7 +183,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertTrue(user.is_active)
 
     def test_anonymous_create_instance(self):
-        data = {'blueprint_id': self.known_resource_id}
+        data = {'blueprint_id': self.known_blueprint_id}
         response = self.make_request(
             method='POST',
             path='/api/v1/instances',
@@ -191,7 +191,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_401(response)
 
     def test_user_create_instance(self):
-        data = {'resource': self.known_resource_id}
+        data = {'blueprint': self.known_blueprint_id}
         response = self.make_authenticated_user_request(
             method='POST',
             path='/api/v1/instances',

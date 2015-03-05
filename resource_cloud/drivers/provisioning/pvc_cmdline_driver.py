@@ -59,31 +59,31 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         instance = self.get_instance_data(token, instance_id)
         cluster_name = instance['name']
 
-        res_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, cluster_name)
+        instance_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, cluster_name)
 
-        # will fail if there is already a directory for this resource
-        os.makedirs(res_dir)
+        # will fail if there is already a directory for this instance
+        os.makedirs(instance_dir)
 
         # generate pvc config for this cluster
-        resource_config = self.get_resource_description(token, instance['blueprint_id'])['config']
+        blueprint_config = self.get_blueprint_description(token, instance['blueprint_id'])['config']
 
-        self.logger.debug('Blueprint config: %s' % resource_config)
+        self.logger.debug('Blueprint config: %s' % blueprint_config)
 
-        cluster_config = self.create_cluster_config(resource_config, cluster_name)
-        with open('%s/cluster.yml' % res_dir, 'w') as cf:
+        cluster_config = self.create_cluster_config(blueprint_config, cluster_name)
+        with open('%s/cluster.yml' % instance_dir, 'w') as cf:
             cf.write(cluster_config)
             cf.write('\n')
 
         # figure out the number of nodes from config provisioning-data
-        if 'number_of_nodes' in resource_config:
-            num_nodes = int(resource_config['number_of_nodes'])
+        if 'number_of_nodes' in blueprint_config:
+            num_nodes = int(blueprint_config['number_of_nodes'])
         else:
             self.logger.warn('number of nodes in cluster not defined, using default: 2')
             num_nodes = 2
 
         # fetch user public key and save it
         key_data = self.get_user_key_data(token, instance['user_id']).json()
-        user_key_file = '%s/userkey.pub' % res_dir
+        user_key_file = '%s/userkey.pub' % instance_dir
         if not key_data:
             self.do_instance_patch(token, instance_id, {'state': 'failed'})
             raise RuntimeError("User's public key missing")
@@ -93,27 +93,27 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
 
         uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
         # generate keypair for this cluster
-        key_file = '%s/key.priv' % res_dir
+        key_file = '%s/key.priv' % instance_dir
         if not os.path.isfile(key_file):
             with open(key_file, 'w') as keyfile:
                 args = ['nova', 'keypair-add', 'rc-%s' % cluster_name]
-                p = subprocess.Popen(args, cwd=res_dir, stdout=keyfile)
+                p = subprocess.Popen(args, cwd=instance_dir, stdout=keyfile)
                 p.wait()
             os.chmod(key_file, stat.S_IRUSR)
 
         # run provisioning
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py up %d' % num_nodes
         self.logger.debug('spawning "%s"' % cmd)
-        self.run_logged_process(cmd=cmd, cwd=res_dir, env=self.create_pvc_env(), log_uploader=uploader)
+        self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_pvc_env(), log_uploader=uploader)
 
         # add user key for ssh access
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py add_key userkey.pub'
         self.logger.debug('spawning "%s"' % cmd)
-        self.run_logged_process(cmd=cmd, cwd=res_dir, env=self.create_pvc_env(), log_uploader=uploader)
+        self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_pvc_env(), log_uploader=uploader)
 
         # get public IP
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py info'
-        p = subprocess.Popen(shlex.split(cmd), cwd=res_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(shlex.split(cmd), cwd=instance_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
         public_ip = None
         for line in out.splitlines():
@@ -128,28 +128,28 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         instance = self.get_instance_data(token, instance_id)
         cluster_name = instance['name']
 
-        res_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, cluster_name)
+        instance_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, cluster_name)
 
         uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
         # run deprovisioning
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py down'
-        self.run_logged_process(cmd=cmd, cwd=res_dir, env=self.create_pvc_env(), log_uploader=uploader)
+        self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_pvc_env(), log_uploader=uploader)
 
         # clean generated security and server groups
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py cleanup'
-        self.run_logged_process(cmd=cmd, cwd=res_dir, env=self.create_pvc_env(), log_uploader=uploader)
+        self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_pvc_env(), log_uploader=uploader)
 
         # destroy volumes
         cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py destroy_volumes'
-        self.run_logged_process(cmd=cmd, cwd=res_dir, env=self.create_pvc_env(), log_uploader=uploader)
+        self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_pvc_env(), log_uploader=uploader)
 
         # remove generated key from OpenStack
         args = ['nova', 'keypair-delete', 'rc-%s' % cluster_name]
-        p = subprocess.Popen(args, cwd=res_dir)
+        p = subprocess.Popen(args, cwd=instance_dir)
         p.wait()
 
-        # use resource id as a part of the name to make tombstones always unique
-        os.rename(res_dir, '%s.deleted.%s' % (res_dir, instance_id))
+        # use instance id as a part of the name to make tombstones always unique
+        os.rename(instance_dir, '%s.deleted.%s' % (instance_dir, instance_id))
 
     @staticmethod
     def create_cluster_config(user_config, cluster_name):
@@ -214,7 +214,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
 
 # testing templating
 if __name__ == '__main__':
-    resource_config = {
+    blueprint_config = {
         "name": "pvc",
         "software": ['Common', 'Cluster', 'Ganglia', 'Hadoop', 'Spark'],
         'firewall_rules': ["tcp 22 22 193.166.85.0/24"],
@@ -230,5 +230,5 @@ if __name__ == '__main__':
             {'name': 'local_data', 'size': 5},
         ],
     }
-    cluster_config = PvcCmdLineDriver.create_cluster_config(resource_config, 'test_name')
+    cluster_config = PvcCmdLineDriver.create_cluster_config(blueprint_config, 'test_name')
     print cluster_config

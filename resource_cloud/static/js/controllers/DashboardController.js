@@ -3,8 +3,8 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
 
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
 
-        var resources = Restangular.all('resources');
-        resources.getList().then(function (response) {
+        var blueprints = Restangular.all('blueprints');
+        blueprints.getList().then(function (response) {
             $scope.blueprints = response;
         });
 
@@ -13,8 +13,8 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             $scope.instances = response;
         });
 
-        $scope.provision = function (resource) {
-            instances.post({resource: resource.id}).then(function (response) {
+        $scope.provision = function (blueprint) {
+            instances.post({blueprint: blueprint.id}).then(function (response) {
                     instances.getList().then(function (response) {
                             $scope.instances = response;
                         }

@@ -89,8 +89,8 @@ def get_provisioning_manager():
 
 
 def get_provisioning_type(token, instance_id):
-    resource = get_instance_parent_data(token, instance_id)
-    plugin_id = resource['plugin']
+    blueprint = get_instance_parent_data(token, instance_id)
+    plugin_id = blueprint['plugin']
     return get_plugin_data(token, plugin_id)['name']
 
 
@@ -175,30 +175,30 @@ def do_post(token, api_path, data):
 def get_instances(token):
     resp = do_get(token, 'instances')
     if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for provisioned resources, %s' % resp.reason)
+        raise RuntimeError('Cannot fetch data for instances, %s' % resp.reason)
     return resp.json()
 
 
 def get_instance(token, instance_id):
     resp = do_get(token, 'instances/%s' % instance_id)
     if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for provisioned resource %s, %s' % (instance_id, resp.reason))
+        raise RuntimeError('Cannot fetch data for instances %s, %s' % (instance_id, resp.reason))
     return resp.json()
 
 
-def get_resource_description(token, resource_id):
-    resp = do_get(token, 'resources/%s' % resource_id)
+def get_blueprint_description(token, blueprint_id):
+    resp = do_get(token, 'blueprints/%s' % blueprint_id)
     if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for resource %s, %s' % (resource_id, resp.reason))
+        raise RuntimeError('Cannot fetch data for blueprint %s, %s' % (blueprint_id, resp.reason))
     return resp.json()
 
 
 def get_instance_parent_data(token, instance_id):
-    resource_id = get_instance(token, instance_id)['blueprint_id']
+    blueprint_id = get_instance(token, instance_id)['blueprint_id']
 
-    resp = do_get(token, 'resources/%s' % resource_id)
+    resp = do_get(token, 'blueprints/%s' % blueprint_id)
     if resp.status_code != 200:
-        raise RuntimeError('Error loading resource data: %s, %s' % (resource_id, resp.reason))
+        raise RuntimeError('Error loading blueprint data: %s, %s' % (blueprint_id, resp.reason))
 
     return resp.json()
 

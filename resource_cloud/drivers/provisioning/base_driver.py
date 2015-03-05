@@ -113,13 +113,13 @@ class ProvisioningDriverBase(object):
     def get_instance_data(self, token, instance_id):
         resp = self.do_get(token, 'instances/%s' % instance_id)
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for provisioned resources, %s' % resp.reason)
+            raise RuntimeError('Cannot fetch data for provisioned blueprints, %s' % resp.reason)
         return resp.json()
 
-    def get_resource_description(self, token, resource_id):
-        resp = self.do_get(token, 'resources/%s' % resource_id)
+    def get_blueprint_description(self, token, blueprint_id):
+        resp = self.do_get(token, 'blueprints/%s' % blueprint_id)
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for provisioned resources, %s' % resp.reason)
+            raise RuntimeError('Cannot fetch data for provisioned blueprints, %s' % resp.reason)
         return resp.json()
 
     def get_user_key_data(self, token, user_id):

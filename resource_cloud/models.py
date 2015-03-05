@@ -156,8 +156,8 @@ class Instance(db.Model):
     provisioned_at = db.Column(db.DateTime)
     state = db.Column(db.String(32))
 
-    def __init__(self, resource_id, user_id):
-        self.blueprint_id = resource_id
+    def __init__(self, blueprint_id, user_id):
+        self.blueprint_id = blueprint_id
         self.user_id = user_id
         self.visual_id = uuid.uuid4().hex
         self.state = 'starting'

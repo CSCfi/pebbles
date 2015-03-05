@@ -14,17 +14,17 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         instance = self.get_instance_data(token, instance_id)
         cluster_name = instance['name']
 
-        res_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, cluster_name)
+        instance_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, cluster_name)
 
-        # will fail if there is already a directory for this resource
-        os.makedirs(res_dir)
+        # will fail if there is already a directory for this instance
+        os.makedirs(instance_dir)
 
         # fetch config for this cluster
-        config = self.get_resource_description(token, instance['blueprint_id'])
+        config = self.get_blueprint_description(token, instance['blueprint_id'])
 
         # fetch user public key and save it
         key_data = self.get_user_key_data(token, instance['user_id']).json()
-        user_key_file = '%s/userkey.pub' % res_dir
+        user_key_file = '%s/userkey.pub' % instance_dir
         if not key_data:
             self.do_instance_patch(token, instance_id, {'state': 'failed'})
             raise RuntimeError("User's public key missing")
@@ -36,7 +36,7 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
 
         self.logger.info('faking provisioning')
         cmd = 'time ping -c 10 localhost'
-        self.run_logged_process(cmd=cmd, cwd=res_dir, shell=True, log_uploader=uploader)
+        self.run_logged_process(cmd=cmd, cwd=instance_dir, shell=True, log_uploader=uploader)
         self.do_instance_patch(token, instance_id, {'public_ip': '%s.%s.%s.%s' % (
             randint(1, 254), randint(1, 254), randint(1, 254), randint(1, 254))})
 
@@ -44,13 +44,13 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         instance = self.get_instance_data(token, instance_id)
         cluster_name = instance['name']
 
-        res_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, cluster_name)
+        instance_dir = '%s/%s' % (self.config.PVC_CLUSTER_DATA_DIR, cluster_name)
 
         uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
 
         self.logger.info('faking deprovisioning')
         cmd = 'time ping -c 5 localhost'
-        self.run_logged_process(cmd=cmd, cwd=res_dir, shell=True, log_uploader=uploader)
+        self.run_logged_process(cmd=cmd, cwd=instance_dir, shell=True, log_uploader=uploader)
 
-        # use resource id as a part of the name to make tombstones always unique
-        os.rename(res_dir, '%s.deleted.%s' % (res_dir, instance_id))
+        # use instance id as a part of the name to make tombstones always unique
+        os.rename(instance_dir, '%s.deleted.%s' % (instance_dir, instance_id))

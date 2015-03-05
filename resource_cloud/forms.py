@@ -21,7 +21,7 @@ class UserForm(ModelForm):
     is_admin = BooleanField('is_admin', default=False)
 
 
-class ResourceForm(ModelForm):
+class BlueprintForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
     config = StringField('config', validators=[DataRequired()])
     plugin = StringField('plugin', validators=[DataRequired()])
@@ -40,7 +40,7 @@ class PasswordResetRequestForm(ModelForm):
 
 
 class InstanceForm(ModelForm):
-    resource = StringField('blueprint_id', validators=[DataRequired()])
+    blueprint = StringField('blueprint_id', validators=[DataRequired()])
 
 
 class SessionCreateForm(ModelForm):
