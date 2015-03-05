@@ -123,8 +123,8 @@ class Plugin(db.Model):
         self.visual_id = uuid.uuid4().hex
 
 
-class Resource(db.Model):
-    __tablename__ = 'resources'
+class Blueprint(db.Model):
+    __tablename__ = 'blueprints'
     id = db.Column(db.Integer, primary_key=True)
     visual_id = db.Column(db.String(32))
     name = db.Column(db.String(MAX_NAME_LENGTH))
@@ -145,19 +145,19 @@ class Resource(db.Model):
         self._config = json.dumps(value)
 
 
-class ProvisionedResource(db.Model):
-    __tablename__ = 'provisioned_resources'
+class Instance(db.Model):
+    __tablename__ = 'instances'
     id = db.Column(db.Integer, primary_key=True)
     visual_id = db.Column(db.String(32))
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    resource_id = db.Column(db.Integer, db.ForeignKey('resources.id'))
+    blueprint_id = db.Column(db.Integer, db.ForeignKey('blueprints.id'))
     name = db.Column(db.String(64), unique=True)
     public_ip = db.Column(db.String(64))
     provisioned_at = db.Column(db.DateTime)
     state = db.Column(db.String(32))
 
     def __init__(self, resource_id, user_id):
-        self.resource_id = resource_id
+        self.blueprint_id = resource_id
         self.user_id = user_id
         self.visual_id = uuid.uuid4().hex
         self.state = 'starting'

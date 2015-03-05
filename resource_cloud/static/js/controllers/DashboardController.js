@@ -8,14 +8,14 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             $scope.blueprints = response;
         });
 
-        var provisionedResources = Restangular.all('provisioned_resources');
-        provisionedResources.getList().then(function (response) {
+        var instances = Restangular.all('instances');
+        instances.getList().then(function (response) {
             $scope.instances = response;
         });
 
         $scope.provision = function (resource) {
-            provisionedResources.post({resource: resource.id}).then(function (response) {
-                    provisionedResources.getList().then(function (response) {
+            instances.post({resource: resource.id}).then(function (response) {
+                    instances.getList().then(function (response) {
                             $scope.instances = response;
                         }
                     )
@@ -23,9 +23,9 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             );
         };
 
-        $scope.deprovision = function (provisionedResource) {
-            provisionedResource.patch({state: 'deleting'}).then(function () {
-                var index = $scope.instances.indexOf(provisionedResource);
+        $scope.deprovision = function (instance) {
+            instance.patch({state: 'deleting'}).then(function () {
+                var index = $scope.instances.indexOf(instance);
                 if (index > -1) $scope.instances[index].state = 'deleting';
             });
         };
@@ -37,8 +37,8 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             }
             stop = $interval(function () {
                 if (AuthService.isAuthenticated()) {
-                    var provisionedResources = Restangular.all('provisioned_resources');
-                    provisionedResources.getList().then(function (response) {
+                    var instances = Restangular.all('instances');
+                    instances.getList().then(function (response) {
                         $scope.instances = response;
                     });
                 } else {

@@ -39,8 +39,8 @@ class PasswordResetRequestForm(ModelForm):
     email = StringField('email', validators=[DataRequired(), Email(), Length(max=MAX_EMAIL_LENGTH)])
 
 
-class ProvisionedResourceForm(ModelForm):
-    resource = StringField('resource_id', validators=[DataRequired()])
+class InstanceForm(ModelForm):
+    resource = StringField('blueprint_id', validators=[DataRequired()])
 
 
 class SessionCreateForm(ModelForm):

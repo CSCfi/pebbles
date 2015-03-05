@@ -3,7 +3,7 @@ import base64
 import json
 
 from resource_cloud.tests.base import db, BaseTestCase
-from resource_cloud.models import User, Resource, Plugin, ActivationToken
+from resource_cloud.models import User, Blueprint, Plugin, ActivationToken
 
 
 class FlaskApiTestCase(BaseTestCase):
@@ -16,10 +16,10 @@ class FlaskApiTestCase(BaseTestCase):
         self.known_plugin_id = p1.visual_id
         db.session.add(p1)
 
-        r1 = Resource()
+        r1 = Blueprint()
         r1.name = "TestResource"
         r1.plugin = p1.visual_id
-        r2 = Resource()
+        r2 = Blueprint()
         r2.name = "EnabledTestResource"
         r2.plugin = p1.visual_id
         r2.is_enabled = True
@@ -183,10 +183,10 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertTrue(user.is_active)
 
     def test_anonymous_create_instance(self):
-        data = {'resource_id': self.known_resource_id}
+        data = {'blueprint_id': self.known_resource_id}
         response = self.make_request(
             method='POST',
-            path='/api/v1/provisioned_resources',
+            path='/api/v1/instances',
             data=json.dumps(data))
         self.assert_401(response)
 
@@ -194,7 +194,7 @@ class FlaskApiTestCase(BaseTestCase):
         data = {'resource': self.known_resource_id}
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/provisioned_resources',
+            path='/api/v1/instances',
             data=json.dumps(data))
         self.assert_200(response)
 

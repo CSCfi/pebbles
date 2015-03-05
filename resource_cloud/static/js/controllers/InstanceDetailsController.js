@@ -7,7 +7,7 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
         var instance;
 
         $scope.refresh = function () {
-            Restangular.one('provisioned_resources', instance_id).get().then(function (response) {
+            Restangular.one('instances', instance_id).get().then(function (response) {
                 instance = response;
                 $scope.instance = response;
             }).then(function () {
@@ -22,7 +22,7 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
 
         $scope.fetchLogs = function (instance) {
             if (!instance.logs.length) {
-                Restangular.one('provisioned_resources', instance.id).get().then(function (response) {
+                Restangular.one('instances', instance.id).get().then(function (response) {
                     instance = response;
                     $scope.instance = instance;
                 });
