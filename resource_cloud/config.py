@@ -1,19 +1,39 @@
 import os
-from base64 import b64encode
+import yaml
+
+CONFIG_FILE = '/webapps/resource_cloud/config/config.yaml'
+CONFIG = {}
+if os.path.isfile(CONFIG_FILE):
+    CONFIG = yaml.load(open(CONFIG_FILE).read())
+
+
+def resolve_configuration_value(key, default=None):
+    pb_key = 'PB_' + key
+    value = os.getenv(pb_key)
+    if value:
+        return value
+    elif key in CONFIG:
+        return CONFIG[key]
+    elif default:
+        return default
+    elif not default:
+        raise RuntimeError('configuration value for %s missing' % key)
 
 
 class BaseConfig(object):
     DEBUG = True
-    SECRET_KEY = b64encode(os.urandom(24)).decode('utf-8')
+    SECRET_KEY = resolve_configuration_value('SECRET_KEY', default='change_me')
     WTF_CSRF_ENABLED = False
     SSL_VERIFY = False
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
+    SQLALCHEMY_DATABASE_URI = resolve_configuration_value(
+        'SQLALCHEMY_DATABASE_URI',
+        default='sqlite:////tmp/change_me.db')
     MESSAGE_QUEUE_URI = 'redis://localhost:6379/0'
     PVC_CLUSTER_DATA_DIR = '/var/spool/pvc_clusters'
     BASE_URL = 'https://localhost:8888'
     MAX_CONTENT_LENGTH = 1024 * 1024
     FAKE_PROVISIONING = False
-    SENDER_EMAIL = 'resource_cloud@csc.fi'
+    SENDER_EMAIL = 'sender@example.org'
     SKIP_TASK_QUEUE = False
 
 
@@ -23,7 +43,6 @@ class ProductionConfig(BaseConfig):
 
 
 class DevConfig(BaseConfig):
-    SECRET_KEY = 'change_me'
     MAIL_SUPPRESS_SEND = True
     FAKE_PROVISIONING = True
 
