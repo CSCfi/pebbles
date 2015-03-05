@@ -18,6 +18,16 @@ frontend:
   admin-user: cloud-user
   flavor: {{ frontend_flavor }}
   public-ip: auto
+{% if frontend_volumes is defined and frontend_volumes|length > 0 %}
+  volumes:
+{% for vol in frontend_volumes %}
+    - name: {{ vol.name }}
+      size: {{ vol.size }}
+{%  if vol.device is defined %}
+      device: {{ vol.device }}
+{% endif %}
+{% endfor %}
+{% endif %}
   groups:
 {% for group in frontend_groups %}
     - {{ group }}
@@ -28,6 +38,16 @@ node:
   image: {{ node_image }}
   admin-user: cloud-user
   flavor: {{ node_flavor }}
+{% if node_volumes is defined and node_volumes|length > 0 %}
+  volumes:
+{% for vol in node_volumes %}
+    - name: {{ vol.name }}
+      size: {{ vol.size }}
+{%  if vol.device is defined %}
+      device: {{ vol.device }}
+{% endif %}
+{% endfor %}
+{% endif %}
   groups:
 {% for group in node_groups %}    - {{ group }}
 {% endfor %}

@@ -36,6 +36,44 @@ CONFIG = {
                 'enum': [
                 ]
             },
+            'frontend_volumes': {
+                'type': 'array',
+                'title': 'Frontend volumes',
+                'items': {
+                    "type": "object",
+                    "title": "Volume",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "size": {
+                            "type": "integer"
+                        },
+                        "device": {
+                            "type": "string"
+                        },
+                    }
+                }
+            },
+            'node_volumes': {
+                'type': 'array',
+                'title': 'Node volumes',
+                'items': {
+                    "type": "object",
+                    "title": "Volume",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "size": {
+                            "type": "integer"
+                        },
+                        "device": {
+                            "type": "string"
+                        },
+                    }
+                }
+            },
             'node_flavor': {
                 'type': 'string',
                 'title': 'Node flavor',
@@ -82,8 +120,16 @@ CONFIG = {
         'number_of_nodes',
         'frontend_flavor',
         'frontend_image',
+        {
+            'key': 'frontend_volumes',
+            'items': ['frontend_volumes[].name', 'frontend_volumes[].size', 'frontend_volumes[].device']
+        },
         'node_flavor',
         'node_image',
+        {
+            'key': 'node_volumes',
+            'items': ['node_volumes[].name', 'node_volumes[].size', 'node_volumes[].device']
+        },
         'software',
         'maximum_lifetime',
         'maximum_instances_per_user',
@@ -99,8 +145,15 @@ CONFIG = {
         'software': ['Common', ],
         'frontend_flavor': 'mini',
         'frontend_image': 'Ubuntu-14.04',
+        'frontend_volumes': [
+            {'name': 'local_data', 'device': 'vdc', 'size': 0},
+            {'name': 'shared_data', 'device': 'vdd', 'size': 0},
+        ],
         'node_flavor': 'mini',
         'node_image': 'Ubuntu-14.04',
+        'node_volumes': [
+            {'name': 'local_data', 'device': 'vdc', 'size': 0},
+        ],
         'firewall_rules': ['tcp 22 22 192.168.1.0/24']
     }
 }
