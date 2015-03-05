@@ -187,6 +187,15 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
             frontend_groups.extend(software_to_groups[soft]['frontend'])
             node_groups.extend(software_to_groups[soft]['node'])
 
+        frontend_volumes = []
+        if 'frontend_volumes' in user_config:
+            frontend_volumes = [x for x in user_config['frontend_volumes'] if x['size']]
+            user_config.pop('frontend_volumes')
+        node_volumes = []
+        if 'node_volumes' in user_config:
+            node_volumes = [x for x in user_config['node_volumes'] if x['size']]
+            user_config.pop('node_volumes')
+
         # generate pvc config for this cluster
         this_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -197,6 +206,8 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
             security_key='rc-%s' % cluster_name,
             frontend_groups=frontend_groups,
             node_groups=node_groups,
+            frontend_volumes=frontend_volumes,
+            node_volumes=node_volumes,
             **user_config
         )
         return cluster_config
@@ -209,8 +220,15 @@ if __name__ == '__main__':
         'firewall_rules': ["tcp 22 22 193.166.85.0/24"],
         'frontend_flavor': 'mini',
         'frontend_image': 'Ubuntu-14.04',
+        'frontend_volumes': [
+            {'name': 'local_data', 'device': 'vdc', 'size': 5},
+            {'name': 'shared_data', 'device': 'vdd', 'size': 0},
+        ],
         'node_flavor': 'mini',
         'node_image': 'Ubuntu-14.04',
+        'node_volumes': [
+            {'name': 'local_data', 'size': 5},
+        ],
     }
     cluster_config = PvcCmdLineDriver.create_cluster_config(resource_config, 'test_name')
     print cluster_config
