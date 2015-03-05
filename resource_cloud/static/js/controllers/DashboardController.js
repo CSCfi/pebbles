@@ -5,7 +5,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
 
         var resources = Restangular.all('resources');
         resources.getList().then(function (response) {
-            $scope.services = response;
+            $scope.blueprints = response;
         });
 
         var provisionedResources = Restangular.all('provisioned_resources');

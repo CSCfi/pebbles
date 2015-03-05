@@ -2,7 +2,7 @@
     <h1>Dashboard</h1>
 
 
-    <h2>Services</h2>
+    <h2>Blueprints</h2>
     <table class="table table-striped">
         <thead>
         <tr>
@@ -13,12 +13,12 @@
         </tr>
         </thead>
         <tbody>
-        <tr ng-repeat="service in services | filter : { is_enabled: 'true' }">
-            <td>{{service.name}}</td>
-            <td>{{service.vcpus}}</td>
-            <td>{{service.max_lifetime}}</td>
+        <tr ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }">
+            <td>{{blueprint.name}}</td>
+            <td>{{blueprint.vcpus}}</td>
+            <td>{{blueprint.max_lifetime}}</td>
             <td>
-                <button ng-click="provision(service)" type="submit" class="btn btn-default">Launch</button>
+                <button ng-click="provision(blueprint)" type="submit" class="btn btn-default">Launch</button>
             </td>
         </tr>
         </tbody>
