@@ -386,7 +386,7 @@ class InstanceList(restful.Resource):
             logging.warn("validation error on user login")
             return form.errors, 422
 
-        blueprint_id = form.resource.data
+        blueprint_id = form.blueprint.data
 
         blueprint = Blueprint.query.filter_by(visual_id=blueprint_id).filter_by(is_enabled=True).first()
         if not blueprint:
