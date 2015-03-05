@@ -501,8 +501,8 @@ class InstanceLogs(restful.Resource):
     parser.add_argument('text', type=str)
 
     @staticmethod
-    def get_base_dir_and_filename(prov_res_id, log_type, create_missing_filename=False):
-        log_dir = '/webapps/resource_cloud/provisioning_logs/%s' % prov_res_id
+    def get_base_dir_and_filename(instance_id, log_type, create_missing_filename=False):
+        log_dir = '/webapps/resource_cloud/provisioning_logs/%s' % instance_id
 
         # make sure the directory for this instance exists
         if not os.path.isdir(log_dir):
