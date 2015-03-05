@@ -105,7 +105,8 @@ class UserList(restful.Resource):
         db.session.add(token)
         db.session.commit()
 
-        send_mails.delay([(user.email, token.token)])
+        if not app.config['SKIP_TASK_QUEUE']:
+            send_mails.delay([(user.email, token.token)])
 
         return user
 
@@ -305,6 +306,7 @@ class ActivationView(restful.Resource):
         user.set_password(form.password.data)
         user.is_active = True
 
+        db.session.add(user)
         db.session.delete(token)
         db.session.commit()
 
@@ -317,13 +319,14 @@ class ActivationList(restful.Resource):
 
         user = User.query.filter_by(email=form.email.data).first()
         if not user:
-            return
+            abort(404)
 
         token = ActivationToken(user)
 
         db.session.add(token)
         db.session.commit()
-        send_mails.delay([(user.email, token.token)])
+        if not app.config['SKIP_TASK_QUEUE']:
+            send_mails.delay([(user.email, token.token)])
 
 
 provision_fields = {
@@ -410,7 +413,9 @@ class ProvisionedResourceList(restful.Resource):
         db.session.add(provision)
         db.session.add(token)
         db.session.commit()
-        run_provisioning.delay(token.token, provision.visual_id)
+
+        if not app.config['SKIP_TASK_QUEUE']:
+            run_provisioning.delay(token.token, provision.visual_id)
 
 
 class ProvisionedResourceView(restful.Resource):
@@ -458,7 +463,8 @@ class ProvisionedResourceView(restful.Resource):
         token = SystemToken('provisioning')
         db.session.add(token)
         db.session.commit()
-        run_deprovisioning.delay(token.token, pr.visual_id)
+        if not app.config['SKIP_TASK_QUEUE']:
+            run_deprovisioning.delay(token.token, pr.visual_id)
 
     @auth.login_required
     def patch(self, provision_id):
