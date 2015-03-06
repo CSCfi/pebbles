@@ -1,10 +1,12 @@
+/* global angular */
+
 'use strict';
 
 var app = angular.module('resourceCloudApp', ['ngRoute', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload', 'schemaForm']);
 
 app.run(function($location, Restangular, AuthService) {
     Restangular.setFullRequestInterceptor(function(element, operation, route, url, headers) {
-        headers['Authorization'] = 'Basic ' + AuthService.getToken();
+        headers.Authorization = 'Basic ' + AuthService.getToken();
         return {
             headers: headers
         };
@@ -58,7 +60,7 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
                 deferred.resolve();
             }
             return deferred.promise;
-        }
+        };
     };
 
     var redirectIfNotAuthenticated = function(route) {
@@ -71,7 +73,7 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
                 deferred.resolve();
             }
             return deferred.promise;
-        }
+        };
     };
 
     $routeProvider
