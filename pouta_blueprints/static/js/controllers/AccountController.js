@@ -27,8 +27,7 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
     $scope.upload = function (files) {
         if (files && files.length) {
             upload_ok = null;
-            for (var i = 0; i < files.length; i++) {
-                var file = files[i];
+            angular.forEach(files, function(file) {
                 $upload.upload({
                     url: '/api/v1/users/'+user.id+'/keypairs/upload',
                     fields: {'username': $scope.username},
@@ -39,7 +38,7 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
                 }).error(function() {
                     upload_ok = false;
                 });
-            }
+            });
         }
     };
 

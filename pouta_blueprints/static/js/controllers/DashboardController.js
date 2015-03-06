@@ -1,3 +1,4 @@
+/* global app */
 app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService', 'Restangular',
                               function ($q,   $scope,   $interval,   AuthService,   Restangular) {
 
@@ -54,7 +55,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
                 $interval.cancel(stop);
                 stop = undefined;
             }
-        }
+        };
 
         $scope.$on('$destroy', function() {
             $scope.stopPolling();

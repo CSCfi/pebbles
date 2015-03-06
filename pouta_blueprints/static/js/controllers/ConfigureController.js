@@ -17,39 +17,40 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
 
         $scope.submitForm = function(form, model) {
             if (form.$valid) {
-                blueprints.post({ plugin: $scope.selectedPlugin.id, name: model.name, config: model }).then(function (response) {
+                blueprints.post({ plugin: $scope.selectedPlugin.id, name: model.name, config: model }).then(function () {
                         blueprints.getList({show_deactivated: true}).then(function (response) {
                                 $scope.blueprints = response;
                             }
-                        )
+                        );
                     }
                 );
-                $('#blueprintCreate').modal('hide')
+                $('#blueprintCreate').modal('hide');
             }
-        }
+        };
+
         $scope.updateBlueprint = function (form, model) {
             if (form.$valid) {
                 $scope.selectedBlueprint.config = model;
-                $scope.selectedBlueprint.put().then(function (response) {
+                $scope.selectedBlueprint.put().then(function () {
                         blueprints.getList({show_deactivated: true}).then(function (response) {
                                 $scope.blueprints = response;
                             }
-                        )
+                        );
                     }
                 );
-                $('#blueprintConfig').modal('hide')
+                $('#blueprintConfig').modal('hide');
             }
-        }
+        };
 
         $scope.selectPlugin = function(plugin) {
             $scope.selectedPlugin = plugin;
             $scope.$broadcast('schemaFormRedraw');
-        }
+        };
 
         $scope.selectBlueprint = function(blueprint) {
             $scope.selectedBlueprint = blueprint;
             $scope.$broadcast('schemaFormRedraw');
-        }
+        };
 
         $scope.createBlueprint = function() {
             var newBlueprint = {};
@@ -57,24 +58,21 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
             newBlueprint.config = $scope.config;
             newBlueprint.plugin = $scope.plugin;
             blueprints.post(newBlueprint);
-        }
+        };
 
         $scope.updateConfig = function() {
             $scope.selectedBlueprint.put();
-            $('#blueprintConfig').modal('hide')
+            $('#blueprintConfig').modal('hide');
 
-        }
-
-        
+        };
 
         $scope.activate = function (blueprint) {
             blueprint.is_enabled = true;
             blueprint.put();
-        }
+        };
 
         $scope.deactivate = function (blueprint) {
             blueprint.is_enabled = undefined;
             blueprint.put();
-        }
-
+        };
     }]);
