@@ -335,6 +335,7 @@ instance_fields = {
     'provisioned_at': fields.DateTime,
     'lifetime_left': fields.Integer,
     'state': fields.String,
+    'error_msg': fields.String,
     'user_id': fields.String,
     'blueprint_id': fields.String,
     'public_ip': fields.String,
@@ -488,6 +489,10 @@ class InstanceView(restful.Resource):
                     if not instance.provisioned_at:
                         instance.provisioned_at = datetime.datetime.utcnow()
 
+            db.session.commit()
+
+        if args['error_msg']:
+            instance.error_msg = args['error_msg']
             db.session.commit()
 
         if args['public_ip'] and user.is_admin:

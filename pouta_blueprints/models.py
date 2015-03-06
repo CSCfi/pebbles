@@ -155,6 +155,7 @@ class Instance(db.Model):
     public_ip = db.Column(db.String(64))
     provisioned_at = db.Column(db.DateTime)
     state = db.Column(db.String(32))
+    error_msg = db.Column(db.String(256))
 
     def __init__(self, blueprint_id, user_id):
         self.blueprint_id = blueprint_id
