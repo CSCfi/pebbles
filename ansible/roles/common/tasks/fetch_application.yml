@@ -16,4 +16,9 @@
   with_items:
       - gunicorn
 
+- name: Create directory for configuration
+  file: dest={{ application_config_dir }} state=directory
 
+- name: Copy application configuration
+  template: src=etc/pouta_blueprints/app_config.j2
+            dest={{ application_config }}
