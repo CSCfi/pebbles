@@ -27,11 +27,6 @@ from pouta_blueprints.utils import generate_ssh_keypair
 USER_INSTANCE_LIMIT = 5
 
 
-@app.route("/api/debug")
-def debug():
-    return "%s" % app.config['SQLALCHEMY_DATABASE_URI']
-
-
 def requires_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -159,8 +154,11 @@ class UserView(restful.Resource):
         if not form.validate_on_submit():
             logging.warn("validation error on change password: %s" % form.errors)
             return form.errors, 422
-        g.user.set_password(form.password.data)
-        db.session.add(g.user)
+        user = User.query.filter_by(user_id=user_id).first()
+        if not user:
+            abort(404)
+        user.set_password(form.password.data)
+        db.session.add(user)
         db.session.commit()
 
     @auth.login_required
@@ -348,8 +346,7 @@ class InstanceList(restful.Resource):
     def get(self):
         user = g.user
         if user.is_admin:
-            instances = Instance.query. \
-                filter(Instance.state != 'deleted').all()
+            instances = Instance.query.filter(Instance.state != 'deleted').all()
         else:
             instances = Instance.query.filter_by(user_id=user.id). \
                 filter((Instance.state != 'deleted')).all()
@@ -454,8 +451,10 @@ class InstanceView(restful.Resource):
     @auth.login_required
     def delete(self, instance_id):
         user = g.user
-        pr = Instance.query.filter_by(visual_id=instance_id). \
-            filter_by(user_id=user.id).first()
+        query = Instance.query.filter_by(visual_id=instance_id)
+        if not user.is_admin:
+            query = query.filter_by(user_id=user.id)
+        pr = query.first()
         if not pr:
             abort(404)
         pr.state = 'deleting'
@@ -617,6 +616,8 @@ class BlueprintView(restful.Resource):
             return form.errors, 422
 
         blueprint = Blueprint.query.filter_by(visual_id=blueprint_id).first()
+        if not blueprint:
+            abort(404)
         blueprint.name = form.name.data
         blueprint.config = form.config.data
         if 'maximum_lifetime' in blueprint.config:
