@@ -11,7 +11,7 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
                 me.setUserId(response.user_id);
                 return deferred.resolve(response);
             }, function(response) {
-                if (response.status == 401) {
+                if (response.status === 401) {
                     return deferred.reject(false);
                 }
                 throw new Error("No handler for status code " + response.status);
@@ -36,7 +36,7 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
             return $q(function(resolve, reject) {
                 var token = Restangular.one('activations', token_id);
                 token.customPOST({password: password}).then(function(response) {
-                    resolve({status: 200});
+                    resolve({status: response.status});
                 }, function(response) {
                     console.log("Changing password caused an exception, HTTP Error code " + response.status);
                     reject({status: response.status});
@@ -46,7 +46,7 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
 
         isAdmin : function() {
             var adminStatus = this.getAdminStatus();
-            if (adminStatus == "true") {
+            if (adminStatus === "true") {
                 return true;
             }
             return false;
@@ -75,6 +75,6 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
         getAdminStatus : function() {
             return localStorageService.get('isAdmin');
         }
-    }
+    };
 }]);
 
