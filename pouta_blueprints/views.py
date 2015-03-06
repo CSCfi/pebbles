@@ -11,18 +11,18 @@ import werkzeug
 import datetime
 from functools import wraps
 
-from resource_cloud.models import User, ActivationToken, Blueprint, Plugin
-from resource_cloud.models import Instance, SystemToken, Keypair
-from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
-from resource_cloud.forms import ChangePasswordForm, PasswordResetRequestForm
-from resource_cloud.forms import BlueprintForm
-from resource_cloud.forms import PluginForm, InstanceForm
+from pouta_blueprints.models import User, ActivationToken, Blueprint, Plugin
+from pouta_blueprints.models import Instance, SystemToken, Keypair
+from pouta_blueprints.forms import UserForm, SessionCreateForm, ActivationForm
+from pouta_blueprints.forms import ChangePasswordForm, PasswordResetRequestForm
+from pouta_blueprints.forms import BlueprintForm
+from pouta_blueprints.forms import PluginForm, InstanceForm
 
-from resource_cloud.server import auth, db, restful, app
-from resource_cloud.tasks import run_provisioning, run_deprovisioning
-from resource_cloud.tasks import send_mails
+from pouta_blueprints.server import auth, db, restful, app
+from pouta_blueprints.tasks import run_provisioning, run_deprovisioning
+from pouta_blueprints.tasks import send_mails
 
-from resource_cloud.utils import generate_ssh_keypair
+from pouta_blueprints.utils import generate_ssh_keypair
 
 USER_INSTANCE_LIMIT = 5
 
@@ -77,7 +77,7 @@ class FirstUserView(restful.Resource):
                 return form.errors, 422
             user = User(form.email.data, form.password.data, is_admin=True)
             user.is_active = True
-            worker = User('worker@resource_cloud', app.config['SECRET_KEY'], is_admin=True)
+            worker = User('worker@pouta_blueprints', app.config['SECRET_KEY'], is_admin=True)
             worker.is_active = True
             db.session.add(user)
             db.session.add(worker)
@@ -502,7 +502,7 @@ class InstanceLogs(restful.Resource):
 
     @staticmethod
     def get_base_dir_and_filename(instance_id, log_type, create_missing_filename=False):
-        log_dir = '/webapps/resource_cloud/provisioning_logs/%s' % instance_id
+        log_dir = '/webapps/pouta_blueprints/provisioning_logs/%s' % instance_id
 
         # make sure the directory for this instance exists
         if not os.path.isdir(log_dir):

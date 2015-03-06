@@ -4,7 +4,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import uuid
 import json
 import datetime
-from resource_cloud.server import db, app
+from pouta_blueprints.server import db, app
 
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128

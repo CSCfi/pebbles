@@ -16,7 +16,7 @@ export PYTHONPATH={{ application_path }}:$PYTHONPATH
 RUNDIR=$(dirname $SOCKFILE)
 test -d $RUNDIR || mkdir -p $RUNDIR
 
-exec gunicorn 'resource_cloud.server:app' \
+exec gunicorn 'pouta_blueprints.server:app' \
         --workers $NUM_WORKERS \
         --name $NAME \
         --max-requests $MAX_REQUESTS \

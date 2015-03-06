@@ -2,7 +2,7 @@ from flask.ext import restful
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.httpauth import HTTPBasicAuth
 
-import resource_cloud.app as appm
+import pouta_blueprints.app as appm
 
 app = appm.get_app()
 
@@ -12,5 +12,5 @@ api = restful.Api(app)
 auth = HTTPBasicAuth()
 auth.authenticate_header = lambda: "Authentication Required"
 
-import resource_cloud.views
-resource_cloud.views.setup_resource_urls(api_service=api)
+import pouta_blueprints.views
+pouta_blueprints.views.setup_resource_urls(api_service=api)

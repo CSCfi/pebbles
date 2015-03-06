@@ -3,8 +3,8 @@ from wtforms_alchemy import model_form_factory
 from wtforms import BooleanField, StringField
 from wtforms.validators import DataRequired, Email, Length
 
-from resource_cloud.models import MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH
-from resource_cloud.server import db
+from pouta_blueprints.models import MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH
+from pouta_blueprints.server import db
 
 BaseModelForm = model_form_factory(Form)
 

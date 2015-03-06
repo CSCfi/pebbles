@@ -6,7 +6,7 @@ import os
 import jinja2
 import stat
 
-from resource_cloud.drivers.provisioning import base_driver
+from pouta_blueprints.drivers.provisioning import base_driver
 
 
 class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
@@ -36,7 +36,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         return res
 
     def get_configuration(self):
-        from resource_cloud.drivers.provisioning.pvc_cmdline_driver_config import CONFIG
+        from pouta_blueprints.drivers.provisioning.pvc_cmdline_driver_config import CONFIG
 
         images = self.run_nova_list('image')
         self.logger.debug('images: %s' % images)
@@ -102,17 +102,17 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
             os.chmod(key_file, stat.S_IRUSR)
 
         # run provisioning
-        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py up %d' % num_nodes
+        cmd = '/webapps/pouta_blueprints/venv/bin/python /opt/pvc/python/poutacluster.py up %d' % num_nodes
         self.logger.debug('spawning "%s"' % cmd)
         self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_pvc_env(), log_uploader=uploader)
 
         # add user key for ssh access
-        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py add_key userkey.pub'
+        cmd = '/webapps/pouta_blueprints/venv/bin/python /opt/pvc/python/poutacluster.py add_key userkey.pub'
         self.logger.debug('spawning "%s"' % cmd)
         self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_pvc_env(), log_uploader=uploader)
 
         # get public IP
-        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py info'
+        cmd = '/webapps/pouta_blueprints/venv/bin/python /opt/pvc/python/poutacluster.py info'
         p = subprocess.Popen(shlex.split(cmd), cwd=instance_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
         public_ip = None
@@ -132,15 +132,15 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
 
         uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
         # run deprovisioning
-        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py down'
+        cmd = '/webapps/pouta_blueprints/venv/bin/python /opt/pvc/python/poutacluster.py down'
         self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_pvc_env(), log_uploader=uploader)
 
         # clean generated security and server groups
-        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py cleanup'
+        cmd = '/webapps/pouta_blueprints/venv/bin/python /opt/pvc/python/poutacluster.py cleanup'
         self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_pvc_env(), log_uploader=uploader)
 
         # destroy volumes
-        cmd = '/webapps/resource_cloud/venv/bin/python /opt/pvc/python/poutacluster.py destroy_volumes'
+        cmd = '/webapps/pouta_blueprints/venv/bin/python /opt/pvc/python/poutacluster.py destroy_volumes'
         self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_pvc_env(), log_uploader=uploader)
 
         # remove generated key from OpenStack
