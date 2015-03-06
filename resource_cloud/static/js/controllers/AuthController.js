@@ -8,13 +8,13 @@ app.controller('AuthController', ['$scope', '$location', 'AuthService', function
     };
 
     $scope.loginFormHidden = function(viewLocation) {
-        return $location.path().match(viewLocation) == viewLocation;
+        return $location.path().match(viewLocation) === viewLocation;
     };
 
     $scope.login = function() {
         AuthService.login($scope.email, $scope.password).then(function() {
             $location.path("/dashboard");
-        })
+        });
     };
 
     $scope.isAdmin = function() {

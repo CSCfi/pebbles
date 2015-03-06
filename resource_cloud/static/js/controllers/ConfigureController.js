@@ -21,12 +21,13 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
                         resources.getList({show_deactivated: true}).then(function (response) {
                                 $scope.resources = response;
                             }
-                        )
+                        );
                     }
                 );
-                $('#resourceCreate').modal('hide')
+                $('#resourceCreate').modal('hide');
             }
-        }
+        };
+
         $scope.updateResource = function (form, model) {
             if (form.$valid) {
                 $scope.selectedResource.config = model;
@@ -34,22 +35,22 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
                         resources.getList({show_deactivated: true}).then(function (response) {
                                 $scope.resources = response;
                             }
-                        )
+                        );
                     }
                 );
-                $('#resourceConfig').modal('hide')
+                $('#resourceConfig').modal('hide');
             }
-        }
+        };
 
         $scope.selectPlugin = function(plugin) {
             $scope.selectedPlugin = plugin;
             $scope.$broadcast('schemaFormRedraw');
-        }
+        };
 
         $scope.selectResource = function(resource) {
             $scope.selectedResource = resource;
             $scope.$broadcast('schemaFormRedraw');
-        }
+        };
 
         $scope.createResource = function() {
             var newResource = {};
@@ -57,24 +58,20 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
             newResource.config = $scope.config;
             newResource.plugin = $scope.plugin;
             resources.post(newResource);
-        }
+        };
 
         $scope.updateConfig = function() {
             $scope.selectedResource.put();
-            $('#resourceConfig').modal('hide')
-
-        }
-
-        
+            $('#resourceConfig').modal('hide');
+        };
 
         $scope.activate = function (resource) {
             resource.is_enabled = true;
             resource.put();
-        }
+        };
 
         $scope.deactivate = function (resource) {
             resource.is_enabled = undefined;
             resource.put();
-        }
-
+        };
     }]);

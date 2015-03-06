@@ -7,7 +7,7 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
     var upload_ok = null;
 
     $scope.upload_error = function() {
-        if (upload_ok == false) {
+        if (upload_ok === false) {
             return true;
         }
         return false;
@@ -34,7 +34,7 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
                     fields: {'username': $scope.username},
                     headers: {'Authorization': 'Basic ' + AuthService.getToken()},
                     file: file
-                }).success(function (data, status, headers, config) {
+                }).success(function () {
                     upload_ok = true;
                 }).error(function() {
                     upload_ok = false;
@@ -63,7 +63,7 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
     };
 
     $scope.change_password_msg_visible = function() {
-        if (change_password_result == "") {
+        if (change_password_result === "") {
             return false;
         }
         return true;
@@ -74,14 +74,12 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
     };
 
     $scope.update_password = function() {
-        var params = { password: $scope.user.password };
         user.password = $scope.user.password;
-        user.put().then(function(response) {
+        user.put().then(function() {
             change_password_result = "Password changed";
         }, function(response) {
             var deferred = $q.defer();
-            if (response.status == 422) {
-                activation_success = false;
+            if (response.status === 422) {
                 change_password_result = response.data.password.join(', ');
                 return deferred.reject(false);
             } else {
@@ -90,6 +88,6 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
         });
         $timeout(function() {
             change_password_result = "";
-        }, 10000)
+        }, 10000);
     };
 }]);

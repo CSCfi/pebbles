@@ -7,7 +7,7 @@ app.controller('InitializationController', ['$scope', '$location', 'Restangular'
                        password: $scope.user.password};
         initialize.post(params).then(function(response) {
             $location.path("/");
-        }, function(response) {
+        }, function() {
             initialized = true;
         });
     };

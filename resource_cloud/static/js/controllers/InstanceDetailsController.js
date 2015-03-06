@@ -39,9 +39,10 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
                         }
                     }
                 ).success(function (data, status, headers, config) {
-                        var log_type = config['log_type'];
-                        if (!$scope.logs)
+                        var log_type = config.log_type;
+                        if (!$scope.logs) {
                             $scope.logs = {};
+                        }
                         $scope.logs[log_type] = data;
                     }
                 );
