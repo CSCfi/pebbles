@@ -9,8 +9,8 @@ from pouta_blueprints.models import User, Blueprint, Plugin, ActivationToken
 class FlaskApiTestCase(BaseTestCase):
     def setUp(self):
         db.create_all()
-        db.session.add(User("admin@admin.com", "admin", is_admin=True))
-        db.session.add(User("user@user.com", "user", is_admin=False))
+        db.session.add(User("admin@example.org", "admin", is_admin=True))
+        db.session.add(User("user@example.org", "user", is_admin=False))
         p1 = Plugin()
         p1.name = "TestPlugin"
         self.known_plugin_id = p1.visual_id
@@ -66,19 +66,17 @@ class FlaskApiTestCase(BaseTestCase):
         return methods[method](path, headers=headers, data=data, content_type='application/json')
 
     def make_authenticated_admin_request(self, method='GET', path='/', headers={}, data=None):
-        return self.make_authenticated_request(method, path, headers, data,
-                                               creds={'email': 'admin@admin.com', 'password': 'admin'})
+        return self.make_authenticated_request(method, path, headers, data, creds={'email': 'admin@example.org', 'password': 'admin'})
 
     def make_authenticated_user_request(self, method='GET', path='/', headers={}, data=None):
-        return self.make_authenticated_request(method, path, headers, data,
-                                               creds={'email': 'user@user.com', 'password': 'user'})
+        return self.make_authenticated_request(method, path, headers, data, creds={'email': 'user@example.org', 'password': 'user'})
 
     def test_first_user(self):
         db.drop_all()
         db.create_all()
         response = self.make_request('POST',
                                      '/api/v1/initialize',
-                                     data=json.dumps({'email': 'admin@admin.com',
+                                     data=json.dumps({'email': 'admin@example.org',
                                                       'password': 'admin'}))
         self.assert_200(response)
 
@@ -134,7 +132,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertEqual(len(response.json), 2)
 
     def test_anonymous_invite_user(self):
-        data = {'email': 'test@test.com', 'password': 'test', 'is_admin': True}
+        data = {'email': 'test@example.org', 'password': 'test', 'is_admin': True}
         response = self.make_request(
             method='POST',
             path='/api/v1/users',
@@ -142,7 +140,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_401(response)
 
     def test_user_invite_user(self):
-        data = {'email': 'test@test.com', 'password': 'test', 'is_admin': True}
+        data = {'email': 'test@example.org', 'password': 'test', 'is_admin': True}
         response = self.make_authenticated_user_request(
             method='POST',
             path='/api/v1/users',
@@ -150,26 +148,26 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_403(response)
 
     def test_admin_invite_user(self):
-        data = {'email': 'test@test.com', 'password': 'test', 'is_admin': True}
+        data = {'email': 'test@example.org', 'password': 'test', 'is_admin': True}
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/users',
             data=json.dumps(data))
         self.assert_200(response)
-        user = User.query.filter_by(email='test@test.com').first()
+        user = User.query.filter_by(email='test@example.org').first()
         self.assertIsNotNone(user)
         self.assertTrue(user.is_admin)
 
     def test_accept_invite(self):
-        user = User.query.filter_by(email='test@test.com').first()
+        user = User.query.filter_by(email='test@example.org').first()
         self.assertIsNone(user)
-        data = {'email': 'test@test.com', 'password': None, 'is_admin': True}
+        data = {'email': 'test@example.org', 'password': None, 'is_admin': True}
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/users',
             data=json.dumps(data))
         self.assert_200(response)
-        user = User.query.filter_by(email='test@test.com').first()
+        user = User.query.filter_by(email='test@example.org').first()
         self.assertIsNotNone(user)
         self.assertFalse(user.is_active)
         token = ActivationToken.query.filter_by(user_id=user.id).first()
@@ -180,7 +178,7 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/activations/%s' % token.token,
             data=json.dumps(data))
         self.assert_200(response)
-        user = User.query.filter_by(email='test@test.com').first()
+        user = User.query.filter_by(email='test@example.org').first()
         self.assertIsNotNone(user)
         self.assertTrue(user.is_active)
 
