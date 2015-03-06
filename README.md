@@ -1,5 +1,5 @@
 <img src="https://travis-ci.org/CSC-IT-Center-for-Science/resource-cloud.svg">
-<img src="https://codeclimate.com/github/CSC-IT-Center-for-Science/resource-cloud/badges/gpa.svg">
+[![Code Climate](https://codeclimate.com/github/CSC-IT-Center-for-Science/resource-cloud/badges/gpa.svg)](https://codeclimate.com/github/CSC-IT-Center-for-Science/resource-cloud)
 
 # Resource Cloud
 
