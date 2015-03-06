@@ -3,14 +3,14 @@
 var app = angular.module('resourceCloudApp', ['ngRoute', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload', 'schemaForm']);
 
 app.run(function($location, Restangular, AuthService) {
-    Restangular.setFullRequestInterceptor(function(element, operation, route, url, headers, params, httpConfig) {
-        headers['Authorization'] = 'Basic ' + AuthService.getToken();
+    Restangular.setFullRequestInterceptor(function(element, operation, route, url, headers) {
+        headers['Authorization'] = 'Basic ' + AuthService.getToken();
         return {
             headers: headers
         };
     });
 
-    Restangular.setErrorInterceptor(function(response, deferred, responseHandler) {
+    Restangular.setErrorInterceptor(function(response) {
         if (response.config.bypassErrorInterceptor) {
             return true;
         } else {
@@ -52,27 +52,27 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
         return function($location, $q, AuthService) {
             var deferred = $q.defer();
             if (AuthService.isAuthenticated()) {
-                deferred.reject()
+                deferred.reject();
                 $location.path(route);
             } else {
-                deferred.resolve()
+                deferred.resolve();
             }
             return deferred.promise;
         }
-    }
+    };
 
     var redirectIfNotAuthenticated = function(route) {
         return function($location, $q, AuthService) {
             var deferred = $q.defer();
             if (! AuthService.isAuthenticated()) {
-                deferred.reject()
+                deferred.reject();
                 $location.path(route);
             } else {
-                deferred.resolve()
+                deferred.resolve();
             }
             return deferred.promise;
         }
-    }
+    };
 
     $routeProvider
         .when('/', {

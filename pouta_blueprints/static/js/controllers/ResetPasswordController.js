@@ -10,19 +10,17 @@ app.controller('ResetPasswordController', ['$q', '$scope', '$routeParams', 'Auth
         activations.post({email: $scope.user.email}).then(function() {
             instructionsSent = true;
         });
-    }
+    };
 
     $scope.reset_password = function() {
-        var error_msg = "";
+        error_msg = "";
         var token = $routeParams.token;
         var promise = AuthService.changePasswordWithToken(token, $scope.user.password);
         promise.then(function() {
-            activation_success = true;
         }, function(response) {
-            activation_success = false;
-            if (response.status == 422) {
+            if (response.status === 422) {
                 error_msg = response.data.password.join(', ');
-            } else if (response.status == 410) {
+            } else if (response.status === 410) {
                 error_msg = 'Invalid activation token, check your activation link';
             } else {
                 throw new Error("No handler for status code " + response.status);
@@ -32,7 +30,7 @@ app.controller('ResetPasswordController', ['$q', '$scope', '$routeParams', 'Auth
 
     $scope.showInstructionSentNotice = function() {
         return instructionsSent;
-    }
+    };
 
     $scope.requestResetFormVisible = function() {
         if (token) {

@@ -1,12 +1,11 @@
 app.controller('ActivationController', ['$q', '$scope', '$routeParams', '$location', 'Restangular', 'AuthService',
                                function( $q,   $scope,   $routeParams,   $location,   Restangular,   AuthService) {
-    var activations = Restangular.all('activations');
-    var activation_success = undefined;
+    var activation_success;
     var error_msg = "";
 
     $scope.get_error_msg = function() {
         return error_msg;
-    }
+    };
 
     $scope.activate_user = function() {
         error_msg = "";
@@ -16,9 +15,9 @@ app.controller('ActivationController', ['$q', '$scope', '$routeParams', '$locati
             activation_success = true;
         }, function(response) {
             activation_success = false;
-            if (response.status == 422) {
+            if (response.status === 422) {
                 error_msg = response.data.password.join(', ');
-            } else if (response.status == 410) {
+            } else if (response.status === 410) {
                 error_msg = 'Invalid activation token, check your activation link';
             } else {
                 throw new Error("No handler for status code " + response.status);
@@ -31,13 +30,13 @@ app.controller('ActivationController', ['$q', '$scope', '$routeParams', '$locati
             return true;
         }
         return false;
-    }
+    };
 
     $scope.activation_error = function() {
-        if (activation_success == false) {
+        if (activation_success === false) {
             return true;
         }
         return false;
-    }
+    };
 
 }]);

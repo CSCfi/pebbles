@@ -16,21 +16,23 @@ app.controller('UsersController', ['$q', '$scope', '$interval', 'AuthService', '
                         $scope.users.push(response);
                     });
                 }
-            }
+            };
 
             $scope.remove_user = function(user) {
                 user.remove().then(function () {
                     var index = $scope.users.indexOf(user);
-                    if (index > -1) $scope.users.splice(index, 1);
+                    if (index > -1) {
+                       $scope.users.splice(index, 1);
+                    }
                 });
-            }
+            };
 
             $scope.invite_users = function() {
                 var params = {addresses: $scope.invitedUsers};
                 users.patch(params).then(function(response) {
                     $scope.users = response;
                 });
-            }
+            };
         }
     }]);
 

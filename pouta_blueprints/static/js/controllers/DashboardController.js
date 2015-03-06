@@ -18,7 +18,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
                     instances.getList().then(function (response) {
                             $scope.instances = response;
                         }
-                    )
+                    );
                 }
             );
         };
@@ -26,7 +26,9 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
         $scope.deprovision = function (instance) {
             instance.patch({state: 'deleting'}).then(function () {
                 var index = $scope.instances.indexOf(instance);
-                if (index > -1) $scope.instances[index].state = 'deleting';
+                if (index > -1) {
+                    $scope.instances[index].state = 'deleting';
+                }
             });
         };
 
@@ -42,7 +44,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
                         $scope.instances = response;
                     });
                 } else {
-                    $interval.cancel(pollInterval);
+                    $interval.cancel(stop);
                 }
             }, 10000);
         };
