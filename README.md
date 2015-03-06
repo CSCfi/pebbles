@@ -8,6 +8,8 @@ Currently the only resource supported resource type is [Pouta
 Virtualcluster](https://github.com/CSC-IT-Center-for-Science/pouta-virtualcluster),
 which can be used to launch clusters on [Pouta](https://pouta.csc.fi).
 
+Additional resources can be added by implementing the driver interface [/pouta_blueprints/drivers/provisioning/base_driver.py](https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/blob/master/pouta_blueprints/drivers/provisioning/base_driver.py)
+
 ## Installation of development environment ##
 
 Provided Vagrantfile can be used to start a new **Pouta Blueprints** instance
