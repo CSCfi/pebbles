@@ -1,4 +1,5 @@
-<img src="https://travis-ci.org/CSC-IT-Center-for-Science/resource-cloud.svg">
+[![TravisCI](https://travis-ci.org/CSC-IT-Center-for-Science/pouta-blueprints.svg)](https://travis-ci.org/CSC-IT-Center-for-Science/pouta-blueprints/)
+
 [![Code Climate](https://codeclimate.com/github/CSC-IT-Center-for-Science/resource-cloud/badges/gpa.svg)](https://codeclimate.com/github/CSC-IT-Center-for-Science/resource-cloud)
 
 # Pouta Blueprints
