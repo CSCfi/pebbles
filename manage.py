@@ -1,8 +1,8 @@
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
 
-from resource_cloud.server import app, db
-from resource_cloud import models
+from pouta_blueprints.server import app, db
+from pouta_blueprints import models
 
 
 migrate = Migrate(app, db)
@@ -19,7 +19,7 @@ manager.add_command("shell", Shell(make_context=_make_context))
 def test():
     """Runs the unit tests without coverage."""
     import unittest
-    tests = unittest.TestLoader().discover('resource_cloud.tests')
+    tests = unittest.TestLoader().discover('pouta_blueprints.tests')
     unittest.TextTestRunner(verbosity=2).run(tests)
 
 
@@ -30,10 +30,10 @@ def cov():
     import unittest
     cov = coverage.coverage(
         branch=True,
-        include='resource_cloud/*'
+        include='pouta_blueprints/*'
     )
     cov.start()
-    tests = unittest.TestLoader().discover('resource_cloud.tests')
+    tests = unittest.TestLoader().discover('pouta_blueprints.tests')
     unittest.TextTestRunner(verbosity=2).run(tests)
     cov.stop()
     cov.save()

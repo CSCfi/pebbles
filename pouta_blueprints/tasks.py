@@ -9,10 +9,10 @@ from celery.schedules import crontab
 from flask import render_template
 from flask.ext.mail import Message
 
-from resource_cloud.app import get_app
+from pouta_blueprints.app import get_app
 
-# from resource_cloud.config import BaseConfig as config
-from resource_cloud.config import DevConfig as ActiveConfig
+# from pouta_blueprints.config import BaseConfig as config
+from pouta_blueprints.config import DevConfig as ActiveConfig
 
 ActiveConfig.FAKE_PROVISIONING = True
 
@@ -25,11 +25,11 @@ app = Celery('tasks', broker=ActiveConfig.MESSAGE_QUEUE_URI, backend=ActiveConfi
 app.conf.CELERY_TASK_SERIALIZER = 'json'
 app.conf.CELERYBEAT_SCHEDULE = {
     'deprovision-expired-every-minute': {
-        'task': 'resource_cloud.tasks.deprovision_expired',
+        'task': 'pouta_blueprints.tasks.deprovision_expired',
         'schedule': crontab(minute='*/1'),
     },
     'check-plugins-every-minute': {
-        'task': 'resource_cloud.tasks.publish_plugins',
+        'task': 'pouta_blueprints.tasks.publish_plugins',
         'schedule': crontab(minute='*/1'),
     }
 }
@@ -38,7 +38,7 @@ app.conf.CELERY_TIMEZONE = 'UTC'
 flask_app = get_app()
 
 
-@app.task(name="resource_cloud.tasks.deprovision_expired")
+@app.task(name="pouta_blueprints.tasks.deprovision_expired")
 def deprovision_expired():
     token = get_token()
     instances = get_instances(token)
@@ -52,7 +52,7 @@ def deprovision_expired():
             run_deprovisioning.delay(token, instance.get('id'))
 
 
-@app.task(name="resource_cloud.tasks.send_mails")
+@app.task(name="pouta_blueprints.tasks.send_mails")
 def send_mails(users):
     with flask_app.test_request_context():
         for email, token in users:
@@ -77,7 +77,7 @@ def get_provisioning_manager():
     from stevedore import dispatch
 
     mgr = dispatch.NameDispatchExtensionManager(
-        namespace='resource_cloud.drivers.provisioning',
+        namespace='pouta_blueprints.drivers.provisioning',
         check_func=lambda x: True,
         invoke_on_load=True,
         invoke_args=(logger, ActiveConfig),
@@ -94,7 +94,7 @@ def get_provisioning_type(token, instance_id):
     return get_plugin_data(token, plugin_id)['name']
 
 
-@app.task(name="resource_cloud.tasks.run_provisioning")
+@app.task(name="pouta_blueprints.tasks.run_provisioning")
 def run_provisioning(token, instance_id):
     logger.info('provisioning triggered for %s' % instance_id)
     mgr = get_provisioning_manager()
@@ -106,7 +106,7 @@ def run_provisioning(token, instance_id):
     logger.info('provisioning done, notifying server')
 
 
-@app.task(name="resource_cloud.tasks.run_deprovisioning")
+@app.task(name="pouta_blueprints.tasks.run_deprovisioning")
 def run_deprovisioning(token, instance_id):
     logger.info('deprovisioning triggered for %s' % instance_id)
 
@@ -119,7 +119,7 @@ def run_deprovisioning(token, instance_id):
     logger.info('deprovisioning done, notifying server')
 
 
-@app.task(name="resource_cloud.tasks.publish_plugins")
+@app.task(name="pouta_blueprints.tasks.publish_plugins")
 def publish_plugins():
     logger.info('provisioning plugins queried from worker')
     token = get_token()
@@ -142,7 +142,7 @@ def publish_plugins():
 
 def get_token():
     auth_url = 'https://localhost/api/v1/sessions'
-    auth_credentials = {'email': 'worker@resource_cloud',
+    auth_credentials = {'email': 'worker@pouta_blueprints',
                         'password': flask_app.config['SECRET_KEY']}
     try:
         r = requests.post(auth_url, auth_credentials, verify=ActiveConfig.SSL_VERIFY)

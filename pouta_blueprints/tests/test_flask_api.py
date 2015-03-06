@@ -2,8 +2,8 @@ import unittest
 import base64
 import json
 
-from resource_cloud.tests.base import db, BaseTestCase
-from resource_cloud.models import User, Blueprint, Plugin, ActivationToken
+from pouta_blueprints.tests.base import db, BaseTestCase
+from pouta_blueprints.models import User, Blueprint, Plugin, ActivationToken
 
 
 class FlaskApiTestCase(BaseTestCase):

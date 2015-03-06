@@ -15,7 +15,7 @@ application_log_file: "{{ application_log_dir }}/gunicorn.log"
 celery_log_file: "{{ application_log_dir }}/celery.log"
 celerybeat_log_file: "{{ application_log_dir }}/celerybeat.log"
 domain: "localhost"
-application_name: "resource_cloud"
+application_name: "pouta_blueprints"
 application_user: "{{ application_name }}"
 application_group: "webapps"
 application_debug_logging: 'True'

@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='resource_cloud-provisioning_extensions',
+    name='pouta_blueprints-provisioning_extensions',
     version='1.0',
 
-    description='Provisioning extensions for Resource Cloud',
+    description='Provisioning extensions for Pouta Blueprints',
 
     author='Olli Tourunen',
     author_email='olli.tourunen@csc.fi',
@@ -22,16 +22,16 @@ setup(
     scripts=[],
 
     provides=[
-        'resource_cloud.provisioning_extensions',
+        'pouta_blueprints.provisioning_extensions',
     ],
 
     packages=find_packages(),
     include_package_data=True,
 
     entry_points={
-        'resource_cloud.drivers.provisioning': [
-            'DummyDriver = resource_cloud.drivers.provisioning.dummy_driver:DummyDriver',
-            'PvcCmdLineDriver = resource_cloud.drivers.provisioning.pvc_cmdline_driver:PvcCmdLineDriver',
+        'pouta_blueprints.drivers.provisioning': [
+            'DummyDriver = pouta_blueprints.drivers.provisioning.dummy_driver:DummyDriver',
+            'PvcCmdLineDriver = pouta_blueprints.drivers.provisioning.pvc_cmdline_driver:PvcCmdLineDriver',
         ],
     },
 
