@@ -1,7 +1,7 @@
 import os
 import yaml
 
-CONFIG_FILE = '/webapps/resource_cloud/config/config.yaml'
+CONFIG_FILE = '/webapps/pouta_blueprints/config/config.yaml'
 CONFIG = {}
 if os.path.isfile(CONFIG_FILE):
     CONFIG = yaml.load(open(CONFIG_FILE).read())
