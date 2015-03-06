@@ -1,5 +1,5 @@
 <div>
-    <h1>Configure Services</h1>
+    <h1>Configure Blueprints</h1>
     <h2>Plugins</h2>
     <table class="table table-striped">
         <thead>
@@ -12,15 +12,15 @@
         <tr ng-repeat="plugin in plugins">
             <td>{{plugin.name}}</td>
             <td>
-                <button ng-click="selectPlugin(plugin)" type="button" class="btn btn-default" data-toggle="modal" data-target="#resourceCreate">
-                  Create Service
+                <button ng-click="selectPlugin(plugin)" type="button" class="btn btn-default" data-toggle="modal" data-target="#blueprintCreate">
+                  Create Blueprint
                 </button>
             </td>
         </tr>
         </tbody>
     </table>
 
-    <h2>Services</h2>
+    <h2>Blueprints</h2>
     <table class="table table-striped">
         <thead>
         <tr>
@@ -30,13 +30,13 @@
         </tr>
         </thead>
         <tbody>
-        <tr ng-repeat="resource in resources">
-            <td>{{resource.name}}</td>
-            <td>{{resource.max_lifetime}}</td>
+        <tr ng-repeat="blueprint in blueprints">
+            <td>{{blueprint.name}}</td>
+            <td>{{blueprint.max_lifetime}}</td>
             <td>
-                <button ng-hide="resource.is_enabled" ng-click="activate(resource)" type="submit" class="btn btn-default">Activate</button>
-                <button ng-show="resource.is_enabled" ng-click="deactivate(resource)" type="submit" class="btn btn-default">Deactivate</button>
-                <button ng-click="selectResource(resource)" type="button" class="btn btn-default" data-toggle="modal" data-target="#resourceConfig">
+                <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)" type="submit" class="btn btn-default">Activate</button>
+                <button ng-show="blueprint.is_enabled" ng-click="deactivate(blueprint)" type="submit" class="btn btn-default">Deactivate</button>
+                <button ng-click="selectBlueprint(blueprint)" type="button" class="btn btn-default" data-toggle="modal" data-target="#blueprintConfig">
                   Configure
                 </button>
             </td>
@@ -44,12 +44,12 @@
         </tbody>
     </table>
 
-    <div class="modal fade" id="resourceCreate" tabindex="-1" role="dialog" aria-labelledby="resourceCreateLabel" aria-hidden="true">
+    <div class="modal fade" id="blueprintCreate" tabindex="-1" role="dialog" aria-labelledby="blueprintCreateLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title">Create Service</h4>
+            <h4 class="modal-title">Create Blueprint</h4>
           </div>
           <div class="modal-body">
             <form
@@ -65,20 +65,20 @@
       </div>
     </div>
 
-    <div class="modal fade" id="resourceConfig" tabindex="-1" role="dialog" aria-labelledby="resourceConfigLabel" aria-hidden="true">
+    <div class="modal fade" id="blueprintConfig" tabindex="-1" role="dialog" aria-labelledby="blueprintConfigLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title">Update Resource Config</h4>
+            <h4 class="modal-title">Update Blueprint Config</h4>
           </div>
           <form
             name="ngform2"
             class="form-activate"
-            sf-model="selectedResource.config"
-            sf-form="selectedResource.form"
-            sf-schema="selectedResource.schema"
-            ng-submit="updateResource(ngform2, selectedResource.config)">
+            sf-model="selectedBlueprint.config"
+            sf-form="selectedBlueprint.form"
+            sf-schema="selectedBlueprint.schema"
+            ng-submit="updateBlueprint(ngform2, selectedBlueprint.config)">
           </form>
           </form>
         </div>

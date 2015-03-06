@@ -34,69 +34,69 @@ class ProvisioningDriverBase(object):
                 {'style': 'btn-info', 'title': 'Create', 'type': 'submit'}
             ], 'model': {}}
 
-    def provision(self, token, provisioned_resource_id):
+    def provision(self, token, instance_id):
         self.logger.debug('starting provisioning')
-        self.do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'provisioning'})
+        self.do_instance_patch(token, instance_id, {'state': 'provisioning'})
 
         try:
             self.logger.debug('calling subclass do_provision')
-            self.do_provision(token, provisioned_resource_id)
+            self.do_provision(token, instance_id)
 
             self.logger.debug('finishing provisioning')
-            self.do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'running'})
+            self.do_instance_patch(token, instance_id, {'state': 'running'})
         except Exception as e:
             self.logger.debug('do_provision raised %s' % e)
-            self.do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'failed'})
+            self.do_instance_patch(token, instance_id, {'state': 'failed'})
             raise e
 
-    def deprovision(self, token, provisioned_resource_id):
+    def deprovision(self, token, instance_id):
         self.logger.debug('starting deprovisioning')
-        self.do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'deprovisioning'})
+        self.do_instance_patch(token, instance_id, {'state': 'deprovisioning'})
         try:
             self.logger.debug('calling subclass do_deprovision')
-            self.do_deprovision(token, provisioned_resource_id)
+            self.do_deprovision(token, instance_id)
 
             self.logger.debug('finishing deprovisioning')
-            self.do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'deleted'})
+            self.do_instance_patch(token, instance_id, {'state': 'deleted'})
         except Exception as e:
             self.logger.debug('do_deprovision raised %s' % e)
-            self.do_provisioned_resource_patch(token, provisioned_resource_id, {'state': 'failed'})
+            self.do_instance_patch(token, instance_id, {'state': 'failed'})
             raise e
 
     @abc.abstractmethod
-    def do_provision(self, token, provisioned_resource_id):
+    def do_provision(self, token, instance_id):
         pass
 
     @abc.abstractmethod
-    def do_deprovision(self, token, provisioned_resource_id):
+    def do_deprovision(self, token, instance_id):
         pass
 
-    def do_provisioned_resource_patch(self, token, provisioned_resource_id, payload):
+    def do_instance_patch(self, token, instance_id, payload):
         auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
         headers = {'Content-type': 'application/x-www-form-urlencoded',
                    'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % auth}
-        url = 'https://localhost/api/v1/provisioned_resources/%s' % provisioned_resource_id
+        url = 'https://localhost/api/v1/instances/%s' % instance_id
         resp = requests.patch(url, data=payload, headers=headers,
                               verify=self.config.SSL_VERIFY)
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
         return resp
 
-    def upload_provisioning_log(self, token, provisioned_resource_id, log_type, log_text):
+    def upload_provisioning_log(self, token, instance_id, log_type, log_text):
         payload = {'text': log_text, 'type': log_type}
         auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
         headers = {'Content-type': 'application/x-www-form-urlencoded',
                    'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % auth}
-        url = 'https://localhost/api/v1/provisioned_resources/%s/logs' % provisioned_resource_id
+        url = 'https://localhost/api/v1/instances/%s/logs' % instance_id
         resp = requests.patch(url, data=payload, headers=headers,
                               verify=self.config.SSL_VERIFY)
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
         return resp
 
-    def create_prov_log_uploader(self, token, provisioned_resource_id, log_type):
+    def create_prov_log_uploader(self, token, instance_id, log_type):
         def uploader(text):
-            self.upload_provisioning_log(token, provisioned_resource_id, log_type, text)
+            self.upload_provisioning_log(token, instance_id, log_type, text)
 
         return uploader
 
@@ -110,16 +110,16 @@ class ProvisioningDriverBase(object):
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
         return resp
 
-    def get_provisioned_resource_data(self, token, provisioned_resource_id):
-        resp = self.do_get(token, 'provisioned_resources/%s' % provisioned_resource_id)
+    def get_instance_data(self, token, instance_id):
+        resp = self.do_get(token, 'instances/%s' % instance_id)
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for provisioned resources, %s' % resp.reason)
+            raise RuntimeError('Cannot fetch data for provisioned blueprints, %s' % resp.reason)
         return resp.json()
 
-    def get_resource_description(self, token, resource_id):
-        resp = self.do_get(token, 'resources/%s' % resource_id)
+    def get_blueprint_description(self, token, blueprint_id):
+        resp = self.do_get(token, 'blueprints/%s' % blueprint_id)
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for provisioned resources, %s' % resp.reason)
+            raise RuntimeError('Cannot fetch data for provisioned blueprints, %s' % resp.reason)
         return resp.json()
 
     def get_user_key_data(self, token, user_id):

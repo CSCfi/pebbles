@@ -9,35 +9,35 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
             $scope.plugins = response;
         });
 
-        var resources = Restangular.all('resources');
+        var blueprints = Restangular.all('blueprints');
 
-        resources.getList({show_deactivated: true}).then(function (response) {
-            $scope.resources = response;
+        blueprints.getList({show_deactivated: true}).then(function (response) {
+            $scope.blueprints = response;
         });
 
         $scope.submitForm = function(form, model) {
             if (form.$valid) {
-                resources.post({ plugin: $scope.selectedPlugin.id, name: model.name, config: model }).then(function (response) {
-                        resources.getList({show_deactivated: true}).then(function (response) {
-                                $scope.resources = response;
+                blueprints.post({ plugin: $scope.selectedPlugin.id, name: model.name, config: model }).then(function (response) {
+                        blueprints.getList({show_deactivated: true}).then(function (response) {
+                                $scope.blueprints = response;
                             }
                         )
                     }
                 );
-                $('#resourceCreate').modal('hide')
+                $('#blueprintCreate').modal('hide')
             }
         }
-        $scope.updateResource = function (form, model) {
+        $scope.updateBlueprint = function (form, model) {
             if (form.$valid) {
-                $scope.selectedResource.config = model;
-                $scope.selectedResource.put().then(function (response) {
-                        resources.getList({show_deactivated: true}).then(function (response) {
-                                $scope.resources = response;
+                $scope.selectedBlueprint.config = model;
+                $scope.selectedBlueprint.put().then(function (response) {
+                        blueprints.getList({show_deactivated: true}).then(function (response) {
+                                $scope.blueprints = response;
                             }
                         )
                     }
                 );
-                $('#resourceConfig').modal('hide')
+                $('#blueprintConfig').modal('hide')
             }
         }
 
@@ -46,35 +46,35 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
             $scope.$broadcast('schemaFormRedraw');
         }
 
-        $scope.selectResource = function(resource) {
-            $scope.selectedResource = resource;
+        $scope.selectBlueprint = function(blueprint) {
+            $scope.selectedBlueprint = blueprint;
             $scope.$broadcast('schemaFormRedraw');
         }
 
-        $scope.createResource = function() {
-            var newResource = {};
-            newResource.name = $scope.name;
-            newResource.config = $scope.config;
-            newResource.plugin = $scope.plugin;
-            resources.post(newResource);
+        $scope.createBlueprint = function() {
+            var newBlueprint = {};
+            newBlueprint.name = $scope.name;
+            newBlueprint.config = $scope.config;
+            newBlueprint.plugin = $scope.plugin;
+            blueprints.post(newBlueprint);
         }
 
         $scope.updateConfig = function() {
-            $scope.selectedResource.put();
-            $('#resourceConfig').modal('hide')
+            $scope.selectedBlueprint.put();
+            $('#blueprintConfig').modal('hide')
 
         }
 
         
 
-        $scope.activate = function (resource) {
-            resource.is_enabled = true;
-            resource.put();
+        $scope.activate = function (blueprint) {
+            blueprint.is_enabled = true;
+            blueprint.put();
         }
 
-        $scope.deactivate = function (resource) {
-            resource.is_enabled = undefined;
-            resource.put();
+        $scope.deactivate = function (blueprint) {
+            blueprint.is_enabled = undefined;
+            blueprint.put();
         }
 
     }]);

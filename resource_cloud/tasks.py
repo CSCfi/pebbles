@@ -41,15 +41,15 @@ flask_app = get_app()
 @app.task(name="resource_cloud.tasks.deprovision_expired")
 def deprovision_expired():
     token = get_token()
-    provisioned_resources = get_provisioned_resources(token)
-    for provisioned_resource in provisioned_resources:
-        logger.debug('checking provisioned resource for expiration %s' % provisioned_resource)
+    instances = get_instances(token)
+    for instance in instances:
+        logger.debug('checking instance for expiration %s' % instance)
 
-        if not provisioned_resource.get('state') in ['running']:
+        if not instance.get('state') in ['running']:
             continue
-        if not provisioned_resource.get('lifetime_left'):
-            logger.info('timed deprovisioning triggered for %s' % provisioned_resource.get('id'))
-            run_deprovisioning.delay(token, provisioned_resource.get('id'))
+        if not instance.get('lifetime_left'):
+            logger.info('timed deprovisioning triggered for %s' % instance.get('id'))
+            run_deprovisioning.delay(token, instance.get('id'))
 
 
 @app.task(name="resource_cloud.tasks.send_mails")
@@ -88,33 +88,33 @@ def get_provisioning_manager():
     return mgr
 
 
-def get_provisioning_type(token, provisioned_resource_id):
-    resource = get_provisioned_resource_parent_data(token, provisioned_resource_id)
-    plugin_id = resource['plugin']
+def get_provisioning_type(token, instance_id):
+    blueprint = get_instance_parent_data(token, instance_id)
+    plugin_id = blueprint['plugin']
     return get_plugin_data(token, plugin_id)['name']
 
 
 @app.task(name="resource_cloud.tasks.run_provisioning")
-def run_provisioning(token, provisioned_resource_id):
-    logger.info('provisioning triggered for %s' % provisioned_resource_id)
+def run_provisioning(token, instance_id):
+    logger.info('provisioning triggered for %s' % instance_id)
     mgr = get_provisioning_manager()
 
-    plugin = get_provisioning_type(token, provisioned_resource_id)
+    plugin = get_provisioning_type(token, instance_id)
 
-    mgr.map_method([plugin], 'provision', token, provisioned_resource_id)
+    mgr.map_method([plugin], 'provision', token, instance_id)
 
     logger.info('provisioning done, notifying server')
 
 
 @app.task(name="resource_cloud.tasks.run_deprovisioning")
-def run_deprovisioning(token, provisioned_resource_id):
-    logger.info('deprovisioning triggered for %s' % provisioned_resource_id)
+def run_deprovisioning(token, instance_id):
+    logger.info('deprovisioning triggered for %s' % instance_id)
 
     mgr = get_provisioning_manager()
 
-    plugin = get_provisioning_type(token, provisioned_resource_id)
+    plugin = get_provisioning_type(token, instance_id)
 
-    mgr.map_method([plugin], 'deprovision', token, provisioned_resource_id)
+    mgr.map_method([plugin], 'deprovision', token, instance_id)
 
     logger.info('deprovisioning done, notifying server')
 
@@ -172,33 +172,33 @@ def do_post(token, api_path, data):
     return resp
 
 
-def get_provisioned_resources(token):
-    resp = do_get(token, 'provisioned_resources')
+def get_instances(token):
+    resp = do_get(token, 'instances')
     if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for provisioned resources, %s' % resp.reason)
+        raise RuntimeError('Cannot fetch data for instances, %s' % resp.reason)
     return resp.json()
 
 
-def get_provisioned_resource(token, provisioned_resource_id):
-    resp = do_get(token, 'provisioned_resources/%s' % provisioned_resource_id)
+def get_instance(token, instance_id):
+    resp = do_get(token, 'instances/%s' % instance_id)
     if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for provisioned resource %s, %s' % (provisioned_resource_id, resp.reason))
+        raise RuntimeError('Cannot fetch data for instances %s, %s' % (instance_id, resp.reason))
     return resp.json()
 
 
-def get_resource_description(token, resource_id):
-    resp = do_get(token, 'resources/%s' % resource_id)
+def get_blueprint_description(token, blueprint_id):
+    resp = do_get(token, 'blueprints/%s' % blueprint_id)
     if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for resource %s, %s' % (resource_id, resp.reason))
+        raise RuntimeError('Cannot fetch data for blueprint %s, %s' % (blueprint_id, resp.reason))
     return resp.json()
 
 
-def get_provisioned_resource_parent_data(token, provisioned_resource_id):
-    resource_id = get_provisioned_resource(token, provisioned_resource_id)['resource_id']
+def get_instance_parent_data(token, instance_id):
+    blueprint_id = get_instance(token, instance_id)['blueprint_id']
 
-    resp = do_get(token, 'resources/%s' % resource_id)
+    resp = do_get(token, 'blueprints/%s' % blueprint_id)
     if resp.status_code != 200:
-        raise RuntimeError('Error loading resource data: %s, %s' % (resource_id, resp.reason))
+        raise RuntimeError('Error loading blueprint data: %s, %s' % (blueprint_id, resp.reason))
 
     return resp.json()
 

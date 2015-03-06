@@ -11,12 +11,12 @@ import werkzeug
 import datetime
 from functools import wraps
 
-from resource_cloud.models import User, ActivationToken, Resource, Plugin
-from resource_cloud.models import ProvisionedResource, SystemToken, Keypair
+from resource_cloud.models import User, ActivationToken, Blueprint, Plugin
+from resource_cloud.models import Instance, SystemToken, Keypair
 from resource_cloud.forms import UserForm, SessionCreateForm, ActivationForm
 from resource_cloud.forms import ChangePasswordForm, PasswordResetRequestForm
-from resource_cloud.forms import ResourceForm
-from resource_cloud.forms import PluginForm, ProvisionedResourceForm
+from resource_cloud.forms import BlueprintForm
+from resource_cloud.forms import PluginForm, InstanceForm
 
 from resource_cloud.server import auth, db, restful, app
 from resource_cloud.tasks import run_provisioning, run_deprovisioning
@@ -24,7 +24,7 @@ from resource_cloud.tasks import send_mails
 
 from resource_cloud.utils import generate_ssh_keypair
 
-USER_RESOURCE_LIMIT = 5
+USER_INSTANCE_LIMIT = 5
 
 
 @app.route("/api/debug")
@@ -329,133 +329,132 @@ class ActivationList(restful.Resource):
             send_mails.delay([(user.email, token.token)])
 
 
-provision_fields = {
+instance_fields = {
     'id': fields.String(attribute='visual_id'),
     'name': fields.String,
     'provisioned_at': fields.DateTime,
     'lifetime_left': fields.Integer,
     'state': fields.String,
     'user_id': fields.String,
-    'resource_id': fields.String,
+    'blueprint_id': fields.String,
     'public_ip': fields.String,
     'logs': fields.Raw,
 }
 
 
-class ProvisionedResourceList(restful.Resource):
+class InstanceList(restful.Resource):
     @auth.login_required
-    @marshal_with(provision_fields)
+    @marshal_with(instance_fields)
     def get(self):
         user = g.user
         if user.is_admin:
-            provisions = ProvisionedResource.query. \
-                filter(ProvisionedResource.state != 'deleted').all()
+            instances = Instance.query. \
+                filter(Instance.state != 'deleted').all()
         else:
-            provisions = ProvisionedResource.query.filter_by(user_id=user.id). \
-                filter((ProvisionedResource.state != 'deleted')).all()
+            instances = Instance.query.filter_by(user_id=user.id). \
+                filter((Instance.state != 'deleted')).all()
 
-        for provision in provisions:
+        for instance in instances:
             if user.is_admin:
-                res_owner = User.query.filter_by(id=provision.user_id).first()
-                provision.user_id = res_owner.visual_id
+                res_owner = User.query.filter_by(id=instance.user_id).first()
+                instance.user_id = res_owner.visual_id
             else:
-                provision.user_id = user.visual_id
+                instance.user_id = user.visual_id
 
-            provision.logs = ProvisionedResourceLogs.get_logfile_urls(provision.visual_id)
+            instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
 
-            res_parent = Resource.query.filter_by(id=provision.resource_id).first()
+            blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
 
-            if not res_parent:
-                logging.warn("provisioned resource %s has a reference to "
-                             "non-existing resource" % provision.visual_id)
+            if not blueprint:
+                logging.warn("instance %s has a reference to non-existing blueprint" % instance.visual_id)
                 continue
 
-            provision.resource_id = res_parent.visual_id
+            instance.blueprint_id = blueprint.visual_id
             age = 0
-            if provision.provisioned_at:
-                age = (datetime.datetime.utcnow() - provision.provisioned_at).total_seconds()
-            provision.lifetime_left = max(res_parent.max_lifetime - age, 0)
+            if instance.provisioned_at:
+                age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
+            instance.lifetime_left = max(blueprint.max_lifetime - age, 0)
 
-        return provisions
+        return instances
 
     @auth.login_required
     def post(self):
         user = g.user
 
-        form = ProvisionedResourceForm()
+        form = InstanceForm()
         if not form.validate_on_submit():
             logging.warn("validation error on user login")
             return form.errors, 422
 
-        resource_id = form.resource.data
+        blueprint_id = form.blueprint.data
 
-        resource = Resource.query.filter_by(visual_id=resource_id).filter_by(is_enabled=True).first()
-        if not resource:
+        blueprint = Blueprint.query.filter_by(visual_id=blueprint_id).filter_by(is_enabled=True).first()
+        if not blueprint:
             abort(404)
 
-        resources_for_user = ProvisionedResource.query.filter_by(resource_id=resource_id). \
-            filter_by(user_id=user.id).filter(ProvisionedResource.state != 'deleted').all()
-        if resources_for_user and len(resources_for_user) >= USER_RESOURCE_LIMIT:
+        blueprints_for_user = Instance.query.filter_by(blueprint_id=blueprint_id). \
+            filter_by(user_id=user.id).filter(Instance.state != 'deleted').all()
+        if blueprints_for_user and len(blueprints_for_user) >= USER_INSTANCE_LIMIT:
             abort(409)
 
-        provision = ProvisionedResource(resource.id, user.id)
+        instance = Instance(blueprint.id, user.id)
 
         # decide on a name that is not used currently
-        all_resources = ProvisionedResource.query.all()
-        existing_names = [x.name for x in all_resources]
+        all_instances = Instance.query.all()
+        existing_names = [x.name for x in all_instances]
         # Note: the potential race is solved by unique constraint in database
         while True:
             c_name = names.get_first_name().lower()
             if c_name not in existing_names:
-                provision.name = c_name
+                instance.name = c_name
                 break
         token = SystemToken('provisioning')
-        db.session.add(provision)
+        db.session.add(instance)
         db.session.add(token)
         db.session.commit()
 
         if not app.config['SKIP_TASK_QUEUE']:
-            run_provisioning.delay(token.token, provision.visual_id)
+            run_provisioning.delay(token.token, instance.visual_id)
 
 
-class ProvisionedResourceView(restful.Resource):
+class InstanceView(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('state', type=str)
     parser.add_argument('public_ip', type=str)
 
     @auth.login_required
-    @marshal_with(provision_fields)
-    def get(self, provision_id):
+    @marshal_with(instance_fields)
+    def get(self, instance_id):
         user = g.user
-        provision = ProvisionedResource.query.filter_by(visual_id=provision_id)
+        instance = Instance.query.filter_by(visual_id=instance_id)
         if not user.is_admin:
-            provision = provision.filter_by(user_id=user.id)
-        provision = provision.first()
-        if not provision:
+            instance = instance.filter_by(user_id=user.id)
+        instance = instance.first()
+        if not instance:
             abort(404)
 
         if user.is_admin:
-            res_owner = User.query.filter_by(id=provision.user_id).first()
-            provision.user_id = res_owner.visual_id
+            res_owner = User.query.filter_by(id=instance.user_id).first()
+            instance.user_id = res_owner.visual_id
         else:
-            provision.user_id = user.visual_id
+            instance.user_id = user.visual_id
 
-        res_parent = Resource.query.filter_by(id=provision.resource_id).first()
-        provision.resource_id = res_parent.visual_id
+        res_parent = Blueprint.query.filter_by(id=instance.blueprint_id).first()
+        instance.blueprint_id = res_parent.visual_id
 
-        provision.logs = ProvisionedResourceLogs.get_logfile_urls(provision.visual_id)
+        instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
 
         age = 0
-        if provision.provisioned_at:
-            age = (datetime.datetime.utcnow() - provision.provisioned_at).total_seconds()
-        provision.lifetime_left = max(res_parent.max_lifetime - age, 0)
+        if instance.provisioned_at:
+            age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
+        instance.lifetime_left = max(res_parent.max_lifetime - age, 0)
 
-        return provision
+        return instance
 
     @auth.login_required
-    def delete(self, provision_id):
+    def delete(self, instance_id):
         user = g.user
-        pr = ProvisionedResource.query.filter_by(visual_id=provision_id). \
+        pr = Instance.query.filter_by(visual_id=instance_id). \
             filter_by(user_id=user.id).first()
         if not pr:
             abort(404)
@@ -467,45 +466,45 @@ class ProvisionedResourceView(restful.Resource):
             run_deprovisioning.delay(token.token, pr.visual_id)
 
     @auth.login_required
-    def patch(self, provision_id):
+    def patch(self, instance_id):
         user = g.user
         args = self.parser.parse_args()
-        qr = ProvisionedResource.query.filter_by(visual_id=provision_id)
+        qr = Instance.query.filter_by(visual_id=instance_id)
         if not user.is_admin:
             qr = qr.filter_by(user_id=user.id)
-        pr = qr.first()
-        if not pr:
+        instance = qr.first()
+        if not instance:
             abort(404)
 
         # TODO: add a model for state transitions
         if args['state']:
             if args['state'] == 'deleting':
-                if pr.state in ['starting', 'running', 'failed']:
-                    pr.state = args['state']
-                    self.delete(provision_id)
+                if instance.state in ['starting', 'running', 'failed']:
+                    instance.state = args['state']
+                    self.delete(instance_id)
             else:
-                pr.state = args['state']
-                if pr.state == 'running' and user.is_admin:
-                    if not pr.provisioned_at:
-                        pr.provisioned_at = datetime.datetime.utcnow()
+                instance.state = args['state']
+                if instance.state == 'running' and user.is_admin:
+                    if not instance.provisioned_at:
+                        instance.provisioned_at = datetime.datetime.utcnow()
 
             db.session.commit()
 
         if args['public_ip'] and user.is_admin:
-            pr.public_ip = args['public_ip']
+            instance.public_ip = args['public_ip']
             db.session.commit()
 
 
-class ProvisionedResourceLogs(restful.Resource):
+class InstanceLogs(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('type', type=str)
     parser.add_argument('text', type=str)
 
     @staticmethod
-    def get_base_dir_and_filename(prov_res_id, log_type, create_missing_filename=False):
-        log_dir = '/webapps/resource_cloud/provisioning_logs/%s' % prov_res_id
+    def get_base_dir_and_filename(instance_id, log_type, create_missing_filename=False):
+        log_dir = '/webapps/resource_cloud/provisioning_logs/%s' % instance_id
 
-        # make sure the directory for this provisioned resource exists
+        # make sure the directory for this instance exists
         if not os.path.isdir(log_dir):
             os.mkdir(log_dir, 0o755)
 
@@ -520,19 +519,19 @@ class ProvisionedResourceLogs(restful.Resource):
         return log_dir, log_file_name
 
     @staticmethod
-    def get_logfile_urls(provision_id):
+    def get_logfile_urls(instance_id):
         res = []
         for log_type in ['provisioning', 'deprovisioning']:
-            log_dir, log_file_name = ProvisionedResourceLogs.get_base_dir_and_filename(provision_id, log_type)
+            log_dir, log_file_name = InstanceLogs.get_base_dir_and_filename(instance_id, log_type)
             if log_file_name:
-                res.append({'url': '/provisioning_logs/%s/%s' % (provision_id, log_file_name), 'type': log_type})
+                res.append({'url': '/provisioning_logs/%s/%s' % (instance_id, log_file_name), 'type': log_type})
         return res
 
     @auth.login_required
     @requires_admin
-    def patch(self, provision_id):
+    def patch(self, instance_id):
         args = self.parser.parse_args()
-        pr = ProvisionedResource.query.filter_by(visual_id=provision_id).first()
+        pr = Instance.query.filter_by(visual_id=instance_id).first()
         if not pr:
             abort(404)
 
@@ -541,7 +540,7 @@ class ProvisionedResourceLogs(restful.Resource):
             abort(403)
 
         if log_type in ('provisioning', 'deprovisioning'):
-            log_dir, log_file_name = self.get_base_dir_and_filename(provision_id, log_type,
+            log_dir, log_file_name = self.get_base_dir_and_filename(instance_id, log_type,
                                                                     create_missing_filename=True)
 
             with open('%s/%s' % (log_dir, log_file_name), 'a') as logfile:
@@ -552,7 +551,7 @@ class ProvisionedResourceLogs(restful.Resource):
         return 'ok'
 
 
-resource_fields = {
+blueprint_fields = {
     'id': fields.String(attribute='visual_id'),
     'max_lifetime': fields.Integer,
     'name': fields.String,
@@ -564,72 +563,72 @@ resource_fields = {
 }
 
 
-class ResourceList(restful.Resource):
+class BlueprintList(restful.Resource):
     @auth.login_required
-    @marshal_with(resource_fields)
+    @marshal_with(blueprint_fields)
     def get(self):
-        query = Resource.query
+        query = Blueprint.query
         if not g.user.is_admin:
             query = query.filter_by(is_enabled=True)
 
         results = []
-        for resource in query.all():
-            plugin = Plugin.query.filter_by(visual_id=resource.plugin).first()
-            resource.schema = plugin.schema
-            resource.form = plugin.form
-            results.append(resource)
+        for blueprint in query.all():
+            plugin = Plugin.query.filter_by(visual_id=blueprint.plugin).first()
+            blueprint.schema = plugin.schema
+            blueprint.form = plugin.form
+            results.append(blueprint)
         return results
 
     @auth.login_required
     @requires_admin
     def post(self):
-        form = ResourceForm()
+        form = BlueprintForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on create resource")
+            logging.warn("validation error on create blueprint")
             return form.errors, 422
 
-        resource = Resource()
-        resource.name = form.name.data
-        resource.plugin = form.plugin.data
-        resource.config = form.config.data
+        blueprint = Blueprint()
+        blueprint.name = form.name.data
+        blueprint.plugin = form.plugin.data
+        blueprint.config = form.config.data
 
         if 'maximum_lifetime' in form.config.data:
             try:
-                resource.max_lifetime = int(form.config.data['maximum_lifetime'])
+                blueprint.max_lifetime = int(form.config.data['maximum_lifetime'])
             except:
                 pass
 
-        db.session.add(resource)
+        db.session.add(blueprint)
         db.session.commit()
 
 
-class ResourceView(restful.Resource):
+class BlueprintView(restful.Resource):
     @auth.login_required
-    @marshal_with(resource_fields)
-    def get(self, resource_id):
-        return Resource.query.filter_by(visual_id=resource_id).first()
+    @marshal_with(blueprint_fields)
+    def get(self, blueprint_id):
+        return Blueprint.query.filter_by(visual_id=blueprint_id).first()
 
     @auth.login_required
     @requires_admin
-    def put(self, resource_id):
-        form = ResourceForm()
+    def put(self, blueprint_id):
+        form = BlueprintForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on update resource config")
+            logging.warn("validation error on update blueprint config")
             return form.errors, 422
 
-        resource = Resource.query.filter_by(visual_id=resource_id).first()
-        resource.name = form.name.data
-        resource.config = form.config.data
-        if 'maximum_lifetime' in resource.config:
+        blueprint = Blueprint.query.filter_by(visual_id=blueprint_id).first()
+        blueprint.name = form.name.data
+        blueprint.config = form.config.data
+        if 'maximum_lifetime' in blueprint.config:
             try:
-                resource.max_lifetime = int(resource.config['maximum_lifetime'])
+                blueprint.max_lifetime = int(blueprint.config['maximum_lifetime'])
             except:
                 pass
 
-        resource.plugin = form.plugin.data
-        resource.is_enabled = form.is_enabled.data
+        blueprint.plugin = form.plugin.data
+        blueprint.is_enabled = form.is_enabled.data
 
-        db.session.add(resource)
+        db.session.add(blueprint)
         db.session.commit()
 
 
@@ -665,7 +664,7 @@ class PluginList(restful.Resource):
     def post(self):
         form = PluginForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on update resource config")
+            logging.warn("validation error on update blueprint config")
             return form.errors, 422
 
         plugin = Plugin.query.filter_by(name=form.plugin.data).first()
@@ -693,16 +692,16 @@ def setup_resource_urls(api_service):
     api_service.add_resource(SessionView, api_root + '/sessions')
     api_service.add_resource(ActivationList, api_root + '/activations')
     api_service.add_resource(ActivationView, api_root + '/activations/<string:token_id>')
-    api_service.add_resource(ResourceList, api_root + '/resources')
-    api_service.add_resource(ResourceView, api_root + '/resources/<string:resource_id>')
-    api_service.add_resource(ProvisionedResourceList, api_root + '/provisioned_resources')
+    api_service.add_resource(BlueprintList, api_root + '/blueprints')
+    api_service.add_resource(BlueprintView, api_root + '/blueprints/<string:blueprint_id>')
+    api_service.add_resource(InstanceList, api_root + '/instances')
     api_service.add_resource(
-        ProvisionedResourceView,
-        api_root + '/provisioned_resources/<string:provision_id>',
+        InstanceView,
+        api_root + '/instances/<string:instance_id>',
         methods=['GET', 'POST', 'DELETE', 'PATCH'])
     api_service.add_resource(
-        ProvisionedResourceLogs,
-        api_root + '/provisioned_resources/<string:provision_id>/logs',
+        InstanceLogs,
+        api_root + '/instances/<string:instance_id>/logs',
         methods=['GET', 'PATCH'])
     api_service.add_resource(PluginList, api_root + '/plugins')
     api_service.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')
