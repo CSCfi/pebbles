@@ -11,6 +11,7 @@ class FlaskApiTestCase(BaseTestCase):
         db.create_all()
         u1 = User("admin@example.org", "admin", is_admin=True)
         u2 = User("user@example.org", "user", is_admin=False)
+        self.known_user_id = u2.visual_id
 
         db.session.add(u1)
         db.session.add(u2)
@@ -235,6 +236,26 @@ class FlaskApiTestCase(BaseTestCase):
     def test_admin_get_instance(self):
         response = self.make_authenticated_admin_request(path='/api/v1/instances/%s' % self.known_instance_id)
         self.assert_200(response)
+
+    def test_anonymous_get_keypairs(self):
+        response = self.make_request(path='/api/v1/users/%s/keypairs' % self.known_user_id)
+        self.assert_401(response)
+        response2 = self.make_request(path='/api/v1/users/%s/keypairs' % '0xBogus')
+        self.assert_401(response2)
+
+    def test_user_get_keypairs(self):
+        response = self.make_authenticated_user_request(path='/api/v1/users/%s/keypairs' % self.known_user_id)
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 0)
+        response2 = self.make_authenticated_user_request(path='/api/v1/users/%s/keypairs' % '0xBogus')
+        self.assert_403(response2)
+
+    def test_admin_get_keypairs(self):
+        response = self.make_authenticated_admin_request(path='/api/v1/users/%s/keypairs' % self.known_user_id)
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 0)
+        response2 = self.make_authenticated_admin_request(path='/api/v1/users/%s/keypairs' % '0xBogus')
+        self.assert_404(response2)
 
 
 if __name__ == '__main__':

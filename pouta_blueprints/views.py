@@ -191,6 +191,9 @@ class KeypairList(restful.Resource):
         if user_id != g.user.visual_id:
             user = User.query.filter_by(visual_id=user_id).first()
 
+        if not user:
+            abort(404)
+
         return Keypair.query.filter_by(user_id=user.id).order_by(desc("id")).all()
 
 
