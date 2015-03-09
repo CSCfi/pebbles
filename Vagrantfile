@@ -44,6 +44,7 @@ Vagrant.configure(2) do |config|
     inline: "echo 'sudo tmux -f /shared_folder/tmux.conf att' > /home/vagrant/.bash_history",
     privileged: false
 
+  # mimic multi container deployment. In a single deployment mode www services are accessible on localhost
   config.vm.provision "shell",
     inline: "echo '127.0.0.1 www' | sudo tee -a /etc/hosts",
     privileged: false
