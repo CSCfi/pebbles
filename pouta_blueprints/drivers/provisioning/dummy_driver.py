@@ -20,13 +20,14 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         os.makedirs(instance_dir)
 
         # fetch config for this cluster
-        config = self.get_blueprint_description(token, instance['blueprint_id'])
+        # config = self.get_blueprint_description(token, instance['blueprint_id'])
 
         # fetch user public key and save it
         key_data = self.get_user_key_data(token, instance['user_id']).json()
         user_key_file = '%s/userkey.pub' % instance_dir
         if not key_data:
-            self.do_instance_patch(token, instance_id, {'state': 'failed'})
+            error_body = {'state': 'failed', 'error_msg': 'user\'s public key is missing'}
+            self.do_instance_patch(token, instance_id, error_body)
             raise RuntimeError("User's public key missing")
 
         with open(user_key_file, 'w') as kf:
