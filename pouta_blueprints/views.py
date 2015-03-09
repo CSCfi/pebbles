@@ -194,17 +194,6 @@ class KeypairList(restful.Resource):
         return Keypair.query.filter_by(user_id=user.id).order_by(desc("id")).all()
 
 
-class KeypairView(restful.Resource):
-    @auth.login_required
-    @marshal_with(public_key_fields)
-    def get(self, user_id, keypair_id):
-        pass
-
-    @auth.login_required
-    def delete(self, user_id, keypair_id):
-        pass
-
-
 private_key_fields = {
     'private_key': fields.String
 }
@@ -690,7 +679,6 @@ def setup_resource_urls(api_service):
     api_service.add_resource(UserList, api_root + '/users', methods=['GET', 'POST', 'PATCH'])
     api_service.add_resource(UserView, api_root + '/users/<string:user_id>')
     api_service.add_resource(KeypairList, api_root + '/users/<string:user_id>/keypairs')
-    api_service.add_resource(KeypairView, api_root + '/users/<string:user_id>/keypairs/<string:keypair_id>')
     api_service.add_resource(CreateKeyPair, api_root + '/users/<string:user_id>/keypairs/create')
     api_service.add_resource(UploadKeyPair, api_root + '/users/<string:user_id>/keypairs/upload')
     api_service.add_resource(SessionView, api_root + '/sessions')
