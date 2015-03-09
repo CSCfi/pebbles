@@ -1,5 +1,5 @@
 app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$scope', '$interval', 'AuthService', 'Restangular',
-    function ($q, $http, $routeParams, $scope, $interval, AuthService, Restangular) {
+                                    function ($q,   $http,   $routeParams,   $scope,   $interval,   AuthService,   Restangular) {
 
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
 
@@ -49,13 +49,32 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
             });
         };
 
-        var statePollInterval = $interval(function () {
-            if (AuthService.isAuthenticated()) {
-                $scope.refresh();
-            } else {
-                $interval.cancel(statePollInterval);
+        var stop;
+        $scope.startPolling = function() {
+            if (angular.isDefined(stop)) {
+                return;
             }
-        }, 10000);
+            stop = $interval(function () {
+                if (AuthService.isAuthenticated()) {
+                    $scope.refresh();
+                } else {
+                    $interval.cancel(statePollInterval);
+                }
+            }, 10000);
+        };
+
+        $scope.stopPolling = function() {
+            if (angular.isDefined(stop)) {
+                $interval.cancel(stop);
+                stop = undefined;
+            }
+        };
+
+        $scope.$on('$destroy', function() {
+            $scope.stopPolling();
+        });
+
+        $scope.startPolling();
     }
 ])
 ;
