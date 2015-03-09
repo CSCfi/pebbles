@@ -9,9 +9,10 @@ Vagrant.configure(2) do |config|
 
   config.vm.box = "ubuntu/trusty64"
 
-  config.vm.define "single" do |vm|
+  config.vm.define "single", autostart: false do |vm|
     config.vm.network "forwarded_port", guest: 80, host: 8080
     config.vm.network "forwarded_port", guest: 443, host: 8888
+    config.vm.synced_folder ".", "/shared_folder"
   end
 
   # if using virtualbox, run on two vcpus
