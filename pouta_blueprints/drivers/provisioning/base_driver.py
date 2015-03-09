@@ -11,6 +11,7 @@ import requests
 
 from pouta_blueprints.config import DevConfig as ActiveConfig
 
+
 @six.add_metaclass(abc.ABCMeta)
 class ProvisioningDriverBase(object):
     config = {}
