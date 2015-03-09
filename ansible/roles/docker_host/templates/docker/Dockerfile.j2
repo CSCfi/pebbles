@@ -1,0 +1,21 @@
+FROM    ubuntu:14.04
+MAINTAINER Olli Tourunen "olli.tourunen@csc.fi"
+
+RUN apt-get update
+
+RUN apt-get install -y openssh-server
+
+RUN mkdir -p /var/run/sshd
+RUN chmod 0755 /var/run/sshd
+
+# Create and configure vagrant user
+RUN useradd --create-home -s /bin/bash ansible
+ADD ansible-sudo /etc/sudoers.d/ansible
+RUN mkdir -p /home/ansible/.ssh/
+ADD id_rsa.pub /home/ansible/.ssh/authorized_keys
+RUN chown -R ansible:ansible /home/ansible/ && chmod 700 /home/ansible/.ssh/ && chmod 600 /home/ansible/.ssh/authorized_keys
+RUN echo -n 'ansible:ansible' | chpasswd
+
+EXPOSE 22
+
+CMD /usr/sbin/sshd -D -o UseDNS=no -o UsePAM=no
