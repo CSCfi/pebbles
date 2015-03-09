@@ -1,6 +1,20 @@
+- name: Create application log directory
+  file:
+    dest={{ application_log_dir }}
+    mode=775 state=directory
+    owner={{ application_user }}
+    group={{ application_group }}
+
 - name: Create the application log file
   command: touch {{ application_log_file }}
            creates={{ application_log_file }}
+
+- name: Set permission to the application log file
+  file: path={{ application_log_file }}
+        owner={{ application_user }}
+        group={{ application_group }}
+        mode=0664
+        state=file
 
 - name: Create runtime directory
   file:
@@ -15,13 +29,6 @@
     mode=775 state=directory
     owner={{ application_user }}
     group={{ application_group }}
-
-- name: Set permission to the application log file
-  file: path={{ application_log_file }}
-        owner={{ application_user }}
-        group={{ application_group }}
-        mode=0664
-        state=file
 
 - name: Copy application configuration
   template: src=app_config.j2
