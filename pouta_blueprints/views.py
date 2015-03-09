@@ -333,6 +333,7 @@ instance_fields = {
     'provisioned_at': fields.DateTime,
     'lifetime_left': fields.Integer,
     'state': fields.String,
+    'error_msg': fields.String,
     'user_id': fields.String,
     'blueprint_id': fields.String,
     'public_ip': fields.String,
@@ -418,6 +419,7 @@ class InstanceView(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('state', type=str)
     parser.add_argument('public_ip', type=str)
+    parser.add_argument('error_msg', type=str)
 
     @auth.login_required
     @marshal_with(instance_fields)
@@ -476,10 +478,11 @@ class InstanceView(restful.Resource):
             abort(404)
 
         # TODO: add a model for state transitions
-        if args['state']:
+        if args.get('state'):
             if args['state'] == 'deleting':
                 if instance.state in ['starting', 'running', 'failed']:
                     instance.state = args['state']
+                    instance.error_msg = ''
                     self.delete(instance_id)
             else:
                 instance.state = args['state']
@@ -489,7 +492,11 @@ class InstanceView(restful.Resource):
 
             db.session.commit()
 
-        if args['public_ip'] and user.is_admin:
+        if args.get('error_msg'):
+            instance.error_msg = args['error_msg']
+            db.session.commit()
+
+        if args.get('public_ip') and user.is_admin:
             instance.public_ip = args['public_ip']
             db.session.commit()
 
