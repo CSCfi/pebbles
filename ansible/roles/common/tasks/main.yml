@@ -28,3 +28,4 @@
 - include: setup_virtualenv.yml
 - include: fetch_application.yml
 - include: setup_supervisor.yml
+- include: setup_runtime_directories.yml
