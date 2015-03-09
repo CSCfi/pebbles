@@ -191,6 +191,9 @@ class KeypairList(restful.Resource):
         if user_id != g.user.visual_id:
             user = User.query.filter_by(visual_id=user_id).first()
 
+        if not user:
+            abort(404)
+
         return Keypair.query.filter_by(user_id=user.id).order_by(desc("id")).all()
 
 
@@ -509,6 +512,9 @@ class InstanceLogs(restful.Resource):
     @staticmethod
     def get_base_dir_and_filename(instance_id, log_type, create_missing_filename=False):
         log_dir = '/webapps/pouta_blueprints/provisioning_logs/%s' % instance_id
+
+        if not app.config['WRITE_PROVISIONING_LOGS']:
+            return None, None
 
         # make sure the directory for this instance exists
         if not os.path.isdir(log_dir):
