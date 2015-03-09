@@ -25,12 +25,9 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
         };
 
         $scope.deprovision = function (instance) {
-            instance.patch({state: 'deleting'}).then(function () {
-                var index = $scope.instances.indexOf(instance);
-                if (index > -1) {
-                    $scope.instances[index].state = 'deleting';
-                }
-            });
+            instance.state = 'deleting';
+            instance.error_msg = '';
+            instance.patch();
         };
 
         var stop;
