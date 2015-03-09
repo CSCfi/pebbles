@@ -503,6 +503,9 @@ class InstanceLogs(restful.Resource):
     def get_base_dir_and_filename(instance_id, log_type, create_missing_filename=False):
         log_dir = '/webapps/pouta_blueprints/provisioning_logs/%s' % instance_id
 
+        if not app.config['WRITE_PROVISIONING_LOGS']:
+            return None, None
+
         # make sure the directory for this instance exists
         if not os.path.isdir(log_dir):
             os.mkdir(log_dir, 0o755)

@@ -3,14 +3,17 @@ import base64
 import json
 
 from pouta_blueprints.tests.base import db, BaseTestCase
-from pouta_blueprints.models import User, Blueprint, Plugin, ActivationToken
+from pouta_blueprints.models import User, Blueprint, Plugin, ActivationToken, Instance
 
 
 class FlaskApiTestCase(BaseTestCase):
     def setUp(self):
         db.create_all()
-        db.session.add(User("admin@example.org", "admin", is_admin=True))
-        db.session.add(User("user@example.org", "user", is_admin=False))
+        u1 = User("admin@example.org", "admin", is_admin=True)
+        u2 = User("user@example.org", "user", is_admin=False)
+
+        db.session.add(u1)
+        db.session.add(u2)
         p1 = Plugin()
         p1.name = "TestPlugin"
         self.known_plugin_id = p1.visual_id
@@ -23,9 +26,18 @@ class FlaskApiTestCase(BaseTestCase):
         r2.name = "EnabledTestBlueprint"
         r2.plugin = p1.visual_id
         r2.is_enabled = True
-        self.known_blueprint_id = r2.visual_id
         db.session.add(r1)
         db.session.add(r2)
+        self.known_blueprint_id = r2.visual_id
+
+        db.session.commit()
+
+        i1 = Instance(
+            Blueprint.query.filter_by(visual_id=r2.visual_id).first().id,
+            User.query.filter_by(email="user@example.org").first().id)
+        db.session.add(i1)
+        self.known_instance_id = i1.visual_id
+
         db.session.commit()
 
     def make_request(self, method='GET', path='/', headers={}, data=None):
@@ -196,6 +208,32 @@ class FlaskApiTestCase(BaseTestCase):
             method='POST',
             path='/api/v1/instances',
             data=json.dumps(data))
+        self.assert_200(response)
+
+    def test_anonymous_get_instances(self):
+        response = self.make_request(path='/api/v1/instances')
+        self.assert_401(response)
+
+    def test_user_get_instances(self):
+        response = self.make_authenticated_user_request(path='/api/v1/instances')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 1)
+
+    def test_admin_get_instances(self):
+        response = self.make_authenticated_admin_request(path='/api/v1/instances')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 1)
+
+    def test_anonymous_get_instance(self):
+        response = self.make_request(path='/api/v1/instances/%s' % self.known_instance_id)
+        self.assert_401(response)
+
+    def test_user_get_instance(self):
+        response = self.make_authenticated_user_request(path='/api/v1/instances/%s' % self.known_instance_id)
+        self.assert_200(response)
+
+    def test_admin_get_instance(self):
+        response = self.make_authenticated_admin_request(path='/api/v1/instances/%s' % self.known_instance_id)
         self.assert_200(response)
 
 
