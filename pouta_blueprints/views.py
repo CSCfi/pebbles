@@ -387,7 +387,7 @@ class InstanceList(restful.Resource):
         if blueprints_for_user and len(blueprints_for_user) >= USER_INSTANCE_LIMIT:
             abort(409)
 
-        instance = Instance(blueprint.id, user.id)
+        instance = Instance(blueprint, user)
 
         # decide on a name that is not used currently
         all_instances = Instance.query.all()
@@ -417,10 +417,10 @@ class InstanceView(restful.Resource):
     @marshal_with(instance_fields)
     def get(self, instance_id):
         user = g.user
-        instance = Instance.query.filter_by(visual_id=instance_id)
+        query = Instance.query.filter_by(visual_id=instance_id)
         if not user.is_admin:
-            instance = instance.filter_by(user_id=user.id)
-        instance = instance.first()
+            query = query.filter_by(user_id=user.id)
+        instance = query.first()
         if not instance:
             abort(404)
 
@@ -462,10 +462,10 @@ class InstanceView(restful.Resource):
     def patch(self, instance_id):
         user = g.user
         args = self.parser.parse_args()
-        qr = Instance.query.filter_by(visual_id=instance_id)
+        query = Instance.query.filter_by(visual_id=instance_id)
         if not user.is_admin:
-            qr = qr.filter_by(user_id=user.id)
-        instance = qr.first()
+            query = query.filter_by(user_id=user.id)
+        instance = query.first()
         if not instance:
             abort(404)
 

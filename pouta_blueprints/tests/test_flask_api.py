@@ -34,8 +34,8 @@ class FlaskApiTestCase(BaseTestCase):
         db.session.commit()
 
         i1 = Instance(
-            Blueprint.query.filter_by(visual_id=r2.visual_id).first().id,
-            User.query.filter_by(email="user@example.org").first().id)
+            Blueprint.query.filter_by(visual_id=r2.visual_id).first(),
+            User.query.filter_by(email="user@example.org").first())
         db.session.add(i1)
         self.known_instance_id = i1.visual_id
 

@@ -157,9 +157,9 @@ class Instance(db.Model):
     state = db.Column(db.String(32))
     error_msg = db.Column(db.String(256))
 
-    def __init__(self, blueprint_id, user_id):
-        self.blueprint_id = blueprint_id
-        self.user_id = user_id
+    def __init__(self, blueprint, user):
+        self.blueprint_id = blueprint.id
+        self.user_id = user.id
         self.visual_id = uuid.uuid4().hex
         self.state = 'starting'
 
