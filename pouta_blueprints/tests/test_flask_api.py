@@ -257,6 +257,8 @@ class FlaskApiTestCase(BaseTestCase):
         response2 = self.make_authenticated_admin_request(path='/api/v1/users/%s/keypairs' % '0xBogus')
         self.assert_404(response2)
 
+    def test_anonymous_add_keypair(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()
