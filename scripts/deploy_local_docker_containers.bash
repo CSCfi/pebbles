@@ -10,4 +10,4 @@ shared_folder_source=$PWD
 END_AI
 
 export ANSIBLE_HOST_KEY_CHECKING=0
-ansible-playbook -vvvv -i ansible_inventory ansible/playbook.yml
+ansible-playbook -i ansible_inventory ansible/playbook.yml
