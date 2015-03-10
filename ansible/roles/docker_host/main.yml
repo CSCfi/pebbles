@@ -1,4 +1,14 @@
 ---
+- name: Prepare docker hosts
+  hosts: docker_host
+  sudo: yes
+  tasks:
+    - name: Install docker packages
+      apt: name=docker.io state=present
+      when: prepare_docker_hosts is defined and prepare_docker_hosts == True
+
+
+
 - name: Bring containers up
   hosts: docker_host
   vars:
@@ -21,9 +31,7 @@
       copy: src=~/.ssh/id_rsa.pub dest={{ mktemp.stdout }}/id_rsa.pub
 
     - name: check or build image
-#      docker_image: path={{ mktemp.stdout }} name={{ image_name }} state=build
       docker_image: path={{ mktemp.stdout }} name={{ image_name }} state=present
-#      shell: cd {{ mktemp.stdout }} && docker build -t {{ image_name }} .
 
     - name: remove temp image build directory
       file: name={{ mktemp.stdout }} state=absent
