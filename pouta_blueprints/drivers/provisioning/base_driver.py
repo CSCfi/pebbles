@@ -78,7 +78,7 @@ class ProvisioningDriverBase(object):
         headers = {'Content-type': 'application/x-www-form-urlencoded',
                    'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % auth}
-        url = '%s/%s' % (ActiveConfig.INTERNAL_API_BASE_URL, instance_id)
+        url = '%s/instances/%s' % (ActiveConfig.INTERNAL_API_BASE_URL, instance_id)
         resp = requests.patch(url, data=payload, headers=headers,
                               verify=self.config.SSL_VERIFY)
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
