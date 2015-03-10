@@ -420,7 +420,7 @@ class InstanceView(restful.Resource):
         query = Instance.query.filter_by(visual_id=instance_id)
         if not user.is_admin:
             query = query.filter_by(user_id=user.id)
-        query = query.first()
+        instance = query.first()
         if not instance:
             abort(404)
 
