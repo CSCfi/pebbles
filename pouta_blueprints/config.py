@@ -42,6 +42,7 @@ class BaseConfig(object):
 class ProductionConfig(BaseConfig):
     DEBUG = False
     SSL_VERIFY = True
+    MAIL_SERVER = 'smtp.example.org'
 
 
 class DevConfig(BaseConfig):
