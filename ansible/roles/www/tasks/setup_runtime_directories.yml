@@ -6,7 +6,3 @@
             group={{ application_group }}
             mode=0755
             backup=yes
-
-- name: Copy application configuration
-  template: src=app_config.j2
-            dest={{ application_config }}
