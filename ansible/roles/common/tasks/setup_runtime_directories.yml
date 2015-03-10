@@ -1,0 +1,36 @@
+- name: Create application log directory
+  file:
+    dest={{ application_log_dir }}
+    mode=775 state=directory
+    owner={{ application_user }}
+    group={{ application_group }}
+
+- name: Create the application log file
+  command: touch {{ application_log_file }}
+           creates={{ application_log_file }}
+
+- name: Set permission to the application log file
+  file: path={{ application_log_file }}
+        owner={{ application_user }}
+        group={{ application_group }}
+        mode=0664
+        state=file
+
+- name: Create runtime directory
+  file:
+    dest={{ runtime_path }}
+    mode=775 state=directory
+    owner={{ application_user }}
+    group={{ application_group }}
+
+- name: Create config directory
+  file:
+    dest={{ application_config_dir }}
+    mode=775 state=directory
+    owner={{ application_user }}
+    group={{ application_group }}
+
+- name: Copy application configuration
+  template: src=etc/pouta_blueprints/app_config.j2
+            dest={{ application_config }}
+

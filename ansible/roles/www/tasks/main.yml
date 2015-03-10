@@ -7,8 +7,15 @@
     - redis-server
     - sqlite3
 
+- name: Set redis to listen to all interfaces
+  lineinfile:
+    name=/etc/redis/redis.conf
+    regexp='^bind.*'
+    state=absent
+
 - name: Enable redis-server on boot and make sure it is running
   service: name=redis-server enabled=true state=started
+
 
 - include: setup_runtime_directories.yml
 - include: setup_nginx.yml

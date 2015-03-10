@@ -9,6 +9,8 @@ import abc
 import six
 import requests
 
+from pouta_blueprints.config import DevConfig as ActiveConfig
+
 
 @six.add_metaclass(abc.ABCMeta)
 class ProvisioningDriverBase(object):
@@ -76,7 +78,7 @@ class ProvisioningDriverBase(object):
         headers = {'Content-type': 'application/x-www-form-urlencoded',
                    'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % auth}
-        url = 'https://localhost/api/v1/instances/%s' % instance_id
+        url = '%s/%s' % (ActiveConfig.INTERNAL_API_BASE_URL, instance_id)
         resp = requests.patch(url, data=payload, headers=headers,
                               verify=self.config.SSL_VERIFY)
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
@@ -88,7 +90,7 @@ class ProvisioningDriverBase(object):
         headers = {'Content-type': 'application/x-www-form-urlencoded',
                    'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % auth}
-        url = 'https://localhost/api/v1/instances/%s/logs' % instance_id
+        url = '%s/instances/%s/logs' % (ActiveConfig.INTERNAL_API_BASE_URL, instance_id)
         resp = requests.patch(url, data=payload, headers=headers,
                               verify=self.config.SSL_VERIFY)
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
@@ -105,7 +107,7 @@ class ProvisioningDriverBase(object):
         headers = {'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % auth}
 
-        url = 'https://localhost/api/v1/%s' % object_url
+        url = '%s/%s' % (ActiveConfig.INTERNAL_API_BASE_URL, object_url)
         resp = requests.get(url, headers=headers, verify=self.config.SSL_VERIFY)
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
         return resp

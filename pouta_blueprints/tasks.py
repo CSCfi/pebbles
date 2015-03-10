@@ -141,7 +141,7 @@ def publish_plugins():
 
 
 def get_token():
-    auth_url = 'https://localhost/api/v1/sessions'
+    auth_url = '%s/sessions' % ActiveConfig.INTERNAL_API_BASE_URL
     auth_credentials = {'email': 'worker@pouta_blueprints',
                         'password': flask_app.config['SECRET_KEY']}
     try:
@@ -156,7 +156,7 @@ def do_get(token, object_url):
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
 
-    url = 'https://localhost/api/v1/%s' % object_url
+    url = '%s/%s' % (ActiveConfig.INTERNAL_API_BASE_URL, object_url)
     resp = requests.get(url, headers=headers, verify=ActiveConfig.SSL_VERIFY)
     logger.debug('got response %s %s' % (resp.status_code, resp.reason))
     return resp
@@ -166,7 +166,7 @@ def do_post(token, api_path, data):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
-    url = 'https://localhost/api/v1/%s' % api_path
+    url = '%s/%s' % (ActiveConfig.INTERNAL_API_BASE_URL, api_path)
     resp = requests.post(url, data, headers=headers, verify=ActiveConfig.SSL_VERIFY)
     logger.debug('got response %s %s' % (resp.status_code, resp.reason))
     return resp

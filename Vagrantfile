@@ -9,9 +9,10 @@ Vagrant.configure(2) do |config|
 
   config.vm.box = "ubuntu/trusty64"
 
-  config.vm.define "single" do |vm|
+  config.vm.define "single", autostart: true do |vm|
     config.vm.network "forwarded_port", guest: 80, host: 8080
     config.vm.network "forwarded_port", guest: 443, host: 8888
+    config.vm.synced_folder ".", "/shared_folder"
   end
 
   # if using virtualbox, run on two vcpus
@@ -40,7 +41,12 @@ Vagrant.configure(2) do |config|
   # history initialization for easy tmux access
   # note on privileged: see https://github.com/mitchellh/vagrant/issues/1673
   config.vm.provision "shell",
-    inline: "echo 'sudo tmux -f /vagrant/tmux.conf att' > /home/vagrant/.bash_history",
+    inline: "echo 'sudo tmux -f /shared_folder/tmux.conf att' > /home/vagrant/.bash_history",
+    privileged: false
+
+  # mimic multi container deployment. In a single deployment mode www services are accessible on localhost
+  config.vm.provision "shell",
+    inline: "echo '127.0.0.1 www' | sudo tee -a /etc/hosts",
     privileged: false
 
 end

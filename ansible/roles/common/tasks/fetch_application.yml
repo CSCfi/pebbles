@@ -4,8 +4,8 @@
   git: repo=https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git dest={{ application_path }}
   when: deploy_mode != "devel"
 
-- name: Link shared directory to application_path
-  file: src=/vagrant dest={{ application_path }} state=link
+- name: Link shared directory content to application_path
+  file: src={{ shared_folder_path }} dest={{ application_path }} state=link
   when: deploy_mode == "devel"
 
 - name: Install dependencies from requirements.txt
@@ -15,10 +15,3 @@
   pip: name={{ item }} virtualenv={{ virtualenv_path }}
   with_items:
       - gunicorn
-
-- name: Create directory for configuration
-  file: dest={{ application_config_dir }} state=directory
-
-- name: Copy application configuration
-  template: src=etc/pouta_blueprints/app_config.j2
-            dest={{ application_config }}

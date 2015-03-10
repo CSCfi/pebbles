@@ -17,10 +17,11 @@
 - name: Link static root for nginx
   file:
     src={{ application_path }}/{{ application_name }}/static
-    dest={{ nginx_static_root }} 
-    mode=775 state=link
-    owner={{ application_user }} 
-    group={{ application_group }}
+    dest={{ nginx_static_root }}
+    state=link
+    # mode=775
+    # owner={{ application_user }}
+    # group={{ application_group }}
 
 - name: Create provisioning log file root directory
   file:

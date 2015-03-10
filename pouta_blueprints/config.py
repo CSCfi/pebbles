@@ -28,8 +28,9 @@ class BaseConfig(object):
     SQLALCHEMY_DATABASE_URI = resolve_configuration_value(
         'SQLALCHEMY_DATABASE_URI',
         default='sqlite:////tmp/change_me.db')
-    MESSAGE_QUEUE_URI = 'redis://localhost:6379/0'
+    MESSAGE_QUEUE_URI = 'redis://www:6379/0'
     PVC_CLUSTER_DATA_DIR = '/var/spool/pvc_clusters'
+    INTERNAL_API_BASE_URL = 'https://www/api/v1'
     BASE_URL = 'https://localhost:8888'
     MAX_CONTENT_LENGTH = 1024 * 1024
     FAKE_PROVISIONING = False

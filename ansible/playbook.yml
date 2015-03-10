@@ -1,5 +1,9 @@
 ---
-- hosts: all
+- include: roles/docker_host/main.yml
+
+- hosts:
+    - www
+    - worker
   sudo: True
   roles:
       - common

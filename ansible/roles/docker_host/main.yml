@@ -1,0 +1,73 @@
+---
+- name: Bring containers up
+  hosts: docker_host
+  vars:
+    image_name: ubuntu_with_ssh
+  tasks:
+
+    - name: make temporary directory for image build
+      command: mktemp -d
+      register: mktemp
+
+    - name: prepare docker image source (templates)
+      template:
+        src=templates/docker/{{ item }}.j2
+        dest={{mktemp.stdout}}/{{ item }}
+      with_items:
+        - ansible-sudo
+        - Dockerfile
+
+    - name: prepare docker image source (public key)
+      copy: src=~/.ssh/id_rsa.pub dest={{ mktemp.stdout }}/id_rsa.pub
+
+    - name: check or build image
+#      docker_image: path={{ mktemp.stdout }} name={{ image_name }} state=build
+      docker_image: path={{ mktemp.stdout }} name={{ image_name }} state=present
+#      shell: cd {{ mktemp.stdout }} && docker build -t {{ image_name }} .
+
+    - name: remove temp image build directory
+      file: name={{ mktemp.stdout }} state=absent
+
+    - name: Bring up container for www
+      docker:
+        hostname=www
+        image={{ image_name }}
+        state=present
+        name=www
+        expose=22,443,6379
+        ports=2222:22,8888:443
+        volumes={{ shared_folder_source }}:/shared_folder:ro
+
+    - name: add www to inventory
+      add_host:
+        name=www
+        groups=docker,www
+        ansible_ssh_host=localhost
+        ansible_ssh_port=2222
+        ansible_ssh_user=ansible
+      when: item.Config.Hostname == "www" and item.State.Running == True
+      with_items: docker_containers
+
+    - name: "wait for sshd to come up"
+      wait_for: host=localhost port=2222 state=started
+
+    - name: Bring up container for worker
+      docker:
+        hostname=worker
+        image={{ image_name }}
+        state=present
+        name=worker
+        expose=22
+        ports=2223:22
+        links=www:www
+        volumes={{ shared_folder_source }}:/shared_folder:ro
+
+    - name: add worker to inventory
+      add_host:
+        name=worker
+        groups=docker,worker
+        ansible_ssh_host=localhost
+        ansible_ssh_port=2223
+        ansible_ssh_user=ansible
+      when: item.Config.Hostname == "worker" and item.State.Running == True
+      with_items: docker_containers
