@@ -415,6 +415,7 @@ class InstanceView(restful.Resource):
     parser.add_argument('state', type=str)
     parser.add_argument('public_ip', type=str)
     parser.add_argument('error_msg', type=str)
+    parser.add_argument('client_ip', type=str)
 
     @auth.login_required
     @marshal_with(instance_fields)
@@ -438,7 +439,7 @@ class InstanceView(restful.Resource):
 
         instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
 
-        if 'allow_update_client_connectivity' in instance.config:
+        if 'allow_update_client_connectivity' in blueprint.config:
             instance.can_update_connectivity = True
 
         age = 0
