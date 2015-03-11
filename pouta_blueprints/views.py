@@ -1,6 +1,6 @@
 import uuid
 import os
-from flask import abort, g
+from flask import abort, g, request
 from flask.ext.restful import fields, marshal_with, reqparse
 from sqlalchemy import desc
 import json
@@ -329,6 +329,7 @@ instance_fields = {
     'error_msg': fields.String,
     'user_id': fields.String,
     'blueprint_id': fields.String,
+    'can_update_connectivity': fields.Boolean(default=False),
     'public_ip': fields.String,
     'logs': fields.Raw,
 }
@@ -437,6 +438,9 @@ class InstanceView(restful.Resource):
 
         instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
 
+        if 'allow_update_client_connectivity' in instance.config:
+            instance.can_update_connectivity = True
+
         age = 0
         if instance.provisioned_at:
             age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
@@ -493,6 +497,10 @@ class InstanceView(restful.Resource):
 
         if args.get('public_ip') and user.is_admin:
             instance.public_ip = args['public_ip']
+            db.session.commit()
+
+        if args['client_ip']:
+            instance.client_ip = request.remote_addr
             db.session.commit()
 
 

@@ -36,6 +36,9 @@ class ProvisioningDriverBase(object):
                 {'style': 'btn-info', 'title': 'Create', 'type': 'submit'}
             ], 'model': {}}
 
+    def update_connectivity(self, token, instance_id):
+        pass
+
     def provision(self, token, instance_id):
         self.logger.debug('starting provisioning')
         self.do_instance_patch(token, instance_id, {'state': 'provisioning'})
