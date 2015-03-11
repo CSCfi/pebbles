@@ -153,6 +153,7 @@ class Instance(db.Model):
     blueprint_id = db.Column(db.Integer, db.ForeignKey('blueprints.id'))
     name = db.Column(db.String(64), unique=True)
     public_ip = db.Column(db.String(64))
+    client_ip = db.Column(db.String(64))
     provisioned_at = db.Column(db.DateTime)
     state = db.Column(db.String(32))
     error_msg = db.Column(db.String(256))
