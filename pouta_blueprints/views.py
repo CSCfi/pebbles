@@ -707,7 +707,7 @@ class PluginList(restful.Resource):
 class WhatIsMyIp(restful.Resource):
     @auth.login_required
     def get(self):
-        if len(request.access_route)>0:
+        if len(request.access_route) > 0:
             return {'ip': request.access_route[-1]}
         else:
             return {'ip': request.remote_addr}
