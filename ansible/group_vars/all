@@ -41,4 +41,4 @@ gunicorn_max_requests: 1
 pvc_install_dir: /opt/pvc
 pvc_cluster_data_dir: /var/spool/pvc_clusters
 #pvc_version: HEAD
-pvc_version: wip-for_resource_cloud
+pvc_version: wip-for_pouta_blueprints
