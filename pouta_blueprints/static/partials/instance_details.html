@@ -13,6 +13,12 @@
         <dd>{{ instance.lifetime_left }}</dd>
         <dt>Public IP:</dt>
         <dd>{{ instance.public_ip }}</dd>
+
+        <div ng-show="instance.can_update_connectivity">
+            <dt>Client IP:</dt>
+            <dd>{{ instance.client_ip }}</dd>
+        </div>
+
         <div ng-repeat="log in instance.logs">
          <label>Latest entries in {{ log.type }} log</label>
          <pre>{{ logs[log.type] | limitTo: "-1000" }}</pre>
