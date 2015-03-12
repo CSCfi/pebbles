@@ -19,7 +19,7 @@ from pouta_blueprints.forms import BlueprintForm
 from pouta_blueprints.forms import PluginForm, InstanceForm
 
 from pouta_blueprints.server import auth, db, restful, app
-from pouta_blueprints.tasks import run_provisioning, run_deprovisioning
+from pouta_blueprints.tasks import run_provisioning, run_deprovisioning, update_user_connectivity
 from pouta_blueprints.tasks import send_mails
 
 from pouta_blueprints.utils import generate_ssh_keypair
@@ -506,7 +506,8 @@ class InstanceView(restful.Resource):
             blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
             if 'allow_update_client_connectivity' in blueprint.config \
                     and blueprint.config['allow_update_client_connectivity']:
-                instance.client_ip = request.remote_addr
+                instance.client_ip = args['client_ip']
+                update_user_connectivity.delay(instance.visual_id)
             else:
                 abort(401)
 
@@ -703,6 +704,15 @@ class PluginList(restful.Resource):
         db.session.commit()
 
 
+class WhatIsMyIp(restful.Resource):
+    @auth.login_required
+    def get(self):
+        if len(request.access_route)>0:
+            return {'ip': request.access_route[-1]}
+        else:
+            return {'ip': request.remote_addr}
+
+
 def setup_resource_urls(api_service):
     api_root = '/api/v1'
     api_service.add_resource(FirstUserView, api_root + '/initialize')
@@ -727,3 +737,4 @@ def setup_resource_urls(api_service):
         methods=['GET', 'PATCH'])
     api_service.add_resource(PluginList, api_root + '/plugins')
     api_service.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')
+    api_service.add_resource(WhatIsMyIp, api_root + '/what_is_my_ip', methods=['GET'])
