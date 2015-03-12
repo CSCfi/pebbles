@@ -346,8 +346,8 @@ class InstanceList(restful.Resource):
 
         for instance in instances:
             if user.is_admin:
-                res_owner = User.query.filter_by(id=instance.user_id).first()
-                instance.user_id = res_owner.visual_id
+                owner = User.query.filter_by(id=instance.user_id).first()
+                instance.user_id = owner.visual_id
             else:
                 instance.user_id = user.visual_id
 
@@ -425,8 +425,8 @@ class InstanceView(restful.Resource):
             abort(404)
 
         if user.is_admin:
-            res_owner = User.query.filter_by(id=instance.user_id).first()
-            instance.user_id = res_owner.visual_id
+            owner = User.query.filter_by(id=instance.user_id).first()
+            instance.user_id = owner.visual_id
         else:
             instance.user_id = user.visual_id
 
@@ -448,15 +448,15 @@ class InstanceView(restful.Resource):
         query = Instance.query.filter_by(visual_id=instance_id)
         if not user.is_admin:
             query = query.filter_by(user_id=user.id)
-        pr = query.first()
-        if not pr:
+        instance = query.first()
+        if not instance:
             abort(404)
-        pr.state = 'deleting'
+        instance.state = 'deleting'
         token = SystemToken('provisioning')
         db.session.add(token)
         db.session.commit()
         if not app.config['SKIP_TASK_QUEUE']:
-            run_deprovisioning.delay(token.token, pr.visual_id)
+            run_deprovisioning.delay(token.token, instance.visual_id)
 
     @auth.login_required
     def patch(self, instance_id):
@@ -532,8 +532,8 @@ class InstanceLogs(restful.Resource):
     @requires_admin
     def patch(self, instance_id):
         args = self.parser.parse_args()
-        pr = Instance.query.filter_by(visual_id=instance_id).first()
-        if not pr:
+        instance = Instance.query.filter_by(visual_id=instance_id).first()
+        if not instance:
             abort(404)
 
         log_type = args['type']
@@ -541,8 +541,8 @@ class InstanceLogs(restful.Resource):
             abort(403)
 
         if log_type in ('provisioning', 'deprovisioning'):
-            log_dir, log_file_name = self.get_base_dir_and_filename(instance_id, log_type,
-                                                                    create_missing_filename=True)
+            log_dir, log_file_name = self.get_base_dir_and_filename(
+                instance_id, log_type, create_missing_filename=True)
 
             with open('%s/%s' % (log_dir, log_file_name), 'a') as logfile:
                 logfile.write(args['text'])
