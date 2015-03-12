@@ -331,6 +331,7 @@ instance_fields = {
     'blueprint_id': fields.String,
     'can_update_connectivity': fields.Boolean(default=False),
     'public_ip': fields.String,
+    'client_ip': fields.String(default='not set'),
     'logs': fields.Raw,
 }
 
@@ -439,7 +440,8 @@ class InstanceView(restful.Resource):
 
         instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
 
-        if 'allow_update_client_connectivity' in blueprint.config:
+        if 'allow_update_client_connectivity' in blueprint.config \
+                and blueprint.config['allow_update_client_connectivity']:
             instance.can_update_connectivity = True
 
         age = 0
@@ -501,7 +503,13 @@ class InstanceView(restful.Resource):
             db.session.commit()
 
         if args['client_ip']:
-            instance.client_ip = request.remote_addr
+            blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
+            if 'allow_update_client_connectivity' in blueprint.config \
+                    and blueprint.config['allow_update_client_connectivity']:
+                instance.client_ip = request.remote_addr
+            else:
+                abort(401)
+
             db.session.commit()
 
 
