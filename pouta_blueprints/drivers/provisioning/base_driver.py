@@ -37,7 +37,8 @@ class ProvisioningDriverBase(object):
             ], 'model': {}}
 
     def update_connectivity(self, token, instance_id):
-        pass
+        self.logger.debug('update connectivity')
+        self.do_update_connectivity(token, instance_id)
 
     def provision(self, token, instance_id):
         self.logger.debug('starting provisioning')
@@ -67,6 +68,10 @@ class ProvisioningDriverBase(object):
             self.logger.debug('do_deprovision raised %s' % e)
             self.do_instance_patch(token, instance_id, {'state': 'failed'})
             raise e
+
+    @abc.abstractmethod
+    def do_update_connectivity(self, token, instance_id):
+        pass
 
     @abc.abstractmethod
     def do_provision(self, token, instance_id):
