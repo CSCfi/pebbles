@@ -39,9 +39,6 @@
         groups=docker
         generate_ssh_key=yes
 
-    - name: Wait for ssh to time out
-      local_action: shell sleep 61
-
     - name: Fetch application from Github
       git:
         repo=https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
