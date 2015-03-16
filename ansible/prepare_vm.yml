@@ -1,3 +1,4 @@
+---
 - name: Prepare docker host VM
   hosts: docker_host
   sudo: yes
@@ -26,8 +27,6 @@
         - python-dev
 
     - name: Install docker-py from pip (required by ansible, not available for Trusty as apt package)
-      # 0.5.3 matches server api version 1.12
-#      pip: name=docker-py version=0.3.1
       pip: name={{ item }}
       with_items:
         - docker-py
@@ -40,15 +39,10 @@
         groups=docker
         generate_ssh_key=yes
 
+    - name: Wait for ssh to time out
+      local_action: shell sleep 61
+
     - name: Fetch application from Github
       git:
         repo=https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
-        dest=/home/cloud-user/pouta-blueprints
-
-    - name: Change ownership to cloud-user
-      file:
-        name=/home/cloud-user/pouta-blueprints
-        state=directory
-        owner=cloud-user
-        group=cloud-user
-        recurse=yes
+        dest=/opt/pouta-blueprints
