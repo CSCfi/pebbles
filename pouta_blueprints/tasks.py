@@ -47,7 +47,7 @@ def deprovision_expired():
 
         if not instance.get('state') in ['running']:
             continue
-        if not instance.get('lifetime_left'):
+        if not instance.get('lifetime_left') and instance.get('max_lifetime'):
             logger.info('timed deprovisioning triggered for %s' % instance.get('id'))
             run_deprovisioning.delay(token, instance.get('id'))
 

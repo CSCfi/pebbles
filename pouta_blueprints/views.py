@@ -324,6 +324,7 @@ instance_fields = {
     'name': fields.String,
     'provisioned_at': fields.DateTime,
     'lifetime_left': fields.Integer,
+    'max_lifetime': fields.Integer,
     'state': fields.String,
     'error_msg': fields.String,
     'user_id': fields.String,
@@ -364,6 +365,7 @@ class InstanceList(restful.Resource):
             if instance.provisioned_at:
                 age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
             instance.lifetime_left = max(blueprint.max_lifetime - age, 0)
+            instance.max_lifetime = blueprint.max_lifetime
 
         return instances
 
@@ -430,15 +432,16 @@ class InstanceView(restful.Resource):
         else:
             instance.user_id = user.visual_id
 
-        res_parent = Blueprint.query.filter_by(id=instance.blueprint_id).first()
-        instance.blueprint_id = res_parent.visual_id
+        blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
+        instance.blueprint_id = blueprint.visual_id
 
         instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
 
         age = 0
         if instance.provisioned_at:
             age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
-        instance.lifetime_left = max(res_parent.max_lifetime - age, 0)
+        instance.lifetime_left = max(blueprint.max_lifetime - age, 0)
+        instance.max_lifetime = blueprint.max_lifetime
 
         return instance
 
