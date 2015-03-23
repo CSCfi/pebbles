@@ -8,7 +8,9 @@ aptitude install -y git build-essential python-dev python-setuptools
 easy_install pip
 pip install ansible
 
-groupadd docker
+# workaround for ansible, where new groups for the current user do not become effective
+# between tasks because ssh connections are cached
+groupadd -r docker
 usermod -a -G docker cloud-user
 
 cat > /tmp/pb_setup_run_as_cloud_user.bash << "END_RACU"
