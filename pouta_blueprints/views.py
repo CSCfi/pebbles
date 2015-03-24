@@ -510,7 +510,8 @@ class InstanceView(restful.Resource):
                 ipv4_re = '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
                 if re.match(ipv4_re, new_ip):
                     instance.client_ip = new_ip
-                    update_user_connectivity.delay(instance.visual_id)
+                    if not app.config['SKIP_TASK_QUEUE']:
+                        update_user_connectivity.delay(instance.visual_id)
                 else:
                     # 400 Bad Request
                     abort(400)
