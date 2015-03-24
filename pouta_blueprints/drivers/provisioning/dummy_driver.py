@@ -10,6 +10,9 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         from pouta_blueprints.drivers.provisioning.dummy_driver_config import CONFIG
         return CONFIG
 
+    def do_update_connectivity(self, token, instance_id):
+        pass
+
     def do_provision(self, token, instance_id):
         instance = self.get_instance_data(token, instance_id)
         cluster_name = instance['name']

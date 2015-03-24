@@ -1,10 +1,12 @@
 app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$scope', '$interval', 'AuthService', 'Restangular',
-                                    function ($q,   $http,   $routeParams,   $scope,   $interval,   AuthService,   Restangular) {
+    function ($q, $http, $routeParams, $scope, $interval, AuthService, Restangular) {
 
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
 
         var instance_id = $routeParams.instance_id;
         var instance;
+
+        $scope.new_client_ip='';
 
         $scope.refresh = function () {
             Restangular.one('instances', instance_id).get().then(function (response) {
@@ -49,8 +51,31 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
             });
         };
 
+        $scope.get_my_ip = function () {
+            $http(
+                {
+                    method: "GET",
+                    url: '/api/v1/what_is_my_ip',
+                    headers: {
+                        token: AuthService.getToken(),
+                        Authorization: "Basic " + AuthService.getToken()
+                    }
+                }
+            ).success(function (data) {
+                    $scope.new_client_ip=data['ip'];
+                }
+            );
+        };
+
+        $scope.update_client_ip = function () {
+            instance.patch({client_ip: $scope.new_client_ip}).then(function () {
+                $scope.refresh();
+            });
+        };
+
+
         var stop;
-        $scope.startPolling = function() {
+        $scope.startPolling = function () {
             if (angular.isDefined(stop)) {
                 return;
             }
@@ -63,14 +88,14 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
             }, 10000);
         };
 
-        $scope.stopPolling = function() {
+        $scope.stopPolling = function () {
             if (angular.isDefined(stop)) {
                 $interval.cancel(stop);
                 stop = undefined;
             }
         };
 
-        $scope.$on('$destroy', function() {
+        $scope.$on('$destroy', function () {
             $scope.stopPolling();
         });
 

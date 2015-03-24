@@ -1,6 +1,6 @@
 import uuid
 import os
-from flask import abort, g
+from flask import abort, g, request
 from flask.ext.restful import fields, marshal_with, reqparse
 from sqlalchemy import desc
 import json
@@ -19,7 +19,7 @@ from pouta_blueprints.forms import BlueprintForm
 from pouta_blueprints.forms import PluginForm, InstanceForm
 
 from pouta_blueprints.server import auth, db, restful, app
-from pouta_blueprints.tasks import run_provisioning, run_deprovisioning
+from pouta_blueprints.tasks import run_provisioning, run_deprovisioning, update_user_connectivity
 from pouta_blueprints.tasks import send_mails
 
 from pouta_blueprints.utils import generate_ssh_keypair
@@ -329,7 +329,9 @@ instance_fields = {
     'error_msg': fields.String,
     'user_id': fields.String,
     'blueprint_id': fields.String,
+    'can_update_connectivity': fields.Boolean(default=False),
     'public_ip': fields.String,
+    'client_ip': fields.String(default='not set'),
     'logs': fields.Raw,
 }
 
@@ -414,6 +416,7 @@ class InstanceView(restful.Resource):
     parser.add_argument('state', type=str)
     parser.add_argument('public_ip', type=str)
     parser.add_argument('error_msg', type=str)
+    parser.add_argument('client_ip', type=str)
 
     @auth.login_required
     @marshal_with(instance_fields)
@@ -436,6 +439,10 @@ class InstanceView(restful.Resource):
         instance.blueprint_id = blueprint.visual_id
 
         instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
+
+        if 'allow_update_client_connectivity' in blueprint.config \
+                and blueprint.config['allow_update_client_connectivity']:
+            instance.can_update_connectivity = True
 
         age = 0
         if instance.provisioned_at:
@@ -493,6 +500,24 @@ class InstanceView(restful.Resource):
 
         if args.get('public_ip') and user.is_admin:
             instance.public_ip = args['public_ip']
+            db.session.commit()
+
+        if args['client_ip']:
+            blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
+            if 'allow_update_client_connectivity' in blueprint.config \
+                    and blueprint.config['allow_update_client_connectivity']:
+                new_ip = args['client_ip']
+                ipv4_re = '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+                if re.match(ipv4_re, new_ip):
+                    instance.client_ip = new_ip
+                    if not app.config['SKIP_TASK_QUEUE']:
+                        update_user_connectivity.delay(instance.visual_id)
+                else:
+                    # 400 Bad Request
+                    abort(400)
+            else:
+                abort(401)
+
             db.session.commit()
 
 
@@ -686,6 +711,15 @@ class PluginList(restful.Resource):
         db.session.commit()
 
 
+class WhatIsMyIp(restful.Resource):
+    @auth.login_required
+    def get(self):
+        if len(request.access_route) > 0:
+            return {'ip': request.access_route[-1]}
+        else:
+            return {'ip': request.remote_addr}
+
+
 def setup_resource_urls(api_service):
     api_root = '/api/v1'
     api_service.add_resource(FirstUserView, api_root + '/initialize')
@@ -710,3 +744,4 @@ def setup_resource_urls(api_service):
         methods=['GET', 'PATCH'])
     api_service.add_resource(PluginList, api_root + '/plugins')
     api_service.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')
+    api_service.add_resource(WhatIsMyIp, api_root + '/what_is_my_ip', methods=['GET'])

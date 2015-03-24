@@ -109,6 +109,11 @@ CONFIG = {
                     'title': 'Rules',
                 }
             },
+            "allow_update_client_connectivity": {
+                "type": "boolean",
+                "title": "Allow user to request instance firewall to allow access to user's IP address",
+                "default": False,
+            },
         }
     },
     'form': [
@@ -138,7 +143,8 @@ CONFIG = {
             'type': 'submit',
             'style': 'btn-info',
             'title': 'Create'
-        }
+        },
+        'allow_update_client_connectivity',
     ],
     'model': {
         'name': 'pvc',

@@ -46,7 +46,12 @@ CONFIG = {
                 "type": "integer",
                 "title": "Maximum instances per user",
                 "default": 1
-            }
+            },
+            "allow_update_client_connectivity": {
+                "type": "boolean",
+                "title": "Allow user to request instance firewall to allow access to user's IP address",
+                "default": False,
+            },
         }
     },
     "form": [
@@ -58,6 +63,7 @@ CONFIG = {
         "capabilities",
         "maximum_lifetime",
         "maximum_instances_per_user",
+        "allow_update_client_connectivity",
         "secgroup-rules",
         {
             "type": "submit",
