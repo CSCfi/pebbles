@@ -506,8 +506,14 @@ class InstanceView(restful.Resource):
             blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
             if 'allow_update_client_connectivity' in blueprint.config \
                     and blueprint.config['allow_update_client_connectivity']:
-                instance.client_ip = args['client_ip']
-                update_user_connectivity.delay(instance.visual_id)
+                new_ip=args['client_ip']
+                ipv4_re='^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+                if re.match(ipv4_re, new_ip):
+                    instance.client_ip = new_ip
+                    update_user_connectivity.delay(instance.visual_id)
+                else:
+                    # 400 Bad Request
+                    abort(400)
             else:
                 abort(401)
 
