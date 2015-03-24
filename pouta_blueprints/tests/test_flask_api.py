@@ -20,31 +20,47 @@ class FlaskApiTestCase(BaseTestCase):
         self.known_plugin_id = p1.visual_id
         db.session.add(p1)
 
-        r1 = Blueprint()
-        r1.name = "TestBlueprint"
-        r1.plugin = p1.visual_id
-        r2 = Blueprint()
-        r2.name = "EnabledTestBlueprint"
-        r2.plugin = p1.visual_id
-        r2.is_enabled = True
-        db.session.add(r1)
-        db.session.add(r2)
-        self.known_blueprint_id = r2.visual_id
+        b1 = Blueprint()
+        b1.name = "TestBlueprint"
+        b1.plugin = p1.visual_id
+        db.session.add(b1)
+
+        b2 = Blueprint()
+        b2.name = "EnabledTestBlueprint"
+        b2.plugin = p1.visual_id
+        b2.is_enabled = True
+        db.session.add(b2)
+        self.known_blueprint_id = b2.visual_id
+
+        b3 = Blueprint()
+        b3.name = "EnabledTestBlueprintClientIp"
+        b3.plugin = p1.visual_id
+        b3.is_enabled = True
+        b3.config = {'allow_update_client_connectivity': True}
+        db.session.add(b3)
+        self.known_blueprint_id_2 = b3.visual_id
 
         db.session.commit()
 
         i1 = Instance(
-            Blueprint.query.filter_by(visual_id=r2.visual_id).first(),
+            Blueprint.query.filter_by(visual_id=b2.visual_id).first(),
             User.query.filter_by(email="user@example.org").first())
         db.session.add(i1)
         self.known_instance_id = i1.visual_id
+
+        i2 = Instance(
+            Blueprint.query.filter_by(visual_id=b3.visual_id).first(),
+            User.query.filter_by(email="user@example.org").first())
+        db.session.add(i2)
+        self.known_instance_id_2 = i2.visual_id
 
         db.session.commit()
 
     def make_request(self, method='GET', path='/', headers={}, data=None):
         methods = {
             'GET': self.client.get,
-            'POST': self.client.post
+            'POST': self.client.post,
+            'PATCH': self.client.patch,
         }
 
         assert method in methods
@@ -60,7 +76,8 @@ class FlaskApiTestCase(BaseTestCase):
 
         methods = {
             'GET': self.client.get,
-            'POST': self.client.post
+            'POST': self.client.post,
+            'PATCH': self.client.patch,
         }
 
         assert method in methods
@@ -79,10 +96,12 @@ class FlaskApiTestCase(BaseTestCase):
         return methods[method](path, headers=headers, data=data, content_type='application/json')
 
     def make_authenticated_admin_request(self, method='GET', path='/', headers={}, data=None):
-        return self.make_authenticated_request(method, path, headers, data, creds={'email': 'admin@example.org', 'password': 'admin'})
+        return self.make_authenticated_request(method, path, headers, data,
+                                               creds={'email': 'admin@example.org', 'password': 'admin'})
 
     def make_authenticated_user_request(self, method='GET', path='/', headers={}, data=None):
-        return self.make_authenticated_request(method, path, headers, data, creds={'email': 'user@example.org', 'password': 'user'})
+        return self.make_authenticated_request(method, path, headers, data,
+                                               creds={'email': 'user@example.org', 'password': 'user'})
 
     def test_first_user(self):
         db.drop_all()
@@ -137,12 +156,12 @@ class FlaskApiTestCase(BaseTestCase):
     def test_user_get_blueprints(self):
         response = self.make_authenticated_user_request(path='/api/v1/blueprints')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 1)
+        self.assertEqual(len(response.json), 2)
 
     def test_admin_get_blueprints(self):
         response = self.make_authenticated_admin_request(path='/api/v1/blueprints')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 2)
+        self.assertEqual(len(response.json), 3)
 
     def test_anonymous_invite_user(self):
         data = {'email': 'test@example.org', 'password': 'test', 'is_admin': True}
@@ -211,6 +230,40 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(data))
         self.assert_200(response)
 
+    def test_anonymous_update_client_ip(self):
+        data = {'client_ip': '1.1.1.1'}
+        response = self.make_request(
+            method='PATCH',
+            path='/api/v1/instances/%s' % self.known_instance_id_2,
+            data=json.dumps(data))
+        self.assert_401(response)
+
+    def test_update_client_ip(self):
+        # first test with an instance from a blueprint that does not allow setting client ip
+        data = {'client_ip': '1.1.1.1'}
+        response = self.make_authenticated_user_request(
+            method='PATCH',
+            path='/api/v1/instances/%s' % self.known_instance_id,
+            data=json.dumps(data))
+        self.assert_401(response)
+
+        # then a positive test case
+        data = {'client_ip': '1.1.1.1'}
+        response = self.make_authenticated_user_request(
+            method='PATCH',
+            path='/api/v1/instances/%s' % self.known_instance_id_2,
+            data=json.dumps(data))
+        self.assert_200(response)
+
+        # test illegal ips
+        for ip in ['1.0.0.0.0', '256.0.0.1', 'a.1.1.1', '10.10.10.']:
+            data = {'client_ip': ip}
+            response = self.make_authenticated_user_request(
+                method='PATCH',
+                path='/api/v1/instances/%s' % self.known_instance_id_2,
+                data=json.dumps(data))
+            self.assert_400(response)
+
     def test_anonymous_get_instances(self):
         response = self.make_request(path='/api/v1/instances')
         self.assert_401(response)
@@ -218,12 +271,12 @@ class FlaskApiTestCase(BaseTestCase):
     def test_user_get_instances(self):
         response = self.make_authenticated_user_request(path='/api/v1/instances')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 1)
+        self.assertEqual(len(response.json), 2)
 
     def test_admin_get_instances(self):
         response = self.make_authenticated_admin_request(path='/api/v1/instances')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 1)
+        self.assertEqual(len(response.json), 2)
 
     def test_anonymous_get_instance(self):
         response = self.make_request(path='/api/v1/instances/%s' % self.known_instance_id)
@@ -256,6 +309,14 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertEqual(len(response.json), 0)
         response2 = self.make_authenticated_admin_request(path='/api/v1/users/%s/keypairs' % '0xBogus')
         self.assert_404(response2)
+
+    def test_anonymous_what_is_my_ip(self):
+        response = self.make_request(path='/api/v1/what_is_my_ip')
+        self.assert_401(response)
+
+    def test_what_is_my_ip(self):
+        response = self.make_authenticated_user_request(path='/api/v1/what_is_my_ip')
+        self.assert_200(response)
 
 
 if __name__ == '__main__':
