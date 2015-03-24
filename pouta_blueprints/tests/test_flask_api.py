@@ -56,7 +56,7 @@ class FlaskApiTestCase(BaseTestCase):
 
         db.session.commit()
 
-    def make_request(self, method='GET', path='/', headers={}, data=None):
+    def make_request(self, method='GET', path='/', headers=None, data=None):
         methods = {
             'GET': self.client.get,
             'POST': self.client.post,
@@ -65,13 +65,16 @@ class FlaskApiTestCase(BaseTestCase):
 
         assert method in methods
 
+        if not headers:
+            headers = {}
+
         if 'Content-Type' not in headers:
             headers['Content-Type'] = 'application/json'
 
         headers = [(x, y) for x, y in headers.items()]
         return methods[method](path, headers=headers, data=data, content_type='application/json')
 
-    def make_authenticated_request(self, method='GET', path='/', headers={}, data=None, creds=None):
+    def make_authenticated_request(self, method='GET', path='/', headers=None, data=None, creds=None):
         assert creds is not None
 
         methods = {
@@ -81,6 +84,9 @@ class FlaskApiTestCase(BaseTestCase):
         }
 
         assert method in methods
+
+        if not headers:
+            headers = {}
 
         response = self.make_request('POST', '/api/v1/sessions',
                                      headers=headers,
@@ -95,11 +101,11 @@ class FlaskApiTestCase(BaseTestCase):
         }
         return methods[method](path, headers=headers, data=data, content_type='application/json')
 
-    def make_authenticated_admin_request(self, method='GET', path='/', headers={}, data=None):
+    def make_authenticated_admin_request(self, method='GET', path='/', headers=None, data=None):
         return self.make_authenticated_request(method, path, headers, data,
                                                creds={'email': 'admin@example.org', 'password': 'admin'})
 
-    def make_authenticated_user_request(self, method='GET', path='/', headers={}, data=None):
+    def make_authenticated_user_request(self, method='GET', path='/', headers=None, data=None):
         return self.make_authenticated_request(method, path, headers, data,
                                                creds={'email': 'user@example.org', 'password': 'user'})
 
