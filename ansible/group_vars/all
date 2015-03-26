@@ -23,6 +23,7 @@ application_secret_key: "change me"
 application_config_dir: "/etc/{{ application_name }}"
 application_config: "{{ application_config_dir }}/config.yaml"
 application_database_uri: "sqlite:///{{ runtime_path }}/db.sqlite"
+application_m2m_credentials_path: "{{ runtime_path }}/m2m_store"
 shared_folder_path: "/shared_folder"
 
 # nginx
