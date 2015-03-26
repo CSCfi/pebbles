@@ -24,8 +24,8 @@ class ProvisioningDriverBase(object):
         m2m_credential_store = getattr(self.config, 'M2M_CREDENTIAL_STORE')
         try:
             self.m2m_credentials = json.load(open(m2m_credential_store))
-        except (IOError, ValueError):
-            self.logger.warn("Unable to read/parse M2M credentials from path %s" % m2m_credential_store)
+        except (IOError, ValueError) as e:
+            self.logger.warn("Unable to read/parse M2M credentials from path %s %s" % (m2m_credential_store, e))
 
     def get_configuration(self):
         return {
@@ -196,4 +196,5 @@ class ProvisioningDriverBase(object):
             if key in self.m2m_credentials:
                 env[key] = self.m2m_credentials[key]
         env['PYTHONUNBUFFERED'] = '1'
+        env['ANSIBLE_HOST_KEY_CHECKING'] = '0'
         return env
