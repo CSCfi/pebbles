@@ -2,3 +2,6 @@ DEBUG: {{ application_debug_logging }}
 SECRET_KEY: '{{ application_secret_key }}'
 SQLALCHEMY_DATABASE_URI: '{{ application_database_uri }}'
 M2M_CREDENTIAL_STORE: '{{ application_m2m_credentials_path }}'
+{%  if public_ipv4 is defined %}
+BASE_URL=https://{{ public_ipv4 }}:8888/
+{% endif %}

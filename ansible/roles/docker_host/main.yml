@@ -1,4 +1,47 @@
 ---
+- name: Prepare docker host VM
+  hosts: docker_host
+  sudo: yes
+  tasks:
+    - name: add docker repo key
+      apt_key: keyserver=keyserver.ubuntu.com id=36A1D7869245C8950F966E92D8576A8BA88D21E9
+
+    - name: add docker repo
+      apt_repository: repo='deb https://get.docker.com/ubuntu docker main' state=present
+
+    - name: Install packages
+      apt: name={{ item }} state=present
+      with_items:
+        - lxc-docker
+        - python-pip
+        - dstat
+        - tmux
+        - git
+        - build-essential
+        - python-dev
+
+    - name: Install docker-py from pip (required by ansible, not available for Trusty as apt package)
+      pip: name={{ item }}
+      with_items:
+        - docker-py
+        - ansible
+
+    - name: Add cloud-user to docker group and create ssh key
+      user:
+        name=cloud-user
+        append=yes
+        groups=docker
+        generate_ssh_key=yes
+
+    - name: Create application root directory
+      file: path={{ docker_host_app_root }} owner=cloud-user state=directory
+
+    - name: Fetch application from Github
+      sudo: no
+      git:
+        repo=https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
+        dest={{ docker_host_app_root }}/source
+
 - name: Bring containers up
   hosts: docker_host
   vars:
@@ -21,22 +64,39 @@
       copy: src=~/.ssh/id_rsa.pub dest={{ mktemp.stdout }}/id_rsa.pub
 
     - name: check or build image
-#      docker_image: path={{ mktemp.stdout }} name={{ image_name }} state=build
       docker_image: path={{ mktemp.stdout }} name={{ image_name }} state=present
-#      shell: cd {{ mktemp.stdout }} && docker build -t {{ image_name }} .
 
     - name: remove temp image build directory
       file: name={{ mktemp.stdout }} state=absent
 
+    - name: Create www shared directories
+      file:
+        path={{ docker_host_app_root }}/{{ item }}
+        owner=cloud-user
+        state=directory
+        mode=777
+      with_items:
+        - www
+        - www/run
+        - www/logs
+
     - name: Bring up container for www
       docker:
-        hostname=www
-        image={{ image_name }}
-        state=present
-        name=www
-        expose=22,443,6379
-        ports=2222:22,8888:443
-        volumes={{ shared_folder_source }}:/shared_folder:ro
+        hostname: www
+        image: "{{ image_name }}"
+        state: running
+        name: www
+        expose:
+          - 22
+          - 443
+          - 6379
+        ports:
+          - "2222:22"
+          - "8888:443"
+        volumes:
+          - "{{ docker_host_app_root }}/source:/shared_folder/source:ro"
+          - "{{ docker_host_app_root }}/www/logs:/shared_folder/logs:rw"
+          - "{{ docker_host_app_root }}/www/run:/shared_folder/run:rw"
 
     - name: add www to inventory
       add_host:
@@ -51,16 +111,33 @@
     - name: "wait for sshd to come up"
       wait_for: host=localhost port=2222 state=started
 
+    - name: Create worker shared directories
+      file:
+        path={{ docker_host_app_root }}/{{ item }}
+        owner=cloud-user
+        state=directory
+        mode=777
+      with_items:
+        - worker
+        - worker/run
+        - worker/logs
+
     - name: Bring up container for worker
       docker:
-        hostname=worker
-        image={{ image_name }}
-        state=present
-        name=worker
-        expose=22
-        ports=2223:22
-        links=www:www
-        volumes={{ shared_folder_source }}:/shared_folder:ro
+        hostname: worker
+        image: "{{ image_name }}"
+        state: running
+        name: worker
+        expose:
+          - 22
+        ports:
+          - "2223:22"
+        links:
+          - "www:www"
+        volumes:
+          - "{{ docker_host_app_root }}/source:/shared_folder/source:ro"
+          - "{{ docker_host_app_root }}/worker/logs:/shared_folder/logs:rw"
+          - "{{ docker_host_app_root }}/worker/run:/shared_folder/run:rw"
 
     - name: add worker to inventory
       add_host:
@@ -71,3 +148,6 @@
         ansible_ssh_user=ansible
       when: item.Config.Hostname == "worker" and item.State.Running == True
       with_items: docker_containers
+
+    - name: "wait for sshd to come up"
+      wait_for: host=localhost port=2223 state=started

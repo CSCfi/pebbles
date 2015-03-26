@@ -1,5 +1,8 @@
 ---
-# deploy mode: devel=git from shared directory, otherwise checkout from github
+# deploy mode:
+#   devel: git from shared directory
+#   docker: source, logs and and database from shared directory
+#   standalone: checkout from github
 deploy_mode: devel
 
 apt_repository_url: "http://www.nic.funet.fi/pub/mirrors/archive.ubuntu.com/"
@@ -7,7 +10,7 @@ apt_repository_url: "http://www.nic.funet.fi/pub/mirrors/archive.ubuntu.com/"
 #apt_repository_url: "mirror://mirrors.ubuntu.com/mirrors.txt"
 
 virtualenv_path: "/webapps/{{ application_name }}/venv"
-runtime_path: "{{ virtualenv_path }}/run"
+runtime_path: "/webapps/{{ application_name }}/run"
 server_sock_path: "{{ runtime_path }}/gunicorn.sock"
 application_path: "/webapps/{{ application_name }}/source"
 application_log_dir: "/webapps/{{ application_name }}/logs"
@@ -43,3 +46,6 @@ pvc_install_dir: /opt/pvc
 pvc_cluster_data_dir: /var/spool/pvc_clusters
 #pvc_version: HEAD
 pvc_version: wip-for_pouta_blueprints
+
+# docker host
+docker_host_app_root: /opt/{{ application_name }}
