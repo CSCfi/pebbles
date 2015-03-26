@@ -132,6 +132,8 @@
           - 22
         ports:
           - "2223:22"
+        links:
+          - "www:www"
         volumes:
           - "{{ docker_host_app_root }}/source:/shared_folder/source:ro"
           - "{{ docker_host_app_root }}/worker/logs:/shared_folder/logs:rw"
