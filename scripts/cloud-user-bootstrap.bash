@@ -3,11 +3,6 @@
 set -e
 set -x
 
-sudo aptitude update
-sudo aptitude install -y git build-essential python-dev python-setuptools
-sudo easy_install pip
-sudo pip install ansible
-
 if ! id | grep "(docker)" > /dev/null; then
   if ! getent group docker > /dev/null; then
     sudo groupadd -r docker
@@ -19,25 +14,26 @@ if ! id | grep "(docker)" > /dev/null; then
   exit 0
 fi
 
-PB_BRANCH=feature/multiple_containers#58
-PB_REPO=https://github.com/CSC-IT-Center-for-Science/pouta-blueprints
+sudo aptitude update
+sudo aptitude install -y git build-essential python-dev python-setuptools
+sudo easy_install pip
+sudo pip install ansible==1.8.4
 
-set -e
-set -x
+PB_BRANCH=wip/remote_deployment_v2
+PB_REPO=https://github.com/CSC-IT-Center-for-Science/pouta-blueprints
 
 pb_temp=$(mktemp -d)
 
 git clone --branch $PB_BRANCH $PB_REPO $pb_temp/git
 
-(
-echo "[docker_host]"
-echo "localhost ansible_connection=local"
-) > $pb_temp/pb_ansible_inventory
+cat > $HOME/pb_ansible_inventory << END_AI
+[docker_host]
+localhost ansible_connection=local
+END_AI
 
+export ANSIBLE_HOST_KEY_CHECKING=0
 export PYTHONUNBUFFERED=1
-ansible-playbook -i $pb_temp/pb_ansible_inventory $pb_temp/git/ansible/prepare_vm.yml
-
-cd $pb_temp/git && scripts/deploy_local_docker_containers.bash
+ansible-playbook -i $HOME/pb_ansible_inventory ansible/playbook.yml -e deploy_mode=docker
 
 rm -rf $pb_temp
 
