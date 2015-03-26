@@ -19,8 +19,8 @@ sudo aptitude install -y git build-essential python-dev python-setuptools
 sudo easy_install pip
 sudo pip install ansible==1.8.4
 
-PB_BRANCH=wip/remote_deployment_v2
 PB_REPO=https://github.com/CSC-IT-Center-for-Science/pouta-blueprints
+PB_BRANCH=feature/docker_deployment
 
 pb_temp=$(mktemp -d)
 
@@ -42,7 +42,9 @@ export PYTHONUNBUFFERED=1
 ansible-playbook -i $HOME/pb_ansible_inventory ansible/playbook.yml\
  -e deploy_mode=docker \
  -e application_secret_key=$application_secret_key \
- -e public_ipv4=$public_ipv4
+ -e public_ipv4=$public_ipv4 \
+ -e application_m2m_credentials_path=/dev/shm/m2m_store/creds
+
 
 rm -rf $pb_temp
 

@@ -138,6 +138,7 @@
           - "{{ docker_host_app_root }}/source:/shared_folder/source:ro"
           - "{{ docker_host_app_root }}/worker/logs:/shared_folder/logs:rw"
           - "{{ docker_host_app_root }}/worker/run:/shared_folder/run:rw"
+          - "{{ docker_host_m2m_credentials_dir }}:{{ application_m2m_credentials_dir }}:ro"
 
     - name: add worker to inventory
       add_host:
