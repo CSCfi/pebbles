@@ -1,6 +1,7 @@
 import base64
 import select
 import shlex
+import json
 import subprocess
 import time
 import os
@@ -17,8 +18,14 @@ class ProvisioningDriverBase(object):
     config = {}
 
     def __init__(self, logger, config):
-        self.config = config
         self.logger = logger
+        self.config = config
+
+        m2m_credential_store = getattr(self.config, 'M2M_CREDENTIAL_STORE')
+        try:
+            self.m2m_credentials = json.load(open(m2m_credential_store))
+        except (IOError, ValueError):
+            self.logger.warn("Unable to read/parse M2M credentials from path %s" % m2m_credential_store)
 
     def get_configuration(self):
         return {
@@ -175,8 +182,10 @@ class ProvisioningDriverBase(object):
         if log_uploader and len(log_buffer) > 0:
             log_uploader(''.join(log_buffer))
 
-    @staticmethod
-    def create_pvc_env():
+    def create_pvc_env(self):
         env = os.environ.copy()
+        for key in ('OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_ID', 'OS_AUTH_URL'):
+            if key in self.m2m_credentials:
+                env[key] = self.m2m_credentials[key]
         env['PYTHONUNBUFFERED'] = '1'
         return env
