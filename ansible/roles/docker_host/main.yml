@@ -70,7 +70,11 @@
       file: name={{ mktemp.stdout }} state=absent
 
     - name: Create www shared directories
-      file: path={{ docker_host_app_root }}/{{ item }} owner=cloud-user state=directory
+      file:
+        path={{ docker_host_app_root }}/{{ item }}
+        owner=cloud-user
+        state=directory
+        mode=777
       with_items:
         - www
         - www/run
@@ -108,7 +112,11 @@
       wait_for: host=localhost port=2222 state=started
 
     - name: Create worker shared directories
-      file: path={{ docker_host_app_root }}/{{ item }} owner=cloud-user state=directory
+      file:
+        path={{ docker_host_app_root }}/{{ item }}
+        owner=cloud-user
+        state=directory
+        mode=777
       with_items:
         - worker
         - worker/run
