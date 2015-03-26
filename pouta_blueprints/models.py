@@ -19,6 +19,17 @@ def load_column(column):
     return value
 
 
+def create_first_user(email, password):
+    user = User(email, password, is_admin=True)
+    user.is_active = True
+    worker = User('worker@pouta_blueprints', app.config['SECRET_KEY'], is_admin=True)
+    worker.is_active = True
+    db.session.add(user)
+    db.session.add(worker)
+    db.session.commit()
+    return user
+
+
 class User(db.Model):
     __tablename__ = 'users'
 
