@@ -9,13 +9,17 @@ sudo easy_install pip
 sudo pip install ansible
 
 if ! id | grep "(docker)" > /dev/null; then
-  sudo groupadd -r docker
-  sudo usermod -a -G docker cloud-user
-  echo "log out and log in to make docker group effective for $USER, then run me again"
+  if ! getent group docker > /dev/null; then
+    sudo groupadd -r docker
+  fi
+  sudo usermod -a -G docker $USER
+  echo ""
+  echo "Log out and log in again to make docker group effective for $USER, then run me again"
+  echo ""
   exit 0
 fi
 
-PB_BRANCH=wip/remote_deployment_v2
+PB_BRANCH=feature/multiple_containers#58
 PB_REPO=https://github.com/CSC-IT-Center-for-Science/pouta-blueprints
 
 set -e
