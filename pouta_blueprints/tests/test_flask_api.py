@@ -194,7 +194,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
 
     def test_create_blueprint_admin_invalid_data(self):
-        invalid_form_data=[
+        invalid_form_data = [
             {'name': '', 'config': 'foo: bar', 'plugin': 'dummy'},
             {'name': 'test_blueprint_2', 'config': '', 'plugin': 'dummy'},
             {'name': 'test_blueprint_2', 'config': 'foo: bar', 'plugin': ''},
