@@ -169,6 +169,43 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
         self.assertEqual(len(response.json), 3)
 
+    def test_anonymous_create_blueprint(self):
+        data = {'name': 'test_blueprint_1', 'config': '', 'plugin': 'dummy'}
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/blueprints',
+            data=json.dumps(data))
+        self.assert_401(response)
+
+    def test_create_blueprint_user(self):
+        data = {'name': 'test_blueprint_1', 'config': '', 'plugin': 'dummy'}
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/blueprints',
+            data=json.dumps(data))
+        self.assert_403(response)
+
+    def test_create_blueprint_admin(self):
+        data = {'name': 'test_blueprint_1', 'config': 'foo: bar', 'plugin': 'dummy'}
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/blueprints',
+            data=json.dumps(data))
+        self.assert_200(response)
+
+    def test_create_blueprint_admin_invalid_data(self):
+        invalid_form_data = [
+            {'name': '', 'config': 'foo: bar', 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': '', 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': 'foo: bar', 'plugin': ''},
+        ]
+        for data in invalid_form_data:
+            response = self.make_authenticated_admin_request(
+                method='POST',
+                path='/api/v1/blueprints',
+                data=json.dumps(data))
+            self.assertStatus(response, 422)
+
     def test_anonymous_invite_user(self):
         data = {'email': 'test@example.org', 'password': 'test', 'is_admin': True}
         response = self.make_request(
