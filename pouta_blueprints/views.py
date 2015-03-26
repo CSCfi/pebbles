@@ -12,7 +12,7 @@ import datetime
 from functools import wraps
 
 from pouta_blueprints.models import User, ActivationToken, Blueprint, Plugin
-from pouta_blueprints.models import Instance, SystemToken, Keypair
+from pouta_blueprints.models import Instance, SystemToken, Keypair, create_first_user
 from pouta_blueprints.forms import UserForm, SessionCreateForm, ActivationForm
 from pouta_blueprints.forms import ChangePasswordForm, PasswordResetRequestForm
 from pouta_blueprints.forms import BlueprintForm
@@ -70,13 +70,7 @@ class FirstUserView(restful.Resource):
             if not form.validate_on_submit():
                 logging.warn("validation error on first user creation")
                 return form.errors, 422
-            user = User(form.email.data, form.password.data, is_admin=True)
-            user.is_active = True
-            worker = User('worker@pouta_blueprints', app.config['SECRET_KEY'], is_admin=True)
-            worker.is_active = True
-            db.session.add(user)
-            db.session.add(worker)
-            db.session.commit()
+            user = create_first_user(form.email.data, form.password.data)
             return user
         else:
             return abort(403)

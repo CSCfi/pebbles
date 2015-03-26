@@ -28,6 +28,9 @@ class BaseConfig(object):
     SQLALCHEMY_DATABASE_URI = resolve_configuration_value(
         'SQLALCHEMY_DATABASE_URI',
         default='sqlite:////tmp/change_me.db')
+    M2M_CREDENTIAL_STORE = resolve_configuration_value(
+        'M2M_CREDENTIAL_STORE',
+        default='/var/run/pouta_blueprints_m2m')
     MESSAGE_QUEUE_URI = 'redis://www:6379/0'
     PVC_CLUSTER_DATA_DIR = '/var/spool/pvc_clusters'
     INTERNAL_API_BASE_URL = 'https://www/api/v1'
