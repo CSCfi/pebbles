@@ -1,6 +1,6 @@
 import uuid
 import os
-from flask import abort, g
+from flask import abort, g, request
 from flask.ext.restful import fields, marshal_with, reqparse
 from sqlalchemy import desc
 import json
@@ -19,7 +19,7 @@ from pouta_blueprints.forms import BlueprintForm
 from pouta_blueprints.forms import PluginForm, InstanceForm
 
 from pouta_blueprints.server import auth, db, restful, app
-from pouta_blueprints.tasks import run_provisioning, run_deprovisioning
+from pouta_blueprints.tasks import run_provisioning, run_deprovisioning, update_user_connectivity
 from pouta_blueprints.tasks import send_mails
 
 from pouta_blueprints.utils import generate_ssh_keypair
@@ -318,11 +318,14 @@ instance_fields = {
     'name': fields.String,
     'provisioned_at': fields.DateTime,
     'lifetime_left': fields.Integer,
+    'max_lifetime': fields.Integer,
     'state': fields.String,
     'error_msg': fields.String,
     'user_id': fields.String,
     'blueprint_id': fields.String,
+    'can_update_connectivity': fields.Boolean(default=False),
     'public_ip': fields.String,
+    'client_ip': fields.String(default='not set'),
     'logs': fields.Raw,
 }
 
@@ -340,8 +343,8 @@ class InstanceList(restful.Resource):
 
         for instance in instances:
             if user.is_admin:
-                res_owner = User.query.filter_by(id=instance.user_id).first()
-                instance.user_id = res_owner.visual_id
+                owner = User.query.filter_by(id=instance.user_id).first()
+                instance.user_id = owner.visual_id
             else:
                 instance.user_id = user.visual_id
 
@@ -358,6 +361,7 @@ class InstanceList(restful.Resource):
             if instance.provisioned_at:
                 age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
             instance.lifetime_left = max(blueprint.max_lifetime - age, 0)
+            instance.max_lifetime = blueprint.max_lifetime
 
         return instances
 
@@ -406,6 +410,7 @@ class InstanceView(restful.Resource):
     parser.add_argument('state', type=str)
     parser.add_argument('public_ip', type=str)
     parser.add_argument('error_msg', type=str)
+    parser.add_argument('client_ip', type=str)
 
     @auth.login_required
     @marshal_with(instance_fields)
@@ -419,20 +424,25 @@ class InstanceView(restful.Resource):
             abort(404)
 
         if user.is_admin:
-            res_owner = User.query.filter_by(id=instance.user_id).first()
-            instance.user_id = res_owner.visual_id
+            owner = User.query.filter_by(id=instance.user_id).first()
+            instance.user_id = owner.visual_id
         else:
             instance.user_id = user.visual_id
 
-        res_parent = Blueprint.query.filter_by(id=instance.blueprint_id).first()
-        instance.blueprint_id = res_parent.visual_id
+        blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
+        instance.blueprint_id = blueprint.visual_id
 
         instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
+
+        if 'allow_update_client_connectivity' in blueprint.config \
+                and blueprint.config['allow_update_client_connectivity']:
+            instance.can_update_connectivity = True
 
         age = 0
         if instance.provisioned_at:
             age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
-        instance.lifetime_left = max(res_parent.max_lifetime - age, 0)
+        instance.lifetime_left = max(blueprint.max_lifetime - age, 0)
+        instance.max_lifetime = blueprint.max_lifetime
 
         return instance
 
@@ -442,15 +452,15 @@ class InstanceView(restful.Resource):
         query = Instance.query.filter_by(visual_id=instance_id)
         if not user.is_admin:
             query = query.filter_by(user_id=user.id)
-        pr = query.first()
-        if not pr:
+        instance = query.first()
+        if not instance:
             abort(404)
-        pr.state = 'deleting'
+        instance.state = 'deleting'
         token = SystemToken('provisioning')
         db.session.add(token)
         db.session.commit()
         if not app.config['SKIP_TASK_QUEUE']:
-            run_deprovisioning.delay(token.token, pr.visual_id)
+            run_deprovisioning.delay(token.token, instance.visual_id)
 
     @auth.login_required
     def patch(self, instance_id):
@@ -484,6 +494,24 @@ class InstanceView(restful.Resource):
 
         if args.get('public_ip') and user.is_admin:
             instance.public_ip = args['public_ip']
+            db.session.commit()
+
+        if args['client_ip']:
+            blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
+            if 'allow_update_client_connectivity' in blueprint.config \
+                    and blueprint.config['allow_update_client_connectivity']:
+                new_ip = args['client_ip']
+                ipv4_re = '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+                if re.match(ipv4_re, new_ip):
+                    instance.client_ip = new_ip
+                    if not app.config['SKIP_TASK_QUEUE']:
+                        update_user_connectivity.delay(instance.visual_id)
+                else:
+                    # 400 Bad Request
+                    abort(400)
+            else:
+                abort(401)
+
             db.session.commit()
 
 
@@ -526,8 +554,8 @@ class InstanceLogs(restful.Resource):
     @requires_admin
     def patch(self, instance_id):
         args = self.parser.parse_args()
-        pr = Instance.query.filter_by(visual_id=instance_id).first()
-        if not pr:
+        instance = Instance.query.filter_by(visual_id=instance_id).first()
+        if not instance:
             abort(404)
 
         log_type = args['type']
@@ -535,8 +563,8 @@ class InstanceLogs(restful.Resource):
             abort(403)
 
         if log_type in ('provisioning', 'deprovisioning'):
-            log_dir, log_file_name = self.get_base_dir_and_filename(instance_id, log_type,
-                                                                    create_missing_filename=True)
+            log_dir, log_file_name = self.get_base_dir_and_filename(
+                instance_id, log_type, create_missing_filename=True)
 
             with open('%s/%s' % (log_dir, log_file_name), 'a') as logfile:
                 logfile.write(args['text'])
@@ -677,6 +705,15 @@ class PluginList(restful.Resource):
         db.session.commit()
 
 
+class WhatIsMyIp(restful.Resource):
+    @auth.login_required
+    def get(self):
+        if len(request.access_route) > 0:
+            return {'ip': request.access_route[-1]}
+        else:
+            return {'ip': request.remote_addr}
+
+
 def setup_resource_urls(api_service):
     api_root = '/api/v1'
     api_service.add_resource(FirstUserView, api_root + '/initialize')
@@ -701,3 +738,4 @@ def setup_resource_urls(api_service):
         methods=['GET', 'PATCH'])
     api_service.add_resource(PluginList, api_root + '/plugins')
     api_service.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')
+    api_service.add_resource(WhatIsMyIp, api_root + '/what_is_my_ip', methods=['GET'])

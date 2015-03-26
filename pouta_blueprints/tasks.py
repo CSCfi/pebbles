@@ -47,7 +47,7 @@ def deprovision_expired():
 
         if not instance.get('state') in ['running']:
             continue
-        if not instance.get('lifetime_left'):
+        if not instance.get('lifetime_left') and instance.get('max_lifetime'):
             logger.info('timed deprovisioning triggered for %s' % instance.get('id'))
             run_deprovisioning.delay(token, instance.get('id'))
 
@@ -138,6 +138,16 @@ def publish_plugins():
             payload[key] = json.dumps(config.get(key, {}))
 
         do_post(token, 'plugins', payload)
+
+
+@app.task(name="pouta_blueprints.tasks.update_user_connectivity")
+def update_user_connectivity(instance_id):
+    logger.info('updating connectivity for instance %s' % instance_id)
+    token = get_token()
+    mgr = get_provisioning_manager()
+    plugin = get_provisioning_type(token, instance_id)
+    mgr.map_method([plugin], 'update_connectivity', token, instance_id)
+    logger.info('update connectivity for instance %s ready' % instance_id)
 
 
 def get_token():
