@@ -42,8 +42,7 @@ export PYTHONUNBUFFERED=1
 ansible-playbook -i $HOME/pb_ansible_inventory ansible/playbook.yml\
  -e deploy_mode=docker \
  -e application_secret_key=$application_secret_key \
- -e public_ipv4=$public_ipv4 \
- -e application_m2m_credentials_path=/dev/shm/m2m_store/creds
+ -e public_ipv4=$public_ipv4
 
 
 rm -rf $pb_temp
