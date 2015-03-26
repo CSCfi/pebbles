@@ -4,6 +4,14 @@
     mode=775 state=directory
     owner={{ application_user }}
     group={{ application_group }}
+  when: deploy_mode != "docker"
+
+- name: Link application log directory (docker)
+  file:
+    src={{ shared_folder_path }}/logs
+    dest={{ application_log_dir }}
+    state=link
+  when: deploy_mode == "docker"
 
 - name: Create the application log file
   command: touch {{ application_log_file }}
@@ -22,6 +30,14 @@
     mode=775 state=directory
     owner={{ application_user }}
     group={{ application_group }}
+  when: deploy_mode != "docker"
+
+- name: Link runtime directory (docker)
+  file:
+    src={{ shared_folder_path }}/run
+    dest={{ runtime_path }}
+    state=link
+  when: deploy_mode == "docker"
 
 - name: Create config directory
   file:
