@@ -31,9 +31,18 @@ cat > $HOME/pb_ansible_inventory << END_AI
 localhost ansible_connection=local
 END_AI
 
+# create a shared secret for both containers
+application_secret_key=$(openssl rand -base64 32)
+
+# figure out the public ip
+public_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+
 export ANSIBLE_HOST_KEY_CHECKING=0
 export PYTHONUNBUFFERED=1
-ansible-playbook -i $HOME/pb_ansible_inventory ansible/playbook.yml -e deploy_mode=docker
+ansible-playbook -i $HOME/pb_ansible_inventory ansible/playbook.yml\
+ -e deploy_mode=docker \
+ -e application_secret_key=$application_secret_key \
+ -e public_ipv4=$public_ipv4
 
 rm -rf $pb_temp
 
