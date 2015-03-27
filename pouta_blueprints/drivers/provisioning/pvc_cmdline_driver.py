@@ -166,7 +166,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
 
         # remove generated key from OpenStack
         args = ['nova', 'keypair-delete', 'rc-%s' % cluster_name]
-        p = subprocess.Popen(args, cwd=instance_dir,  env=self.create_pvc_env())
+        p = subprocess.Popen(args, cwd=instance_dir, env=self.create_pvc_env())
         p.wait()
 
         # use instance id as a part of the name to make tombstones always unique
