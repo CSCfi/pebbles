@@ -145,7 +145,6 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         self.logger.debug('spawning "%s"' % cmd)
         self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_pvc_env(), log_uploader=uploader)
 
-
     def do_deprovision(self, token, instance_id):
         instance = self.get_instance_data(token, instance_id)
         cluster_name = instance['name']
