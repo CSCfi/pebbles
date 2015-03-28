@@ -24,6 +24,14 @@ class ProvisioningDriverBase(object):
         m2m_credential_store = getattr(self.config, 'M2M_CREDENTIAL_STORE')
         try:
             self.m2m_credentials = json.load(open(m2m_credential_store))
+            for key in self.m2m_credentials.keys():
+                if key=='OS_PASSWORD':
+                    self.logger.debug('m2m creds: OS_PASSWORD is set')
+                elif key in ('OS_USERNAME', 'OS_TENANT_NAME', 'OS_AUTH_URL'):
+                    self.logger.debug('m2m creds: %s: %s' % (key, self.m2m_credentials[key]))
+                else:
+                    self.logger.warn('m2m creds: unknown key %s' % key)
+
         except (IOError, ValueError) as e:
             self.logger.warn("Unable to read/parse M2M credentials from path %s %s" % (m2m_credential_store, e))
 
@@ -192,7 +200,7 @@ class ProvisioningDriverBase(object):
 
     def create_pvc_env(self):
         env = os.environ.copy()
-        for key in ('OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_ID', 'OS_AUTH_URL'):
+        for key in ('OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_NAME', 'OS_AUTH_URL'):
             if key in self.m2m_credentials:
                 env[key] = self.m2m_credentials[key]
         env['PYTHONUNBUFFERED'] = '1'
