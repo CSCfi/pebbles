@@ -3,6 +3,7 @@ command = {{ virtualenv_path }}/bin/celery worker -A pouta_blueprints.tasks --lo
 directory = {{ application_path }}
 user = {{ application_user }}
 stdout_logfile = {{ celery_log_file }}
+environment=PATH="{{ virtualenv_path }}/bin:%(ENV_PATH)s"
 redirect_stderr = true
 
 [program:{{ application_name }}-periodic-worker]
