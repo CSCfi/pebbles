@@ -27,7 +27,7 @@ class ProvisioningDriverBase(object):
             for key in self.m2m_credentials.keys():
                 if key == 'OS_PASSWORD':
                     self.logger.debug('m2m creds: OS_PASSWORD is set (not shown)')
-                elif key in ('OS_USERNAME', 'OS_TENANT_NAME', 'OS_AUTH_URL'):
+                elif key in ('OS_USERNAME', 'OS_TENANT_NAME', 'OS_TENANT_ID', 'OS_AUTH_URL'):
                     self.logger.debug('m2m creds: %s: %s' % (key, self.m2m_credentials[key]))
                 else:
                     self.logger.warn('m2m creds: unknown key %s' % key)
@@ -200,7 +200,7 @@ class ProvisioningDriverBase(object):
 
     def create_pvc_env(self):
         env = os.environ.copy()
-        for key in ('OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_NAME', 'OS_AUTH_URL'):
+        for key in ('OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_NAME', 'OS_TENANT_ID', 'OS_AUTH_URL'):
             if key in self.m2m_credentials:
                 env[key] = self.m2m_credentials[key]
         env['PYTHONUNBUFFERED'] = '1'
