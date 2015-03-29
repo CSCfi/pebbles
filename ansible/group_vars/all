@@ -5,6 +5,9 @@
 #   standalone: checkout from github
 deploy_mode: devel
 
+git_repository: "https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git"
+git_version: "master"
+
 apt_repository_url: "http://www.nic.funet.fi/pub/mirrors/archive.ubuntu.com/"
 #apt_repository_url: "http://fi.mirrors.archive.ubuntu.com/ubuntu/"
 #apt_repository_url: "mirror://mirrors.ubuntu.com/mirrors.txt"
@@ -51,5 +54,4 @@ pvc_version: "wip-for_pouta_blueprints"
 # docker host
 docker_host_app_root: "/opt/{{ application_name }}"
 docker_host_m2m_credentials_dir: "/run/shm/{{ application_name }}"
-
-
+docker_https_port: 443
