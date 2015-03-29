@@ -36,11 +36,9 @@
     - name: Create application root directory
       file: path={{ docker_host_app_root }} owner=cloud-user state=directory
 
-    - name: Fetch application from Github
-      sudo: no
-      git:
-        repo=https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
-        dest={{ docker_host_app_root }}/source
+#    - name: Fetch application from Github
+#      sudo: no
+#      git: repo={{ git_repository }} version={{ git_version }} dest={{ docker_host_app_root }}/source
 
 - name: Bring containers up
   hosts: docker_host
@@ -69,17 +67,6 @@
     - name: remove temp image build directory
       file: name={{ mktemp.stdout }} state=absent
 
-    - name: Create www shared directories
-      file:
-        path={{ docker_host_app_root }}/{{ item }}
-        owner=cloud-user
-        state=directory
-        mode=777
-      with_items:
-        - www
-        - www/run
-        - www/logs
-
     - name: Bring up container for www
       docker:
         hostname: www
@@ -92,11 +79,9 @@
           - 6379
         ports:
           - "2222:22"
-          - "8888:443"
+          - "{{ docker_https_port }}:443"
         volumes:
-          - "{{ docker_host_app_root }}/source:/shared_folder/source:ro"
-          - "{{ docker_host_app_root }}/www/logs:/shared_folder/logs:rw"
-          - "{{ docker_host_app_root }}/www/run:/shared_folder/run:rw"
+          - "{{ docker_host_app_root }}:/shared_folder/source:ro"
 
     - name: add www to inventory
       add_host:
@@ -111,17 +96,6 @@
     - name: "wait for sshd to come up"
       wait_for: host=localhost port=2222 state=started
 
-    - name: Create worker shared directories
-      file:
-        path={{ docker_host_app_root }}/{{ item }}
-        owner=cloud-user
-        state=directory
-        mode=777
-      with_items:
-        - worker
-        - worker/run
-        - worker/logs
-
     - name: Bring up container for worker
       docker:
         hostname: worker
@@ -135,9 +109,7 @@
         links:
           - "www:www"
         volumes:
-          - "{{ docker_host_app_root }}/source:/shared_folder/source:ro"
-          - "{{ docker_host_app_root }}/worker/logs:/shared_folder/logs:rw"
-          - "{{ docker_host_app_root }}/worker/run:/shared_folder/run:rw"
+          - "{{ docker_host_app_root }}:/shared_folder/source:ro"
           - "{{ docker_host_m2m_credentials_dir }}:{{ application_m2m_credentials_dir }}:ro"
 
     - name: add worker to inventory
