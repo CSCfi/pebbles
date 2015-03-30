@@ -14,7 +14,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         cmd = 'nova %s-list' % object_type
         try:
             p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                 env=self.create_pvc_env())
+                                 env=self.create_openstack_env())
         except OSError as e:
             self.logger.warn('Could not run %s list ("nova" missing from path?): """%s""" ' % (object_type, e))
             return {}
@@ -112,7 +112,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         if not os.path.isfile(key_file):
             with open(key_file, 'w') as keyfile:
                 args = ['nova', 'keypair-add', 'rc-%s' % cluster_name]
-                p = subprocess.Popen(args, cwd=instance_dir, stdout=keyfile, env=self.create_pvc_env())
+                p = subprocess.Popen(args, cwd=instance_dir, stdout=keyfile, env=self.create_openstack_env())
                 p.wait()
             os.chmod(key_file, stat.S_IRUSR)
 
@@ -129,7 +129,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         # get public IP
         cmd = '/webapps/pouta_blueprints/venv/bin/python /opt/pvc/python/poutacluster.py info'
         p = subprocess.Popen(shlex.split(cmd), cwd=instance_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             env=self.create_pvc_env())
+                             env=self.create_openstack_env())
         out, err = p.communicate()
         public_ip = None
         for line in out.splitlines():
@@ -143,7 +143,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         # run info as the last command to show the service endpoints at the end of the log
         cmd = '/webapps/pouta_blueprints/venv/bin/python /opt/pvc/python/poutacluster.py info'
         self.logger.debug('spawning "%s"' % cmd)
-        self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_pvc_env(), log_uploader=uploader)
+        self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_openstack_env(), log_uploader=uploader)
 
     def do_deprovision(self, token, instance_id):
         instance = self.get_instance_data(token, instance_id)
@@ -174,7 +174,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
 
         # remove generated key from OpenStack
         args = ['nova', 'keypair-delete', 'rc-%s' % cluster_name]
-        p = subprocess.Popen(args, cwd=instance_dir, env=self.create_pvc_env())
+        p = subprocess.Popen(args, cwd=instance_dir, env=self.create_openstack_env())
         p.wait()
 
         # use instance id as a part of the name to make tombstones always unique
