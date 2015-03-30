@@ -148,13 +148,6 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         instance_name = instance['name']
         nc = self.get_openstack_nova_client()
 
-        write_log("removing security group\n")
-        try:
-            sg = nc.security_groups.find(name="pb_%s" % instance_name)
-            nc.security_groups.delete(sg.id)
-        except:
-            write_log("unable to delete security group\n")
-
         write_log("destroying server instance\n")
         try:
             nc.servers.delete(instance_data['server_id'])
@@ -166,5 +159,12 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
             nc.floating_ips.delete(nc.floating_ips.find(ip=instance_data['floating_ip']).id)
         except:
             write_log("unable to release public IP\n")
+
+        write_log("removing security group\n")
+        try:
+            sg = nc.security_groups.find(name="pb_%s" % instance_name)
+            nc.security_groups.delete(sg.id)
+        except:
+            write_log("unable to delete security group\n")
 
         write_log("deprovisioning ready\n")
