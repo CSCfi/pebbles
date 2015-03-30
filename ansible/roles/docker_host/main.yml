@@ -124,3 +124,22 @@
 
     - name: "wait for sshd to come up"
       wait_for: host=localhost port=2223 state=started
+
+- name: Add cloud-user to containers
+  hosts:
+    - www
+    - worker
+  sudo: yes
+  tasks:
+    - name: Add cloud-user
+      user: name=cloud-user comment="cloud admin user" state=present password='*' shell='/bin/bash'
+
+    - name: Add passwordless sudo-rights to cloud-admin
+      lineinfile:
+        dest=/etc/sudoers
+        state=present
+        line='cloud-user ALL=(ALL) NOPASSWD:ALL'
+        validate='visudo -cf %s'
+
+    - name: Add cloud-user public key
+      authorized_key: user=cloud-user key="{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
