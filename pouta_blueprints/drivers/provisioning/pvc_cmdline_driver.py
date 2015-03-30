@@ -155,6 +155,10 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         if not os.path.exists(instance_dir):
             return
 
+        # check if provisioning has failed before even creating an instance state directory
+        if not os.path.exists(instance_dir):
+            return
+
         uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
         # run deprovisioning
         cmd = '/webapps/pouta_blueprints/venv/bin/python /opt/pvc/python/poutacluster.py down'
