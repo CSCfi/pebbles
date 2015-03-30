@@ -32,7 +32,7 @@ class BaseConfig(object):
         'M2M_CREDENTIAL_STORE',
         default='/var/run/pouta_blueprints_m2m')
     MESSAGE_QUEUE_URI = 'redis://www:6379/0'
-    PVC_CLUSTER_DATA_DIR = '/var/spool/pvc_clusters'
+    INSTANCE_DATA_DIR = '/var/spool/pb_instances'
     INTERNAL_API_BASE_URL = 'https://www/api/v1'
     BASE_URL = 'https://localhost:8888'
     MAX_CONTENT_LENGTH = 1024 * 1024

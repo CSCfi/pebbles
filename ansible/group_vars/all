@@ -25,6 +25,7 @@ application_config: "{{ application_config_dir }}/config.yaml"
 application_database_uri: "sqlite:///{{ runtime_path }}/db.sqlite"
 application_m2m_credentials_path: "/run/shm/m2m_store"
 shared_folder_path: "/shared_folder"
+instance_data_dir: /var/spool/pb_instances
 
 # nginx
 nginx_static_root: "/webapps/{{ application_name }}/static"
@@ -40,6 +41,5 @@ gunicorn_max_requests: 1
 
 # pouta-virtualcluster
 pvc_install_dir: /opt/pvc
-pvc_cluster_data_dir: /var/spool/pvc_clusters
 #pvc_version: HEAD
 pvc_version: wip-for_pouta_blueprints

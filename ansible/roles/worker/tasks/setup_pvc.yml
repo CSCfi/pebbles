@@ -22,8 +22,8 @@
        version={{ pvc_version }}
 
 - name: Make a base directory for provisioned cluster data
-  file: name={{ pvc_cluster_data_dir }} state=directory owner={{ application_user }}
+  file: name={{ instance_data_dir }} state=directory owner={{ application_user }}
 
 - name: Symlink pvc ansible playbooks
-  file: name={{ pvc_cluster_data_dir }}/ansible state=link src={{ pvc_install_dir}}/ansible
+  file: name={{ instance_data_dir }}/ansible state=link src={{ pvc_install_dir }}/ansible
 

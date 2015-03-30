@@ -324,6 +324,7 @@ instance_fields = {
     'user_id': fields.String,
     'blueprint_id': fields.String,
     'can_update_connectivity': fields.Boolean(default=False),
+    'instance_data': fields.Raw,
     'public_ip': fields.String,
     'client_ip': fields.String(default='not set'),
     'logs': fields.Raw,
@@ -411,6 +412,7 @@ class InstanceView(restful.Resource):
     parser.add_argument('public_ip', type=str)
     parser.add_argument('error_msg', type=str)
     parser.add_argument('client_ip', type=str)
+    parser.add_argument('instance_data', type=str)
 
     @auth.login_required
     @marshal_with(instance_fields)
@@ -494,6 +496,10 @@ class InstanceView(restful.Resource):
 
         if args.get('public_ip') and user.is_admin:
             instance.public_ip = args['public_ip']
+            db.session.commit()
+
+        if args.get('instance_data'):
+            instance.instance_data = json.loads(args['instance_data'])
             db.session.commit()
 
         if args['client_ip']:
