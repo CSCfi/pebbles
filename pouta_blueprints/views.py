@@ -324,6 +324,7 @@ instance_fields = {
     'user_id': fields.String,
     'blueprint_id': fields.String,
     'can_update_connectivity': fields.Boolean(default=False),
+    'instance_data': fields.String(default=""),
     'public_ip': fields.String,
     'client_ip': fields.String(default='not set'),
     'logs': fields.Raw,
@@ -494,6 +495,10 @@ class InstanceView(restful.Resource):
 
         if args.get('public_ip') and user.is_admin:
             instance.public_ip = args['public_ip']
+            db.session.commit()
+
+        if args.get('instance_data'):
+            instance.instance_data = args['instance_data']
             db.session.commit()
 
         if args['client_ip']:
