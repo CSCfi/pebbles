@@ -19,6 +19,14 @@ else
     echo ""
 fi
 
+if grep -q "nova.clouds" /etc/apt/sources.list; then
+    echo "-------------------------------------------------------------------------------"
+    echo
+    echo "Patching /etc/apt/sources.list to point to a Finnish mirror"
+    echo
+    sudo sed -i -e 's/nova\.clouds\./fi./g' /etc/apt/sources.list
+fi
+
 echo "-------------------------------------------------------------------------------"
 echo
 echo "Updating apt repository metadata"
@@ -60,15 +68,6 @@ else
     echo "Seems like OpenStack credentials do not work. Make sure you have m2m openrc sourced with correct password"
     echo
     exit 1
-fi
-
-
-if grep -q "nova.clouds" /etc/apt/sources.list; then
-    echo "-------------------------------------------------------------------------------"
-    echo
-    echo "Patching /etc/apt/sources.list to point to a Finnish mirror"
-    echo
-    sudo sed -i -e 's/nova\.clouds\./fi./g' /etc/apt/sources.list
 fi
 
 echo "-------------------------------------------------------------------------------"
@@ -143,6 +142,30 @@ ansible-playbook -i $HOME/pb_ansible_inventory ansible/playbook.yml\
  -e public_ipv4=$public_ipv4 \
  -e git_version=feature/docker_deployment \
  -e docker_host_app_root=$PWD
+
+echo "-------------------------------------------------------------------------------"
+echo
+echo "Creating aliases for www and worker in ssh config"
+if ! grep -q "Host www" ~/.ssh/config; then
+    echo "adding entry for www"
+    cat >> ~/.ssh/config << EOF_SSH
+Host www
+        StrictHostKeyChecking no
+        HostName localhost
+        Port 2222
+EOF_SSH
+fi
+
+if ! grep -q "Host worker" ~/.ssh/config; then
+    echo "adding entry for worker"
+    cat >> ~/.ssh/config << EOF_SSH
+Host worker
+        StrictHostKeyChecking no
+        HostName localhost
+        Port 2223
+EOF_SSH
+fi
+echo
 
 echo "-------------------------------------------------------------------------------"
 echo "Setup finished, point your browser to "
