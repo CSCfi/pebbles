@@ -4,7 +4,7 @@ cluster:
   description: Cluster deployed by pouta_blueprints
   network: default
   allow-traffic-from-sec-groups:
-    - bastion
+    - pb_server
 {% if firewall_rules is defined and firewall_rules|length > 0 %}
   ext-secgroup-rules:
 {% for rule in firewall_rules %}
