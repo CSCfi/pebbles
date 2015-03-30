@@ -180,7 +180,7 @@ class Instance(db.Model):
     def instance_data(self):
         return load_column(self._instance_data)
 
-    @config.setter
+    @instance_data.setter
     def instance_data(self, value):
         self._instance_data = json.dumps(value)
 
