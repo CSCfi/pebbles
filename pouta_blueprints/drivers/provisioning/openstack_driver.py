@@ -14,10 +14,10 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         openstack_env = self.create_openstack_env()
         os_username = openstack_env['OS_USERNAME']
         os_password = openstack_env['OS_PASSWORD']
-        os_tenant_id = openstack_env['OS_TENANT_ID']
+        os_tenant_name = openstack_env['OS_TENANT_NAME']
         os_auth_url = openstack_env['OS_AUTH_URL']
 
-        return client.Client(os_username, os_password, os_tenant_id, os_auth_url, service_type="compute")
+        return client.Client(os_username, os_password, os_tenant_name, os_auth_url, service_type="compute")
 
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.openstack_driver_config import CONFIG
