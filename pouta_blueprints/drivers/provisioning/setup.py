@@ -32,6 +32,7 @@ setup(
         'pouta_blueprints.drivers.provisioning': [
             'DummyDriver = pouta_blueprints.drivers.provisioning.dummy_driver:DummyDriver',
             'PvcCmdLineDriver = pouta_blueprints.drivers.provisioning.pvc_cmdline_driver:PvcCmdLineDriver',
+            'OpenStackDriver = pouta_blueprints.drivers.provisioning.openstack_driver:OpenStackDriver',
         ],
     },
 
