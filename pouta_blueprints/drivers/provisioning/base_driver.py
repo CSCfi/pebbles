@@ -154,7 +154,7 @@ class ProvisioningDriverBase(object):
         poller.register(p.stderr)
         log_buffer = []
         last_upload = time.time()
-        with open('%s/pvc_stdout.log' % cwd, 'a') as stdout, open('%s/pvc_stderr.log' % cwd, 'a') as stderr:
+        with open('%s/instance_stdout.log' % cwd, 'a') as stdout, open('%s/instance__stderr.log' % cwd, 'a') as stderr:
             stdout_open = stderr_open = True
             while stdout_open or stderr_open:
                 poll_results = poller.poll(500)
@@ -190,7 +190,7 @@ class ProvisioningDriverBase(object):
         if log_uploader and len(log_buffer) > 0:
             log_uploader(''.join(log_buffer))
 
-    def create_pvc_env(self):
+    def create_openstack_env(self):
         env = os.environ.copy()
         for key in ('OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_ID', 'OS_AUTH_URL'):
             if key in self.m2m_credentials:
