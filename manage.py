@@ -1,13 +1,10 @@
 from flask.ext.script import Manager, Shell
-from flask.ext.migrate import Migrate, MigrateCommand
 
 from pouta_blueprints.server import app, db
 from pouta_blueprints import models
 
 
-migrate = Migrate(app, db)
 manager = Manager(app)
-manager.add_command('migrate', MigrateCommand)
 
 
 def _make_context():
