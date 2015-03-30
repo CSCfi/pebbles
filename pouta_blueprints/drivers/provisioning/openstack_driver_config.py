@@ -65,7 +65,7 @@ CONFIG = {
         'allow_update_client_connectivity',
     ],
     'model': {
-        'name': 'pvc',
+        'name': 'os-machine',
         'flavor': 'mini',
         'image': 'Ubuntu-14.04',
         'firewall_rules': ['tcp 22 22 192.168.1.0/24']

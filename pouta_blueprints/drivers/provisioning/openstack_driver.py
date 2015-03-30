@@ -1,5 +1,4 @@
 import time
-import os
 
 from novaclient.v2 import client
 import novaclient
@@ -10,24 +9,6 @@ SLEEP_BETWEEN_POLLS = 3
 
 
 class OpenStackDriver(base_driver.ProvisioningDriverBase):
-    def get_configuration(self):
-        from pouta_blueprints.drivers.provisioning.openstack_driver_config import CONFIG
-
-        images = self.run_nova_list('image')
-        self.logger.debug('images: %s' % images)
-
-        flavors = self.run_nova_list('flavor')
-        self.logger.debug('flavors: %s' % flavors)
-
-        config = CONFIG.copy()
-        image_names = [x['Name'] for x in images]
-        config['schema']['properties']['image']['enum'] = image_names
-
-        flavor_names = [x['Name'] for x in flavors]
-        config['schema']['properties']['flavor']['enum'] = flavor_names
-
-        return config
-
     def get_openstack_nova_client(self):
         openstack_env = self.create_openstack_env()
         os_username = openstack_env['OS_USERNAME']
@@ -36,6 +17,19 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         os_auth_url = openstack_env['OS_AUTH_URL']
 
         return client.Client(os_username, os_password, os_tenant_id, os_auth_url, service_type="compute")
+
+    def get_configuration(self):
+        from pouta_blueprints.drivers.provisioning.openstack_driver_config import CONFIG
+        client = self.get_openstack_nova_client()
+
+        images = [x.name for x in client.images.list()]
+        flavors = [x.name for x in client.flavors.list()]
+
+        config = CONFIG.copy()
+        config['schema']['properties']['image']['enum'] = images
+        config['schema']['properties']['flavor']['enum'] = flavors
+
+        return config
 
     def do_update_connectivity(self, token, instance_id):
         instance = self.get_instance_data(token, instance_id)
@@ -60,15 +54,13 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         instance_name = instance['name']
         instance_user = instance['user_id']
 
-        # fetch config for this cluster
+        # fetch config
         config = self.get_blueprint_description(token, instance['blueprint_id'])
 
-        instance_dir = '%s/%s' % (self.config.INSTANCE_DATA_DIR, instance_name)
+        write_log = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
+        write_log("Provisioning OpenStack instance (%s)\n" % instance_id)
 
-        # will fail if there is already a directory for this instance
-        os.makedirs(instance_dir)
-
-        # fetch user public key and save it
+        # fetch user public key
         key_data = self.get_user_key_data(token, instance_user).json()
         if not key_data:
             error = 'user\'s public key is missing'
@@ -85,11 +77,15 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         except novaclient.exceptions.NotFound:
             self.logger.debug('requested image %s not found' % image_name)
 
+        write_log("Found requested image: %s\n" % image_name)
+
         flavor_name = config['flavor']
         try:
             flavor = nc.flavors.find(name=flavor_name)
         except novaclient.exceptions.NotFound:
             self.logger.debug('requested flavor %s not found' % flavor_name)
+
+        write_log("Found requested flavor: %s\n" % flavor_name)
 
         key_name = 'pb_%s' % instance_user
         try:
@@ -101,6 +97,8 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         security_group_name = "pb_%s" % instance_name
         client.security_groups.create(name=security_group_name)
 
+        write_log("Creating instance ")
+
         server = nc.servers.create(
             'pb_%s' % instance_name,
             image,
@@ -109,13 +107,18 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
             security_groups=[security_group_name])
 
         while nc.servers.get(server.id).status is "BUILDING":
+            write_log(" . ")
             time.sleep(SLEEP_BETWEEN_POLLS)
+
+        write_log("OK\nAssigning public IP")
 
         ips = nc.floating_ips.findall(instance_id=None)
         if not ips:
             ip = nc.floating_ips.create(pool="public")
         else:
             ip = ips[0]
+
+        write_log("Got IP %s" % ip)
 
         server.add_floating_ip(ip)
         instance_data = {
@@ -124,11 +127,15 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         }
         self.do_instance_patch(token, instance_id, {'instance_data': instance_data})
         nc.keypairs.delete(key_name)
+        write_log("Provisioning complete")
 
     def do_deprovision(self, token, instance_id):
+        write_log = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
+        write_log("deprovisioning instance %s" % instance_id)
         instance = self.get_instance_data(token, instance_id)
         instance_data = instance['instance_data']
         instance_name = instance['name']
         nc = self.get_openstack_nova_client()
         nc.security_groups.delete("pb_%s" % instance_name)
+        nc.servers.delete(instance_data['server_id'])
         nc.floating_ips.delete(instance_data['floating_ip'])
