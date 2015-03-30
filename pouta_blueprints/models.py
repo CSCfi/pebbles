@@ -168,12 +168,21 @@ class Instance(db.Model):
     provisioned_at = db.Column(db.DateTime)
     state = db.Column(db.String(32))
     error_msg = db.Column(db.String(256))
+    _instance_data = db.Column('instance_data', db.Text)
 
     def __init__(self, blueprint, user):
         self.blueprint_id = blueprint.id
         self.user_id = user.id
         self.visual_id = uuid.uuid4().hex
         self.state = 'starting'
+
+    @hybrid_property
+    def instance_data(self):
+        return load_column(self._instance_data)
+
+    @config.setter
+    def instance_data(self, value):
+        self._instance_data = json.dumps(value)
 
 
 class SystemToken(db.Model):
