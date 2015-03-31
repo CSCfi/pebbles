@@ -14,7 +14,7 @@ ADD ansible-sudo /etc/sudoers.d/ansible
 RUN mkdir -p /home/ansible/.ssh/
 ADD id_rsa.pub /home/ansible/.ssh/authorized_keys
 RUN chown -R ansible:ansible /home/ansible/ && chmod 700 /home/ansible/.ssh/ && chmod 600 /home/ansible/.ssh/authorized_keys
-RUN echo -n 'ansible:ansible' | chpasswd
+RUN usermod -p '*' ansible
 
 EXPOSE 22
 
