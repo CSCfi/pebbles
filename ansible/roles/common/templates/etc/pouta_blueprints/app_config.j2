@@ -4,8 +4,8 @@ SQLALCHEMY_DATABASE_URI: '{{ application_database_uri }}'
 M2M_CREDENTIAL_STORE: '{{ application_m2m_credentials_path }}'
 {%  if public_ipv4 is defined %}
 {%  if docker_https_port is defined and docker_https_port!=443 %}
-BASE_URL: https://{{ public_ipv4 }}:{{ docker_https_port }}/
+BASE_URL: 'https://{{ public_ipv4 }}:{{ docker_https_port }}/'
 {% else %}
-BASE_URL: https://{{ public_ipv4 }}/
+BASE_URL: 'https://{{ public_ipv4 }}/'
 {% endif %}
 {% endif %}
