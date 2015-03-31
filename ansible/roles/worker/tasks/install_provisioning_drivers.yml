@@ -1,5 +1,11 @@
 ---
 
+- name: Install OpenStack client from PIP
+  pip: name={{ item }} virtualenv={{ virtualenv_path }}
+  with_items:
+      - python-novaclient
+      - python-cinderclient
+
 - name: Install driver package to venv
   command: "{{ virtualenv_path}}/bin/python {{ application_path }}/pouta_blueprints/drivers/provisioning/setup.py install"
   args:
