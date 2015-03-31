@@ -143,17 +143,17 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
 
     def do_deprovision(self, token, instance_id):
         write_log = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
-        write_log("deprovisioning instance %s\n" % instance_id)
+        write_log("Deprovisioning instance %s\n" % instance_id)
         instance = self.get_instance_data(token, instance_id)
         instance_data = instance['instance_data']
         instance_name = instance['name']
         nc = self.get_openstack_nova_client()
 
-        write_log("destroying server instance . . ")
+        write_log("Destroying server instance . . ")
         try:
             nc.servers.delete(instance_data['server_id'])
         except:
-            write_log("unable to delete server\n")
+            write_log("Unable to delete server\n")
 
         delete_ts = time.time()
         while True:
@@ -162,24 +162,24 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
                 write_log(" . ")
                 time.sleep(SLEEP_BETWEEN_POLLS)
             except:
-                write_log("server instance deleted\n")
+                write_log("Server instance deleted\n")
                 break
 
             if time.time() - delete_ts > POLL_MAX_WAIT:
-                write_log("server instance still running, giving up\n")
+                write_log("Server instance still running, giving up\n")
                 break
 
-        write_log("releasing public IP\n")
+        write_log("Releasing public IP\n")
         try:
             nc.floating_ips.delete(nc.floating_ips.find(ip=instance_data['floating_ip']).id)
         except:
-            write_log("unable to release public IP\n")
+            write_log("Unable to release public IP\n")
 
-        write_log("removing security group\n")
+        write_log("Removing security group\n")
         try:
             sg = nc.security_groups.find(name="pb_%s" % instance_name)
             nc.security_groups.delete(sg.id)
         except:
-            write_log("unable to delete security group\n")
+            write_log("Unable to delete security group\n")
 
-        write_log("deprovisioning ready\n")
+        write_log("Deprovisioning ready\n")
