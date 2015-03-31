@@ -383,7 +383,8 @@ class InstanceList(restful.Resource):
 
         blueprints_for_user = Instance.query.filter_by(blueprint_id=blueprint_id). \
             filter_by(user_id=user.id).filter(Instance.state != 'deleted').all()
-        if blueprints_for_user and len(blueprints_for_user) >= USER_INSTANCE_LIMIT:
+        user_instance_limit = blueprint.config.get('maximum_instances_per_user', USER_INSTANCE_LIMIT)
+        if blueprints_for_user and len(blueprints_for_user) >= user_instance_limit:
             abort(409)
 
         instance = Instance(blueprint, user)
