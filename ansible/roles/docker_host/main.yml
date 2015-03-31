@@ -75,10 +75,12 @@
         name: www
         expose:
           - 22
+          - 80
           - 443
           - 6379
         ports:
           - "2222:22"
+          - "{{ docker_http_port }}:80"
           - "{{ docker_https_port }}:443"
         volumes:
           - "{{ docker_host_app_root }}:/shared_folder/source:ro"
