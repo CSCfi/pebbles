@@ -27,10 +27,12 @@ app.conf.CELERYBEAT_SCHEDULE = {
     'deprovision-expired-every-minute': {
         'task': 'pouta_blueprints.tasks.deprovision_expired',
         'schedule': crontab(minute='*/1'),
+        'options': {'expires': 60},
     },
     'check-plugins-every-minute': {
         'task': 'pouta_blueprints.tasks.publish_plugins',
         'schedule': crontab(minute='*/1'),
+        'options': {'expires': 60},
     }
 }
 app.conf.CELERY_TIMEZONE = 'UTC'

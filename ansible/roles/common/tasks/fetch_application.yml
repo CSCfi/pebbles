@@ -1,9 +1,14 @@
 ---
 
 - name: Fetch application from Github
-  git: repo=https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git dest={{ application_path }}
-  when: deploy_mode != "devel"
+  git: repo={{ git_repository }} version={{ git_version }} dest={{ application_path }}
+  when: deploy_mode == "standalone"
 
+- name: Link shared directory content to application_path from Docker shared directory
+  file: src={{ shared_folder_path }}/source dest={{ application_path }} state=link
+  when: deploy_mode == "docker"
+
+# TODO: unify this with docker deployment
 - name: Link shared directory content to application_path
   file: src={{ shared_folder_path }} dest={{ application_path }} state=link
   when: deploy_mode == "devel"
