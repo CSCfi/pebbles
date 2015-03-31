@@ -67,13 +67,13 @@ Open ssh connection to the server::
 
     $ ssh cloud-user@<public ip of the server>
 
-Download the installation script from GitHub::
+Clone the repository from GitHub::
 
-    $ wget https://raw.githubusercontent.com/CSC-IT-Center-for-Science/pouta-blueprints/feature/docker_deployment/scripts/install_pb.bash
+    $ git clone --branch v1.1 https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
 
 Run the script once - you will asked to log out and in again to make unix group changes effective. 
 
-    $ bash install_pb.bash
+    $ ./pouta-blueprints/scripts/install_pb.bash
     $ logout    
 
 Now that you know that ssh works, copy the m2m OpenStack RC file to the server
@@ -84,7 +84,7 @@ SSH in again, source the OpenStack credentials and finish the installation
 
     $ ssh cloud-user@<public ip of the server>
     $ source your-openrc.bash
-    $ bash install_pb.bash
+    $ ./pouta-blueprints/scripts/install_pb.bash
 
 # Part 3: Start using the software
 
