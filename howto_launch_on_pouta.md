@@ -15,14 +15,14 @@ using ssh interactive session.
 
 * Check that quota on the first page looks ok.
 
-* Upload public key or create a key pair, if you have not done so already ()
+* Upload public key or create a key pair, if you have not done so already (Access and Security -> Key Pairs)
 
 ## Create a security group for the server
 
 * In case you are a member of multiple projects in cPouta, select the desired project in the project selection 
   drop down box on the top of the page 
 
-* Create a security group called 'pb_server' for the server ('Access and Security'->'Create Security Group')
+* Create a security group called 'pb_server' for the server (Access and Security -> Create Security Group )
 
 * Add ssh and https -access to your workstation IP/subnet (Manage rules -> Add rule) 
   * ssh: port 22, CIDR: your ip/32 (you can check your ip with e.g. http://www.whatismyip.com/)
