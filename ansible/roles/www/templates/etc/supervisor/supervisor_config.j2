@@ -4,3 +4,16 @@ directory = {{ application_path }}
 user = {{ application_user }}
 stdout_logfile = {{ application_log_file }}
 redirect_stderr = true
+
+[program:nginx]
+command = /usr/sbin/nginx
+user = root
+autostart = true
+
+[program:redis]
+command=/usr/bin/redis-server /etc/redis/redis.conf
+autostart=true
+autorestart=true
+user=root
+stdout_logfile=/var/log/redis/stdout.log
+stderr_logfile=/var/log/redis/stderr.log

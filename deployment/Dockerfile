@@ -32,4 +32,7 @@ RUN apt-get install -y git python python-pip python-dev python-virtualenv nginx 
 # debugging tools for development
 RUN apt-get install -y tmux tree dstat lsof bash-completion time
 
-CMD /usr/sbin/sshd -D -o UseDNS=no -o UsePAM=no
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+RUN mkdir -p /var/log/supervisor
+
+CMD ["/usr/bin/supervisord"]
