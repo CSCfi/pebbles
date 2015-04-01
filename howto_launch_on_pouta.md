@@ -69,9 +69,10 @@ Open ssh connection to the server::
 
 Clone the repository from GitHub::
 
+    $ sudo apt-get install -y git
     $ git clone --branch v1.1 https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
 
-Run the script once - you will asked to log out and in again to make unix group changes effective. 
+Run the install script once - you will asked to log out and in again to make unix group changes effective. 
 
     $ ./pouta-blueprints/scripts/install_pb.bash
     $ logout    
@@ -80,7 +81,7 @@ Now that you know that ssh works, copy the m2m OpenStack RC file to the server
 
     $ scp path/to/your/saved/rc-file.bash cloud-user@<public ip of the server>
 
-SSH in again, source the OpenStack credentials and finish the installation
+SSH in again, source the OpenStack credentials and continue installation
 
     $ ssh cloud-user@<public ip of the server>
     $ source your-openrc.bash
@@ -97,3 +98,43 @@ Link to User Guide: TBA
 
 TBA
 
+# Part 5: Administrative tasks and troubleshooting
+
+(backing up the central database, cleaning misbehaving VMs and other resources, ...)
+
+TBA 
+
+
+# Notes on container based deployment
+
+The default installation with the provided script make a Docker container based deployment. Since the system will have
+OpenStack credentials for the project it is serving and also be exposed to internet, we have an extra layer of isolation
+between http server and provisioning processes holding the credentials. The processes are not containerized more than 
+necessary to achieve this, so you can think of the containers as mini virtual machines.
+
+There are two containers, www and worker. You can list the status with::
+
+    $ docker ps
+    $ docker ps -a
+    
+Aliases are provided for an easy ssh access::
+
+    $ ssh worker
+    $ ssh www
+
+Both of the containers share the git repository that was checked out during installation through a read only shared 
+folder. Worker also has an additional shared folder for the credentials stored on the ramdisk on the host machine.
+
+To see the server process logs, take a look at /webapps/pouta_blueprints/logs -directory in the container::
+
+    $ ssh www
+    $ ls /webapps/pouta_blueprints/logs
+
+Currently the system has a known limitation of not starting containers automatically at boot, see [1] and [2]. 
+To manually start the services, you can run the installation procedure again. That will start the containers and 
+server processes plus place a copy of the credentials on the ramdisk. In the future, only the credentials part will
+be needed.
+
+[1]: https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/issues/82
+
+[2]: https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/issues/84
