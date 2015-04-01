@@ -16,7 +16,8 @@
             <td>{{blueprint.name}}</td>
             <td>{{blueprint.max_lifetime}}</td>
             <td>
-                <button ng-click="provision(blueprint)" type="submit" class="btn btn-default">Launch</button>
+                <button ng-click="provision(blueprint)" type="submit" class="btn btn-default" ng-disabled="!keypair_exists()">Launch</button>
+                <span ng-show="keypairs && !keypair_exists()">To launch instances, first <a href="/#/account">add SSH keys</a>.</span>
             </td>
         </tr>
         </tbody>

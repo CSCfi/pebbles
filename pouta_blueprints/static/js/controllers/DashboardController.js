@@ -14,6 +14,18 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             $scope.instances = response;
         });
 
+        var keypairs = Restangular.all('users/' + AuthService.getUserId() + '/keypairs');
+        keypairs.getList().then(function (response) {
+            $scope.keypairs = response;
+        });
+
+        $scope.keypair_exists = function() {
+            if ($scope.keypairs && $scope.keypairs.length > 0) {
+                return true;
+            }
+            return false;
+        };
+
         $scope.provision = function (blueprint) {
             instances.post({blueprint: blueprint.id}).then(function (response) {
                     instances.getList().then(function (response) {
