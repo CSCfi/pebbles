@@ -4,9 +4,10 @@
 
 **Pouta Blueprints** is a frontend to manage cloud resources and lightweight user
 accounts.
-Currently the only resource supported resource type is [Pouta
-Virtualcluster](https://github.com/CSC-IT-Center-for-Science/pouta-virtualcluster),
+Currently supported resource types are 
+ - [Pouta Virtualcluster](https://github.com/CSC-IT-Center-for-Science/pouta-virtualcluster),
 which can be used to launch clusters on [Pouta](https://pouta.csc.fi).
+ - [OpenStack driver](https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/blob/master/pouta_blueprints/drivers/provisioning/openstack_driver.py), which can be used to launch instances on OpenStack cloud.
 
 Additional resources can be added by implementing the driver interface [/pouta_blueprints/drivers/provisioning/base_driver.py](https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/blob/master/pouta_blueprints/drivers/provisioning/base_driver.py)
 
