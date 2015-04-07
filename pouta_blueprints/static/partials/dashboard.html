@@ -20,6 +20,8 @@
                 <span ng-show="keypairs && !keypair_exists()">To launch instances, first <a href="/#/account">add SSH keys</a>.</span>
             </td>
         </tr>
+        <tr ng-hide="(blueprints | filter : {is_enabled: 'true'}).length">
+            <td colspan="3">No blueprints available</td>
         </tbody>
     </table>
     <h2>Instances</h2>
@@ -43,6 +45,10 @@
                 <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger" ng-disabled="instance.state=='deleting'" >Destroy</button>
             </td>
         </tr>
+        <tr ng-hide="instances.length">
+            <td colspan="5">No instances running</td>
+        </tbody>
+
         </tbody>
     </table>
 </div>

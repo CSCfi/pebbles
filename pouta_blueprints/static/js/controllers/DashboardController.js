@@ -39,7 +39,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
         $scope.deprovision = function (instance) {
             instance.state = 'deleting';
             instance.error_msg = '';
-            instance.patch();
+            instance.remove();
         };
 
         var stop;

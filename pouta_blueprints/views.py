@@ -491,7 +491,7 @@ class InstanceView(restful.Resource):
 
             db.session.commit()
 
-        if args.get('error_msg'):
+        if args.get('error_msg') and user.is_admin:
             instance.error_msg = args['error_msg']
             db.session.commit()
 
@@ -499,8 +499,11 @@ class InstanceView(restful.Resource):
             instance.public_ip = args['public_ip']
             db.session.commit()
 
-        if args.get('instance_data'):
-            instance.instance_data = json.loads(args['instance_data'])
+        if args.get('instance_data') and user.is_admin:
+            try:
+                instance.instance_data = json.loads(args['instance_data'])
+            except ValueError:
+                logging.warn("invalid instance_data passed to view: %s" % args['instance_data'])
             db.session.commit()
 
         if args['client_ip']:
