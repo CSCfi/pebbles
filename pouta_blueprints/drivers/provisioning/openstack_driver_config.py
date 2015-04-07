@@ -31,6 +31,11 @@ CONFIG = {
                 'title': 'Maximum instances per user',
                 'default': 1,
             },
+            'userdata': {
+                'type': 'text',
+                'title': 'Customization script for instance after it is launched',
+                'default': '',
+            },
             'firewall_rules': {
                 'type': 'array',
                 'title': 'Frontend firewall rules',
@@ -56,6 +61,11 @@ CONFIG = {
         'image',
         'maximum_lifetime',
         'maximum_instances_per_user',
+        {
+            'key': 'userdata',
+            'type': 'textarea',
+            'title': 'Customization script for instance after it is launched'
+        },
         'firewall_rules',
         {
             'type': 'submit',
