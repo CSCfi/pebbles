@@ -140,7 +140,6 @@ ansible-playbook -i $HOME/pb_ansible_inventory ansible/playbook.yml\
  -e deploy_mode=docker \
  -e application_secret_key=$application_secret_key \
  -e public_ipv4=$public_ipv4 \
- -e git_version=feature/docker_deployment \
  -e docker_host_app_root=$PWD
 
 echo "-------------------------------------------------------------------------------"
