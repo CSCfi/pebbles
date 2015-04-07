@@ -36,9 +36,6 @@
     - name: Create application root directory
       file: path={{ docker_host_app_root }} owner=cloud-user state=directory
 
-#    - name: Fetch application from Github
-#      sudo: no
-#      git: repo={{ git_repository }} version={{ git_version }} dest={{ docker_host_app_root }}/source
 
 - name: Bring containers up
   hosts: docker_host
@@ -57,6 +54,7 @@
       with_items:
         - ansible-sudo
         - Dockerfile
+        - supervisord.conf
 
     - name: prepare docker image source (public key)
       copy: src=~/.ssh/id_rsa.pub dest={{ mktemp.stdout }}/id_rsa.pub
@@ -93,9 +91,6 @@
       when: item.Config.Hostname == "www" and item.State.Running == True
       with_items: docker_containers
 
-    - name: "wait for sshd to come up"
-      wait_for: host=localhost port=2222 state=started
-
     - name: Bring up container for worker
       docker:
         hostname: worker
@@ -122,8 +117,8 @@
       when: item.Config.Hostname == "worker" and item.State.Running == True
       with_items: docker_containers
 
-    - name: "wait for sshd to come up"
-      wait_for: host=localhost port=2223 state=started
+    - name: "Wait a bit for sshd to come up"
+      pause: seconds=5
 
 - name: Add cloud-user to containers
   hosts:
