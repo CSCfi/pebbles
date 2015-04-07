@@ -113,7 +113,8 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
             image,
             flavor,
             key_name=key_name,
-            security_groups=[security_group_name])
+            security_groups=[security_group_name],
+            userdata=config.get('userdata'))
 
         while nc.servers.get(server.id).status is "BUILDING" or not nc.servers.get(server.id).networks:
             write_log(" . ")
