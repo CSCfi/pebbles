@@ -48,4 +48,7 @@
   service: name=nginx state=stopped enabled=no
 
 - name: disable Nginx running as daemon
-  shell: echo "\ndaemon off;" >> /etc/nginx/nginx.conf
+  lineinfile:
+        dest: /etc/nginx/nginx.conf
+        state: present
+        line: 'daemon off;'
