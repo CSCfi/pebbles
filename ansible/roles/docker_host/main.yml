@@ -70,7 +70,7 @@
         hostname: www
         image: "{{ image_name }}"
         state: running
-        restart_policy: on-failure
+        restart_policy: always
         name: www
         expose:
           - 22
@@ -98,7 +98,7 @@
         hostname: worker
         image: "{{ image_name }}"
         state: running
-        restart_policy: on-failure
+        restart_policy: always
         name: worker
         expose:
           - 22
