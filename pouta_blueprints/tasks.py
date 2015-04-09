@@ -11,17 +11,15 @@ from flask.ext.mail import Message
 
 from pouta_blueprints.app import get_app
 
-# from pouta_blueprints.config import BaseConfig as config
-from pouta_blueprints.config import DevConfig as ActiveConfig
-
-ActiveConfig.FAKE_PROVISIONING = True
+flask_app = get_app()
 
 # tune requests to give less spam in development environment with self signed certificate
 requests.packages.urllib3.disable_warnings()
 logging.getLogger("requests").setLevel(logging.WARNING)
 
+
 logger = get_task_logger(__name__)
-app = Celery('tasks', broker=ActiveConfig.MESSAGE_QUEUE_URI, backend=ActiveConfig.MESSAGE_QUEUE_URI)
+app = Celery('tasks', broker=flask_app.config['MESSAGE_QUEUE_URI'], backend=flask_app.config['MESSAGE_QUEUE_URI'])
 app.conf.CELERY_TASK_SERIALIZER = 'json'
 app.conf.CELERYBEAT_SCHEDULE = {
     'deprovision-expired-every-minute': {
@@ -36,8 +34,6 @@ app.conf.CELERYBEAT_SCHEDULE = {
     }
 }
 app.conf.CELERY_TIMEZONE = 'UTC'
-
-flask_app = get_app()
 
 
 @app.task(name="pouta_blueprints.tasks.deprovision_expired")
@@ -61,8 +57,7 @@ def send_mails(users):
             msg = Message('Resource-cloud activation')
             msg.recipients = [email]
             msg.sender = flask_app.config.get('SENDER_EMAIL')
-            activation_url = '%s/#/activate/%s' % (flask_app.config['BASE_URL'],
-                                                   token)
+            activation_url = '%s/#/activate/%s' % (flask_app.config.get('BASE_URL'), token)
             msg.html = render_template('invitation.html',
                                        activation_link=activation_url)
             msg.body = render_template('invitation.txt',
@@ -82,7 +77,7 @@ def get_provisioning_manager():
         namespace='pouta_blueprints.drivers.provisioning',
         check_func=lambda x: True,
         invoke_on_load=True,
-        invoke_args=(logger, ActiveConfig),
+        invoke_args=(logger, flask_app.config),
     )
 
     logger.debug('provisioning manager loaded, extensions: %s ' % mgr.names())
@@ -153,11 +148,11 @@ def update_user_connectivity(instance_id):
 
 
 def get_token():
-    auth_url = '%s/sessions' % ActiveConfig.INTERNAL_API_BASE_URL
+    auth_url = '%s/sessions' % flask_app.config['INTERNAL_API_BASE_URL']
     auth_credentials = {'email': 'worker@pouta_blueprints',
-                        'password': flask_app.config['SECRET_KEY']}
+                        'password': flask_app.config.get('SECRET_KEY')}
     try:
-        r = requests.post(auth_url, auth_credentials, verify=ActiveConfig.SSL_VERIFY)
+        r = requests.post(auth_url, auth_credentials, verify=flask_app.config.get('SSL_VERIFY'))
         return json.loads(r.text).get('token')
     except:
         return None
@@ -168,8 +163,8 @@ def do_get(token, object_url):
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
 
-    url = '%s/%s' % (ActiveConfig.INTERNAL_API_BASE_URL, object_url)
-    resp = requests.get(url, headers=headers, verify=ActiveConfig.SSL_VERIFY)
+    url = '%s/%s' % (flask_app.config.get('INTERNAL_API_BASE_URL'), object_url)
+    resp = requests.get(url, headers=headers, verify=flask_app.config.get('SSL_VERIFY'))
     logger.debug('got response %s %s' % (resp.status_code, resp.reason))
     return resp
 
@@ -178,8 +173,8 @@ def do_post(token, api_path, data):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
-    url = '%s/%s' % (ActiveConfig.INTERNAL_API_BASE_URL, api_path)
-    resp = requests.post(url, data, headers=headers, verify=ActiveConfig.SSL_VERIFY)
+    url = '%s/%s' % (flask_app.config.get('INTERNAL_API_BASE_URL'), api_path)
+    resp = requests.post(url, data, headers=headers, verify=flask_app.config.get('SSL_VERIFY'))
     logger.debug('got response %s %s' % (resp.status_code, resp.reason))
     return resp
 

@@ -16,9 +16,9 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
         CONFIG = yaml.load(open(CONFIG_FILE).read())
     if key in CONFIG:
         return CONFIG[key]
-    elif default:
+    elif default is not None:
         return default
-    elif not default:
+    else:
         raise RuntimeError('configuration value for %s missing' % key)
 
 
@@ -45,19 +45,10 @@ class BaseConfig(object):
     MAX_CONTENT_LENGTH = 1024 * 1024
     FAKE_PROVISIONING = False
     SENDER_EMAIL = 'sender@example.org'
+    MAIL_SERVER = 'smtp.example.org'
+    MAIL_SUPPRESS_SEND = True
     SKIP_TASK_QUEUE = False
     WRITE_PROVISIONING_LOGS = True
-
-
-class ProductionConfig(BaseConfig):
-    DEBUG = False
-    SSL_VERIFY = True
-    MAIL_SERVER = 'smtp.example.org'
-
-
-class DevConfig(BaseConfig):
-    MAIL_SUPPRESS_SEND = True
-    FAKE_PROVISIONING = True
 
 
 class TestConfig(BaseConfig):
