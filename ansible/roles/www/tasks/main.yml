@@ -13,9 +13,11 @@
     regexp='^bind.*'
     state=absent
 
-- name: Enable redis-server on boot and make sure it is running
-  service: name=redis-server enabled=true state=started
+- name: Set redis not to daemonize
+  shell: sed -i 's/^\(daemonize\s*\)yes\s*$/\1no/g' /etc/redis/redis.conf
 
+- name: Disable redis-server on boot and make sure it is stopped - supervisord takes care of this
+  service: name=redis-server enabled=false state=stopped
 
 - include: setup_runtime_directories.yml
 - include: setup_nginx.yml

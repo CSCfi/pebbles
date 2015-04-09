@@ -1,5 +1,5 @@
 ---
-- name: Create the Supervisor config file
+- name: Create the Supervisor config file for www
   template: src=etc/supervisor/supervisor_config.j2
             dest=/etc/supervisor/conf.d/{{ application_name }}-www.conf
             backup=yes
@@ -9,6 +9,3 @@
 
 - name: Update Supervisor to add the app in the process group
   command: supervisorctl update
-
-- name: Restart Supervisor
-  command: supervisorctl restart {{ application_name }}

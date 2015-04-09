@@ -3,7 +3,7 @@ MAINTAINER Olli Tourunen "olli.tourunen@csc.fi"
 
 RUN apt-get update
 
-RUN apt-get install -y openssh-server
+RUN apt-get install -y openssh-server supervisor
 
 RUN mkdir -p /var/run/sshd
 RUN chmod 0755 /var/run/sshd
@@ -18,4 +18,8 @@ RUN usermod -p '*' ansible
 
 EXPOSE 22
 
-CMD /usr/sbin/sshd -D -o UseDNS=no -o UsePAM=no
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+RUN mkdir -p /var/log/supervisor
+
+CMD ["/usr/bin/supervisord"]
+

@@ -44,5 +44,11 @@
     creates=/etc/nginx/ssl/server.crt
   notify: restart nginx
 
-- name: Ensure Nginx service is started and enabled on boot
-  service: name=nginx state=started enabled=yes
+- name: Ensure Nginx service is stopped and disabled on boot - supervisord takes care of running it
+  service: name=nginx state=stopped enabled=no
+
+- name: disable Nginx running as daemon
+  lineinfile:
+        dest: /etc/nginx/nginx.conf
+        state: present
+        line: 'daemon off;'
