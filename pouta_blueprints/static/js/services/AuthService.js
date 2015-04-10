@@ -7,6 +7,7 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
             var credentials = {'email': email, 'password': password};
             Session.create(credentials, true).then(function(response) {
                 me.setToken(response.token);
+                me.setUserName(email);
                 me.setAdminStatus(response.is_admin);
                 me.setUserId(response.user_id);
                 return deferred.resolve(response);
@@ -58,6 +59,14 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
 
         getUserId : function() {
             return localStorageService.get('userId');
+        },
+        
+        setUserName : function(userName) {
+            localStorageService.set('userName', userName);
+        },
+
+        getUserName : function() {
+            return localStorageService.get('userName');
         },
 
         setToken : function(token) {

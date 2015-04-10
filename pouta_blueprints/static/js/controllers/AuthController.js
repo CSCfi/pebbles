@@ -17,6 +17,12 @@ app.controller('AuthController', ['$scope', '$location', 'AuthService', function
         });
     };
 
+    $scope.getUserName = function() {
+        if ($scope.isLoggedIn()) {
+            return AuthService.getUserName();
+        }
+    };
+
     $scope.isAdmin = function() {
         return AuthService.isAdmin();
     };
