@@ -3,6 +3,7 @@ import os
 from flask import abort, g, request
 from flask.ext.restful import fields, marshal_with, reqparse
 from sqlalchemy import desc
+
 import json
 import logging
 import names
@@ -282,6 +283,7 @@ class SessionView(restful.Resource):
 
 
 class ActivationView(restful.Resource):
+    @marshal_with(user_fields)
     def post(self, token_id):
         form = ActivationForm()
         if not form.validate_on_submit():
@@ -301,6 +303,10 @@ class ActivationView(restful.Resource):
         db.session.add(user)
         db.session.delete(token)
         db.session.commit()
+
+        logging.info("User activated: %s" % user.email)
+
+        return user
 
 
 class ActivationList(restful.Resource):

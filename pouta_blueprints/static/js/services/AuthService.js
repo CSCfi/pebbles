@@ -37,7 +37,7 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
             return $q(function(resolve, reject) {
                 var token = Restangular.one('activations', token_id);
                 token.customPOST({password: password}).then(function(response) {
-                    resolve({status: response.status});
+                    resolve({status: response.status, email: response.email});
                 }, function(response) {
                     console.log("Changing password caused an exception, HTTP Error code " + response.status);
                     reject({status: response.status});
