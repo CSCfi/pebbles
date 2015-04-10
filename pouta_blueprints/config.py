@@ -11,11 +11,11 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
     if value:
         return value
 
-    CONFIG = {}
+    config = {}
     if os.path.isfile(CONFIG_FILE):
-        CONFIG = yaml.load(open(CONFIG_FILE).read())
-    if key in CONFIG:
-        return CONFIG[key]
+        config = yaml.load(open(CONFIG_FILE).read())
+    if key in config:
+        return config[key]
     elif default is not None:
         return default
     else:
@@ -24,7 +24,7 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
 
 def fields_to_properties(cls):
     for k, default in vars(cls).items():
-        if not k.startswith('_'):
+        if not k.startswith('_') and k.isupper():
             resolvef = functools.partial(resolve_configuration_value, k, default)
             setattr(cls, k, property(resolvef))
     return cls
@@ -50,8 +50,12 @@ class BaseConfig(object):
     SKIP_TASK_QUEUE = False
     WRITE_PROVISIONING_LOGS = True
 
+    # enable access by []
     def __getitem__(self, item):
         return getattr(self, item)
+
+    def get(self, key):
+        return getattr(self, key)
 
 
 class TestConfig(BaseConfig):

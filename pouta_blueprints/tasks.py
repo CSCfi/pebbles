@@ -10,7 +10,6 @@ from flask import render_template
 from flask.ext.mail import Message
 
 from pouta_blueprints.app import get_app
-from pouta_blueprints.config import BaseConfig
 
 flask_app = get_app()
 
@@ -18,7 +17,8 @@ flask_app = get_app()
 requests.packages.urllib3.disable_warnings()
 logging.getLogger("requests").setLevel(logging.WARNING)
 
-config = BaseConfig()
+# refer to our custom config object that reloads values at runtime
+config = flask_app.dynamic_config
 
 logger = get_task_logger(__name__)
 app = Celery('tasks', broker=config['MESSAGE_QUEUE_URI'], backend=config['MESSAGE_QUEUE_URI'])
