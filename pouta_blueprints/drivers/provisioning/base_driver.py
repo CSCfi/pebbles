@@ -100,7 +100,6 @@ class ProvisioningDriverBase(object):
                    'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % auth}
         url = '%s/instances/%s' % (self.config['INTERNAL_API_BASE_URL'], instance_id)
-        self.logger.debug(self.config)
         resp = requests.patch(url, data=payload, headers=headers,
                               verify=self.config['SSL_VERIFY'])
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
