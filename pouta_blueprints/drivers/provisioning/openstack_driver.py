@@ -123,9 +123,11 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         write_log("OK\nAssigning public IP\n")
 
         ips = nc.floating_ips.findall(instance_id=None)
+        allocated_from_pool = False
         if not ips:
             write_log("No allocated free IPs left, trying to allocate one\n")
             ip = nc.floating_ips.create(pool="public")
+            allocated_from_pool = True
         else:
             ip = ips[0]
 
@@ -134,7 +136,8 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         server.add_floating_ip(ip)
         instance_data = {
             'server_id': server.id,
-            'floating_ip': ip.ip
+            'floating_ip': ip.ip,
+            'allocated_from_pool': allocated_from_pool,
         }
         write_log("Publishing server data\n")
 
@@ -170,11 +173,14 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
                 write_log("Server instance still running, giving up\n")
                 break
 
-        write_log("Releasing public IP\n")
-        try:
-            nc.floating_ips.delete(nc.floating_ips.find(ip=instance_data['floating_ip']).id)
-        except:
-            write_log("Unable to release public IP\n")
+        if instance_data['allocated_from_pool']:
+            write_log("Releasing public IP\n")
+            try:
+                nc.floating_ips.delete(nc.floating_ips.find(ip=instance_data['floating_ip']).id)
+            except:
+                write_log("Unable to release public IP\n")
+        else:
+            write_log("Not releasing public IP\n")
 
         write_log("Removing security group\n")
         try:
