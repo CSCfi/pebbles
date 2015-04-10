@@ -3,6 +3,7 @@ import os
 from flask import abort, g, request
 from flask.ext.restful import fields, marshal_with, reqparse
 from sqlalchemy import desc
+
 import json
 import logging
 import names
@@ -306,6 +307,7 @@ class ActivationView(restful.Resource):
         logging.info("User activated: %s" % user.email)
 
         return user
+
 
 class ActivationList(restful.Resource):
     def post(self):
