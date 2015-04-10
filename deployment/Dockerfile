@@ -29,8 +29,8 @@ RUN echo 'vagrant ALL=NOPASSWD: ALL' > /etc/sudoers.d/vagrant
 RUN apt-get install -y git python python-pip python-dev python-virtualenv nginx supervisor redis-server \
                        libffi-dev libssl-dev python-yaml libffi-dev libssl-dev ansible
 
-# debugging tools for development
-RUN apt-get install -y tmux tree dstat lsof bash-completion time
+# tools for admistration
+RUN apt-get install -y tmux tree dstat lsof bash-completion time vim nano
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN mkdir -p /var/log/supervisor
