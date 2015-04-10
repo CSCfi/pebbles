@@ -50,6 +50,9 @@ class BaseConfig(object):
     SKIP_TASK_QUEUE = False
     WRITE_PROVISIONING_LOGS = True
 
+    def __getitem__(self, item):
+        return getattr(self, item)
+
 
 class TestConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
