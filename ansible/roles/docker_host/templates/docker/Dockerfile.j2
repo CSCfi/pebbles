@@ -3,7 +3,11 @@ MAINTAINER Olli Tourunen "olli.tourunen@csc.fi"
 
 RUN apt-get update
 
+# base requirements
 RUN apt-get install -y openssh-server supervisor
+
+# tools for admistration
+RUN apt-get install -y tmux tree dstat lsof bash-completion time vim nano
 
 RUN mkdir -p /var/run/sshd
 RUN chmod 0755 /var/run/sshd
@@ -22,4 +26,3 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN mkdir -p /var/log/supervisor
 
 CMD ["/usr/bin/supervisord"]
-
