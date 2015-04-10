@@ -10,8 +10,6 @@ import abc
 import six
 import requests
 
-from pouta_blueprints.config import DevConfig as ActiveConfig
-
 
 @six.add_metaclass(abc.ABCMeta)
 class ProvisioningDriverBase(object):
@@ -21,7 +19,7 @@ class ProvisioningDriverBase(object):
         self.logger = logger
         self.config = config
 
-        m2m_credential_store = getattr(self.config, 'M2M_CREDENTIAL_STORE')
+        m2m_credential_store = self.config['M2M_CREDENTIAL_STORE']
         try:
             self.m2m_credentials = json.load(open(m2m_credential_store))
             for key in self.m2m_credentials.keys():
@@ -66,7 +64,7 @@ class ProvisioningDriverBase(object):
             self.logger.debug('finishing provisioning')
             self.do_instance_patch(token, instance_id, {'state': 'running'})
         except Exception as e:
-            self.logger.debug('do_provision raised %s' % e)
+            self.logger.exception('do_provision raised %s' % e)
             self.do_instance_patch(token, instance_id, {'state': 'failed'})
             raise e
 
@@ -80,7 +78,7 @@ class ProvisioningDriverBase(object):
             self.logger.debug('finishing deprovisioning')
             self.do_instance_patch(token, instance_id, {'state': 'deleted'})
         except Exception as e:
-            self.logger.debug('do_deprovision raised %s' % e)
+            self.logger.exception('do_deprovision raised %s' % e)
             self.do_instance_patch(token, instance_id, {'state': 'failed'})
             raise e
 
@@ -101,9 +99,10 @@ class ProvisioningDriverBase(object):
         headers = {'Content-type': 'application/x-www-form-urlencoded',
                    'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % auth}
-        url = '%s/instances/%s' % (ActiveConfig.INTERNAL_API_BASE_URL, instance_id)
+        url = '%s/instances/%s' % (self.config['INTERNAL_API_BASE_URL'], instance_id)
+        self.logger.debug(self.config)
         resp = requests.patch(url, data=payload, headers=headers,
-                              verify=self.config.SSL_VERIFY)
+                              verify=self.config['SSL_VERIFY'])
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
         return resp
 
@@ -113,9 +112,9 @@ class ProvisioningDriverBase(object):
         headers = {'Content-type': 'application/x-www-form-urlencoded',
                    'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % auth}
-        url = '%s/instances/%s/logs' % (ActiveConfig.INTERNAL_API_BASE_URL, instance_id)
+        url = '%s/instances/%s/logs' % (self.config['INTERNAL_API_BASE_URL'], instance_id)
         resp = requests.patch(url, data=payload, headers=headers,
-                              verify=self.config.SSL_VERIFY)
+                              verify=self.config['SSL_VERIFY'])
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
         return resp
 
@@ -130,8 +129,8 @@ class ProvisioningDriverBase(object):
         headers = {'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % auth}
 
-        url = '%s/%s' % (ActiveConfig.INTERNAL_API_BASE_URL, object_url)
-        resp = requests.get(url, headers=headers, verify=self.config.SSL_VERIFY)
+        url = '%s/%s' % (self.config['INTERNAL_API_BASE_URL'], object_url)
+        resp = requests.get(url, headers=headers, verify=self.config['SSL_VERIFY'])
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
         return resp
 

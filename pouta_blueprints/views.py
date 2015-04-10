@@ -94,7 +94,7 @@ class UserList(restful.Resource):
         db.session.add(token)
         db.session.commit()
 
-        if not app.config['SKIP_TASK_QUEUE']:
+        if not app.config['SKIP_TASK_QUEUE'] and not app.config['MAIL_SUPPRESS_SEND']:
             send_mails.delay([(user.email, token.token)])
 
         return user
@@ -309,7 +309,7 @@ class ActivationList(restful.Resource):
 
         db.session.add(token)
         db.session.commit()
-        if not app.config['SKIP_TASK_QUEUE']:
+        if not app.config.get('SKIP_TASK_QUEUE'):
             send_mails.delay([(user.email, token.token)])
 
 
@@ -403,7 +403,7 @@ class InstanceList(restful.Resource):
         db.session.add(token)
         db.session.commit()
 
-        if not app.config['SKIP_TASK_QUEUE']:
+        if not app.config.get('SKIP_TASK_QUEUE'):
             run_provisioning.delay(token.token, instance.visual_id)
 
 
@@ -462,7 +462,7 @@ class InstanceView(restful.Resource):
         token = SystemToken('provisioning')
         db.session.add(token)
         db.session.commit()
-        if not app.config['SKIP_TASK_QUEUE']:
+        if not app.config.get('SKIP_TASK_QUEUE'):
             run_deprovisioning.delay(token.token, instance.visual_id)
 
     @auth.login_required
@@ -514,7 +514,7 @@ class InstanceView(restful.Resource):
                 ipv4_re = '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
                 if re.match(ipv4_re, new_ip):
                     instance.client_ip = new_ip
-                    if not app.config['SKIP_TASK_QUEUE']:
+                    if not app.config.get('SKIP_TASK_QUEUE'):
                         update_user_connectivity.delay(instance.visual_id)
                 else:
                     # 400 Bad Request
@@ -534,7 +534,7 @@ class InstanceLogs(restful.Resource):
     def get_base_dir_and_filename(instance_id, log_type, create_missing_filename=False):
         log_dir = '/webapps/pouta_blueprints/provisioning_logs/%s' % instance_id
 
-        if not app.config['WRITE_PROVISIONING_LOGS']:
+        if not app.config.get('WRITE_PROVISIONING_LOGS'):
             return None, None
 
         # make sure the directory for this instance exists
