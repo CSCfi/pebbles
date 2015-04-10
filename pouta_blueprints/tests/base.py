@@ -6,7 +6,8 @@ from pouta_blueprints.config import TestConfig
 
 class BaseTestCase(TestCase):
     def create_app(self):
-        app.config.from_object(TestConfig())
+        app.dynamic_config = TestConfig()
+        app.config.from_object(app.dynamic_config)
         app.config['TESTING'] = True
         return app
 

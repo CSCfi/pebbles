@@ -17,9 +17,11 @@ flask_app = get_app()
 requests.packages.urllib3.disable_warnings()
 logging.getLogger("requests").setLevel(logging.WARNING)
 
+# refer to our custom config object that reloads values at runtime
+config = flask_app.dynamic_config
 
 logger = get_task_logger(__name__)
-app = Celery('tasks', broker=flask_app.config['MESSAGE_QUEUE_URI'], backend=flask_app.config['MESSAGE_QUEUE_URI'])
+app = Celery('tasks', broker=config['MESSAGE_QUEUE_URI'], backend=config['MESSAGE_QUEUE_URI'])
 app.conf.CELERY_TASK_SERIALIZER = 'json'
 app.conf.CELERYBEAT_SCHEDULE = {
     'deprovision-expired-every-minute': {
@@ -56,8 +58,8 @@ def send_mails(users):
         for email, token in users:
             msg = Message('Resource-cloud activation')
             msg.recipients = [email]
-            msg.sender = flask_app.config.get('SENDER_EMAIL')
-            activation_url = '%s/#/activate/%s' % (flask_app.config.get('BASE_URL'), token)
+            msg.sender = config['SENDER_EMAIL']
+            activation_url = '%s/#/activate/%s' % (config['BASE_URL'], token)
             msg.html = render_template('invitation.html',
                                        activation_link=activation_url)
             msg.body = render_template('invitation.txt',
@@ -65,7 +67,7 @@ def send_mails(users):
             mail = flask_app.extensions.get('mail')
             if not mail:
                 raise RuntimeError("mail extension is not configured")
-            if flask_app.config.get('MAIL_SUPPRESS_SEND'):
+            if config['MAIL_SUPPRESS_SEND']:
                 logger.info(msg.body)
             mail.send(msg)
 
@@ -148,11 +150,11 @@ def update_user_connectivity(instance_id):
 
 
 def get_token():
-    auth_url = '%s/sessions' % flask_app.config['INTERNAL_API_BASE_URL']
+    auth_url = '%s/sessions' % config['INTERNAL_API_BASE_URL']
     auth_credentials = {'email': 'worker@pouta_blueprints',
-                        'password': flask_app.config.get('SECRET_KEY')}
+                        'password': config['SECRET_KEY']}
     try:
-        r = requests.post(auth_url, auth_credentials, verify=flask_app.config.get('SSL_VERIFY'))
+        r = requests.post(auth_url, auth_credentials, verify=config['SSL_VERIFY'])
         return json.loads(r.text).get('token')
     except:
         return None
@@ -163,8 +165,8 @@ def do_get(token, object_url):
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
 
-    url = '%s/%s' % (flask_app.config.get('INTERNAL_API_BASE_URL'), object_url)
-    resp = requests.get(url, headers=headers, verify=flask_app.config.get('SSL_VERIFY'))
+    url = '%s/%s' % (config['INTERNAL_API_BASE_URL'], object_url)
+    resp = requests.get(url, headers=headers, verify=config['SSL_VERIFY'])
     logger.debug('got response %s %s' % (resp.status_code, resp.reason))
     return resp
 
@@ -173,8 +175,8 @@ def do_post(token, api_path, data):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
-    url = '%s/%s' % (flask_app.config.get('INTERNAL_API_BASE_URL'), api_path)
-    resp = requests.post(url, data, headers=headers, verify=flask_app.config.get('SSL_VERIFY'))
+    url = '%s/%s' % (config['INTERNAL_API_BASE_URL'], api_path)
+    resp = requests.post(url, data, headers=headers, verify=config['SSL_VERIFY'])
     logger.debug('got response %s %s' % (resp.status_code, resp.reason))
     return resp
 
