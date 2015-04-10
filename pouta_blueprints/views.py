@@ -89,7 +89,7 @@ class UserList(restful.Resource):
         user = User.query.filter_by(email=email).first()
         if user:
             logging.warn("user %s already exists" % email)
-            return user
+            return None
 
         user = User(email, password, is_admin)
         db.session.add(user)
@@ -112,8 +112,8 @@ class UserList(restful.Resource):
         if not form.validate_on_submit():
             logging.warn("validation error on user add: %s" % form.errors)
             abort(422)
-        user = self.add_user(form.email.data, form.password.data, form.is_admin.data)
-        return user
+        self.add_user(form.email.data, form.password.data, form.is_admin.data)
+        return User.query.all()
 
     @auth.login_required
     @marshal_with(user_fields)

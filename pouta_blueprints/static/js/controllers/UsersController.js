@@ -13,7 +13,7 @@ app.controller('UsersController', ['$q', '$scope', '$interval', 'AuthService', '
                 var user_parameters = {email: email};
                 if (email) {
                     users.post(user_parameters).then(function (response) {
-                        $scope.users.push(response);
+                        $scope.users = response;
                     });
                 }
             };
