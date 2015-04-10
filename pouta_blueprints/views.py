@@ -82,10 +82,15 @@ class UserList(restful.Resource):
         return set(x for x in re.split(r",| |\n|\t", value) if x and '@' in x)
 
     parser = reqparse.RequestParser()
-    parser.add_argument('addresses', type=address_list)
+    parser.add_argument('addresses')
 
     @staticmethod
     def add_user(email, password=None, is_admin=False):
+        user = User.query.filter_by(email=email).first()
+        if user:
+            logging.warn("user %s already exists" % email)
+            return user
+
         user = User(email, password, is_admin)
         db.session.add(user)
         db.session.commit()
@@ -126,9 +131,12 @@ class UserList(restful.Resource):
         except:
             abort(422)
             return
-        addresses = args.addresses
+        addresses = self.address_list(args.addresses)
         for address in addresses:
-            self.add_user(address)
+            try:
+                self.add_user(address)
+            except:
+                logging.exception("cannot add user %s" % address)
         return User.query.all()
 
 
