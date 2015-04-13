@@ -40,7 +40,7 @@
         <tr ng-repeat="instance in instances">
             <td><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></td>
             <td>{{instance.state}} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>
-            <td>{{instance.user.email}}</td>
+            <td ng-show="isAdmin()">{{instance.user.email}}</td>
             <td>{{instance.public_ip}}</td>
             <td>{{instance.lifetime_left}}</td>
             <td>
