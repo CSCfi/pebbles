@@ -70,15 +70,16 @@
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <h4 class="modal-title">Update Blueprint Config</h4>
           </div>
-          <form
-            name="ngform2"
-            class="form-activate"
-            sf-model="selectedBlueprint.config"
-            sf-form="selectedBlueprint.form"
-            sf-schema="selectedBlueprint.schema"
-            ng-submit="updateBlueprint(ngform2, selectedBlueprint.config)">
-          </form>
-          </form>
+          <div class="modal-body">
+            <form
+              name="ngform2"
+              class="form-activate"
+              sf-model="selectedBlueprint.config"
+              sf-form="selectedBlueprint.form"
+              sf-schema="selectedBlueprint.schema"
+              ng-submit="updateBlueprint(ngform2, selectedBlueprint.config)">
+            </form>
+          </div>
         </div>
       </div>
     </div>
