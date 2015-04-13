@@ -11,14 +11,13 @@ from flask.ext.mail import Message
 
 from pouta_blueprints.app import get_app
 
-flask_app = get_app()
 
 # tune requests to give less spam in development environment with self signed certificate
 requests.packages.urllib3.disable_warnings()
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 # refer to our custom config object that reloads values at runtime
-config = flask_app.dynamic_config
+config = get_app().dynamic_config
 
 logger = get_task_logger(__name__)
 app = Celery('tasks', broker=config['MESSAGE_QUEUE_URI'], backend=config['MESSAGE_QUEUE_URI'])
@@ -54,6 +53,7 @@ def deprovision_expired():
 
 @app.task(name="pouta_blueprints.tasks.send_mails")
 def send_mails(users):
+    flask_app = get_app()
     with flask_app.test_request_context():
         for email, token in users:
             msg = Message('Resource-cloud activation')
@@ -67,9 +67,14 @@ def send_mails(users):
             mail = flask_app.extensions.get('mail')
             if not mail:
                 raise RuntimeError("mail extension is not configured")
-            if config['MAIL_SUPPRESS_SEND']:
-                logger.info(msg.body)
-            mail.send(msg)
+
+            logger.info(msg.body)
+            if not config['MAIL_SUPPRESS_SEND']:
+                # this is not strictly necessary, as flask_mail will also suppress sending if
+                # MAIL_SUPPRESS_SEND is set
+                mail.send(msg)
+            else:
+                logger.info('Mail sending suppressed in config')
 
 
 def get_provisioning_manager():
@@ -79,7 +84,7 @@ def get_provisioning_manager():
         namespace='pouta_blueprints.drivers.provisioning',
         check_func=lambda x: True,
         invoke_on_load=True,
-        invoke_args=(logger, flask_app.config),
+        invoke_args=(logger, config),
     )
 
     logger.debug('provisioning manager loaded, extensions: %s ' % mgr.names())

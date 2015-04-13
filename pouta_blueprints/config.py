@@ -3,23 +3,32 @@ import yaml
 import functools
 
 CONFIG_FILE = '/etc/pouta_blueprints/config.yaml'
+LOCAL_CONFIG_FILE = '/etc/pouta_blueprints/config.yaml.local'
 
 
 def resolve_configuration_value(key, default=None, *args, **kwargs):
+    # first check environment
     pb_key = 'PB_' + key
     value = os.getenv(pb_key)
     if value:
         return value
 
-    config = {}
+    # then check local config file
+    if os.path.isfile(LOCAL_CONFIG_FILE):
+        config = yaml.load(open(LOCAL_CONFIG_FILE).read())
+        if key in config:
+            return config[key]
+
+    # finally check system config file and given default
     if os.path.isfile(CONFIG_FILE):
         config = yaml.load(open(CONFIG_FILE).read())
-    if key in config:
-        return config[key]
-    elif default is not None:
+        if key in config:
+            return config[key]
+
+    if default is not None:
         return default
-    else:
-        raise RuntimeError('configuration value for %s missing' % key)
+
+    raise RuntimeError('configuration value for %s missing' % key)
 
 
 def fields_to_properties(cls):
