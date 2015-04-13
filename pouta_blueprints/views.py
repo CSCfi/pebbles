@@ -335,7 +335,7 @@ instance_fields = {
     'max_lifetime': fields.Integer,
     'state': fields.String,
     'error_msg': fields.String,
-    'user_id': fields.String,
+    'user': fields.Nested(user_fields),
     'blueprint_id': fields.String,
     'can_update_connectivity': fields.Boolean(default=False),
     'instance_data': fields.Raw,
@@ -357,12 +357,6 @@ class InstanceList(restful.Resource):
                 filter((Instance.state != 'deleted')).all()
 
         for instance in instances:
-            if user.is_admin:
-                owner = User.query.filter_by(id=instance.user_id).first()
-                instance.user_id = owner.visual_id
-            else:
-                instance.user_id = user.visual_id
-
             instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
 
             blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
@@ -439,12 +433,6 @@ class InstanceView(restful.Resource):
         instance = query.first()
         if not instance:
             abort(404)
-
-        if user.is_admin:
-            owner = User.query.filter_by(id=instance.user_id).first()
-            instance.user_id = owner.visual_id
-        else:
-            instance.user_id = user.visual_id
 
         blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
         instance.blueprint_id = blueprint.visual_id

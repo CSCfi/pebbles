@@ -55,9 +55,11 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         )
 
     def do_provision(self, token, instance_id):
+        self.logger.debug("do_provision %s" % instance_id)
         instance = self.get_instance_data(token, instance_id)
+        self.logger.debug(instance['user']['id'])
         instance_name = instance['name']
-        instance_user = instance['user_id']
+        instance_user = instance['user']['id']
 
         # fetch config
         blueprint_config = self.get_blueprint_description(token, instance['blueprint_id'])
@@ -173,7 +175,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
                 write_log("Server instance still running, giving up\n")
                 break
 
-        if instance_data['allocated_from_pool']:
+        if instance_data.get('allocated_from_pool'):
             write_log("Releasing public IP\n")
             try:
                 nc.floating_ips.delete(nc.floating_ips.find(ip=instance_data['floating_ip']).id)

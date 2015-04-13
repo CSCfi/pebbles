@@ -97,7 +97,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
             num_nodes = 2
 
         # fetch user public key and save it
-        key_data = self.get_user_key_data(token, instance['user_id']).json()
+        key_data = self.get_user_key_data(token, instance['user']['id']).json()
         user_key_file = '%s/userkey.pub' % instance_dir
         if not key_data:
             self.do_instance_patch(token, instance_id, {'state': 'failed'})

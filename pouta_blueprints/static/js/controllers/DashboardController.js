@@ -42,6 +42,10 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             instance.remove();
         };
 
+        $scope.isAdmin = function() {
+            return AuthService.isAdmin();
+        };
+
         var stop;
         $scope.startPolling = function() {
             if (angular.isDefined(stop)) {
