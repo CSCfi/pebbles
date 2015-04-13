@@ -70,6 +70,7 @@
         hostname: www
         image: "{{ image_name }}"
         state: running
+        restart_policy: always
         name: www
         expose:
           - 22
@@ -88,14 +89,16 @@
         ansible_ssh_host=localhost
         ansible_ssh_port=2222
         ansible_ssh_user=ansible
-      when: item.Config.Hostname == "www" and item.State.Running == True
-      with_items: docker_containers
+      ## see https://github.com/ansible/ansible-modules-core/issues/1005
+      # when: item.Config.Hostname == "www" and item.State.Running == True
+      # with_items: docker_containers
 
     - name: Bring up container for worker
       docker:
         hostname: worker
         image: "{{ image_name }}"
         state: running
+        restart_policy: always
         name: worker
         expose:
           - 22
@@ -114,8 +117,9 @@
         ansible_ssh_host=localhost
         ansible_ssh_port=2223
         ansible_ssh_user=ansible
-      when: item.Config.Hostname == "worker" and item.State.Running == True
-      with_items: docker_containers
+      ## see https://github.com/ansible/ansible-modules-core/issues/1005
+      # when: item.config.hostname == "worker" and item.state.running == True
+      # with_items: docker_containers
 
     - name: "Wait a bit for sshd to come up"
       pause: seconds=5
