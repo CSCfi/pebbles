@@ -12,25 +12,28 @@ app.controller('UsersController', ['$q', '$scope', '$interval', 'AuthService', '
             $scope.add_user = function(email) {
                 var user_parameters = {email: email};
                 if (email) {
-                    users.post(user_parameters).then(function (response) {
-                        $scope.users = response;
+                    users.post(user_parameters).then(function() {
+                        users.getList().then(function (response) {
+                            $scope.users = response;
+                        });
                     });
                 }
             };
 
             $scope.remove_user = function(user) {
                 user.remove().then(function () {
-                    var index = $scope.users.indexOf(user);
-                    if (index > -1) {
-                       $scope.users.splice(index, 1);
-                    }
+                    users.getList().then(function (response) {
+                        $scope.users = response;
+                    });
                 });
             };
 
             $scope.invite_users = function() {
                 var params = {addresses: $scope.invitedUsers};
                 users.patch(params).then(function(response) {
-                    $scope.users = response;
+                    users.getList().then(function (response) {
+                        $scope.users = response;
+                    });
                 });
             };
         }
