@@ -87,6 +87,18 @@ SSH in again, source the OpenStack credentials and continue installation
     $ source your-openrc.bash
     $ ./pouta-blueprints/scripts/install_pb.bash
 
+Final task is to configure the outgoing mail settings. Create a file called /etc/pouta_blueprints/config.yaml.local 
+in both containers with the following contents::
+
+    SENDER_EMAIL: 'your.valid.email@example.org'
+    MAIL_SERVER: 'server.assigned.to.you.by.csc'
+    MAIL_SUPPRESS_SEND: False
+    
+Running nano/vim in each of the containers:: 
+    
+    ssh www/worker
+    sudo vim /etc/pouta_blueprints/config.yaml.local 
+
 # Part 3: Start using the software
 
 The installation script will print out initialization URL at the end of the installation. Navigate to that, set the
