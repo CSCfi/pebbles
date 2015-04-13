@@ -202,11 +202,31 @@ EOF_SSH
     echo
 }
 
-# only credentials
-if [ "xxx$1" == "xxxcreds" ]; then
-    create_creds_file
-    exit 0
+if [ "xxx$1" != "xxx" ]; then
+
+    # parameters given
+    case $1 in
+    creds)
+        create_creds_file
+        exit 0
+    ;;
+
+    help|-h|--help)
+        echo
+        echo "Usage: $0 [creds]"
+        echo
+        echo "By default, a full install/configuration run is performed"
+        echo
+        exit 0
+    ;;
+
+    *)
+        echo "Unknown parameter $1"
+        exit 1
+    ;;
+    esac
 fi
+
 
 # all modules (more granularity added later if necessary)
 
