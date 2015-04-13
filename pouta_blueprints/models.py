@@ -184,6 +184,10 @@ class Instance(db.Model):
     def instance_data(self, value):
         self._instance_data = json.dumps(value)
 
+    @hybrid_property
+    def user(self):
+        return User.query.filter_by(id=self.user_id).first()
+
 
 class SystemToken(db.Model):
     __tablename__ = 'system_tokens'
