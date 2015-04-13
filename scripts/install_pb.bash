@@ -56,13 +56,15 @@ install_packages()
     sudo -H pip install ansible==1.9.0.1
 }
 
-echo "-------------------------------------------------------------------------------"
-echo
-echo "Installing packages"
-echo
-sudo aptitude install -y git build-essential python-dev python-setuptools python-openstackclient
-sudo -H easy_install pip
-sudo -H pip install ansible==1.8.4
+create_creds_file()
+{
+    echo "-------------------------------------------------------------------------------"
+    echo
+    echo "Testing OpenStack credentials"
+    if nova flavor-list; then
+        sudo mkdir -p /run/shm/pouta_blueprints
+        echo "Updating m2m credentials"
+        (
 
         cat << END_M2M
 {
