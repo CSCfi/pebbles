@@ -14,7 +14,7 @@
         <tbody>
         <tr ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }">
             <td>{{blueprint.name}}</td>
-            <td>{{blueprint.max_lifetime}}</td>
+            <td><lifetime seconds="{{ blueprint.max_lifetime }}"/></td>
             <td>
                 <button ng-click="provision(blueprint)" type="submit" class="btn btn-default" ng-disabled="!keypair_exists()">Launch</button>
                 <span ng-show="keypairs && !keypair_exists()">To launch instances, first <a href="/#/account">add SSH keys</a>.</span>
@@ -42,7 +42,7 @@
             <td>{{instance.state}} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>
             <td ng-show="isAdmin()">{{instance.user.email}}</td>
             <td>{{instance.public_ip}}</td>
-            <td>{{instance.lifetime_left}}</td>
+            <td><lifetime seconds="{{instance.lifetime_left}}"/></td>
             <td>
                 <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger" ng-disabled="instance.state=='deleting'" >Destroy</button>
             </td>
