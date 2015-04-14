@@ -7,6 +7,9 @@
   </ul>
   <div ng-show="isLoggedOut()" class="navbar-form navbar-right">
     <form ng-submit="login()">
+      <div ng-show="invalidLogin()" class="form-group">
+          <span class="label label-default"><strong>Invalid login!</strong></span>
+      </div>
       <div class="form-group">
         <input type="email" id="email" name="email" ng-model="email" placeholder="Email" class="form-control">
       </div>
