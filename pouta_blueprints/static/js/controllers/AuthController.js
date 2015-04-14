@@ -1,4 +1,6 @@
 app.controller('AuthController', ['$scope', '$location', 'AuthService', function($scope, $location, AuthService) {
+    var _invalidLogin = false;
+
     $scope.isLoggedIn = function() {
         return AuthService.isAuthenticated();
     };
@@ -13,8 +15,15 @@ app.controller('AuthController', ['$scope', '$location', 'AuthService', function
 
     $scope.login = function() {
         AuthService.login($scope.email, $scope.password).then(function() {
+            _invalidLogin = false;
             $location.path("/dashboard");
+        }, function() {
+            _invalidLogin = true;
         });
+    };
+
+    $scope.invalidLogin = function() {
+        return _invalidLogin;
     };
 
     $scope.getUserName = function() {

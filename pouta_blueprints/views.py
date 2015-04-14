@@ -1,7 +1,7 @@
 import uuid
 import os
 from flask import abort, g, request
-from flask.ext.restful import fields, marshal_with, reqparse
+from flask.ext.restful import fields, marshal, marshal_with, reqparse
 from sqlalchemy import desc
 
 import json
@@ -266,7 +266,6 @@ token_fields = {
 
 
 class SessionView(restful.Resource):
-    @marshal_with(token_fields)
     def post(self):
         form = SessionCreateForm()
         if not form.validate_on_submit():
@@ -275,11 +274,16 @@ class SessionView(restful.Resource):
 
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
-            return {'token': user.generate_auth_token(),
-                    'is_admin': user.is_admin,
-                    'user_id': user.visual_id}
+            return marshal({
+                'token': user.generate_auth_token(),
+                'is_admin': user.is_admin,
+                'user_id': user.visual_id
+            }, token_fields)
         logging.warn("invalid login credentials for %s" % form.email.data)
-        return abort(401)
+        return {
+            'message': 'Unauthorized',
+            'status': 401
+        }, 401
 
 
 class ActivationView(restful.Resource):
