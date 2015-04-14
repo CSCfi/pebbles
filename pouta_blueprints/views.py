@@ -309,6 +309,9 @@ class ActivationView(restful.Resource):
         return user
 
 
+MAX_ACTIVATION_TOKENS_PER_USER = 3
+
+
 class ActivationList(restful.Resource):
     def post(self):
         form = PasswordResetRequestForm()
@@ -319,9 +322,12 @@ class ActivationList(restful.Resource):
         if not user:
             abort(404)
 
-        existing_token = ActivationToken.query.filter_by(user_id=user.id).first()
-        if existing_token:
-            logging.warn('There is already an activation token for user %s, not sending another')
+        if ActivationToken.query.filter_by(user_id=user.id).count() >= MAX_ACTIVATION_TOKENS_PER_USER:
+            logging.warn(
+                'There are already %d activation tokens for user %s'
+                ', not sending another'
+                % (MAX_ACTIVATION_TOKENS_PER_USER, user.email)
+            )
             # 403 Forbidden
             abort(403)
 
