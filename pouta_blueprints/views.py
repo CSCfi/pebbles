@@ -278,7 +278,7 @@ class SessionView(restful.Resource):
                 'token': user.generate_auth_token(),
                 'is_admin': user.is_admin,
                 'user_id': user.visual_id
-            })
+            }, token_fields)
         logging.warn("invalid login credentials for %s" % form.email.data)
         return {
             'message': 'Unauthorized',
