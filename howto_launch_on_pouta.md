@@ -79,7 +79,7 @@ Run the install script once - you will asked to log out and in again to make uni
 
 Now that you know that ssh works, copy the m2m OpenStack RC file to the server
 
-    $ scp path/to/your/saved/rc-file.bash cloud-user@<public ip of the server>
+    $ scp path/to/your/saved/rc-file.bash cloud-user@<public ip of the server>:
 
 SSH in again, source the OpenStack credentials and continue installation
 
