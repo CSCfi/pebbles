@@ -319,6 +319,12 @@ class ActivationList(restful.Resource):
         if not user:
             abort(404)
 
+        existing_token = ActivationToken.query.filter_by(user_id=user.id).first()
+        if existing_token:
+            logging.warn('There is already an activation token for user %s, not sending another')
+            # 403 Forbidden
+            abort(403)
+
         token = ActivationToken(user)
 
         db.session.add(token)
