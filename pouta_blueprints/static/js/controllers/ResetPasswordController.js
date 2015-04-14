@@ -4,12 +4,20 @@ app.controller('ResetPasswordController', ['$q', '$scope', '$routeParams', 'Auth
     var token = $routeParams.token;
     var activations = Restangular.all('activations');
     var instructionsSent = false;
+    var instructionSendError = false;
     var error_msg = "";
 
     $scope.requestReset = function() {
-        activations.post({email: $scope.user.email}).then(function() {
-            instructionsSent = true;
-        });
+        activations.post({email: $scope.user.email}).then(
+            function() {
+                instructionsSent = true;
+                instructionSendError = false;
+            },
+            function() {
+                instructionsSent = false;
+                instructionSendError = true;
+            }
+        );
     };
 
     $scope.reset_password = function() {
@@ -30,6 +38,10 @@ app.controller('ResetPasswordController', ['$q', '$scope', '$routeParams', 'Auth
 
     $scope.showInstructionSentNotice = function() {
         return instructionsSent;
+    };
+
+    $scope.showInstructionSendError = function() {
+        return instructionSendError;
     };
 
     $scope.requestResetFormVisible = function() {
