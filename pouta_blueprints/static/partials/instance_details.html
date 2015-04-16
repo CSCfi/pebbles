@@ -11,7 +11,7 @@
         <dd>{{ instance.provisioned_at }}</dd>
         <dt>Lifetime left:</dt>
         <dd>
-            <lifetime seconds="{{ instance.lifetime_left }}"/>
+            <lifetime seconds="{{ instance.lifetime_left }}"></lifetime>
         </dd>
         <dt>User:</dt>
         <dd>{{ instance.user.email }}</dd>
@@ -37,7 +37,8 @@
 
     <div ng-repeat="log in instance.logs">
         <label>Latest entries in {{ log.type }} log</label>
-        <pre>{{ logs[log.type] | limitTo: "-1000" }}</pre>
+        <pre><logview url="{{ log.url }}" nlines="20"></logview></pre>
         <a href="{{ log.url }}">Full log</a>
     </div>
+
 </div>
