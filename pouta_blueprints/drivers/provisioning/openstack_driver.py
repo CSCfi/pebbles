@@ -82,7 +82,9 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         try:
             image = nc.images.find(name=image_name)
         except novaclient.exceptions.NotFound:
-            self.logger.debug('requested image %s not found' % image_name)
+            error = 'requested image %s not found' % image_name
+            self.logger.warning(error)
+            raise RuntimeError(error)
 
         write_log("Found requested image: %s\n" % image_name)
 
@@ -90,7 +92,9 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         try:
             flavor = nc.flavors.find(name=flavor_name)
         except novaclient.exceptions.NotFound:
-            self.logger.debug('requested flavor %s not found' % flavor_name)
+            error = 'requested flavor %s not found' % flavor_name
+            self.logger.warning(error)
+            raise RuntimeError(error)
 
         write_log("Found requested flavor: %s\n" % flavor_name)
 
