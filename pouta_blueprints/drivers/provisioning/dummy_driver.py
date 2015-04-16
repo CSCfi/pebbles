@@ -1,3 +1,4 @@
+import json
 from random import randint
 
 import os
@@ -8,13 +9,14 @@ from pouta_blueprints.drivers.provisioning import base_driver
 class DummyDriver(base_driver.ProvisioningDriverBase):
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.dummy_driver_config import CONFIG
+
         return CONFIG
 
     def do_update_connectivity(self, token, instance_id):
         pass
 
     def do_provision(self, token, instance_id):
-        instance = self.get_instance_data(token, instance_id)
+        instance = self.get_instance_description(token, instance_id)
         cluster_name = instance['name']
 
         instance_dir = '%s/%s' % (self.config.INSTANCE_DATA_DIR, cluster_name)
@@ -41,11 +43,23 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         self.logger.info('faking provisioning')
         cmd = 'time ping -c 10 localhost'
         self.run_logged_process(cmd=cmd, cwd=instance_dir, shell=True, log_uploader=uploader)
-        self.do_instance_patch(token, instance_id, {'public_ip': '%s.%s.%s.%s' % (
-            randint(1, 254), randint(1, 254), randint(1, 254), randint(1, 254))})
+        public_ip = '%s.%s.%s.%s' % (randint(1, 254), randint(1, 254), randint(1, 254), randint(1, 254))
+        instance_data = {
+            'endpoints': [
+                {'name': 'SSH', 'access': 'ssh cloud-user@%s' % public_ip},
+                {'name': 'Some Web Interface', 'access': 'http://%s/service-x' % public_ip},
+            ]
+        }
+        self.do_instance_patch(
+            token,
+            instance_id,
+            {
+                'public_ip': public_ip, 'instance_data': json.dumps(instance_data)
+            }
+        )
 
     def do_deprovision(self, token, instance_id):
-        instance = self.get_instance_data(token, instance_id)
+        instance = self.get_instance_description(token, instance_id)
         cluster_name = instance['name']
 
         instance_dir = '%s/%s' % (self.config.INSTANCE_DATA_DIR, cluster_name)
