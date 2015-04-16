@@ -32,6 +32,13 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
                             $scope.instances = response;
                         }
                     );
+                }, function(response) {
+
+                    if (response.status != 409) {
+                        $.notify({title: 'HTTP ' + response.status, message: 'unknown error', type: 'danger'});
+                    } else {
+                        $.notify({title: 'HTTP ' + response.status, message: 'Maximum number of running instances for the selected blueprint reached.', type: 'danger'});
+                    }
                 }
             );
         };
