@@ -6,6 +6,8 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
     var change_password_result = "";
     var upload_ok = null;
 
+    $scope.getUserName = AuthService.getUserName;
+
     $scope.upload_error = function() {
         if (upload_ok === false) {
             return true;
