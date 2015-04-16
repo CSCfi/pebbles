@@ -33,15 +33,14 @@ def create_first_user(email, password):
 class User(db.Model):
     __tablename__ = 'users'
 
-    id = db.Column(db.Integer, primary_key=True)
-    visual_id = db.Column(db.String(32))
+    id = db.Column(db.String(32), primary_key=True)
     email = db.Column(db.String(MAX_EMAIL_LENGTH), unique=True)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
 
     def __init__(self, email, password=None, is_admin=False):
-        self.visual_id = uuid.uuid4().hex
+        self.id = uuid.uuid4().hex
         self.email = email.lower()
         self.is_admin = is_admin
         if password:
@@ -76,35 +75,36 @@ class User(db.Model):
 class Keypair(db.Model):
     __tablename__ = 'keypairs'
 
-    id = db.Column(db.Integer, primary_key=True)
-    visual_id = db.Column(db.String(32))
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    id = db.Column(db.String(32), primary_key=True)
+    user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
     public_key = db.Column(db.String(450))
 
     def __init__(self):
-        self.visual_id = uuid.uuid4().hex
+        self.id = uuid.uuid4().hex
 
 
 class ActivationToken(db.Model):
     __tablename__ = 'activation_tokens'
 
     token = db.Column(db.String(32), primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
 
     def __init__(self, user):
-        self.user_id = user.id
         self.token = uuid.uuid4().hex
+        self.user_id = user.id
 
 
 class Plugin(db.Model):
     __tablename__ = 'plugins'
 
-    id = db.Column(db.Integer, primary_key=True)
-    visual_id = db.Column(db.String(32))
+    id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(32))
     _schema = db.Column('schema', db.Text)
     _form = db.Column('form', db.Text)
     _model = db.Column('model', db.Text)
+
+    def __init__(self):
+        self.id = uuid.uuid4().hex
 
     @hybrid_property
     def schema(self):
@@ -130,22 +130,18 @@ class Plugin(db.Model):
     def model(self, value):
         self._model = json.dumps(value)
 
-    def __init__(self):
-        self.visual_id = uuid.uuid4().hex
-
 
 class Blueprint(db.Model):
     __tablename__ = 'blueprints'
-    id = db.Column(db.Integer, primary_key=True)
-    visual_id = db.Column(db.String(32))
+    id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(MAX_NAME_LENGTH))
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
-    plugin = db.Column(db.Integer, db.ForeignKey('plugins.id'))
+    plugin = db.Column(db.String(32), db.ForeignKey('plugins.id'))
     max_lifetime = db.Column(db.Integer, default=3600)
 
     def __init__(self):
-        self.visual_id = uuid.uuid4().hex
+        self.id = uuid.uuid4().hex
 
     @hybrid_property
     def config(self):
@@ -158,10 +154,9 @@ class Blueprint(db.Model):
 
 class Instance(db.Model):
     __tablename__ = 'instances'
-    id = db.Column(db.Integer, primary_key=True)
-    visual_id = db.Column(db.String(32))
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    blueprint_id = db.Column(db.Integer, db.ForeignKey('blueprints.id'))
+    id = db.Column(db.String(32), primary_key=True)
+    user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
+    blueprint_id = db.Column(db.String(32), db.ForeignKey('blueprints.id'))
     name = db.Column(db.String(64), unique=True)
     public_ip = db.Column(db.String(64))
     client_ip = db.Column(db.String(64))
@@ -171,9 +166,9 @@ class Instance(db.Model):
     _instance_data = db.Column('instance_data', db.Text)
 
     def __init__(self, blueprint, user):
+        self.id = uuid.uuid4().hex
         self.blueprint_id = blueprint.id
         self.user_id = user.id
-        self.visual_id = uuid.uuid4().hex
         self.state = 'starting'
 
     @hybrid_property
