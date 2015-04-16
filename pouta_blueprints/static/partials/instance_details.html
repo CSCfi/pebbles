@@ -11,31 +11,33 @@
         <dd>{{ instance.provisioned_at }}</dd>
         <dt>Lifetime left:</dt>
         <dd>
-            <lifetime seconds={{ instance.lifetime_left }}/>
+            <lifetime seconds="{{ instance.lifetime_left }}"/>
         </dd>
         <dt>User:</dt>
         <dd>{{ instance.user.email }}</dd>
         <dt>Public IP:</dt>
         <dd>{{ instance.public_ip }}</dd>
+
         <dt ng-repeat-start="endpoint in instance.instance_data['endpoints']">Access: {{ endpoint.name }}</dt>
-        <dd ng-repeat-end>{{ endpoint.access }}</dd>
-        </span>
+        <dd ng-repeat-end><pre>{{ endpoint.access }}</pre></dd>
 
-        <div ng-show="instance.can_update_connectivity && instance.state=='running'">
-            <dt>Client IP:</dt>
-            <dd>{{ instance.client_ip }}
-                <form name="updateClientIpForm">
-                    <button ng-click="get_my_ip()" type="submit" class="btn btn-default">Query client IP -></button>
-                    <input type="text" ng-model="new_client_ip"/>
-                    <button class="btn" type="submit" ng-click="update_client_ip()">Change client IP</button>
-                </form>
-            </dd>
-        </div>
-
-        <div ng-repeat="log in instance.logs">
-            <label>Latest entries in {{ log.type }} log</label>
-            <pre>{{ logs[log.type] | limitTo: "-1000" }}</pre>
-            <a href="{{ log.url }}">Full log</a>
-        </div>
     </dl>
+
+    <dl ng-show="instance.can_update_connectivity && instance.state=='running'">
+
+        <dt>Client IP:</dt>
+        <dd>{{ instance.client_ip }}
+            <form name="updateClientIpForm">
+                <button ng-click="get_my_ip()" type="submit" class="btn btn-default">Query client IP -></button>
+                <input type="text" ng-model="new_client_ip"/>
+                <button class="btn" type="submit" ng-click="update_client_ip()">Change client IP</button>
+            </form>
+        </dd>
+    </dl>
+
+    <div ng-repeat="log in instance.logs">
+        <label>Latest entries in {{ log.type }} log</label>
+        <pre>{{ logs[log.type] | limitTo: "-1000" }}</pre>
+        <a href="{{ log.url }}">Full log</a>
+    </div>
 </div>
