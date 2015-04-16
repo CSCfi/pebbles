@@ -11,48 +11,48 @@ class FlaskApiTestCase(BaseTestCase):
         db.create_all()
         u1 = User("admin@example.org", "admin", is_admin=True)
         u2 = User("user@example.org", "user", is_admin=False)
-        self.known_user_id = u2.visual_id
+        self.known_user_id = u2.id
 
         db.session.add(u1)
         db.session.add(u2)
         p1 = Plugin()
         p1.name = "TestPlugin"
-        self.known_plugin_id = p1.visual_id
+        self.known_plugin_id = p1.id
         db.session.add(p1)
 
         b1 = Blueprint()
         b1.name = "TestBlueprint"
-        b1.plugin = p1.visual_id
+        b1.plugin = p1.id
         db.session.add(b1)
 
         b2 = Blueprint()
         b2.name = "EnabledTestBlueprint"
-        b2.plugin = p1.visual_id
+        b2.plugin = p1.id
         b2.is_enabled = True
         db.session.add(b2)
-        self.known_blueprint_id = b2.visual_id
+        self.known_blueprint_id = b2.id
 
         b3 = Blueprint()
         b3.name = "EnabledTestBlueprintClientIp"
-        b3.plugin = p1.visual_id
+        b3.plugin = p1.id
         b3.is_enabled = True
         b3.config = {'allow_update_client_connectivity': True}
         db.session.add(b3)
-        self.known_blueprint_id_2 = b3.visual_id
+        self.known_blueprint_id_2 = b3.id
 
         db.session.commit()
 
         i1 = Instance(
-            Blueprint.query.filter_by(visual_id=b2.visual_id).first(),
+            Blueprint.query.filter_by(id=b2.id).first(),
             User.query.filter_by(email="user@example.org").first())
         db.session.add(i1)
-        self.known_instance_id = i1.visual_id
+        self.known_instance_id = i1.id
 
         i2 = Instance(
-            Blueprint.query.filter_by(visual_id=b3.visual_id).first(),
+            Blueprint.query.filter_by(id=b3.id).first(),
             User.query.filter_by(email="user@example.org").first())
         db.session.add(i2)
-        self.known_instance_id_2 = i2.visual_id
+        self.known_instance_id_2 = i2.id
 
         db.session.commit()
 
