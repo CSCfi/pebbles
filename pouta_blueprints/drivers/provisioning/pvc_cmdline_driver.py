@@ -136,7 +136,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         for line in out.splitlines():
             line = line.strip()
             if line.startswith('public ip:'):
-                public_ip = line.split(':')[1]
+                public_ip = line.split(':')[1].strip()
                 break
         if public_ip:
             instance_data = {
