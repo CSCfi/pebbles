@@ -133,7 +133,7 @@ class ProvisioningDriverBase(object):
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
         return resp
 
-    def get_instance_data(self, token, instance_id):
+    def get_instance_description(self, token, instance_id):
         resp = self.do_get(token, 'instances/%s' % instance_id)
         if resp.status_code != 200:
             raise RuntimeError('Cannot fetch data for provisioned blueprints, %s' % resp.reason)

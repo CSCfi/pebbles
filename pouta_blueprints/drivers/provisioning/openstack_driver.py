@@ -34,7 +34,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         return config
 
     def do_update_connectivity(self, token, instance_id):
-        instance = self.get_instance_data(token, instance_id)
+        instance = self.get_instance_description(token, instance_id)
         instance_data = instance['instance_data']
         instance_name = instance['name']
 
@@ -56,7 +56,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
 
     def do_provision(self, token, instance_id):
         self.logger.debug("do_provision %s" % instance_id)
-        instance = self.get_instance_data(token, instance_id)
+        instance = self.get_instance_description(token, instance_id)
         self.logger.debug(instance['user']['id'])
         instance_name = instance['name']
         instance_user = instance['user']['id']
@@ -140,7 +140,11 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
             'server_id': server.id,
             'floating_ip': ip.ip,
             'allocated_from_pool': allocated_from_pool,
+            'endpoints': [
+                {'name': 'SSH', 'access': 'ssh cloud-user@%s' % ip.ip},
+            ]
         }
+
         write_log("Publishing server data\n")
 
         self.do_instance_patch(token, instance_id, {'instance_data': json.dumps(instance_data), 'public_ip': ip.ip})
@@ -150,7 +154,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
     def do_deprovision(self, token, instance_id):
         write_log = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
         write_log("Deprovisioning instance %s\n" % instance_id)
-        instance = self.get_instance_data(token, instance_id)
+        instance = self.get_instance_description(token, instance_id)
         instance_data = instance['instance_data']
         instance_name = instance['name']
         nc = self.get_openstack_nova_client()

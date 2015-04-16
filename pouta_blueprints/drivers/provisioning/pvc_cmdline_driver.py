@@ -1,3 +1,4 @@
+import json
 import shlex
 import subprocess
 
@@ -57,7 +58,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         return config
 
     def do_update_connectivity(self, token, instance_id):
-        instance = self.get_instance_data(token, instance_id)
+        instance = self.get_instance_description(token, instance_id)
         cluster_name = instance['name']
 
         instance_dir = '%s/%s' % (self.config.INSTANCE_DATA_DIR, cluster_name)
@@ -71,7 +72,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_openstack_env(), log_uploader=uploader)
 
     def do_provision(self, token, instance_id):
-        instance = self.get_instance_data(token, instance_id)
+        instance = self.get_instance_description(token, instance_id)
         cluster_name = instance['name']
 
         instance_dir = '%s/%s' % (self.config.INSTANCE_DATA_DIR, cluster_name)
@@ -138,7 +139,16 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
                 public_ip = line.split(':')[1]
                 break
         if public_ip:
-            self.do_instance_patch(token, instance_id, {'public_ip': public_ip})
+            instance_data = {
+                'endpoints': [
+                    {'name': 'SSH', 'access': 'ssh cloud-user@%s' % public_ip},
+                ]
+            }
+            self.do_instance_patch(
+                token,
+                instance_id,
+                {'public_ip': public_ip, 'instance_data': json.dumps(instance_data)}
+            )
 
         # run info as the last command to show the service endpoints at the end of the log
         cmd = '/webapps/pouta_blueprints/venv/bin/python /opt/pvc/python/poutacluster.py info'
@@ -146,7 +156,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_openstack_env(), log_uploader=uploader)
 
     def do_deprovision(self, token, instance_id):
-        instance = self.get_instance_data(token, instance_id)
+        instance = self.get_instance_description(token, instance_id)
         cluster_name = instance['name']
 
         instance_dir = '%s/%s' % (self.config.INSTANCE_DATA_DIR, cluster_name)
