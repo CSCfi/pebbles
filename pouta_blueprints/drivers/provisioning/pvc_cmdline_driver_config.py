@@ -138,13 +138,13 @@ CONFIG = {
         'software',
         'maximum_lifetime',
         'maximum_instances_per_user',
+        'allow_update_client_connectivity',
         'firewall_rules',
         {
             'type': 'submit',
             'style': 'btn-info',
             'title': 'Create'
         },
-        'allow_update_client_connectivity',
     ],
     'model': {
         'name': 'pvc',
@@ -152,13 +152,13 @@ CONFIG = {
         'frontend_flavor': 'mini',
         'frontend_image': 'Ubuntu-14.04',
         'frontend_volumes': [
-            {'name': 'local_data', 'device': 'vdc', 'size': 0},
-            {'name': 'shared_data', 'device': 'vdd', 'size': 0},
+            {'name': 'local_data', 'device': '/dev/vdc', 'size': 0},
+            {'name': 'shared_data', 'device': '/dev/vdd', 'size': 0},
         ],
         'node_flavor': 'mini',
         'node_image': 'Ubuntu-14.04',
         'node_volumes': [
-            {'name': 'local_data', 'device': 'vdc', 'size': 0},
+            {'name': 'local_data', 'device': '/dev/vdc', 'size': 0},
         ],
         'firewall_rules': ['tcp 22 22 192.168.1.0/24']
     }
