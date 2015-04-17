@@ -54,7 +54,7 @@ def verify_password(userid_or_token, password):
 
 
 user_fields = {
-    'id': fields.String(attribute='visual_id'),
+    'id': fields.String,
     'email': fields.String,
     'is_active': fields.Boolean,
     'is_admin': fields.Boolean,
@@ -145,13 +145,13 @@ class UserView(restful.Resource):
     @auth.login_required
     @marshal_with(user_fields)
     def get(self, user_id):
-        if not g.user.is_admin and user_id != g.user.visual_id:
+        if not g.user.is_admin and user_id != g.user.id:
             abort(403)
-        return User.query.filter_by(visual_id=user_id).first()
+        return User.query.filter_by(id=user_id).first()
 
     @auth.login_required
     def put(self, user_id):
-        if not g.user.is_admin and user_id != g.user.visual_id:
+        if not g.user.is_admin and user_id != g.user.id:
             abort(403)
         form = ChangePasswordForm()
         if not form.validate_on_submit():
@@ -169,7 +169,7 @@ class UserView(restful.Resource):
     def delete(self, user_id):
         if not g.user.is_admin:
             abort(403)
-        user = User.query.filter_by(visual_id=user_id).first()
+        user = User.query.filter_by(id=user_id).first()
         if not user:
             logging.warn("trying to delete non-existing user")
             abort(404)
@@ -178,7 +178,7 @@ class UserView(restful.Resource):
 
 
 public_key_fields = {
-    'id': fields.String(attribute='visual_id'),
+    'id': fields.String,
     'public_key': fields.String
 }
 
@@ -187,12 +187,12 @@ class KeypairList(restful.Resource):
     @auth.login_required
     @marshal_with(public_key_fields)
     def get(self, user_id):
-        if not g.user.is_admin and user_id != g.user.visual_id:
+        if not g.user.is_admin and user_id != g.user.id:
             abort(403)
 
         user = g.user
-        if user_id != g.user.visual_id:
-            user = User.query.filter_by(visual_id=user_id).first()
+        if user_id != g.user.id:
+            user = User.query.filter_by(id=user_id).first()
 
         if not user:
             abort(404)
@@ -209,7 +209,7 @@ class CreateKeyPair(restful.Resource):
     @auth.login_required
     @marshal_with(private_key_fields)
     def post(self, user_id):
-        if user_id != g.user.visual_id:
+        if user_id != g.user.id:
             abort(403)
         priv, pub = generate_ssh_keypair()
 
@@ -232,7 +232,7 @@ class UploadKeyPair(restful.Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('file', type=werkzeug.datastructures.FileStorage, location='files')
 
-        if user_id != g.user.visual_id:
+        if user_id != g.user.id:
             abort(403)
         args = parser.parse_args()
         if 'file' not in args:
@@ -277,7 +277,7 @@ class SessionView(restful.Resource):
             return marshal({
                 'token': user.generate_auth_token(),
                 'is_admin': user.is_admin,
-                'user_id': user.visual_id
+                'user_id': user.id
             }, token_fields)
         logging.warn("invalid login credentials for %s" % form.email.data)
         return {
@@ -344,7 +344,7 @@ class ActivationList(restful.Resource):
 
 
 instance_fields = {
-    'id': fields.String(attribute='visual_id'),
+    'id': fields.String,
     'name': fields.String,
     'provisioned_at': fields.DateTime,
     'lifetime_left': fields.Integer,
@@ -373,15 +373,15 @@ class InstanceList(restful.Resource):
                 filter((Instance.state != 'deleted')).all()
 
         for instance in instances:
-            instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
+            instance.logs = InstanceLogs.get_logfile_urls(instance.id)
 
             blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
 
             if not blueprint:
-                logging.warn("instance %s has a reference to non-existing blueprint" % instance.visual_id)
+                logging.warn("instance %s has a reference to non-existing blueprint" % instance.id)
                 continue
 
-            instance.blueprint_id = blueprint.visual_id
+            instance.blueprint_id = blueprint.id
             age = 0
             if instance.provisioned_at:
                 age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
@@ -401,7 +401,7 @@ class InstanceList(restful.Resource):
 
         blueprint_id = form.blueprint.data
 
-        blueprint = Blueprint.query.filter_by(visual_id=blueprint_id).filter_by(is_enabled=True).first()
+        blueprint = Blueprint.query.filter_by(id=blueprint_id).filter_by(is_enabled=True).first()
         if not blueprint:
             abort(404)
 
@@ -428,7 +428,7 @@ class InstanceList(restful.Resource):
         db.session.commit()
 
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-            run_provisioning.delay(token.token, instance.visual_id)
+            run_provisioning.delay(token.token, instance.id)
 
 
 class InstanceView(restful.Resource):
@@ -443,7 +443,7 @@ class InstanceView(restful.Resource):
     @marshal_with(instance_fields)
     def get(self, instance_id):
         user = g.user
-        query = Instance.query.filter_by(visual_id=instance_id)
+        query = Instance.query.filter_by(id=instance_id)
         if not user.is_admin:
             query = query.filter_by(user_id=user.id)
         instance = query.first()
@@ -451,9 +451,9 @@ class InstanceView(restful.Resource):
             abort(404)
 
         blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
-        instance.blueprint_id = blueprint.visual_id
+        instance.blueprint_id = blueprint.id
 
-        instance.logs = InstanceLogs.get_logfile_urls(instance.visual_id)
+        instance.logs = InstanceLogs.get_logfile_urls(instance.id)
 
         if 'allow_update_client_connectivity' in blueprint.config \
                 and blueprint.config['allow_update_client_connectivity']:
@@ -470,7 +470,7 @@ class InstanceView(restful.Resource):
     @auth.login_required
     def delete(self, instance_id):
         user = g.user
-        query = Instance.query.filter_by(visual_id=instance_id)
+        query = Instance.query.filter_by(id=instance_id)
         if not user.is_admin:
             query = query.filter_by(user_id=user.id)
         instance = query.first()
@@ -481,13 +481,13 @@ class InstanceView(restful.Resource):
         db.session.add(token)
         db.session.commit()
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-            run_deprovisioning.delay(token.token, instance.visual_id)
+            run_deprovisioning.delay(token.token, instance.id)
 
     @auth.login_required
     def patch(self, instance_id):
         user = g.user
         args = self.parser.parse_args()
-        query = Instance.query.filter_by(visual_id=instance_id)
+        query = Instance.query.filter_by(id=instance_id)
         if not user.is_admin:
             query = query.filter_by(user_id=user.id)
         instance = query.first()
@@ -533,7 +533,7 @@ class InstanceView(restful.Resource):
                 if re.match(ipv4_re, new_ip):
                     instance.client_ip = new_ip
                     if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-                        update_user_connectivity.delay(instance.visual_id)
+                        update_user_connectivity.delay(instance.id)
                 else:
                     # 400 Bad Request
                     abort(400)
@@ -582,7 +582,7 @@ class InstanceLogs(restful.Resource):
     @requires_admin
     def patch(self, instance_id):
         args = self.parser.parse_args()
-        instance = Instance.query.filter_by(visual_id=instance_id).first()
+        instance = Instance.query.filter_by(id=instance_id).first()
         if not instance:
             abort(404)
 
@@ -603,7 +603,7 @@ class InstanceLogs(restful.Resource):
 
 
 blueprint_fields = {
-    'id': fields.String(attribute='visual_id'),
+    'id': fields.String(attribute='id'),
     'max_lifetime': fields.Integer,
     'name': fields.String,
     'is_enabled': fields.Boolean,
@@ -624,7 +624,7 @@ class BlueprintList(restful.Resource):
 
         results = []
         for blueprint in query.all():
-            plugin = Plugin.query.filter_by(visual_id=blueprint.plugin).first()
+            plugin = Plugin.query.filter_by(id=blueprint.plugin).first()
             blueprint.schema = plugin.schema
             blueprint.form = plugin.form
             results.append(blueprint)
@@ -657,7 +657,7 @@ class BlueprintView(restful.Resource):
     @auth.login_required
     @marshal_with(blueprint_fields)
     def get(self, blueprint_id):
-        return Blueprint.query.filter_by(visual_id=blueprint_id).first()
+        return Blueprint.query.filter_by(id=blueprint_id).first()
 
     @auth.login_required
     @requires_admin
@@ -667,7 +667,7 @@ class BlueprintView(restful.Resource):
             logging.warn("validation error on update blueprint config")
             return form.errors, 422
 
-        blueprint = Blueprint.query.filter_by(visual_id=blueprint_id).first()
+        blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
         if not blueprint:
             abort(404)
         blueprint.name = form.name.data
@@ -686,7 +686,7 @@ class BlueprintView(restful.Resource):
 
 
 plugin_fields = {
-    'id': fields.String(attribute='visual_id'),
+    'id': fields.String,
     'name': fields.String,
     'schema': fields.Raw,
     'form': fields.Raw,
@@ -699,7 +699,7 @@ class PluginView(restful.Resource):
     @requires_admin
     @marshal_with(plugin_fields)
     def get(self, plugin_id):
-        plugin = Plugin.query.filter_by(visual_id=plugin_id).first()
+        plugin = Plugin.query.filter_by(id=plugin_id).first()
         if not plugin:
             abort(404)
         return plugin
