@@ -1,8 +1,20 @@
 ---
 - name: Create the Supervisor config file for www
-  template: src=etc/supervisor/supervisor_config.j2
-            dest=/etc/supervisor/conf.d/{{ application_name }}-www.conf
+  template: src=etc/supervisor/supervisor_config_common_services.j2
+            dest=/etc/supervisor/conf.d/{{ application_name }}-common_services.conf
             backup=yes
+
+- name: Create the Supervisor config file for www
+  template: src=etc/supervisor/supervisor_config_devserver.j2
+            dest=/etc/supervisor/conf.d/{{ application_name }}-application.conf
+            backup=yes
+  when: server_type == "devel"
+
+- name: Create the Supervisor config file for www
+  template: src=etc/supervisor/supervisor_config_gunicorn.j2
+            dest=/etc/supervisor/conf.d/{{ application_name }}-application.conf
+            backup=yes
+  when: deploy_mode == "prod"
 
 - name: Re-read the Supervisor config files
   command: supervisorctl reread

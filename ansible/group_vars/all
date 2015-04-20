@@ -5,6 +5,11 @@
 #   standalone: checkout from github
 deploy_mode: devel
 
+# server type:
+#   devel: Flask built-in HTTP server
+#   prod: Gunicorn HTTP server
+server_type: devel
+
 git_repository: "https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git"
 git_version: "master"
 
@@ -14,7 +19,6 @@ apt_repository_url: "http://www.nic.funet.fi/pub/mirrors/archive.ubuntu.com/"
 
 virtualenv_path: "/webapps/{{ application_name }}/venv"
 runtime_path: "/webapps/{{ application_name }}/run"
-server_sock_path: "{{ runtime_path }}/gunicorn.sock"
 application_path: "/webapps/{{ application_name }}/source"
 application_log_dir: "/webapps/{{ application_name }}/logs"
 application_log_file: "{{ application_log_dir }}/gunicorn.log"
@@ -33,6 +37,9 @@ application_m2m_credentials_dir: "/run/shm/{{ application_name }}"
 application_m2m_credentials_path: "{{ application_m2m_credentials_dir }}/creds"
 shared_folder_path: "/shared_folder"
 instance_data_dir: /var/spool/pb_instances
+proxy_bind_address: "127.0.0.1"
+proxy_bind_port: 8888
+proxy_bind_endpoint: "{{ proxy_bind_address }}:{{ proxy_bind_port }}"
 
 # nginx
 nginx_static_root: "/webapps/{{ application_name }}/static"
