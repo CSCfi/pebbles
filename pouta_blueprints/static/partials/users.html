@@ -35,8 +35,12 @@
         </tbody>
     </table>
     <form>
-        <input name="email" type="email" ng-model="new_user" placeholder="email" required/>
-        <button ng-click="add_user(new_user)" type="submit" class="btn btn-default">Invite</button>
+        <div class="row">
+            <div class="form-group col-sm-4">
+                <input name="email" class="form-control" type="email" ng-model="new_user" placeholder="Email" required/>
+            </div>
+            <button ng-click="add_user(new_user)" type="submit" class="btn btn-default">Invite</button>
+        </div>
     </form>
 
     <button type="button" class="btn btn-default" data-toggle="modal" data-target="#massInvite">
