@@ -38,6 +38,7 @@ class User(db.Model):
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
+    is_deleted = db.Column(db.Boolean, default=False)
 
     def __init__(self, email, password=None, is_admin=False):
         self.id = uuid.uuid4().hex
@@ -49,10 +50,17 @@ class User(db.Model):
         else:
             self.set_password(uuid.uuid4().hex)
 
+    def delete(self):
+        self.email = self.email + datetime.datetime.utcnow().strftime("-%s")
+        self.is_deleted = True
+        self.is_active = True
+
     def set_password(self, password):
         self.password = generate_password_hash(password)
 
     def check_password(self, password):
+        if self.is_deleted:
+            return None
         return check_password_hash(self.password, password)
 
     def generate_auth_token(self, expires_in=3600):
@@ -66,7 +74,10 @@ class User(db.Model):
             data = s.loads(token)
         except:
             return None
-        return User.query.get(data['id'])
+        user = User.query.get(data['id'])
+        if user and user.is_deleted:
+            return None
+        return user
 
     def __repr__(self):
         return '<User %r>' % self.email

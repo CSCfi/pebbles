@@ -61,6 +61,7 @@ class FlaskApiTestCase(BaseTestCase):
             'GET': self.client.get,
             'POST': self.client.post,
             'PATCH': self.client.patch,
+            'DELETE': self.client.delete,
         }
 
         assert method in methods
@@ -81,6 +82,7 @@ class FlaskApiTestCase(BaseTestCase):
             'GET': self.client.get,
             'POST': self.client.post,
             'PATCH': self.client.patch,
+            'DELETE': self.client.delete,
         }
 
         assert method in methods
@@ -94,11 +96,11 @@ class FlaskApiTestCase(BaseTestCase):
         token = '%s:' % response.json['token']
         token_b64 = base64.b64encode(bytes(token.encode('ascii'))).decode('utf-8')
 
-        headers = {
+        headers.update({
             'Accept': 'application/json',
             'Authorization': 'Basic %s' % token_b64,
             'token': token_b64
-        }
+        })
         return methods[method](path, headers=headers, data=data, content_type='application/json')
 
     def make_authenticated_admin_request(self, method='GET', path='/', headers=None, data=None):
@@ -117,6 +119,42 @@ class FlaskApiTestCase(BaseTestCase):
                                      data=json.dumps({'email': 'admin@example.org',
                                                       'password': 'admin'}))
         self.assert_200(response)
+
+    def test_anonymous_delete_user(self):
+        u = User("test@example.org", "testuser", is_admin=False)
+        db.session.add(u)
+        db.session.commit()
+
+        response = self.make_request(
+            method='DELETE',
+            path='/api/v1/users/%s' % u.id
+        )
+        self.assert_401(response)
+
+    def test_user_delete_user(self):
+        u = User("test@example.org", "testuser", is_admin=False)
+        db.session.add(u)
+        db.session.commit()
+
+        response = self.make_authenticated_user_request(
+            method='DELETE',
+            path='/api/v1/users/%s' % u.id
+        )
+        self.assert_403(response)
+
+    def test_admin_delete_user(self):
+        email = "test@example.org"
+        u = User(email, "testuser", is_admin=False)
+        db.session.add(u)
+        db.session.commit()
+
+        response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/users/%s' % u.id
+        )
+        self.assert_200(response)
+        user = User.query.filter_by(id=u.id).first()
+        self.assertTrue(user.email != email)
 
     def test_anonymous_get_users(self):
         response = self.make_request(path='/api/v1/users')

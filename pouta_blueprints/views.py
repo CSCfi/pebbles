@@ -173,7 +173,8 @@ class UserView(restful.Resource):
         if not user:
             logging.warn("trying to delete non-existing user")
             abort(404)
-        db.session.delete(user)
+        user.delete()
+        db.session.add(user)
         db.session.commit()
 
 
