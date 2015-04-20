@@ -51,6 +51,8 @@ class User(db.Model):
             self.set_password(uuid.uuid4().hex)
 
     def delete(self):
+        if self.is_deleted:
+            return
         self.email = self.email + datetime.datetime.utcnow().strftime("-%s")
         self.is_deleted = True
         self.is_active = False
