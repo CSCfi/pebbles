@@ -98,29 +98,25 @@ def get_provisioning_type(token, instance_id):
     return get_plugin_data(token, plugin_id)['name']
 
 
-@app.task(name="pouta_blueprints.tasks.run_provisioning")
-def run_provisioning(token, instance_id):
-    logger.info('provisioning triggered for %s' % instance_id)
+def run_provisioning_impl(token, instance_id, method):
+    logger.info('%s triggered for %s' % (method, instance_id))
     mgr = get_provisioning_manager()
 
     plugin = get_provisioning_type(token, instance_id)
 
-    mgr.map_method([plugin], 'provision', token, instance_id)
+    mgr.map_method([plugin], method, token, instance_id)
 
-    logger.info('provisioning done, notifying server')
+    logger.info('%s done, notifying server' % method)
+
+
+@app.task(name="pouta_blueprints.tasks.run_provisioning")
+def run_provisioning(token, instance_id):
+    run_provisioning_impl(token, instance_id, 'provision')
 
 
 @app.task(name="pouta_blueprints.tasks.run_deprovisioning")
 def run_deprovisioning(token, instance_id):
-    logger.info('deprovisioning triggered for %s' % instance_id)
-
-    mgr = get_provisioning_manager()
-
-    plugin = get_provisioning_type(token, instance_id)
-
-    mgr.map_method([plugin], 'deprovision', token, instance_id)
-
-    logger.info('deprovisioning done, notifying server')
+    run_provisioning_impl(token, instance_id, 'deprovision')
 
 
 @app.task(name="pouta_blueprints.tasks.publish_plugins")
