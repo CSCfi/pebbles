@@ -53,7 +53,7 @@ class User(db.Model):
     def delete(self):
         self.email = self.email + datetime.datetime.utcnow().strftime("-%s")
         self.is_deleted = True
-        self.is_active = True
+        self.is_active = False
 
     def set_password(self, password):
         self.password = generate_password_hash(password)
