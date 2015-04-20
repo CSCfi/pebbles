@@ -114,11 +114,63 @@ class FlaskApiTestCase(BaseTestCase):
     def test_first_user(self):
         db.drop_all()
         db.create_all()
-        response = self.make_request('POST',
-                                     '/api/v1/initialize',
-                                     data=json.dumps({'email': 'admin@example.org',
-                                                      'password': 'admin'}))
+        response = self.make_request(
+            'POST',
+            '/api/v1/initialize',
+            data=json.dumps({'email': 'admin@example.org',
+                             'password': 'admin'}))
         self.assert_200(response)
+
+    def test_deleted_user_cannot_get_token(self):
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/sessions',
+            data=json.dumps({'email': 'user@example.org', 'password': 'user'}))
+        self.assert_200(response)
+        response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/users/%s' % self.known_user_id
+        )
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/sessions',
+            data=json.dumps({'email': 'user@example.org', 'password': 'user'}))
+        self.assert_401(response)
+
+    def test_a_deleted_user_cannot_use_token(self):
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/sessions',
+            data=json.dumps({'email': 'user@example.org', 'password': 'user'}))
+        self.assert_200(response)
+
+        token = '%s:' % response.json['token']
+        token_b64 = base64.b64encode(bytes(token.encode('ascii'))).decode('utf-8')
+
+        headers = {
+            'Accept': 'application/json',
+            'Authorization': 'Basic %s' % token_b64,
+            'token': token_b64
+        }
+        # Test instance creation still works for the user
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/instances',
+            data=json.dumps({'blueprint': self.known_blueprint_id}),
+            headers=headers)
+        self.assert_200(response)
+        # Delete the user with admin credentials
+        response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/users/%s' % self.known_user_id
+        )
+        # Test instance creation fails for the user
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/instances',
+            data=json.dumps({'blueprint': self.known_blueprint_id}),
+            headers=headers)
+        self.assert_401(response)
 
     def test_anonymous_delete_user(self):
         u = User("test@example.org", "testuser", is_admin=False)
