@@ -1,6 +1,14 @@
 app.controller('UsersController', ['$q', '$scope', '$interval', 'AuthService', 'Restangular',
                           function ($q,   $scope,   $interval,   AuthService,   Restangular) {
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
+        $scope.include_deleted = false;
+        $scope.includeRow = function(value, index) {
+            if ($scope.include_deleted) {
+                return true;
+            } else {
+                return !value.is_deleted;
+            }
+        };
 
         if (AuthService.isAdmin()) {
             var users = Restangular.all('users');
