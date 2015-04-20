@@ -14,11 +14,11 @@ manager.add_command("shell", Shell(make_context=_make_context))
 
 
 @manager.command
-def test():
+def test(failfast=None):
     """Runs the unit tests without coverage."""
     import unittest
     tests = unittest.TestLoader().discover('pouta_blueprints.tests')
-    unittest.TextTestRunner(verbosity=2).run(tests)
+    unittest.TextTestRunner(verbosity=2, failfast=failfast).run(tests)
 
 
 @manager.command
