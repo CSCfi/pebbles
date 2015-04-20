@@ -3,8 +3,10 @@
     <form>
         <div class="row">
             <div class="form-group col-sm-4">
-                <label for="query" class="control-label">Filter</label>
-                <input id="query" class="form-control" ng-model="query" />
+                <div class="input-group">
+                    <div class="input-group-addon"><span class="glyphicon glyphicon-filter" aria-hidden="true"></span></div>
+                    <input id="query" class="form-control" ng-model="query" placeholder="Filter"/>
+                </div>
                 <input ng-model="include_deleted" type="checkbox" /> Show deleted
             </div>
         </div>
