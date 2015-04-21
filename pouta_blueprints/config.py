@@ -20,7 +20,9 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
     # config file and given default
     for config_file in (LOCAL_CONFIG_FILE, CONFIG_FILE):
         if os.path.isfile(config_file):
-            return get_key_from_config(config_file, key)
+            value = get_key_from_config(config_file, key)
+            if value:
+                return value
 
     if default is not None:
         return default
