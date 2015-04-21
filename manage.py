@@ -1,8 +1,13 @@
 from flask.ext.script import Manager, Shell
-
+import getpass
 from pouta_blueprints.server import app, db
 from pouta_blueprints import models
 
+# 2to3 fix for input
+try:
+    input = raw_input
+except NameError:
+    pass
 
 manager = Manager(app)
 
@@ -37,6 +42,19 @@ def cov():
     cov.save()
     print('Coverage Summary:')
     cov.report()
+
+
+@manager.command
+def createuser(email=None, password=None, admin=False):
+    """Creates new user"""
+    if not email:
+        email = input("email: ")
+    if not password:
+        password = getpass.getpass("password: ")
+    user = models.User(email, password=password, is_admin=admin)
+    db.session.add(user)
+    db.session.commit()
+
 
 if __name__ == '__main__':
         manager.run()
