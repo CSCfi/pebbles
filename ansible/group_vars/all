@@ -50,8 +50,8 @@ nginx_ssl_crt: "/etc/nginx/ssl/server.crt"
 nginx_ssl_key: "/etc/nginx/ssl/server.key"
 
 # gunicorn
-gunicorn_num_workers: 4
-gunicorn_max_requests: 1
+gunicorn_num_workers: "{{ 2 * ansible_processor_vcpus }}"
+gunicorn_max_requests: 50
 
 # pouta-virtualcluster
 pvc_install_dir: /opt/pvc
