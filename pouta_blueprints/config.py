@@ -7,23 +7,22 @@ LOCAL_CONFIG_FILE = '/etc/pouta_blueprints/config.yaml.local'
 
 
 def resolve_configuration_value(key, default=None, *args, **kwargs):
+    def get_key_from_config(config_file, key):
+        return yaml.load(open(config_file)).get(key)
+
     # first check environment
     pb_key = 'PB_' + key
     value = os.getenv(pb_key)
     if value:
         return value
 
-    # then check local config file
-    if os.path.isfile(LOCAL_CONFIG_FILE):
-        config = yaml.load(open(LOCAL_CONFIG_FILE).read())
-        if key in config:
-            return config[key]
-
-    # finally check system config file and given default
-    if os.path.isfile(CONFIG_FILE):
-        config = yaml.load(open(CONFIG_FILE).read())
-        if key in config:
-            return config[key]
+    # then check local config file and finally check system
+    # config file and given default
+    for config_file in (LOCAL_CONFIG_FILE, CONFIG_FILE):
+        if os.path.isfile(config_file):
+            value = get_key_from_config(config_file, key)
+            if value:
+                return value
 
     if default is not None:
         return default
