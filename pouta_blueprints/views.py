@@ -58,6 +58,7 @@ user_fields = {
     'email': fields.String,
     'is_active': fields.Boolean,
     'is_admin': fields.Boolean,
+    'is_deleted': fields.Boolean,
 }
 
 
@@ -173,7 +174,7 @@ class UserView(restful.Resource):
         if not user:
             logging.warn("trying to delete non-existing user")
             abort(404)
-        db.session.delete(user)
+        user.delete()
         db.session.commit()
 
 
