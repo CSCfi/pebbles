@@ -51,10 +51,13 @@ def createuser(email=None, password=None, admin=False):
         email = input("email: ")
     if not password:
         password = getpass.getpass("password: ")
-    user = models.User(email, password=password, is_admin=admin)
-    db.session.add(user)
-    db.session.commit()
+    models.create_user(email, password=password, is_admin=admin)
 
+
+@manager.command
+def createworker():
+    """Creates background worker"""
+    models.create_worker()
 
 if __name__ == '__main__':
         manager.run()

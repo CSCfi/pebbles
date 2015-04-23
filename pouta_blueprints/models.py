@@ -19,13 +19,15 @@ def load_column(column):
     return value
 
 
-def create_first_user(email, password):
-    user = User(email, password, is_admin=True)
-    user.is_active = True
-    worker = User('worker@pouta_blueprints', app.config['SECRET_KEY'], is_admin=True)
-    worker.is_active = True
+def create_worker():
+    return create_user('worker@pouta_blueprints', app.config['SECRET_KEY'], is_admin=True)
+
+
+def create_user(email, password, is_admin=False):
+    if User.query.filter_by(email=email).first():
+        raise RuntimeError("user %s already exists" % email)
+    user = User(email, password, is_admin=is_admin)
     db.session.add(user)
-    db.session.add(worker)
     db.session.commit()
     return user
 
