@@ -50,13 +50,12 @@
             <h4 class="modal-title">Create Blueprint</h4>
           </div>
           <div class="modal-body">
-            <form
-              name="ngform"
-              class="form-activate"
-              sf-model="selectedPlugin.model"
-              sf-form="selectedPlugin.form"
-              sf-schema="selectedPlugin.schema"
-              ng-submit="submitForm(ngform, selectedPlugin.model)">
+            <form name="ngform">
+              <div
+                sf-model="selectedPlugin.model"
+                sf-form="selectedPlugin.form"
+                sf-schema="selectedPlugin.schema"/>
+               <button class="btn btn-primary" ng-click="submitForm(ngform, selectedPlugin.model)">Create</button>
             </form>
           </div>
         </div>
@@ -71,13 +70,13 @@
             <h4 class="modal-title">Update Blueprint Config</h4>
           </div>
           <div class="modal-body">
-            <form
-              name="ngform2"
-              class="form-activate"
-              sf-model="selectedBlueprint.config"
-              sf-form="selectedBlueprint.form"
-              sf-schema="selectedBlueprint.schema"
-              ng-submit="updateBlueprint(ngform2, selectedBlueprint.config)">
+            <form name="ngform2">
+              <div
+                class="form-activate"
+                sf-model="selectedBlueprint.config"
+                sf-form="selectedBlueprint.form"
+                sf-schema="selectedBlueprint.schema"/>
+              <button class="btn btn-primary" ng-click="updateBlueprint(ngform2, selectedBlueprint.config)">Update</button>
             </form>
           </div>
         </div>
