@@ -13,7 +13,7 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
     # first check environment
     pb_key = 'PB_' + key
     value = os.getenv(pb_key)
-    if value:
+    if value is not None:
         return value
 
     # then check local config file and finally check system
@@ -21,7 +21,7 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
     for config_file in (LOCAL_CONFIG_FILE, CONFIG_FILE):
         if os.path.isfile(config_file):
             value = get_key_from_config(config_file, key)
-            if value:
+            if value is not None:
                 return value
 
     if default is not None:
