@@ -138,8 +138,8 @@ CONFIG = {
         'software',
         'maximum_lifetime',
         'maximum_instances_per_user',
-        'allow_update_client_connectivity',
         'firewall_rules',
+        'allow_update_client_connectivity',
     ],
     'model': {
         'name': 'pvc',

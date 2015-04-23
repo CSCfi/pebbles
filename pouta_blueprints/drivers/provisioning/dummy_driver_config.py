@@ -63,8 +63,8 @@ CONFIG = {
         "capabilities",
         "maximum_lifetime",
         "maximum_instances_per_user",
+        "secgroup-rules",
         "allow_update_client_connectivity",
-        "secgroup-rules"
     ],
     "model": {
         "name": "bar",
