@@ -140,11 +140,6 @@ CONFIG = {
         'maximum_instances_per_user',
         'allow_update_client_connectivity',
         'firewall_rules',
-        {
-            'type': 'submit',
-            'style': 'btn-info',
-            'title': 'Create'
-        },
     ],
     'model': {
         'name': 'pvc',
