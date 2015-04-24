@@ -75,6 +75,8 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         instance = self.get_instance_description(token, instance_id)
         cluster_name = instance['name']
 
+        prefix = self.config['INSTANCE_NAME_PREFIX']
+
         instance_dir = '%s/%s' % (self.config.INSTANCE_DATA_DIR, cluster_name)
 
         # will fail if there is already a directory for this instance
@@ -112,7 +114,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         key_file = '%s/key.priv' % instance_dir
         if not os.path.isfile(key_file):
             with open(key_file, 'w') as keyfile:
-                args = ['nova', 'keypair-add', 'rc-%s' % cluster_name]
+                args = ['nova', 'keypair-add', '%s' % cluster_name]
                 p = subprocess.Popen(args, cwd=instance_dir, stdout=keyfile, env=self.create_openstack_env())
                 p.wait()
             os.chmod(key_file, stat.S_IRUSR)
@@ -159,6 +161,8 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         instance = self.get_instance_description(token, instance_id)
         cluster_name = instance['name']
 
+        prefix = self.config['INSTANCE_NAME_PREFIX']
+
         instance_dir = '%s/%s' % (self.config.INSTANCE_DATA_DIR, cluster_name)
 
         # check if provisioning has failed before even creating an instance state directory
@@ -183,7 +187,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_openstack_env(), log_uploader=uploader)
 
         # remove generated key from OpenStack
-        args = ['nova', 'keypair-delete', 'rc-%s' % cluster_name]
+        args = ['nova', 'keypair-delete', '%s' % cluster_name]
         p = subprocess.Popen(args, cwd=instance_dir, env=self.create_openstack_env())
         p.wait()
 
@@ -247,8 +251,8 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         j2env = jinja2.Environment(loader=jinja2.FileSystemLoader(this_dir), trim_blocks=True)
         tc = j2env.get_template('pvc-cluster.yml.jinja2')
         cluster_config = tc.render(
-            cluster_name='rc-%s' % cluster_name,
-            security_key='rc-%s' % cluster_name,
+            cluster_name='%s' % cluster_name,
+            security_key='%s' % cluster_name,
             frontend_groups=frontend_groups,
             node_groups=node_groups,
             frontend_volumes=frontend_volumes,

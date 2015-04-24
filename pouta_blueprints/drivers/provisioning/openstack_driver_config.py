@@ -67,11 +67,6 @@ CONFIG = {
             'title': 'Customization script for instance after it is launched'
         },
         'firewall_rules',
-        {
-            'type': 'submit',
-            'style': 'btn-info',
-            'title': 'Create'
-        },
         'allow_update_client_connectivity',
     ],
     'model': {
