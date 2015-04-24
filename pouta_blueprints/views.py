@@ -104,6 +104,11 @@ class UserList(restful.Resource):
 
         if not app.dynamic_config['SKIP_TASK_QUEUE'] and not app.dynamic_config['MAIL_SUPPRESS_SEND']:
             send_mails.delay([(user.email, token.token)])
+        else:
+            logging.warn(
+                "Mail sending suppressed in config: SKIP_TASK_QUEUE:%s MAIL_SUPPRESS_SEND:%s" %
+                (app.dynamic_config['SKIP_TASK_QUEUE'], app.dynamic_config['MAIL_SUPPRESS_SEND'])
+            )
 
         return user
 
