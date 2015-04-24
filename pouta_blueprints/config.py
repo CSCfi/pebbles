@@ -1,4 +1,5 @@
 import os
+
 import yaml
 import functools
 
@@ -57,6 +58,7 @@ class BaseConfig(object):
     MAIL_SUPPRESS_SEND = True
     SKIP_TASK_QUEUE = False
     WRITE_PROVISIONING_LOGS = True
+    INSTANCE_NAME_PREFIX = 'pb-'
 
     # enable access by []
     def __getitem__(self, item):

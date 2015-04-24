@@ -1,4 +1,5 @@
 from flask.ext.bcrypt import generate_password_hash, check_password_hash
+import names
 from sqlalchemy.ext.hybrid import hybrid_property
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import uuid
@@ -197,6 +198,10 @@ class Instance(db.Model):
     @hybrid_property
     def user(self):
         return User.query.filter_by(id=self.user_id).first()
+
+    @staticmethod
+    def generate_name(prefix):
+        return '%s%s' % (prefix, names.get_first_name().lower())
 
 
 class SystemToken(db.Model):
