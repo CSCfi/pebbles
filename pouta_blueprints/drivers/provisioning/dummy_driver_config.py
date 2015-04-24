@@ -63,13 +63,8 @@ CONFIG = {
         "capabilities",
         "maximum_lifetime",
         "maximum_instances_per_user",
-        "allow_update_client_connectivity",
         "secgroup-rules",
-        {
-            "type": "submit",
-            "style": "btn-info",
-            "title": "Create"
-        }
+        "allow_update_client_connectivity",
     ],
     "model": {
         "name": "bar",
