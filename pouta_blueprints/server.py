@@ -8,6 +8,7 @@ from pouta_blueprints.views.activations import activations, ActivationList, Acti
 from pouta_blueprints.views.firstuser import firstuser, FirstUserView
 from pouta_blueprints.views.myip import myip, WhatIsMyIp
 from pouta_blueprints.views.sessions import sessions, SessionView
+from pouta_blueprints.views.variables import variables, VariableList, VariableView
 from pouta_blueprints.models import db
 
 db.init_app(app)
@@ -38,6 +39,8 @@ api.add_resource(
     methods=['GET', 'PATCH'])
 api.add_resource(PluginList, api_root + '/plugins')
 api.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')
+api.add_resource(VariableList, api_root + '/variables')
+api.add_resource(VariableView, api_root + '/variables/<string:variable_id>')
 api.add_resource(WhatIsMyIp, api_root + '/what_is_my_ip', methods=['GET'])
 
 app.register_blueprint(blueprints)
@@ -48,3 +51,4 @@ app.register_blueprint(activations)
 app.register_blueprint(firstuser)
 app.register_blueprint(myip)
 app.register_blueprint(sessions)
+app.register_blueprint(variables)
