@@ -11,14 +11,13 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
 
         var blueprints = Restangular.all('blueprints');
 
-        $scope.variables = [
-            {key: 'SMTP_HOST', value: 'smtp.example.com'},
-            {key: 'SMTP_PORT', value: 25}
-        ];
-
-
         blueprints.getList({show_deactivated: true}).then(function (response) {
             $scope.blueprints = response;
+        });
+
+        var variables = Restangular.all('variables');
+        variables.getList().then(function (response) {
+            $scope.variables = response;
         });
 
         $scope.submitForm = function(form, model) {
@@ -83,6 +82,6 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
         };
 
         $scope.updateVariable = function(variable) {
-            console.log(variable);
+            variable.put();
         };
     }]);
