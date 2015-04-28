@@ -15,6 +15,11 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
             $scope.blueprints = response;
         });
 
+        var variables = Restangular.all('variables');
+        variables.getList().then(function (response) {
+            $scope.variables = response;
+        });
+
         $scope.submitForm = function(form, model) {
             if (form.$valid) {
                 blueprints.post({ plugin: $scope.selectedPlugin.id, name: model.name, config: model }).then(function () {
@@ -74,5 +79,9 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
         $scope.deactivate = function (blueprint) {
             blueprint.is_enabled = undefined;
             blueprint.put();
+        };
+
+        $scope.updateVariable = function(variable) {
+            variable.put();
         };
     }]);
