@@ -11,6 +11,8 @@ from pouta_blueprints.server import app
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
 MAX_NAME_LENGTH = 128
+MAX_VARIABLE_KEY_LENGTH = 512
+MAX_VARIABLE_VALUE_LENGTH = 512
 
 db = SQLAlchemy()
 
@@ -222,3 +224,11 @@ class SystemToken(db.Model):
     @staticmethod
     def verify(token):
         return SystemToken.query.filter_by(token=token).first()
+
+
+class Variable(db.Model):
+    __tablename__ = 'variables'
+
+    id = db.Column(db.String(32), primary_key=True)
+    key = db.Column(db.String(MAX_VARIABLE_KEY_LENGTH), unique=True)
+    value = db.Column(db.String(MAX_VARIABLE_VALUE_LENGTH), unique=True)

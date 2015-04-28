@@ -31,15 +31,27 @@ class VariableList(restful.Resource):
 class VariableView(restful.Resource):
     @auth.login_required
     @requires_admin
-    @marshal_with(variable_fields)
     def put(self, variable_id):
         form = VariableForm()
         if not form.validate_on_submit():
             logging.warn("validation error on variable form: %s" % form.errors)
             return form.errors, 422
-        variable = Variable.query.filter(id=variable_id).first()
+        variable = Variable.query.filter_by(id=variable_id).first()
         if not variable:
             abort(404)
         variable.key = form.key.data
         variable.value = form.value.data
+        db.session.commit()
+
+    @auth.login_required
+    @requires_admin
+    def post(self):
+        form = VariableForm()
+        if not form.validate_on_submit():
+            logging.warn("validation error on variable form: %s" % form.errors)
+            return form.errors, 422
+        variable = Variable()
+        variable.key = form.key.data
+        variable.value = form.value.data
+        db.session.add(variable)
         db.session.commit()
