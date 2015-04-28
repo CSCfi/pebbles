@@ -6,7 +6,6 @@ from sqlalchemy import desc
 
 import json
 import logging
-import names
 import re
 import werkzeug
 import datetime
