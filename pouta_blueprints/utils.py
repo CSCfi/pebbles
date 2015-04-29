@@ -1,11 +1,9 @@
 from Crypto.PublicKey import RSA
 from functools import wraps
 from flask import abort, g
-
 KEYPAIR_DEFAULT = {
     'bits': 2048,
 }
-
 
 def generate_ssh_keypair(bits=KEYPAIR_DEFAULT['bits']):
     new_key = RSA.generate(bits)

@@ -1,7 +1,9 @@
 from flask.ext.script import Manager, Shell
 import getpass
-from pouta_blueprints.server import app, db
+from pouta_blueprints.server import app
 from pouta_blueprints import models
+from pouta_blueprints.models import db, Variable
+from pouta_blueprints.config import BaseConfig
 
 # 2to3 fix for input
 try:
@@ -58,6 +60,21 @@ def createuser(email=None, password=None, admin=False):
 def createworker():
     """Creates background worker"""
     models.create_worker()
+
+
+@manager.command
+def syncconf():
+    """Synchronizes configuration from filesystem to database"""
+    config = BaseConfig()
+    for k in vars(BaseConfig).keys():
+        if not k.startswith("_") and k.isupper():
+            variable = Variable.query.filter_by(key=k).first()
+            if not variable:
+                variable = Variable()
+                db.session.add(variable)
+            variable.key = k
+            variable.value = config[k]
+    db.session.commit()
 
 if __name__ == '__main__':
         manager.run()
