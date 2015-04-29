@@ -6,7 +6,6 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import uuid
 import json
 import datetime
-from pouta_blueprints.server import app
 
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
@@ -23,19 +22,6 @@ def load_column(column):
     except:
         value = {}
     return value
-
-
-def create_worker():
-    return create_user('worker@pouta_blueprints', app.config['SECRET_KEY'], is_admin=True)
-
-
-def create_user(email, password, is_admin=False):
-    if User.query.filter_by(email=email).first():
-        raise RuntimeError("user %s already exists" % email)
-    user = User(email, password, is_admin=is_admin)
-    db.session.add(user)
-    db.session.commit()
-    return user
 
 
 class User(db.Model):
@@ -73,13 +59,13 @@ class User(db.Model):
             return None
         return check_password_hash(self.password, password)
 
-    def generate_auth_token(self, expires_in=3600):
-        s = Serializer(app.config['SECRET_KEY'], expires_in=expires_in)
+    def generate_auth_token(self, app_secret, expires_in=3600):
+        s = Serializer(app_secret, expires_in=expires_in)
         return s.dumps({'id': self.id}).decode('utf-8')
 
     @staticmethod
-    def verify_auth_token(token):
-        s = Serializer(app.config['SECRET_KEY'])
+    def verify_auth_token(token, app_secret):
+        s = Serializer(app_secret)
         try:
             data = s.loads(token)
         except:
@@ -229,6 +215,9 @@ class SystemToken(db.Model):
 class Variable(db.Model):
     __tablename__ = 'variables'
 
+    def __init__(self):
+        self.id = uuid.uuid4().hex
+
     id = db.Column(db.String(32), primary_key=True)
     key = db.Column(db.String(MAX_VARIABLE_KEY_LENGTH), unique=True)
-    value = db.Column(db.String(MAX_VARIABLE_VALUE_LENGTH), unique=True)
+    value = db.Column(db.String(MAX_VARIABLE_VALUE_LENGTH))

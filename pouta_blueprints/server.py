@@ -1,5 +1,6 @@
 from flask.ext import restful
 from pouta_blueprints.app import app
+
 from pouta_blueprints.views.blueprints import blueprints, BlueprintList, BlueprintView
 from pouta_blueprints.views.plugins import plugins, PluginList, PluginView
 from pouta_blueprints.views.users import users, UserList, UserView, KeypairList, CreateKeyPair, UploadKeyPair
@@ -9,11 +10,6 @@ from pouta_blueprints.views.firstuser import firstuser, FirstUserView
 from pouta_blueprints.views.myip import myip, WhatIsMyIp
 from pouta_blueprints.views.sessions import sessions, SessionView
 from pouta_blueprints.views.variables import variables, VariableList, VariableView
-from pouta_blueprints.models import db
-
-db.init_app(app)
-with app.app_context():
-    db.create_all()
 
 api = restful.Api(app)
 api_root = '/api/v1'

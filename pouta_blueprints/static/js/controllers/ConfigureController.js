@@ -80,6 +80,15 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
             blueprint.is_enabled = undefined;
             blueprint.put();
         };
+        
+        $scope.addVariable = function(key, value) {
+            variables.post({key: key, value: value}).then(function () {
+                variables.getList().then(function (response) {
+                        $scope.variables = response;
+                    }
+                );
+            });
+        };
 
         $scope.updateVariable = function(variable) {
             variable.put();
