@@ -3,7 +3,11 @@ from wtforms_alchemy import model_form_factory
 from wtforms import BooleanField, StringField
 from wtforms.validators import DataRequired, Email, Length
 
-from pouta_blueprints.models import MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH
+from pouta_blueprints.models import (
+    MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH,
+    MAX_VARIABLE_KEY_LENGTH, MAX_VARIABLE_VALUE_LENGTH
+)
+
 from pouta_blueprints.models import db
 
 BaseModelForm = model_form_factory(Form)
@@ -60,3 +64,11 @@ class PluginForm(ModelForm):
     schema = StringField('schema', validators=[DataRequired()])
     form = StringField('form', validators=[DataRequired()])
     model = StringField('model', validators=[DataRequired()])
+
+
+class VariableForm(ModelForm):
+    key = StringField(
+        'key', validators=[DataRequired(), Length(max=MAX_VARIABLE_KEY_LENGTH)])
+    value = StringField(
+        'value', validators=[DataRequired(), Length(max=MAX_VARIABLE_VALUE_LENGTH)])
+

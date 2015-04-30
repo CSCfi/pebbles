@@ -5,7 +5,7 @@ import logging
 
 from pouta_blueprints.models import User
 from pouta_blueprints.forms import SessionCreateForm
-from pouta_blueprints.server import restful
+from pouta_blueprints.server import app, restful
 
 sessions = FlaskBlueprint('sessions', __name__)
 
@@ -27,7 +27,7 @@ class SessionView(restful.Resource):
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
             return marshal({
-                'token': user.generate_auth_token(),
+                'token': user.generate_auth_token(app.config['SECRET_KEY']),
                 'is_admin': user.is_admin,
                 'user_id': user.id
             }, token_fields)

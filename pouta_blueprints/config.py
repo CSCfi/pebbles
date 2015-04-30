@@ -1,16 +1,29 @@
 import os
 import yaml
 import functools
+from pouta_blueprints.models import Variable
 
 CONFIG_FILE = '/etc/pouta_blueprints/config.yaml'
 LOCAL_CONFIG_FILE = '/etc/pouta_blueprints/config.yaml.local'
+EXPOSED_VARIABLES = (
+    'SENDER_EMAIL', 'MAIL_SERVER', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_PASSWORD',
+    'MAIL_USE_SSL', 'MAIL_USE_TLS', 'INSTANCE_NAME_PREFIX')
 
 
-def resolve_configuration_value(key, default=None, *args, **kwargs):
+def resolve_configuration_value(key, default=None, skip_db=False, *args, **kwargs):
     def get_key_from_config(config_file, key):
         return yaml.load(open(config_file)).get(key)
 
-    # first check environment
+    # Querying DB will fail during the program initialization as SQLAlchemy is
+    # not yet properly initialized
+    try:
+        variable = Variable.query.filter_by(key=key).first()
+        if variable:
+            return variable.value
+    except RuntimeError:
+        pass
+
+    # check environment
     pb_key = 'PB_' + key
     value = os.getenv(pb_key)
     if value is not None:
@@ -27,19 +40,18 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
     if default is not None:
         return default
 
-    raise RuntimeError('configuration value for %s missing' % key)
-
 
 def fields_to_properties(cls):
     for k, default in vars(cls).items():
         if not k.startswith('_') and k.isupper():
-            resolvef = functools.partial(resolve_configuration_value, k, default)
+            resolvef = functools.partial(resolve_configuration_value, k, default, cls._skip_db)
             setattr(cls, k, property(resolvef))
     return cls
 
 
 @fields_to_properties
 class BaseConfig(object):
+    _skip_db = False
     DEBUG = True
     SECRET_KEY = "change_me"
     WTF_CSRF_ENABLED = False
@@ -54,6 +66,11 @@ class BaseConfig(object):
     FAKE_PROVISIONING = False
     SENDER_EMAIL = 'sender@example.org'
     MAIL_SERVER = 'smtp.example.org'
+    MAIL_PORT = 25
+    MAIL_USERNAME = None
+    MAIL_PASSWORD = None
+    MAIL_USE_TLS = False
+    MAIL_USE_SSL = False
     MAIL_SUPPRESS_SEND = True
     SKIP_TASK_QUEUE = False
     WRITE_PROVISIONING_LOGS = True
