@@ -47,6 +47,9 @@ class VariableView(restful.Resource):
         if not form.validate_on_submit():
             logging.warn("validation error on variable form: %s" % form.errors)
             return form.errors, 422
+        existing_variable = Variable.query.filter_by(key=form.key.data).first()
+        if existing_variable:
+            abort(409)
         variable = Variable.query.filter_by(id=variable_id).first()
         if not variable:
             abort(404)

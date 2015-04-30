@@ -66,6 +66,7 @@ def createworker():
 def syncconf():
     """Synchronizes configuration from filesystem to database"""
     config = BaseConfig()
+    Variable.query.delete()
     for k in vars(BaseConfig).keys():
         if not k.startswith("_") and k.isupper():
             variable = Variable.query.filter_by(key=k).first()
