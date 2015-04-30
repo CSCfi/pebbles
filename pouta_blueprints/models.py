@@ -215,8 +215,10 @@ class SystemToken(db.Model):
 class Variable(db.Model):
     __tablename__ = 'variables'
 
-    def __init__(self):
+    def __init__(self, k, v):
         self.id = uuid.uuid4().hex
+        self.key = k
+        self.value = v
 
     id = db.Column(db.String(32), primary_key=True)
     key = db.Column(db.String(MAX_VARIABLE_KEY_LENGTH), unique=True)

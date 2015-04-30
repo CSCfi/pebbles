@@ -70,11 +70,13 @@ def syncconf():
         if not k.startswith("_") and k.isupper():
             variable = Variable.query.filter_by(key=k).first()
             if not variable:
-                variable = Variable()
+                variable = Variable(k, config[k])
                 db.session.add(variable)
-            variable.key = k
-            variable.value = config[k]
+            else:
+                variable.key = k
+                variable.value = config[k]
     db.session.commit()
+
 
 if __name__ == '__main__':
         manager.run()
