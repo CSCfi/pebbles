@@ -1,15 +1,18 @@
 from flask.ext.bcrypt import generate_password_hash, check_password_hash
 import names
+from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import uuid
 import json
 import datetime
-from pouta_blueprints.server import db, app
+from pouta_blueprints.server import app
 
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
 MAX_NAME_LENGTH = 128
+
+db = SQLAlchemy()
 
 
 def load_column(column):
@@ -219,6 +222,3 @@ class SystemToken(db.Model):
     @staticmethod
     def verify(token):
         return SystemToken.query.filter_by(token=token).first()
-
-
-db.create_all()

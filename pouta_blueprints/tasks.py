@@ -9,7 +9,7 @@ from celery.schedules import crontab
 from flask import render_template
 from flask.ext.mail import Message
 
-from pouta_blueprints.app import get_app
+from pouta_blueprints.app import app as flask_app
 
 
 # tune requests to give less spam in development environment with self signed certificate
@@ -17,7 +17,7 @@ requests.packages.urllib3.disable_warnings()
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 # refer to our custom config object that reloads values at runtime
-config = get_app().dynamic_config
+config = flask_app.dynamic_config
 
 logger = get_task_logger(__name__)
 app = Celery('tasks', broker=config['MESSAGE_QUEUE_URI'], backend=config['MESSAGE_QUEUE_URI'])
@@ -53,7 +53,6 @@ def deprovision_expired():
 
 @app.task(name="pouta_blueprints.tasks.send_mails")
 def send_mails(users):
-    flask_app = get_app()
     with flask_app.test_request_context():
         for email, token in users:
             msg = Message('Resource-cloud activation')
