@@ -13,6 +13,7 @@ variable_fields = {
     'id': fields.String,
     'key': fields.String,
     'value': fields.String,
+    't': fields.String,
 }
 
 variables = Blueprint('variables', __name__)
@@ -48,7 +49,7 @@ class VariableView(restful.Resource):
             logging.warn("validation error on variable form: %s" % form.errors)
             return form.errors, 422
         existing_variable = Variable.query.filter_by(key=form.key.data).first()
-        if existing_variable:
+        if existing_variable and existing_variable.id != variable_id:
             abort(409)
         variable = Variable.query.filter_by(id=variable_id).first()
         if not variable:
