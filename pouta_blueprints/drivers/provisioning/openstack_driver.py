@@ -130,14 +130,26 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
             write_log(" . ")
             time.sleep(SLEEP_BETWEEN_POLLS)
 
+        try:
+            nc.keypairs.delete(key_name)
+        except novaclient.exceptions.ClientException:
+            write_log('Key cleanup failed, ignoring')
+
         write_log("OK\nAssigning public IP\n")
 
         ips = nc.floating_ips.findall(instance_id=None)
         allocated_from_pool = False
         if not ips:
             write_log("No allocated free IPs left, trying to allocate one\n")
-            ip = nc.floating_ips.create(pool="public")
-            allocated_from_pool = True
+            try:
+                ip = nc.floating_ips.create(pool="public")
+                allocated_from_pool = True
+            except novaclient.exceptions.ClientException as e:
+                write_log("Cannot allocate IP, quota exceeded?\n")
+                instance_data = {'server_id': server.id}
+                write_log("Publishing partial server data\n")
+                self.do_instance_patch(token, instance_id, {'instance_data': json.dumps(instance_data)})
+                raise e
         else:
             ip = ips[0]
 
@@ -152,11 +164,8 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
                 {'name': 'SSH', 'access': 'ssh cloud-user@%s' % ip.ip},
             ]
         }
-
         write_log("Publishing server data\n")
-
         self.do_instance_patch(token, instance_id, {'instance_data': json.dumps(instance_data), 'public_ip': ip.ip})
-        nc.keypairs.delete(key_name)
         write_log("Provisioning complete\n")
 
     def do_deprovision(self, token, instance_id):
