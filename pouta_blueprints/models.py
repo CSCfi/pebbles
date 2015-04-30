@@ -3,6 +3,7 @@ import names
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+import logging
 import uuid
 import json
 import datetime
@@ -218,8 +219,41 @@ class Variable(db.Model):
     def __init__(self, k, v):
         self.id = uuid.uuid4().hex
         self.key = k
+
+        if type(v) in (int, ):
+            self.t = 'int'
+        elif type(v) in (bool, ):
+            self.t = 'bool'
+        else:
+            self.t = 'str'
+
         self.value = v
+
+    @hybrid_property
+    def value(self):
+        if self.t == "str":
+            return self._value
+        elif self.t == 'bool':
+            return bool(int(self._value))
+        elif self.t == 'int':
+            return int(self._value)
+
+    @value.setter
+    def value(self, v):
+        if self.t == 'bool':
+            try:
+                self._value = bool(v)
+            except:
+                logging.warn("invalid variable value for type %s: %s" % (self.t, v))
+        elif self.t == 'int':
+            try:
+                self._value = int(v)
+            except:
+                logging.warn("invalid variable value for type %s: %s" % (self.t, v))
+        else:
+            self._value = v
 
     id = db.Column(db.String(32), primary_key=True)
     key = db.Column(db.String(MAX_VARIABLE_KEY_LENGTH), unique=True)
-    value = db.Column(db.String(MAX_VARIABLE_VALUE_LENGTH))
+    _value = db.Column('value', db.String(MAX_VARIABLE_VALUE_LENGTH))
+    t = db.Column(db.String(16))
