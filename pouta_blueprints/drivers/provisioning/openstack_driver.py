@@ -147,7 +147,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
             except novaclient.exceptions.ClientException as e:
                 write_log("Cannot allocate IP, quota exceeded?\n")
                 instance_data = {'server_id': server.id}
-                write_log("Publishing server data\n")
+                write_log("Publishing partial server data\n")
                 self.do_instance_patch(token, instance_id, {'instance_data': json.dumps(instance_data)})
                 raise e
         else:
