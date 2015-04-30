@@ -17,9 +17,6 @@
                 </button>
             </td>
         </tr>
-        <tr ng-hide="plugins.length">
-            <td colspan="3">No plugins; waiting plugin list from workers..</td>
-        </tr>
         </tbody>
     </table>
 
@@ -42,45 +39,8 @@
                 <button ng-click="selectBlueprint(blueprint)" type="button" class="btn btn-default" data-toggle="modal" data-target="#blueprintConfig">Reconfigure</button>
             </td>
         </tr>
-        <tr ng-hide="blueprints.length">
-            <td colspan="3">No configured blueprints</td>
-        </tr>
         </tbody>
     </table>
-
-    <h2>Variables</h2>
-    <table class="table table-striped">
-        <thead>
-        <tr>
-            <td>Key</td>
-            <td>Value</td>
-        </tr>
-        </thead>
-        <tbody>
-        <tr ng-repeat="variable in variables">
-            <td>
-            <editablefield 
-                model="variable.key"
-                viewClass="info"
-                editClass="form-control"
-                on-ready="updateVariable(variable)">{{ variable.key }}</editablefield>
-            </td>
-            <td>
-            <editablefield
-                model="variable.value"
-                viewClass="info"
-                edit-class="form-control"
-                view-class="info"
-                on-ready="updateVariable(variable)">{{ variable.value }}</editablefield>
-            </td>
-        </tr>
-        <tr ng-hide="variables.length">
-            <td colspan="2">No defined variables</td>
-        </tr>
-        </tbody>
-    </table>
-
-
 
     <div class="modal fade" id="blueprintCreate" tabindex="-1" role="dialog" aria-labelledby="blueprintCreateLabel" aria-hidden="true">
       <div class="modal-dialog">
