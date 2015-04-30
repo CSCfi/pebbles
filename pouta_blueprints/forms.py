@@ -71,4 +71,3 @@ class VariableForm(ModelForm):
         'key', validators=[DataRequired(), Length(max=MAX_VARIABLE_KEY_LENGTH)])
     value = StringField(
         'value', validators=[DataRequired(), Length(max=MAX_VARIABLE_VALUE_LENGTH)])
-

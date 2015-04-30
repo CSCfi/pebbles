@@ -43,5 +43,3 @@ def create_user(email, password, is_admin=False):
     db.session.add(user)
     db.session.commit()
     return user
-
-
