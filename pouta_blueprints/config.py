@@ -14,9 +14,14 @@ def resolve_configuration_value(key, default=None, skip_db=False, *args, **kwarg
     def get_key_from_config(config_file, key):
         return yaml.load(open(config_file)).get(key)
 
-    variable = Variable.query.filter_by(key=key).first()
-    if variable:
-        return variable.value
+    # Querying DB will fail during the program initialization as SQLAlchemy is
+    # not yet properly initialized
+    try:
+        variable = Variable.query.filter_by(key=key).first()
+        if variable:
+            return variable.value
+    except RuntimeError:
+        pass
 
     # check environment
     pb_key = 'PB_' + key
