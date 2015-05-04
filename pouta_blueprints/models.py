@@ -242,7 +242,7 @@ class Variable(db.Model):
     def value(self, v):
         if self.t == 'bool':
             try:
-                self._value = bool(v)
+                self._value = (v.lower() == 'true')
             except:
                 logging.warn("invalid variable value for type %s: %s" % (self.t, v))
         elif self.t == 'int':
