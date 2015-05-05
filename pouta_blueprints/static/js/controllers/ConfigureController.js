@@ -82,7 +82,12 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
         };
         
         $scope.updateVariable = function(variable) {
-            variable.put().catch(function(response) {
+            variable.put().then(function() {
+                // refresh list to see server side applied transformations (for ex. 'dsfg' -> False)
+                variables.getList().then(function (response) {
+                    $scope.variables = response;
+                });
+            }).catch(function(response) {
                 console.log(response);
                 if (response.status == 409) {
                     $.notify({title: 'HTTP ' + response.status, message: "Conflict: duplicate key"}, {type: 'danger'});
