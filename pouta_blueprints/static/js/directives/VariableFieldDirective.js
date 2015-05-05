@@ -1,12 +1,12 @@
 app.directive('editablefield', function() {
     return {
         restrict: 'E',
-        template: '<div><span ng-hide="editActive" ng-class="viewClass">{{ text }} <small>edit</small></span> <form class="form-inline" ng-show="editActive"><input type="text" class="form-control"> <button class="btn btn-primary" type="submit"> <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></button> <button type="button" class="btn btn-default"> <span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button> </form></div>',
+        template: '<div><span ng-hide="editActive" ng-class="viewClass">{{ text }} </span> <form class="form-inline" ng-show="editActive"><input type="text" class="form-control"> <button class="btn btn-primary" type="submit"> <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></button> <button type="button" class="btn btn-default"> <span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button> </form></div>',
         scope: {
             text: '=model',
             onReady: '&',
             viewClass: '@',
-            editClass: '@',
+            editClass: '@'
         },
         replace: true,
         link: function(scope, element, attrs) {

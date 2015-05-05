@@ -43,21 +43,16 @@
     </table>
 
     <h2>Global variables</h2>
+
     <table class="table table-striped">
         <thead>
         <tr>
-            <td>Key</td>
-            <td>Value</td>
+            <td colspan="2"><strong>Click values to edit</strong></td>
         </tr>
         </thead>
         <tbody>
         <tr ng-repeat="variable in variables">
-            <td>
-            <editablefield 
-                model="variable.key"
-                viewClass="info"
-                editClass="form-control"
-                on-ready="updateVariable(variable)">{{ variable.key }}</editablefield>
+            <td> {{ variable.key }}
             </td>
             <td>
             <editablefield
