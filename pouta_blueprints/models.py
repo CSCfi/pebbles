@@ -242,8 +242,11 @@ class Variable(db.Model):
     def value(self, v):
         if self.t == 'bool':
             try:
-                self._value = (v.lower() == 'true')
-            except:
+                if type(v) in (str, unicode):
+                    self._value = (v.lower() in ('true', u'true'))
+                else:
+                    self._value = bool(v)
+            except Exception as e:
                 logging.warn("invalid variable value for type %s: %s" % (self.t, v))
         elif self.t == 'int':
             try:
@@ -252,6 +255,8 @@ class Variable(db.Model):
                 logging.warn("invalid variable value for type %s: %s" % (self.t, v))
         else:
             self._value = v
+
+        logging.debug('set %s to %s from input %s of type %s' % (self.key, self._value, v, type(v)))
 
     id = db.Column(db.String(32), primary_key=True)
     key = db.Column(db.String(MAX_VARIABLE_KEY_LENGTH), unique=True)
