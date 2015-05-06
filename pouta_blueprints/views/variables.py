@@ -13,12 +13,12 @@ variable_fields = {
     'id': fields.String,
     'key': fields.String,
     'value': fields.String,
+    't': fields.String,
 }
 
 variables = Blueprint('variables', __name__)
 
 
-@variables.route('/')
 class VariableList(restful.Resource):
     @auth.login_required
     @requires_admin
@@ -26,18 +26,32 @@ class VariableList(restful.Resource):
     def get(self):
         return Variable.query.all()
 
+    @auth.login_required
+    @requires_admin
+    def post(self):
+        form = VariableForm()
+        if not form.validate_on_submit():
+            logging.warn("validation error on variable form: %s" % form.errors)
+            return form.errors, 422
+        variable = Variable()
+        variable.key = form.key.data
+        variable.value = form.value.data
+        db.session.add(variable)
+        db.session.commit()
 
-@variables.route('/<string:variable_id>')
+
 class VariableView(restful.Resource):
     @auth.login_required
     @requires_admin
-    @marshal_with(variable_fields)
     def put(self, variable_id):
         form = VariableForm()
         if not form.validate_on_submit():
             logging.warn("validation error on variable form: %s" % form.errors)
             return form.errors, 422
-        variable = Variable.query.filter(id=variable_id).first()
+        existing_variable = Variable.query.filter_by(key=form.key.data).first()
+        if existing_variable and existing_variable.id != variable_id:
+            abort(409)
+        variable = Variable.query.filter_by(id=variable_id).first()
         if not variable:
             abort(404)
         variable.key = form.key.data

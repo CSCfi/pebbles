@@ -4,10 +4,10 @@ from flask import Blueprint as FlaskBlueprint
 
 import logging
 
-from pouta_blueprints.models import User, create_worker, create_user
+from pouta_blueprints.models import User
 from pouta_blueprints.forms import UserForm
 from pouta_blueprints.server import restful
-from pouta_blueprints.views.commons import user_fields
+from pouta_blueprints.views.commons import user_fields, create_user, create_worker
 
 firstuser = FlaskBlueprint('firstuser', __name__)
 

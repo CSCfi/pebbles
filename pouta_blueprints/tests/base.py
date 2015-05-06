@@ -1,6 +1,7 @@
 from flask.ext.testing import TestCase
 
-from pouta_blueprints.server import app, db
+from pouta_blueprints.server import app
+from pouta_blueprints.models import db
 from pouta_blueprints.config import TestConfig
 
 

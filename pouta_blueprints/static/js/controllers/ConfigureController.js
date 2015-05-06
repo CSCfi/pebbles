@@ -15,6 +15,11 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
             $scope.blueprints = response;
         });
 
+        var variables = Restangular.all('variables');
+        variables.getList().then(function (response) {
+            $scope.variables = response;
+        });
+
         $scope.submitForm = function(form, model) {
             if (form.$valid) {
                 blueprints.post({ plugin: $scope.selectedPlugin.id, name: model.name, config: model }).then(function () {
@@ -74,5 +79,22 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
         $scope.deactivate = function (blueprint) {
             blueprint.is_enabled = undefined;
             blueprint.put();
+        };
+        
+        $scope.updateVariable = function(variable) {
+            variable.put().then(function() {
+                // refresh list to see server side applied transformations (for ex. 'dsfg' -> False)
+                variables.getList().then(function (response) {
+                    $scope.variables = response;
+                });
+            }).catch(function(response) {
+                console.log(response);
+                if (response.status == 409) {
+                    $.notify({title: 'HTTP ' + response.status, message: "Conflict: duplicate key"}, {type: 'danger'});
+                }
+                variables.getList().then(function (response) {
+                    $scope.variables = response;
+                });
+            });
         };
     }]);
