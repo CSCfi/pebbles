@@ -28,6 +28,9 @@ using ssh interactive session.
   * ssh: port 22, CIDR: your ip/32 (you can check your ip with e.g. http://www.whatismyip.com/)
   * https: port 443, CIDR: like above
 
+* At this point keep the firewall as restricted as possible. Once the installation is complete, you can open the
+ https-access to all your users.
+
 ## Boot the server
 
 * Go to (Instances -> Launch Instance)
@@ -81,7 +84,7 @@ Now that you know that ssh works, copy the m2m OpenStack RC file to the server
 
     $ scp path/to/your/saved/rc-file.bash cloud-user@<public ip of the server>:
 
-SSH in again, source the OpenStack credentials and continue installation
+SSH in again, source your m2m OpenStack credentials (use your m2m password when asked for) and continue installation
 
     $ ssh cloud-user@<public ip of the server>
     $ source your-openrc.bash
@@ -96,26 +99,36 @@ in both containers with the following contents::
     
 Running nano/vim in each of the containers:: 
     
-    ssh www/worker
+    ssh www
+    sudo vim /etc/pouta_blueprints/config.yaml.local
+    exit
+    
+    ssh worker
     sudo vim /etc/pouta_blueprints/config.yaml.local 
+    exit
 
 # Part 3: Start using the software
 
 The installation script will print out initialization URL at the end of the installation. Navigate to that, set the
 admin credentials and start using the system.
- 
+
 Link to User Guide: TBA
 
 # Part 4: Open access to users
 
-TBA
+Once you have set the admin credentials and checked that the system works, you can open the firewall to all the users. 
+
+* Go to pouta.csc.fi -> Access and Security -> Security Groups and select Manage Rules on 'pb_server' group  
+
+* Open https -access either globally by selecting 'Add rule' -> port 443, CIDR 0.0.0.0/0 
+
+If the users of the system should always access it from a certain subnet, use that instead of 0.0.0.0/0
 
 # Part 5: Administrative tasks and troubleshooting
 
 (backing up the central database, cleaning misbehaving VMs and other resources, ...)
 
 TBA 
-
 
 # Notes on container based deployment
 
