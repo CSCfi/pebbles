@@ -28,12 +28,6 @@
       with_items:
         - ansible
 
-    - name: Install docker-py from pip (required by ansible, not available for Trusty as apt package)
-      pip: name={{ item }}
-      with_items:
-        - docker-py
-        - ansible
-
     - name: Add cloud-user to docker group and create ssh key
       user:
         name=cloud-user
