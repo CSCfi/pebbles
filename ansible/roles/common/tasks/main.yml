@@ -3,8 +3,12 @@
             dest=/etc/apt/sources.list
             backup=yes
 
-- name: refresh repository metadata
-  apt: update_cache=yes
+
+- name: refresh repository metadata install python-apt
+  raw: apt-get update
+
+- name: install python-apt
+  raw: apt-get install python-apt -y -q
 
 - name: tools for debugging installation
   apt: pkg={{item}} state=present
