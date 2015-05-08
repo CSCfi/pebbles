@@ -40,6 +40,7 @@ instance_data_dir: /var/spool/pb_instances
 proxy_bind_address: "127.0.0.1"
 proxy_bind_port: 8888
 proxy_bind_endpoint: "{{ proxy_bind_address }}:{{ proxy_bind_port }}"
+public_ipv4: "{{ ansible_eth0[\"ipv4\"][\"address\"] }}"
 
 # nginx
 nginx_static_root: "/webapps/{{ application_name }}/static"
@@ -61,4 +62,5 @@ pvc_version: "wip-for_pouta_blueprints"
 # docker host
 docker_host_app_root: "/opt/{{ application_name }}"
 docker_host_m2m_credentials_dir: "/run/shm/{{ application_name }}"
+docker_http_port: 80
 docker_https_port: 443
