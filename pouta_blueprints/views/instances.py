@@ -26,6 +26,7 @@ instance_fields = {
     'provisioned_at': fields.DateTime,
     'lifetime_left': fields.Integer,
     'max_lifetime': fields.Integer,
+    'runtime': fields.Float,
     'state': fields.String,
     'error_msg': fields.String,
     'user': fields.Nested(user_fields),
