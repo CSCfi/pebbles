@@ -208,6 +208,18 @@ class Instance(db.Model):
         return diff.total_seconds()
 
     @hybrid_property
+    def runtime(self):
+        if not self.provisioned_at:
+            return 0.0
+
+        if not self.deprovisioned_at:
+            diff = datetime.datetime.utcnow() - self.provisioned_at
+        else:
+            diff = self.deprovisioned_at - self.provisioned_at
+
+        return diff.total_seconds()
+
+    @hybrid_property
     def instance_data(self):
         return load_column(self._instance_data)
 
