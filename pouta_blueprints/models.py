@@ -183,6 +183,20 @@ class Instance(db.Model):
         self.state = 'starting'
 
     @hybrid_property
+    def credits_spent(self, duration=None):
+        if not duration:
+            duration = self.runtime()
+
+        blueprint = Blueprint.query.filter_by(id=self.blueprint_id).first()
+        try:
+            cost_multiplier = blueprint.cost_multiplier
+        except:
+            logging.warn("invalid cost_multiplier in blueprint with id %s, defaulting to 1.0" % self.blueprint_id)
+            cost_multiplier = 1.0
+
+        return cost_multiplier * duration / 3600
+
+    @hybrid_property
     def runtime(self):
         if not self.provisioned_at:
             return 0.0
@@ -261,7 +275,7 @@ class Variable(db.Model):
                     self._value = (v.lower() in ('true', u'true'))
                 else:
                     self._value = bool(v)
-            except Exception as e:
+            except Exception:
                 logging.warn("invalid variable value for type %s: %s" % (self.t, v))
         elif self.t == 'int':
             try:
