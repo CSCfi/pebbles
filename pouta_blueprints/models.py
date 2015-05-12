@@ -182,10 +182,9 @@ class Instance(db.Model):
         self.user_id = user.id
         self.state = 'starting'
 
-    @hybrid_property
     def credits_spent(self, duration=None):
         if not duration:
-            duration = self.runtime()
+            duration = self.runtime
 
         blueprint = Blueprint.query.filter_by(id=self.blueprint_id).first()
         try:
