@@ -34,6 +34,7 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
+    credits = db.Column(db.Float, default=1.0)
 
     def __init__(self, email, password=None, is_admin=False):
         self.id = uuid.uuid4().hex
@@ -147,6 +148,7 @@ class Blueprint(db.Model):
     is_enabled = db.Column(db.Boolean, default=False)
     plugin = db.Column(db.String(32), db.ForeignKey('plugins.id'))
     max_lifetime = db.Column(db.Integer, default=3600)
+    cost_multiplier = db.Column(db.Float, default=1.0)
 
     def __init__(self):
         self.id = uuid.uuid4().hex
@@ -169,6 +171,7 @@ class Instance(db.Model):
     public_ip = db.Column(db.String(64))
     client_ip = db.Column(db.String(64))
     provisioned_at = db.Column(db.DateTime)
+    deprovisioned_at = db.Column(db.DateTime)
     state = db.Column(db.String(32))
     error_msg = db.Column(db.String(256))
     _instance_data = db.Column('instance_data', db.Text)
@@ -178,6 +181,18 @@ class Instance(db.Model):
         self.blueprint_id = blueprint.id
         self.user_id = user.id
         self.state = 'starting'
+
+    @hybrid_property
+    def runtime(self):
+        if not self.provisioned_at:
+            return 0.0
+
+        if not self.deprovisioned_at:
+            diff = datetime.datetime.utcnow() - self.provisioned_at
+        else:
+            diff = self.deprovisioned_at - self.provisioned_at
+
+        return diff.total_seconds()
 
     @hybrid_property
     def instance_data(self):
