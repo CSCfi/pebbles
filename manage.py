@@ -1,7 +1,8 @@
 from flask.ext.script import Manager, Shell
 import getpass
-from pouta_blueprints.server import app
 from pouta_blueprints import models
+from pouta_blueprints.server import app
+from pouta_blueprints.views.commons import create_user, create_worker
 from pouta_blueprints.models import db, Variable
 from pouta_blueprints.config import BaseConfig
 
@@ -53,13 +54,13 @@ def createuser(email=None, password=None, admin=False):
         email = input("email: ")
     if not password:
         password = getpass.getpass("password: ")
-    models.create_user(email, password=password, is_admin=admin)
+    create_user(email, password=password, is_admin=admin)
 
 
 @manager.command
 def createworker():
     """Creates background worker"""
-    models.create_worker()
+    create_worker()
 
 
 @manager.command
