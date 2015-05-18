@@ -8,6 +8,8 @@ from pouta_blueprints.server import app
 user_fields = {
     'id': fields.String,
     'email': fields.String,
+    'credits': fields.Float,
+    'credits_spent': fields.Float,
     'is_active': fields.Boolean,
     'is_admin': fields.Boolean,
     'is_deleted': fields.Boolean,

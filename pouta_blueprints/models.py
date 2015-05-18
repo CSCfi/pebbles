@@ -7,6 +7,7 @@ import logging
 import uuid
 import json
 import datetime
+import sys
 
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
@@ -15,6 +16,11 @@ MAX_VARIABLE_KEY_LENGTH = 512
 MAX_VARIABLE_VALUE_LENGTH = 512
 
 db = SQLAlchemy()
+
+if sys.version < '3':
+    unicode_type = unicode
+else:
+    unicode_type = str
 
 
 def load_column(column):
@@ -35,6 +41,7 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
     credits = db.Column(db.Float, default=1.0)
+    instances = db.relationship('Instance', backref='user', lazy='dynamic')
 
     def __init__(self, email, password=None, is_admin=False):
         self.id = uuid.uuid4().hex
@@ -64,6 +71,10 @@ class User(db.Model):
     def generate_auth_token(self, app_secret, expires_in=3600):
         s = Serializer(app_secret, expires_in=expires_in)
         return s.dumps({'id': self.id}).decode('utf-8')
+
+    @hybrid_property
+    def credits_spent(self):
+        return sum(instance.credits_spent() for instance in self.instances.all())
 
     @staticmethod
     def verify_auth_token(token, app_secret):
@@ -294,7 +305,7 @@ class Variable(db.Model):
     def value(self, v):
         if self.t == 'bool':
             try:
-                if type(v) in (str, unicode):
+                if type(v) in (str, unicode_type):
                     self._value = (v.lower() in ('true', u'true'))
                 else:
                     self._value = bool(v)
