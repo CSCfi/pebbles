@@ -177,7 +177,7 @@ class InstanceView(restful.Resource):
 
         # TODO: add a model for state transitions
         if args.get('state'):
-            if args['state'] == 'deleting':
+            if args['state'] == 'deprovisioning':
                 if instance.state in ['starting', 'running', 'failed']:
                     instance.state = args['state']
                     instance.error_msg = ''

@@ -44,7 +44,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
         };
 
         $scope.deprovision = function (instance) {
-            instance.state = 'deleting';
+            instance.state = 'deprovisioning';
             instance.error_msg = '';
             instance.remove();
         };
