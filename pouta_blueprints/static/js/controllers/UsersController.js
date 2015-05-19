@@ -12,6 +12,8 @@ app.controller('UsersController', ['$q', '$scope', '$interval', 'AuthService', '
 
         if (AuthService.isAdmin()) {
             var users = Restangular.all('users');
+            var quota = Restangular.all('quota');
+
             users.getList().then(function (response) {
                 $scope.users = response;
             });
@@ -43,6 +45,31 @@ app.controller('UsersController', ['$q', '$scope', '$interval', 'AuthService', '
                         $scope.users = response;
                     });
                 });
+            };
+
+            $scope.increase_quota = function(amount, user) {
+                var resource = quota;
+                if (user) {
+                    resource = resource.one(user.id);
+                }
+                resource.customPUT({type: 'relative', value: amount}).then(function() {
+                    users.getList().then(function(response) {
+                        $scope.users = response;
+                    });
+                });
+            };
+
+            $scope.set_quota = function(amount, user) {
+                var resource = quota;
+                if (user) {
+                    resource = resource.one(user.id);
+                }
+                resource.customPUT({type: 'absolute', value: amount}).then(function() {
+                    users.getList().then(function(response) {
+                        $scope.users = response;
+                    });
+                });
+
             };
         }
     }]);
