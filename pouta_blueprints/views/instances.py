@@ -84,11 +84,17 @@ class InstanceList(restful.Resource):
         if not blueprint:
             abort(404)
 
-        blueprints_for_user = Instance.query.filter_by(blueprint_id=blueprint.id). \
+        if blueprint.quota_preconsume:
+            preconsumed_amount = blueprint.cost_multiplier * blueprint.max_lifetime
+            total_credits_spent = preconsumed_amount + user.credits_spent()
+            if user.quota <= total_credits_spent:
+                return {'error': 'USER_OVER_QUOTA'}, 409
+
+        instances_for_user = Instance.query.filter_by(blueprint_id=blueprint.id). \
             filter_by(user_id=user.id).filter(Instance.state != 'deleted').all()
         user_instance_limit = blueprint.config.get('maximum_instances_per_user', USER_INSTANCE_LIMIT)
-        if blueprints_for_user and len(blueprints_for_user) >= user_instance_limit:
-            abort(409)
+        if instances_for_user and len(instances_for_user) >= user_instance_limit:
+            return {'error': 'BLUEPRINT_INSTANCE_LIMIT_REACHED'}, 409
 
         instance = Instance(blueprint, user)
 

@@ -40,7 +40,7 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
-    credits = db.Column(db.Float, default=1.0)
+    quota = db.Column(db.Float, default=1.0)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
 
     def __init__(self, email, password=None, is_admin=False):
@@ -159,6 +159,7 @@ class Blueprint(db.Model):
     is_enabled = db.Column(db.Boolean, default=False)
     plugin = db.Column(db.String(32), db.ForeignKey('plugins.id'))
     max_lifetime = db.Column(db.Integer, default=3600)
+    quota_preconsume = db.Column(db.Boolean, default=False)
     cost_multiplier = db.Column(db.Float, default=1.0)
 
     def __init__(self):
@@ -205,30 +206,6 @@ class Instance(db.Model):
             cost_multiplier = 1.0
 
         return cost_multiplier * duration / 3600
-
-    @hybrid_property
-    def runtime(self):
-        if not self.provisioned_at:
-            return 0.0
-
-        if not self.deprovisioned_at:
-            diff = datetime.datetime.utcnow() - self.provisioned_at
-        else:
-            diff = self.deprovisioned_at - self.provisioned_at
-
-        return diff.total_seconds()
-
-    @hybrid_property
-    def runtime(self):
-        if not self.provisioned_at:
-            return 0.0
-
-        if not self.deprovisioned_at:
-            diff = datetime.datetime.utcnow() - self.provisioned_at
-        else:
-            diff = self.deprovisioned_at - self.provisioned_at
-
-        return diff.total_seconds()
 
     @hybrid_property
     def runtime(self):

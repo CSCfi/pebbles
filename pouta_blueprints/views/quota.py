@@ -43,7 +43,10 @@ class Quota(restful.Resource):
         args = parse_arguments()
 
         for user in User.query.all():
-            user.credits = args['value']
+            if args['type'] == 'relative':
+                user.quota = user.quota + args['value']
+            elif args['type'] == 'absolute':
+                user.quota = args['value']
 
         db.session.commit()
         return {'quota': args['value']}
@@ -57,7 +60,15 @@ class UserQuota(restful.Resource):
     @marshal_with(quota_fields)
     def put(self, user_id):
         args = parse_arguments()
-        user = User.query.filter_by(id=user_id)
-        user.credits = args['value']
+
+        user = User.query.filter_by(id=user_id).first()
+        if not user:
+            abort(404)
+
+        if args['type'] == 'relative':
+            user.quota = user.quota + args['value']
+        elif args['type'] == 'absolute':
+            user.quota = args['value']
+
         db.session.commit()
-        return {'quota': args['value']}
+        return {'quota': user.quota}
