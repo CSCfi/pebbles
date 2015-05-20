@@ -30,7 +30,7 @@
                 <span class="label label-danger" ng-show="user.is_deleted">deleted</span>
             </td>
             <td>
-                {{ user.credits_spent | number }} / {{ user.credits | number}}
+                {{ user.credits_spent | number }} / {{ user.credits_quota | number}}
             </td>
             <td>
                 <button ng-hide="user.is_deleted" ng-click="remove_user(user)" type="submit" class="btn btn-default">Remove</button>

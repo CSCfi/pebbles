@@ -17,7 +17,7 @@ MAX_ACTIVATION_TOKENS_PER_USER = 3
 
 blueprint_fields = {
     'id': fields.String(attribute='id'),
-    'max_lifetime': fields.Integer,
+    'maximum_lifetime': fields.Integer,
     'name': fields.String,
     'is_enabled': fields.Boolean,
     'plugin': fields.String,
@@ -57,11 +57,12 @@ class BlueprintList(restful.Resource):
         blueprint.plugin = form.plugin.data
         blueprint.config = form.config.data
 
-        if 'maximum_lifetime' in form.config.data:
-            try:
-                blueprint.max_lifetime = int(form.config.data['maximum_lifetime'])
-            except:
-                pass
+        for config_key in ('maximum_lifetime', 'preallocated_credits', 'cost_multiplier'):
+            if config_key in form.config.data:
+                try:
+                    setattr(blueprint, config_key, int(form.config.data[config_key]))
+                except:
+                    logging.warn('unable to parse %s for a blueprint, got %s' % (config_key, form.config.data[config_key]))
 
         db.session.add(blueprint)
         db.session.commit()
@@ -89,7 +90,7 @@ class BlueprintView(restful.Resource):
         blueprint.config = form.config.data
         if 'maximum_lifetime' in blueprint.config:
             try:
-                blueprint.max_lifetime = int(blueprint.config['maximum_lifetime'])
+                blueprint.maximum_lifetime = int(blueprint.config['maximum_lifetime'])
             except:
                 pass
 

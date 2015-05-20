@@ -40,7 +40,7 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
-    quota = db.Column(db.Float, default=1.0)
+    credits_quota = db.Column(db.Float, default=1.0)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
 
     def __init__(self, email, password=None, is_admin=False):
@@ -75,6 +75,9 @@ class User(db.Model):
     @hybrid_property
     def credits_spent(self):
         return sum(instance.credits_spent() for instance in self.instances.all())
+
+    def quota_exceeded(self):
+        return self.credits_spent >= self.credits_quota
 
     @staticmethod
     def verify_auth_token(token, app_secret):
@@ -158,8 +161,8 @@ class Blueprint(db.Model):
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     plugin = db.Column(db.String(32), db.ForeignKey('plugins.id'))
-    max_lifetime = db.Column(db.Integer, default=3600)
-    quota_preconsume = db.Column(db.Boolean, default=False)
+    maximum_lifetime = db.Column(db.Integer, default=3600)
+    preallocated_credits = db.Column(db.Boolean, default=False)
     cost_multiplier = db.Column(db.Float, default=1.0)
 
     def __init__(self):
@@ -199,6 +202,9 @@ class Instance(db.Model):
             duration = self.runtime
 
         blueprint = Blueprint.query.filter_by(id=self.blueprint_id).first()
+        if blueprint.preallocated_credits:
+            duration = blueprint.maximum_lifetime
+
         try:
             cost_multiplier = blueprint.cost_multiplier
         except:

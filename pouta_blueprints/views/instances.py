@@ -25,7 +25,7 @@ instance_fields = {
     'name': fields.String,
     'provisioned_at': fields.DateTime,
     'lifetime_left': fields.Integer,
-    'max_lifetime': fields.Integer,
+    'maximum_lifetime': fields.Integer,
     'runtime': fields.Float,
     'state': fields.String,
     'error_msg': fields.String,
@@ -64,8 +64,8 @@ class InstanceList(restful.Resource):
             age = 0
             if instance.provisioned_at:
                 age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
-            instance.lifetime_left = max(blueprint.max_lifetime - age, 0)
-            instance.max_lifetime = blueprint.max_lifetime
+            instance.lifetime_left = max(blueprint.maximum_lifetime - age, 0)
+            instance.maximum_lifetime = blueprint.maximum_lifetime
 
         return instances
 
@@ -84,10 +84,13 @@ class InstanceList(restful.Resource):
         if not blueprint:
             abort(404)
 
-        if blueprint.quota_preconsume:
-            preconsumed_amount = blueprint.cost_multiplier * blueprint.max_lifetime
+        if user.quota_exceeded():
+            return {'error': 'USER_OVER_QUOTA'}, 409
+
+        if blueprint.preallocated_credits:
+            preconsumed_amount = blueprint.cost_multiplier * blueprint.maximum_lifetime
             total_credits_spent = preconsumed_amount + user.credits_spent()
-            if user.quota <= total_credits_spent:
+            if user.credits_quota <= total_credits_spent:
                 return {'error': 'USER_OVER_QUOTA'}, 409
 
         instances_for_user = Instance.query.filter_by(blueprint_id=blueprint.id). \
@@ -148,8 +151,8 @@ class InstanceView(restful.Resource):
         age = 0
         if instance.provisioned_at:
             age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
-        instance.lifetime_left = max(blueprint.max_lifetime - age, 0)
-        instance.max_lifetime = blueprint.max_lifetime
+        instance.lifetime_left = max(blueprint.maximum_lifetime - age, 0)
+        instance.maximum_lifetime = blueprint.maximum_lifetime
 
         return instance
 
@@ -225,7 +228,7 @@ class InstanceView(restful.Resource):
                     # 400 Bad Request
                     abort(400)
             else:
-                abort(401)
+                abort(400)
 
             db.session.commit()
 
