@@ -31,6 +31,16 @@ CONFIG = {
                 'title': 'Maximum instances per user',
                 'default': 1,
             },
+            'preallocated_credits': {
+                'type': 'boolean',
+                'title': 'Pre-allocate credits for the instance from the user quota',
+                'default': False,
+            },
+            'cost_multiplier': {
+                'type': 'number',
+                'title': 'Cost multiplier (default 1.0)',
+                'default': 1.0,
+            },
             'userdata': {
                 'type': 'text',
                 'title': 'Customization script for instance after it is launched',
@@ -44,10 +54,10 @@ CONFIG = {
                     'title': 'Rules',
                 }
             },
-            "allow_update_client_connectivity": {
-                "type": "boolean",
-                "title": "Allow user to request instance firewall to allow access to user's IP address",
-                "default": False,
+            'allow_update_client_connectivity': {
+                'type': 'boolean',
+                'title': "Allow user to request instance firewall to allow access to user's IP address",
+                'default': False,
             },
         }
     },
@@ -61,6 +71,8 @@ CONFIG = {
         'image',
         'maximum_lifetime',
         'maximum_instances_per_user',
+        'preallocated_credits',
+        'cost_multiplier',
         {
             'key': 'userdata',
             'type': 'textarea',
