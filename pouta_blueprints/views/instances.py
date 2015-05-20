@@ -225,7 +225,6 @@ class InstanceView(restful.Resource):
                     if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
                         update_user_connectivity.delay(instance.id)
                 else:
-                    # 400 Bad Request
                     abort(400)
             else:
                 abort(400)

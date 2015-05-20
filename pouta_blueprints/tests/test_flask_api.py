@@ -378,7 +378,7 @@ class FlaskApiTestCase(BaseTestCase):
             method='PATCH',
             path='/api/v1/instances/%s' % self.known_instance_id,
             data=json.dumps(data))
-        self.assert_401(response)
+        self.assert_400(response)
 
         # then a positive test case
         data = {'client_ip': '1.1.1.1'}
