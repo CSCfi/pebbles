@@ -89,7 +89,7 @@ class InstanceList(restful.Resource):
 
         if blueprint.preallocated_credits:
             preconsumed_amount = blueprint.cost_multiplier * blueprint.maximum_lifetime
-            total_credits_spent = preconsumed_amount + user.credits_spent()
+            total_credits_spent = preconsumed_amount + user.credits_spent
             if user.credits_quota <= total_credits_spent:
                 return {'error': 'USER_OVER_QUOTA'}, 409
 
