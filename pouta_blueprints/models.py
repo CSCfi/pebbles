@@ -176,6 +176,12 @@ class Blueprint(db.Model):
     def config(self, value):
         self._config = json.dumps(value)
 
+    def cost(self, duration=None):
+        if not duration:
+            duration = self.maximum_lifetime
+
+        return self.cost_multiplier * duration / 3600
+
 
 class Instance(db.Model):
     __tablename__ = 'instances'
@@ -187,6 +193,7 @@ class Instance(db.Model):
     client_ip = db.Column(db.String(64))
     provisioned_at = db.Column(db.DateTime)
     deprovisioned_at = db.Column(db.DateTime)
+    errored = db.Column(db.Boolean, default=False)
     state = db.Column(db.String(32))
     error_msg = db.Column(db.String(256))
     _instance_data = db.Column('instance_data', db.Text)
@@ -198,6 +205,9 @@ class Instance(db.Model):
         self.state = 'starting'
 
     def credits_spent(self, duration=None):
+        if self.errored:
+            return 0.0
+
         if not duration:
             duration = self.runtime
 

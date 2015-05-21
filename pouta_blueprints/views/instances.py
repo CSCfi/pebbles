@@ -88,9 +88,9 @@ class InstanceList(restful.Resource):
             return {'error': 'USER_OVER_QUOTA'}, 409
 
         if blueprint.preallocated_credits:
-            preconsumed_amount = blueprint.cost_multiplier * blueprint.maximum_lifetime
+            preconsumed_amount = blueprint.cost()
             total_credits_spent = preconsumed_amount + user.credits_spent
-            if user.credits_quota <= total_credits_spent:
+            if user.credits_quota < total_credits_spent:
                 return {'error': 'USER_OVER_QUOTA'}, 409
 
         instances_for_user = Instance.query.filter_by(blueprint_id=blueprint.id). \
@@ -196,6 +196,8 @@ class InstanceView(restful.Resource):
                 if instance.state == 'running' and user.is_admin:
                     if not instance.provisioned_at:
                         instance.provisioned_at = datetime.datetime.utcnow()
+                if args['state'] == 'failed' and user.is_admin:
+                    instance.errored = True
 
             db.session.commit()
 
