@@ -41,10 +41,8 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         from pouta_blueprints.drivers.provisioning.pvc_cmdline_driver_config import CONFIG
 
         images = self.run_nova_list('image')
-        self.logger.debug('images: %s' % images)
 
         flavors = self.run_nova_list('flavor')
-        self.logger.debug('flavors: %s' % flavors)
 
         config = CONFIG.copy()
         image_names = [x['Name'] for x in images]

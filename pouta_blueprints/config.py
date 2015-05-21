@@ -71,6 +71,7 @@ class BaseConfig(object):
     SKIP_TASK_QUEUE = False
     WRITE_PROVISIONING_LOGS = True
     INSTANCE_NAME_PREFIX = 'pb-'
+    DEFAULT_QUOTA = 1.0
 
     # enable access by []
     def __getitem__(self, item):

@@ -37,14 +37,18 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
                     if (response.status != 409) {
                         $.notify({title: 'HTTP ' + response.status, message: 'unknown error'}, {type: 'danger'});
                     } else {
-                        $.notify({title: 'HTTP ' + response.status, message: 'Maximum number of running instances for the selected blueprint reached.'}, {type: 'danger'});
+                        if (response.data.error == 'USER_OVER_QUOTA') {
+                            $.notify({title: 'HTTP ' + response.status, message: 'User quota exceeded, contact your administrator in order to get more'}, {type: 'danger'});
+                        } else {
+                            $.notify({title: 'HTTP ' + response.status, message: 'Maximum number of running instances for the selected blueprint reached.'}, {type: 'danger'});
+                        }
                     }
                 }
             );
         };
 
         $scope.deprovision = function (instance) {
-            instance.state = 'deleting';
+            instance.state = 'deprovisioning';
             instance.error_msg = '';
             instance.remove();
         };

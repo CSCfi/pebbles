@@ -25,11 +25,13 @@ instance_fields = {
     'name': fields.String,
     'provisioned_at': fields.DateTime,
     'lifetime_left': fields.Integer,
-    'max_lifetime': fields.Integer,
+    'maximum_lifetime': fields.Integer,
+    'runtime': fields.Float,
     'state': fields.String,
     'error_msg': fields.String,
     'user': fields.Nested(user_fields),
     'blueprint_id': fields.String,
+    'cost_multiplier': fields.Float,
     'can_update_connectivity': fields.Boolean(default=False),
     'instance_data': fields.Raw,
     'public_ip': fields.String,
@@ -63,8 +65,9 @@ class InstanceList(restful.Resource):
             age = 0
             if instance.provisioned_at:
                 age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
-            instance.lifetime_left = max(blueprint.max_lifetime - age, 0)
-            instance.max_lifetime = blueprint.max_lifetime
+            instance.lifetime_left = max(blueprint.maximum_lifetime - age, 0)
+            instance.maximum_lifetime = blueprint.maximum_lifetime
+            instance.cost_multiplier = blueprint.cost_multiplier
 
         return instances
 
@@ -83,11 +86,20 @@ class InstanceList(restful.Resource):
         if not blueprint:
             abort(404)
 
-        blueprints_for_user = Instance.query.filter_by(blueprint_id=blueprint.id). \
+        if user.quota_exceeded():
+            return {'error': 'USER_OVER_QUOTA'}, 409
+
+        if blueprint.preallocated_credits:
+            preconsumed_amount = blueprint.cost()
+            total_credits_spent = preconsumed_amount + user.credits_spent
+            if user.credits_quota < total_credits_spent:
+                return {'error': 'USER_OVER_QUOTA'}, 409
+
+        instances_for_user = Instance.query.filter_by(blueprint_id=blueprint.id). \
             filter_by(user_id=user.id).filter(Instance.state != 'deleted').all()
         user_instance_limit = blueprint.config.get('maximum_instances_per_user', USER_INSTANCE_LIMIT)
-        if blueprints_for_user and len(blueprints_for_user) >= user_instance_limit:
-            abort(409)
+        if instances_for_user and len(instances_for_user) >= user_instance_limit:
+            return {'error': 'BLUEPRINT_INSTANCE_LIMIT_REACHED'}, 409
 
         instance = Instance(blueprint, user)
 
@@ -141,8 +153,9 @@ class InstanceView(restful.Resource):
         age = 0
         if instance.provisioned_at:
             age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
-        instance.lifetime_left = max(blueprint.max_lifetime - age, 0)
-        instance.max_lifetime = blueprint.max_lifetime
+        instance.lifetime_left = max(blueprint.maximum_lifetime - age, 0)
+        instance.maximum_lifetime = blueprint.maximum_lifetime
+        instance.cost_multiplier = blueprint.cost_multiplier
 
         return instance
 
@@ -156,6 +169,7 @@ class InstanceView(restful.Resource):
         if not instance:
             abort(404)
         instance.state = 'deleting'
+        instance.deprovisioned_at = datetime.datetime.utcnow()
         token = SystemToken('provisioning')
         db.session.add(token)
         db.session.commit()
@@ -175,7 +189,7 @@ class InstanceView(restful.Resource):
 
         # TODO: add a model for state transitions
         if args.get('state'):
-            if args['state'] == 'deleting':
+            if args['state'] == 'deprovisioning':
                 if instance.state in ['starting', 'running', 'failed']:
                     instance.state = args['state']
                     instance.error_msg = ''
@@ -185,6 +199,8 @@ class InstanceView(restful.Resource):
                 if instance.state == 'running' and user.is_admin:
                     if not instance.provisioned_at:
                         instance.provisioned_at = datetime.datetime.utcnow()
+                if args['state'] == 'failed' and user.is_admin:
+                    instance.errored = True
 
             db.session.commit()
 
@@ -214,10 +230,9 @@ class InstanceView(restful.Resource):
                     if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
                         update_user_connectivity.delay(instance.id)
                 else:
-                    # 400 Bad Request
                     abort(400)
             else:
-                abort(401)
+                abort(400)
 
             db.session.commit()
 

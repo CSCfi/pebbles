@@ -7,6 +7,7 @@ import logging
 import uuid
 import json
 import datetime
+import sys
 
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
@@ -15,6 +16,11 @@ MAX_VARIABLE_KEY_LENGTH = 512
 MAX_VARIABLE_VALUE_LENGTH = 512
 
 db = SQLAlchemy()
+
+if sys.version < '3':
+    unicode_type = unicode
+else:
+    unicode_type = str
 
 
 def load_column(column):
@@ -34,6 +40,8 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
+    credits_quota = db.Column(db.Float, default=1.0)
+    instances = db.relationship('Instance', backref='user', lazy='dynamic')
 
     def __init__(self, email, password=None, is_admin=False):
         self.id = uuid.uuid4().hex
@@ -63,6 +71,13 @@ class User(db.Model):
     def generate_auth_token(self, app_secret, expires_in=3600):
         s = Serializer(app_secret, expires_in=expires_in)
         return s.dumps({'id': self.id}).decode('utf-8')
+
+    @hybrid_property
+    def credits_spent(self):
+        return sum(instance.credits_spent() for instance in self.instances.all())
+
+    def quota_exceeded(self):
+        return self.credits_spent >= self.credits_quota
 
     @staticmethod
     def verify_auth_token(token, app_secret):
@@ -146,7 +161,9 @@ class Blueprint(db.Model):
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     plugin = db.Column(db.String(32), db.ForeignKey('plugins.id'))
-    max_lifetime = db.Column(db.Integer, default=3600)
+    maximum_lifetime = db.Column(db.Integer, default=3600)
+    preallocated_credits = db.Column(db.Boolean, default=False)
+    cost_multiplier = db.Column(db.Float, default=1.0)
 
     def __init__(self):
         self.id = uuid.uuid4().hex
@@ -159,6 +176,12 @@ class Blueprint(db.Model):
     def config(self, value):
         self._config = json.dumps(value)
 
+    def cost(self, duration=None):
+        if not duration:
+            duration = self.maximum_lifetime
+
+        return self.cost_multiplier * duration / 3600
+
 
 class Instance(db.Model):
     __tablename__ = 'instances'
@@ -169,6 +192,8 @@ class Instance(db.Model):
     public_ip = db.Column(db.String(64))
     client_ip = db.Column(db.String(64))
     provisioned_at = db.Column(db.DateTime)
+    deprovisioned_at = db.Column(db.DateTime)
+    errored = db.Column(db.Boolean, default=False)
     state = db.Column(db.String(32))
     error_msg = db.Column(db.String(256))
     _instance_data = db.Column('instance_data', db.Text)
@@ -178,6 +203,37 @@ class Instance(db.Model):
         self.blueprint_id = blueprint.id
         self.user_id = user.id
         self.state = 'starting'
+
+    def credits_spent(self, duration=None):
+        if self.errored:
+            return 0.0
+
+        if not duration:
+            duration = self.runtime
+
+        blueprint = Blueprint.query.filter_by(id=self.blueprint_id).first()
+        if blueprint.preallocated_credits:
+            duration = blueprint.maximum_lifetime
+
+        try:
+            cost_multiplier = blueprint.cost_multiplier
+        except:
+            logging.warn("invalid cost_multiplier in blueprint with id %s, defaulting to 1.0" % self.blueprint_id)
+            cost_multiplier = 1.0
+
+        return cost_multiplier * duration / 3600
+
+    @hybrid_property
+    def runtime(self):
+        if not self.provisioned_at:
+            return 0.0
+
+        if not self.deprovisioned_at:
+            diff = datetime.datetime.utcnow() - self.provisioned_at
+        else:
+            diff = self.deprovisioned_at - self.provisioned_at
+
+        return diff.total_seconds()
 
     @hybrid_property
     def instance_data(self):
@@ -242,11 +298,11 @@ class Variable(db.Model):
     def value(self, v):
         if self.t == 'bool':
             try:
-                if type(v) in (str, unicode):
+                if type(v) in (str, unicode_type):
                     self._value = (v.lower() in ('true', u'true'))
                 else:
                     self._value = bool(v)
-            except Exception as e:
+            except Exception:
                 logging.warn("invalid variable value for type %s: %s" % (self.t, v))
         elif self.t == 'int':
             try:

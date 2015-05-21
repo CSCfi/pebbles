@@ -41,13 +41,23 @@ app.conf.CELERY_TIMEZONE = 'UTC'
 def deprovision_expired():
     token = get_token()
     instances = get_instances(token)
+
     for instance in instances:
         logger.debug('checking instance for expiration %s' % instance)
-
+        user = instance.get('user')
+        deprovision_required = False
         if not instance.get('state') in ['running']:
             continue
+
         if not instance.get('lifetime_left') and instance.get('max_lifetime'):
-            logger.info('timed deprovisioning triggered for %s' % instance.get('id'))
+            logger.info('deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % instance.get('id'))
+            deprovision_required = True
+        elif user.get('credits_quota') <= user.get('credits_spent'):
+            if instance.cost_multiplier > 0:
+                logger.info('deprovisioning triggered for %s (reason: user out of quota)' % instance.get('id'))
+                deprovision_required = True
+
+        if deprovision_required:
             run_deprovisioning.delay(token, instance.get('id'))
 
 
