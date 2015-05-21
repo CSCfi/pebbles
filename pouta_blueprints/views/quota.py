@@ -16,6 +16,7 @@ parser.add_argument('type')
 parser.add_argument('value', type=float)
 
 quota_fields = {
+    'id': fields.String,
     'credits_quota': fields.Float
 }
 
@@ -41,15 +42,17 @@ class Quota(restful.Resource):
     @marshal_with(quota_fields)
     def put(self):
         args = parse_arguments()
+        results = []
 
         for user in User.query.all():
             if args['type'] == 'relative':
                 user.credits_quota = user.quota + args['value']
             elif args['type'] == 'absolute':
                 user.credits_quota = args['value']
+            results.append({'id': user.id, 'credits_quota': user.credits_quota})
 
         db.session.commit()
-        return {'credits_quota': user.credits_quota}
+        return results
 
 
 @quota.route('/quota/<string:user_id>')
@@ -71,4 +74,4 @@ class UserQuota(restful.Resource):
             user.credits_quota = args['value']
 
         db.session.commit()
-        return {'credits_quota': user.credits_quota}
+        return {'id': user.id, 'credits_quota': user.credits_quota}

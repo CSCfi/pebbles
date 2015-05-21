@@ -31,6 +31,7 @@ instance_fields = {
     'error_msg': fields.String,
     'user': fields.Nested(user_fields),
     'blueprint_id': fields.String,
+    'cost_multiplier': fields.Float,
     'can_update_connectivity': fields.Boolean(default=False),
     'instance_data': fields.Raw,
     'public_ip': fields.String,
@@ -66,6 +67,7 @@ class InstanceList(restful.Resource):
                 age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
             instance.lifetime_left = max(blueprint.maximum_lifetime - age, 0)
             instance.maximum_lifetime = blueprint.maximum_lifetime
+            instance.cost_multiplier = blueprint.cost_multiplier
 
         return instances
 
@@ -153,6 +155,7 @@ class InstanceView(restful.Resource):
             age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
         instance.lifetime_left = max(blueprint.maximum_lifetime - age, 0)
         instance.maximum_lifetime = blueprint.maximum_lifetime
+        instance.cost_multiplier = blueprint.cost_multiplier
 
         return instance
 
