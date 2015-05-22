@@ -8,6 +8,13 @@ from pouta_blueprints.models import User, Blueprint, Plugin, ActivationToken, In
 
 class FlaskApiTestCase(BaseTestCase):
     def setUp(self):
+        self.methods = {
+            'GET': self.client.get,
+            'POST': self.client.post,
+            'PUT': self.client.put,
+            'PATCH': self.client.patch,
+            'DELETE': self.client.delete,
+        }
         db.create_all()
         u1 = User("admin@example.org", "admin", is_admin=True)
         u2 = User("user@example.org", "user", is_admin=False)
@@ -57,14 +64,7 @@ class FlaskApiTestCase(BaseTestCase):
         db.session.commit()
 
     def make_request(self, method='GET', path='/', headers=None, data=None):
-        methods = {
-            'GET': self.client.get,
-            'POST': self.client.post,
-            'PATCH': self.client.patch,
-            'DELETE': self.client.delete,
-        }
-
-        assert method in methods
+        assert method in self.methods
 
         if not headers:
             headers = {}
@@ -73,19 +73,12 @@ class FlaskApiTestCase(BaseTestCase):
             headers['Content-Type'] = 'application/json'
 
         headers = [(x, y) for x, y in headers.items()]
-        return methods[method](path, headers=headers, data=data, content_type='application/json')
+        return self.methods[method](path, headers=headers, data=data, content_type='application/json')
 
     def make_authenticated_request(self, method='GET', path='/', headers=None, data=None, creds=None):
         assert creds is not None
 
-        methods = {
-            'GET': self.client.get,
-            'POST': self.client.post,
-            'PATCH': self.client.patch,
-            'DELETE': self.client.delete,
-        }
-
-        assert method in methods
+        assert method in self.methods
 
         if not headers:
             headers = {}
@@ -101,7 +94,7 @@ class FlaskApiTestCase(BaseTestCase):
             'Authorization': 'Basic %s' % token_b64,
             'token': token_b64
         })
-        return methods[method](path, headers=headers, data=data, content_type='application/json')
+        return self.methods[method](path, headers=headers, data=data, content_type='application/json')
 
     def make_authenticated_admin_request(self, method='GET', path='/', headers=None, data=None):
         return self.make_authenticated_request(method, path, headers, data,
@@ -375,7 +368,7 @@ class FlaskApiTestCase(BaseTestCase):
         # first test with an instance from a blueprint that does not allow setting client ip
         data = {'client_ip': '1.1.1.1'}
         response = self.make_authenticated_user_request(
-            method='PATCH',
+            method='PUT',
             path='/api/v1/instances/%s' % self.known_instance_id,
             data=json.dumps(data))
         self.assert_400(response)
@@ -383,7 +376,7 @@ class FlaskApiTestCase(BaseTestCase):
         # then a positive test case
         data = {'client_ip': '1.1.1.1'}
         response = self.make_authenticated_user_request(
-            method='PATCH',
+            method='PUT',
             path='/api/v1/instances/%s' % self.known_instance_id_2,
             data=json.dumps(data))
         self.assert_200(response)
@@ -392,10 +385,10 @@ class FlaskApiTestCase(BaseTestCase):
         for ip in ['1.0.0.0.0', '256.0.0.1', 'a.1.1.1', '10.10.10.']:
             data = {'client_ip': ip}
             response = self.make_authenticated_user_request(
-                method='PATCH',
+                method='PUT',
                 path='/api/v1/instances/%s' % self.known_instance_id_2,
                 data=json.dumps(data))
-            self.assert_400(response)
+            self.assertStatus(response, 422)
 
     def test_anonymous_get_instances(self):
         response = self.make_request(path='/api/v1/instances')
