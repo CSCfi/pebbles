@@ -30,7 +30,7 @@ instance_fields = {
     'error_msg': fields.String,
     'user': fields.Nested(user_fields),
     'blueprint_id': fields.String,
-    'cost_multiplier': fields.Float,
+    'cost_multiplier': fields.Float(default=1.0),
     'can_update_connectivity': fields.Boolean(default=False),
     'instance_data': fields.Raw,
     'public_ip': fields.String,
@@ -71,6 +71,7 @@ class InstanceList(restful.Resource):
         return instances
 
     @auth.login_required
+    @marshal_with(instance_fields)
     def post(self):
         user = g.user
 
@@ -118,6 +119,7 @@ class InstanceList(restful.Resource):
 
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
             run_provisioning.delay(token.token, instance.id)
+        return instance
 
 
 @instances.route('/<instance_id>', methods=['GET', 'DELETE', 'PATCH'])

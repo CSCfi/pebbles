@@ -1,11 +1,18 @@
+import sys
+
 from flask import Flask
 from flask.ext.mail import Mail
 
 from pouta_blueprints.models import db
-from pouta_blueprints.config import BaseConfig
+from pouta_blueprints.config import BaseConfig, TestConfig
 
 app = Flask(__name__)
-app.dynamic_config = BaseConfig()
+
+if set(['test', 'covtest']).intersection(set(sys.argv)):
+    app.dynamic_config = TestConfig()
+else:
+    app.dynamic_config = BaseConfig()
+
 app.config.from_object(app.dynamic_config)
 mail = Mail()
 mail.init_app(app)
