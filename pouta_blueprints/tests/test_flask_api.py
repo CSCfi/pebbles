@@ -461,7 +461,6 @@ class FlaskApiTestCase(BaseTestCase):
     def test_what_is_my_ip(self):
         response = self.make_authenticated_user_request(path='/api/v1/what_is_my_ip')
         self.assert_200(response)
-    
 
 if __name__ == '__main__':
     unittest.main()
