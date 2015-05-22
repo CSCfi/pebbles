@@ -29,7 +29,7 @@ api.add_resource(InstanceList, api_root + '/instances')
 api.add_resource(
     InstanceView,
     api_root + '/instances/<string:instance_id>',
-    methods=['GET', 'POST', 'DELETE', 'PATCH'])
+    methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
 api.add_resource(
     InstanceLogs,
     api_root + '/instances/<string:instance_id>/logs',

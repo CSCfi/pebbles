@@ -68,7 +68,8 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
         };
 
         $scope.update_client_ip = function () {
-            instance.patch({client_ip: $scope.new_client_ip}).then(function () {
+            instance.client_ip = $scope.new_client_ip;
+            instance.put().then(function () {
                 $scope.refresh();
             });
         };
