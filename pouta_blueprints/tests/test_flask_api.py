@@ -1,4 +1,5 @@
 import unittest
+import datetime
 import base64
 import json
 
@@ -443,6 +444,23 @@ class FlaskApiTestCase(BaseTestCase):
         response2 = self.make_authenticated_admin_request(path='/api/v1/users/%s/keypairs' % '0xBogus')
         self.assert_404(response2)
 
+    def test_user_over_quota_cannot_launch_instances(self):
+        data = {'blueprint': self.known_blueprint_id}
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/instances',
+            data=json.dumps(data)).json
+        instance = Instance.query.filter_by(id=response['id']).first()
+        instance.provisioned_at = datetime.datetime(2015, 1, 1, 0, 0, 0)
+        instance.deprovisioned_at = datetime.datetime(2015, 1, 1, 1, 0, 0)
+
+        db.session.commit()
+        response2 = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/instances',
+            data=json.dumps(data))
+        self.assertEqual(response2.status_code, 409)
+
     def test_anonymous_what_is_my_ip(self):
         response = self.make_request(path='/api/v1/what_is_my_ip')
         self.assert_401(response)
@@ -450,7 +468,7 @@ class FlaskApiTestCase(BaseTestCase):
     def test_what_is_my_ip(self):
         response = self.make_authenticated_user_request(path='/api/v1/what_is_my_ip')
         self.assert_200(response)
-
+    
 
 if __name__ == '__main__':
     unittest.main()
