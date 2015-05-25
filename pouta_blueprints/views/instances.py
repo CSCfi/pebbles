@@ -4,13 +4,12 @@ from flask import Blueprint as FlaskBlueprint
 
 import datetime
 import logging
-import re
 import os
 import json
 import uuid
 
 from pouta_blueprints.models import db, Blueprint, Instance, SystemToken
-from pouta_blueprints.forms import InstanceForm
+from pouta_blueprints.forms import InstanceForm, UserIPForm
 from pouta_blueprints.server import app, restful
 from pouta_blueprints.utils import requires_admin
 from pouta_blueprints.tasks import run_provisioning, run_deprovisioning, update_user_connectivity
@@ -177,13 +176,33 @@ class InstanceView(restful.Resource):
             run_deprovisioning.delay(token.token, instance.id)
 
     @auth.login_required
-    def patch(self, instance_id):
+    def put(self, instance_id):
         user = g.user
+        form = UserIPForm()
+        if not form.validate_on_submit():
+            logging.warn("validation error on UserIPForm")
+            return form.errors, 422
+
+        instance = Instance.query.filter_by(id=instance_id, user_id=user.id).first()
+        if not instance:
+            abort(404)
+
+        blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
+        if 'allow_update_client_connectivity' in blueprint.config\
+                and blueprint.config['allow_update_client_connectivity']:
+            instance.client_ip = form.client_ip.data
+            if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
+                update_user_connectivity.delay(instance.id)
+            db.session.commit()
+
+        else:
+            abort(400)
+
+    @auth.login_required
+    @requires_admin
+    def patch(self, instance_id):
         args = self.parser.parse_args()
-        query = Instance.query.filter_by(id=instance_id)
-        if not user.is_admin:
-            query = query.filter_by(user_id=user.id)
-        instance = query.first()
+        instance = Instance.query.filter_by(id=instance_id).first()
         if not instance:
             abort(404)
 
@@ -196,44 +215,27 @@ class InstanceView(restful.Resource):
                     self.delete(instance_id)
             else:
                 instance.state = args['state']
-                if instance.state == 'running' and user.is_admin:
+                if instance.state == 'running':
                     if not instance.provisioned_at:
                         instance.provisioned_at = datetime.datetime.utcnow()
-                if args['state'] == 'failed' and user.is_admin:
+                if args['state'] == 'failed':
                     instance.errored = True
 
             db.session.commit()
 
-        if args.get('error_msg') and user.is_admin:
+        if args.get('error_msg'):
             instance.error_msg = args['error_msg']
             db.session.commit()
 
-        if args.get('public_ip') and user.is_admin:
+        if args.get('public_ip'):
             instance.public_ip = args['public_ip']
             db.session.commit()
 
-        if args.get('instance_data') and user.is_admin:
+        if args.get('instance_data'):
             try:
                 instance.instance_data = json.loads(args['instance_data'])
             except ValueError:
                 logging.warn("invalid instance_data passed to view: %s" % args['instance_data'])
-            db.session.commit()
-
-        if args['client_ip']:
-            blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
-            if 'allow_update_client_connectivity' in blueprint.config \
-                    and blueprint.config['allow_update_client_connectivity']:
-                new_ip = args['client_ip']
-                ipv4_re = '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
-                if re.match(ipv4_re, new_ip):
-                    instance.client_ip = new_ip
-                    if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-                        update_user_connectivity.delay(instance.id)
-                else:
-                    abort(400)
-            else:
-                abort(400)
-
             db.session.commit()
 
 

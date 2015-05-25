@@ -1,7 +1,7 @@
 from flask.ext.wtf import Form
 from wtforms_alchemy import model_form_factory
 from wtforms import BooleanField, StringField
-from wtforms.validators import DataRequired, Email, Length
+from wtforms.validators import DataRequired, Email, Length, IPAddress
 
 from pouta_blueprints.models import (
     MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH,
@@ -64,6 +64,10 @@ class PluginForm(ModelForm):
     schema = StringField('schema', validators=[DataRequired()])
     form = StringField('form', validators=[DataRequired()])
     model = StringField('model', validators=[DataRequired()])
+
+
+class UserIPForm(ModelForm):
+    client_ip = StringField('client_ip', validators=[IPAddress(ipv6=True)])
 
 
 class VariableForm(ModelForm):
