@@ -5,7 +5,7 @@
             <div class="form-group col-sm-4">
                 <div class="input-group">
                     <div class="input-group-addon"><span class="glyphicon glyphicon-filter" aria-hidden="true"></span></div>
-                    <input id="query" class="form-control" ng-model="query" placeholder="Filter"/>
+                    <input id="query" class="form-control" ng-model="query" placeholder="Filter users"/>
                 </div>
                 <input ng-model="include_deleted" type="checkbox" /> Show deleted
             </div>
@@ -34,7 +34,7 @@
             </td>
             <td>
                 <button ng-hide="user.is_deleted" ng-click="remove_user(user)" type="submit" class="btn btn-default">Remove</button>
-                <button ng-click="increase_quota(1, user)" type="submit" class="btn btn-default">Update quota</button>
+                <button ng-click="open_quota_dialog([user])" type="submit" class="btn btn-default">Update quota</button>
             </td>
         </tr>
         </tbody>
@@ -52,25 +52,30 @@
       Invite multiple...
     </button>
 
-    <div class="modal fade" id="massInvite" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="myModalLabel">Mass invite</h4>
-          </div>
-          <form name="massInvitationForm" class="form-activate" ng-submit="invite_users()">
-              <div class="modal-body">
-                    <label for="listOfEmails">Emails:</label>
-                    <textarea ng-model="invitedUsers" class="form-control" rows="10" id="listOfEmails"></textarea>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-primary">Save changes</button>
-              </div>
-          </form>
-        </div>
-      </div>
-    </div>
+    <button type="button" class="btn btn-default" ng-click="open_quota_dialog([])">
+      Update quotas...
+    </button>
 
+    
+
+    <div class="modal fade" id="massInvite" tabindex="-1" role="dialog" aria-labelledby="massInviteLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="massInviteLabel">Mass invite</h4>
+                </div>
+                <form name="massInvitationForm" class="form-activate" ng-submit="invite_users()">
+                    <div class="modal-body">
+                        <label for="listOfEmails">Emails:</label>
+                        <textarea ng-model="invitedUsers" class="form-control" rows="10" id="listOfEmails"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>

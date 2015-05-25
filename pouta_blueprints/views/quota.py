@@ -26,8 +26,6 @@ def parse_arguments():
         args = parser.parse_args()
         if not args['type'] in types:
             raise RuntimeError("Invalid arguement type = %s" % args['type'])
-        if not args['value'] > 0:
-            raise RuntimeError("Invalid arguement value = %s" % args['value'])
     except:
         abort(422)
         return
@@ -46,7 +44,7 @@ class Quota(restful.Resource):
 
         for user in User.query.all():
             if args['type'] == 'relative':
-                user.credits_quota = user.quota + args['value']
+                user.credits_quota = user.credits_quota + args['value']
             elif args['type'] == 'absolute':
                 user.credits_quota = args['value']
             results.append({'id': user.id, 'credits_quota': user.credits_quota})

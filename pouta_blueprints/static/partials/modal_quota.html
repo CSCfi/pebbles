@@ -1,0 +1,22 @@
+<div class="modal-header">
+    <button ng-click="cancel()" type="button" class="close"><span aria-hidden="true">&times;</span></button>
+    <h4 class="modal-title">Update quota</h4>
+</div>
+<div class="modal-body">
+    <form class="form-inline">
+        <h4>Users affected by quota change:</h4>
+        <ul>
+            <li ng-repeat="user in users | filter:includeRow">
+                {{ user.email }}
+            </li>
+            <li ng-hide="users.length"><strong>All users</strong></li>
+        </ul>
+
+        <h4>Add or set given amount of credits to quota(s)</h4>
+        <label>Amount:</label>
+        <input ng-model="addedAmount" class="form-control" type="number" required/>
+        <button ng-click="increase_quota(addedAmount)" class="btn btn-primary">Add</button>
+        <button ng-click="set_quota(addedAmount)" class="btn btn-primary">Set</button>
+    </form>
+    <button ng-click="cancel()" type="button" class="btn btn-default" >Close</button>
+</div>
