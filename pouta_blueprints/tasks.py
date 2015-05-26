@@ -49,7 +49,7 @@ def deprovision_expired():
         if not instance.get('state') in ['running']:
             continue
 
-        if not instance.get('lifetime_left') and instance.get('max_lifetime'):
+        if not instance.get('lifetime_left') and instance.get('maximum_lifetime'):
             logger.info('deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % instance.get('id'))
             deprovision_required = True
         elif user.get('credits_quota') <= user.get('credits_spent'):
