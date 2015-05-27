@@ -16,6 +16,7 @@ variable_fields = {
     't': fields.String,
 }
 
+
 variables = Blueprint('variables', __name__)
 
 
@@ -43,6 +44,17 @@ class VariableList(restful.Resource):
 class VariableView(restful.Resource):
     @auth.login_required
     @requires_admin
+    @marshal_with(variable_fields)
+    def get(self, variable_id_or_name):
+        variable = Variable.query.filter_by(key=variable_id_or_name).first()
+        if not variable:
+            variable = Variable.query.filter_by(id=variable_id_or_name).first()
+        if not variable:
+            abort(404)
+        return variable
+
+    @auth.login_required
+    @requires_admin
     def put(self, variable_id):
         form = VariableForm()
         if not form.validate_on_submit():
@@ -54,6 +66,9 @@ class VariableView(restful.Resource):
         variable = Variable.query.filter_by(id=variable_id).first()
         if not variable:
             abort(404)
+        if variable.readonly:
+            logging.warn("unable to modify readonly variables")
+            abort(400)
         variable.key = form.key.data
         variable.value = form.value.data
         db.session.commit()

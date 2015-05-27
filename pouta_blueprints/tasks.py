@@ -16,8 +16,49 @@ from pouta_blueprints.app import app as flask_app
 requests.packages.urllib3.disable_warnings()
 logging.getLogger("requests").setLevel(logging.WARNING)
 
-# refer to our custom config object that reloads values at runtime
 config = flask_app.dynamic_config
+
+
+def get_token():
+    config = flask_app.dynamic_config
+    auth_url = '%s/sessions' % config['INTERNAL_API_BASE_URL']
+    auth_credentials = {'email': 'worker@pouta_blueprints',
+                        'password': config['SECRET_KEY']}
+    try:
+        r = requests.post(auth_url, auth_credentials, verify=config['SSL_VERIFY'])
+        return json.loads(r.text).get('token')
+    except:
+        return None
+
+
+def do_get(token, object_url):
+    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
+    headers = {'Accept': 'text/plain',
+               'Authorization': 'Basic %s' % auth}
+    url = '%s/%s' % (config['INTERNAL_API_BASE_URL'], object_url)
+    resp = requests.get(url, headers=headers, verify=config['SSL_VERIFY'])
+    return resp
+
+
+def do_post(token, api_path, data):
+    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
+    headers = {'Accept': 'text/plain',
+               'Authorization': 'Basic %s' % auth}
+    url = '%s/%s' % (config['INTERNAL_API_BASE_URL'], api_path)
+    resp = requests.post(url, data, headers=headers, verify=config['SSL_VERIFY'])
+    return resp
+
+
+def get_config():
+    """
+    Retrieve dynamic config over ReST API. Config object from Flask is unable to resolve variables from
+    database if containers are used. In order to use the ReST API some configuration items
+    (Variable.filtered_variables) are required. These are read from Flask config object, as these values
+    cannot be modified during the runtime.
+    """
+    token = get_token()
+    return dict([(x['key'], x['value']) for x in do_get(token, 'variables').json()])
+
 
 logger = get_task_logger(__name__)
 app = Celery('tasks', broker=config['MESSAGE_QUEUE_URI'], backend=config['MESSAGE_QUEUE_URI'])
@@ -64,6 +105,7 @@ def deprovision_expired():
 @app.task(name="pouta_blueprints.tasks.send_mails")
 def send_mails(users):
     with flask_app.test_request_context():
+        config = get_config()
         for email, token in users:
             msg = Message('Resource-cloud activation')
             msg.recipients = [email]
@@ -93,7 +135,7 @@ def get_provisioning_manager():
         namespace='pouta_blueprints.drivers.provisioning',
         check_func=lambda x: True,
         invoke_on_load=True,
-        invoke_args=(logger, config),
+        invoke_args=(logger, get_config()),
     )
 
     logger.debug('provisioning manager loaded, extensions: %s ' % mgr.names())
@@ -157,38 +199,6 @@ def update_user_connectivity(instance_id):
     plugin = get_provisioning_type(token, instance_id)
     mgr.map_method([plugin], 'update_connectivity', token, instance_id)
     logger.info('update connectivity for instance %s ready' % instance_id)
-
-
-def get_token():
-    auth_url = '%s/sessions' % config['INTERNAL_API_BASE_URL']
-    auth_credentials = {'email': 'worker@pouta_blueprints',
-                        'password': config['SECRET_KEY']}
-    try:
-        r = requests.post(auth_url, auth_credentials, verify=config['SSL_VERIFY'])
-        return json.loads(r.text).get('token')
-    except:
-        return None
-
-
-def do_get(token, object_url):
-    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
-    headers = {'Accept': 'text/plain',
-               'Authorization': 'Basic %s' % auth}
-
-    url = '%s/%s' % (config['INTERNAL_API_BASE_URL'], object_url)
-    resp = requests.get(url, headers=headers, verify=config['SSL_VERIFY'])
-    logger.debug('got response %s %s' % (resp.status_code, resp.reason))
-    return resp
-
-
-def do_post(token, api_path, data):
-    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
-    headers = {'Accept': 'text/plain',
-               'Authorization': 'Basic %s' % auth}
-    url = '%s/%s' % (config['INTERNAL_API_BASE_URL'], api_path)
-    resp = requests.post(url, data, headers=headers, verify=config['SSL_VERIFY'])
-    logger.debug('got response %s %s' % (resp.status_code, resp.reason))
-    return resp
 
 
 def get_instances(token):
