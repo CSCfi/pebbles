@@ -51,7 +51,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr ng-repeat="variable in variables">
+            <tr ng-repeat="variable in variables | filter : { readonly: false}">
             <td> {{ variable.key }}
             </td>
             <td>
@@ -69,6 +69,23 @@
         </tbody>
     </table>
 
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <td colspan="2"><strong>Read-only variables</strong></td>
+        </tr>
+        </thead>
+        <tbody>
+            <tr ng-repeat="variable in variables | filter : { readonly: true}">
+            <td> {{ variable.key }}
+            </td>
+            <td> {{ variable.value }} </td>
+        </tr>
+        <tr ng-hide="variables.length">
+            <td colspan="2">No defined variables, run <code>manage.py syncconf</code> first</td>
+        </tr>
+        </tbody>
+    </table>
     <div class="modal fade" id="blueprintCreate" tabindex="-1" role="dialog" aria-labelledby="blueprintCreateLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">

@@ -13,6 +13,7 @@ variable_fields = {
     'id': fields.String,
     'key': fields.String,
     'value': fields.String,
+    'readonly': fields.Boolean,
     't': fields.String,
 }
 
@@ -62,13 +63,13 @@ class VariableView(restful.Resource):
             return form.errors, 422
         existing_variable = Variable.query.filter_by(key=form.key.data).first()
         if existing_variable and existing_variable.id != variable_id:
-            abort(409)
+            return {'error': 'duplicate key'}, 409
         variable = Variable.query.filter_by(id=variable_id).first()
         if not variable:
             abort(404)
         if variable.readonly:
             logging.warn("unable to modify readonly variables")
-            abort(400)
+            return {'error': 'unable to modify readonly variable'}, 409
         variable.key = form.key.data
         variable.value = form.value.data
         db.session.commit()

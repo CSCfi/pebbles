@@ -275,6 +275,8 @@ class Variable(db.Model):
     def __init__(self, k, v):
         self.id = uuid.uuid4().hex
         self.key = k
+        if self.key in self.filtered_variables:
+            self.readonly = True
 
         if type(v) in (int, ):
             self.t = 'int'

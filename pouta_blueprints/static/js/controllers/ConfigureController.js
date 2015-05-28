@@ -88,9 +88,8 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', 'Au
                     $scope.variables = response;
                 });
             }).catch(function(response) {
-                console.log(response);
                 if (response.status == 409) {
-                    $.notify({title: 'HTTP ' + response.status, message: "Conflict: duplicate key"}, {type: 'danger'});
+                    $.notify({title: 'HTTP ' + response.status, message: response.data.error}, {type: 'danger'});
                 }
                 variables.getList().then(function (response) {
                     $scope.variables = response;
