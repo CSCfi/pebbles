@@ -33,6 +33,13 @@ def parse_arguments():
     return args
 
 
+def update_user_quota(user, type, value):
+    if type == 'relative':
+        user.credits_quota = user.credits_quota + value
+    elif type == 'absolute':
+        user.credits_quota = value
+
+
 @quota.route('/quota')
 class Quota(restful.Resource):
     @auth.login_required
@@ -43,10 +50,7 @@ class Quota(restful.Resource):
         results = []
 
         for user in User.query.all():
-            if args['type'] == 'relative':
-                user.credits_quota = user.credits_quota + args['value']
-            elif args['type'] == 'absolute':
-                user.credits_quota = args['value']
+            update_user_quota(user, args['type'], args['value'])
             results.append({'id': user.id, 'credits_quota': user.credits_quota})
 
         db.session.commit()
@@ -66,10 +70,7 @@ class UserQuota(restful.Resource):
         if not user:
             abort(404)
 
-        if args['type'] == 'relative':
-            user.credits_quota = user.credits_quota + args['value']
-        elif args['type'] == 'absolute':
-            user.credits_quota = args['value']
+        update_user_quota(user, args['type'], args['value'])
 
         db.session.commit()
         return {'id': user.id, 'credits_quota': user.credits_quota}
