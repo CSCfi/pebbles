@@ -102,7 +102,6 @@ class UserView(restful.Resource):
             abort(403)
         form = ChangePasswordForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on change password: %s" % form.errors)
             return form.errors, 422
         user = User.query.filter_by(id=user_id).first()
         if not user:

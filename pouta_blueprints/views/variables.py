@@ -33,7 +33,6 @@ class VariableList(restful.Resource):
     def post(self):
         form = VariableForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on variable form: %s" % form.errors)
             return form.errors, 422
         variable = Variable()
         variable.key = form.key.data
