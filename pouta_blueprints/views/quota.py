@@ -11,7 +11,10 @@ from pouta_blueprints.models import db, User
 quota = FlaskBlueprint('quota', __name__)
 
 parser = reqparse.RequestParser()
-types = ('absolute', 'relative')
+quota_update_functions = {
+    'absolute': lambda user, value: user.credits_quota + value,
+    'relative': lambda user, value: value
+}
 parser.add_argument('type')
 parser.add_argument('value', type=float)
 
@@ -34,10 +37,11 @@ def parse_arguments():
 
 
 def update_user_quota(user, type, value):
-    if type == 'relative':
-        user.credits_quota = user.credits_quota + value
-    elif type == 'absolute':
-        user.credits_quota = value
+    try:
+        fun = quota_update_functions[type]
+        user.credits_quota = fun(user, value)
+    except:
+        raise RuntimeError("No quota update function (type=%s, value=%s)" % (type, value))
 
 
 @quota.route('/quota')
