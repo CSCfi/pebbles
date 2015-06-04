@@ -107,7 +107,7 @@ def send_mails(users):
     with flask_app.test_request_context():
         config = get_config()
         for email, token in users:
-            msg = Message('Resource-cloud activation')
+            msg = Message('Pouta Blueprints activation')
             msg.recipients = [email]
             msg.sender = config['SENDER_EMAIL']
             activation_url = '%s/#/activate/%s' % (config['BASE_URL'], token)
