@@ -13,8 +13,10 @@ variable_fields = {
     'id': fields.String,
     'key': fields.String,
     'value': fields.String,
+    'readonly': fields.Boolean,
     't': fields.String,
 }
+
 
 variables = Blueprint('variables', __name__)
 
@@ -31,7 +33,6 @@ class VariableList(restful.Resource):
     def post(self):
         form = VariableForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on variable form: %s" % form.errors)
             return form.errors, 422
         variable = Variable()
         variable.key = form.key.data
@@ -43,6 +44,17 @@ class VariableList(restful.Resource):
 class VariableView(restful.Resource):
     @auth.login_required
     @requires_admin
+    @marshal_with(variable_fields)
+    def get(self, variable_id_or_name):
+        variable = Variable.query.filter_by(key=variable_id_or_name).first()
+        if not variable:
+            variable = Variable.query.filter_by(id=variable_id_or_name).first()
+        if not variable:
+            abort(404)
+        return variable
+
+    @auth.login_required
+    @requires_admin
     def put(self, variable_id):
         form = VariableForm()
         if not form.validate_on_submit():
@@ -50,10 +62,13 @@ class VariableView(restful.Resource):
             return form.errors, 422
         existing_variable = Variable.query.filter_by(key=form.key.data).first()
         if existing_variable and existing_variable.id != variable_id:
-            abort(409)
+            return {'error': 'duplicate key'}, 409
         variable = Variable.query.filter_by(id=variable_id).first()
         if not variable:
             abort(404)
+        if variable.readonly:
+            logging.warn("unable to modify readonly variables")
+            return {'error': 'unable to modify readonly variable'}, 409
         variable.key = form.key.data
         variable.value = form.value.data
         db.session.commit()

@@ -275,6 +275,8 @@ class Variable(db.Model):
     def __init__(self, k, v):
         self.id = uuid.uuid4().hex
         self.key = k
+        if self.key in self.filtered_variables:
+            self.readonly = True
 
         if type(v) in (int, ):
             self.t = 'int'
@@ -314,7 +316,12 @@ class Variable(db.Model):
 
         logging.debug('set %s to %s from input %s of type %s' % (self.key, self._value, v, type(v)))
 
+    filtered_variables = (
+        'SECRET_KEY', 'INTERNAL_API_BASE_URL', 'SQLALCHEMY_DATABASE_URI', 'WTF_CSRF_ENABLED',
+        'MESSAGE_QUEUE_URI', 'SSL_VERIFY')
+
     id = db.Column(db.String(32), primary_key=True)
     key = db.Column(db.String(MAX_VARIABLE_KEY_LENGTH), unique=True)
     _value = db.Column('value', db.String(MAX_VARIABLE_VALUE_LENGTH))
+    readonly = db.Column(db.Boolean, default=False)
     t = db.Column(db.String(16))

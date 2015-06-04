@@ -11,7 +11,10 @@ from pouta_blueprints.models import db, User
 quota = FlaskBlueprint('quota', __name__)
 
 parser = reqparse.RequestParser()
-types = ('absolute', 'relative')
+quota_update_functions = {
+    'absolute': lambda user, value: user.credits_quota + value,
+    'relative': lambda user, value: value
+}
 parser.add_argument('type')
 parser.add_argument('value', type=float)
 
@@ -33,6 +36,14 @@ def parse_arguments():
     return args
 
 
+def update_user_quota(user, type, value):
+    try:
+        fun = quota_update_functions[type]
+        user.credits_quota = fun(user, value)
+    except:
+        raise RuntimeError("No quota update function (type=%s, value=%s)" % (type, value))
+
+
 @quota.route('/quota')
 class Quota(restful.Resource):
     @auth.login_required
@@ -43,10 +54,7 @@ class Quota(restful.Resource):
         results = []
 
         for user in User.query.all():
-            if args['type'] == 'relative':
-                user.credits_quota = user.credits_quota + args['value']
-            elif args['type'] == 'absolute':
-                user.credits_quota = args['value']
+            update_user_quota(user, args['type'], args['value'])
             results.append({'id': user.id, 'credits_quota': user.credits_quota})
 
         db.session.commit()
@@ -66,10 +74,7 @@ class UserQuota(restful.Resource):
         if not user:
             abort(404)
 
-        if args['type'] == 'relative':
-            user.credits_quota = user.credits_quota + args['value']
-        elif args['type'] == 'absolute':
-            user.credits_quota = args['value']
+        update_user_quota(user, args['type'], args['value'])
 
         db.session.commit()
         return {'id': user.id, 'credits_quota': user.credits_quota}
