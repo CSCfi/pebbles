@@ -514,25 +514,33 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_403(response)
 
     def test_admin_set_variable(self):
-        var_data = json.loads(self.make_authenticated_admin_request(path='/api/v1/variables/DEBUG').data)
+        var_data = json.loads(
+            self.make_authenticated_admin_request(path='/api/v1/variables/DEBUG').data.decode('UTF-8')
+        )
         response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/variables/%s' % var_data['id'],
             data=json.dumps({'key': 'DEBUG', 'value': str(not var_data['value'])})
         )
         self.assert_200(response)
-        new_var_data = json.loads(self.make_authenticated_admin_request(path='/api/v1/variables/DEBUG').data)
+        new_var_data = json.loads(
+            self.make_authenticated_admin_request(path='/api/v1/variables/DEBUG').data.decode('UTF-8')
+        )
         self.assertNotEquals(new_var_data['value'], var_data['value'])
 
     def test_admin_set_ro_variable(self):
-        var_data = json.loads(self.make_authenticated_admin_request(path='/api/v1/variables/SECRET_KEY').data)
+        var_data = json.loads(
+            self.make_authenticated_admin_request(path='/api/v1/variables/SECRET_KEY').data.decode('UTF-8')
+        )
         response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/variables/%s' % var_data['id'],
             data=json.dumps({'key': 'SECRET_KEY', 'value': 'foo'})
         )
         self.assertEquals(response.status_code, 409)
-        new_var_data = json.loads(self.make_authenticated_admin_request(path='/api/v1/variables/SECRET_KEY').data)
+        new_var_data = json.loads(
+            self.make_authenticated_admin_request(path='/api/v1/variables/SECRET_KEY').data.decode('UTF-8')
+        )
         self.assertEquals(new_var_data['value'], var_data['value'])
 
 
