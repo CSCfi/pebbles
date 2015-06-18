@@ -12,7 +12,7 @@ from pouta_blueprints.utils import requires_admin
 variable_fields = {
     'id': fields.String,
     'key': fields.String,
-    'value': fields.String,
+    'value': fields.Raw,
     'readonly': fields.Boolean,
     't': fields.String,
 }
@@ -45,10 +45,11 @@ class VariableView(restful.Resource):
     @auth.login_required
     @requires_admin
     @marshal_with(variable_fields)
-    def get(self, variable_id_or_name):
-        variable = Variable.query.filter_by(key=variable_id_or_name).first()
+    def get(self, variable_id):
+        # accept both id and name
+        variable = Variable.query.filter_by(key=variable_id).first()
         if not variable:
-            variable = Variable.query.filter_by(id=variable_id_or_name).first()
+            variable = Variable.query.filter_by(id=variable_id).first()
         if not variable:
             abort(404)
         return variable
