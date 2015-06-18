@@ -26,12 +26,12 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.openstack_driver_config import CONFIG
 
-        client = self.get_openstack_nova_client()
-        if not client:
+        nova_client = self.get_openstack_nova_client()
+        if not nova_client:
             return None
 
-        images = [x.name for x in client.images.list()]
-        flavors = [x.name for x in client.flavors.list()]
+        images = [x.name for x in nova_client.images.list()]
+        flavors = [x.name for x in nova_client.flavors.list()]
 
         config = CONFIG.copy()
         config['schema']['properties']['image']['enum'] = images
