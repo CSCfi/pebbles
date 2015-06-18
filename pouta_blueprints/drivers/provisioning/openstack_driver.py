@@ -13,6 +13,9 @@ POLL_MAX_WAIT = 180
 class OpenStackDriver(base_driver.ProvisioningDriverBase):
     def get_openstack_nova_client(self):
         openstack_env = self.create_openstack_env()
+        if not openstack_env:
+            return None
+
         os_username = openstack_env['OS_USERNAME']
         os_password = openstack_env['OS_PASSWORD']
         os_tenant_name = openstack_env['OS_TENANT_NAME']
@@ -24,6 +27,8 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         from pouta_blueprints.drivers.provisioning.openstack_driver_config import CONFIG
 
         client = self.get_openstack_nova_client()
+        if not client:
+            return None
 
         images = [x.name for x in client.images.list()]
         flavors = [x.name for x in client.flavors.list()]

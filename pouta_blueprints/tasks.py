@@ -185,6 +185,10 @@ def publish_plugins():
             continue
         config = res[0]
 
+        if not config:
+            logger.warn('No config for %s obtained' % plugin)
+            continue
+
         for key in ('schema', 'form', 'model'):
             payload[key] = json.dumps(config.get(key, {}))
 

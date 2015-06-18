@@ -100,6 +100,8 @@ class ProvisioningDriverBase(object):
                    'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % auth}
         url = '%s/instances/%s' % (self.config['INTERNAL_API_BASE_URL'], instance_id)
+
+        self.logger.debug('do_instance_patch: ssl_verify %s' % self.config['SSL_VERIFY'])
         resp = requests.patch(url, data=payload, headers=headers,
                               verify=self.config['SSL_VERIFY'])
         self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
@@ -197,6 +199,8 @@ class ProvisioningDriverBase(object):
             log_uploader(''.join(log_buffer))
 
     def create_openstack_env(self):
+        if not getattr(self, 'm2m_credentials', None):
+            return None
         env = os.environ.copy()
         for key in ('OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_NAME', 'OS_TENANT_ID', 'OS_AUTH_URL'):
             if key in self.m2m_credentials:
