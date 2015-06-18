@@ -19,7 +19,7 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         instance = self.get_instance_description(token, instance_id)
         cluster_name = instance['name']
 
-        instance_dir = '%s/%s' % (self.config.INSTANCE_DATA_DIR, cluster_name)
+        instance_dir = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], cluster_name)
 
         # will fail if there is already a directory for this instance
         os.makedirs(instance_dir)
@@ -62,7 +62,7 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         instance = self.get_instance_description(token, instance_id)
         cluster_name = instance['name']
 
-        instance_dir = '%s/%s' % (self.config.INSTANCE_DATA_DIR, cluster_name)
+        instance_dir = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], cluster_name)
 
         uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
 
