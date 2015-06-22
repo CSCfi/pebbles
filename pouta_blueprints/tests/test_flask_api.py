@@ -4,7 +4,8 @@ import base64
 import json
 
 from pouta_blueprints.tests.base import db, BaseTestCase
-from pouta_blueprints.models import User, Blueprint, Plugin, ActivationToken, Instance
+from pouta_blueprints.models import User, Blueprint, Plugin, ActivationToken, Instance, Variable
+from pouta_blueprints.config import BaseConfig
 
 
 class FlaskApiTestCase(BaseTestCase):
@@ -64,6 +65,14 @@ class FlaskApiTestCase(BaseTestCase):
 
         db.session.commit()
 
+        conf = BaseConfig()
+        for var_name in BaseConfig.__dict__:
+            if not var_name.isupper():
+                continue
+            variable = Variable(var_name, conf[var_name])
+            db.session.add(variable)
+        db.session.commit()
+
     def make_request(self, method='GET', path='/', headers=None, data=None):
         assert method in self.methods
 
@@ -73,8 +82,8 @@ class FlaskApiTestCase(BaseTestCase):
         if 'Content-Type' not in headers:
             headers['Content-Type'] = 'application/json'
 
-        headers = [(x, y) for x, y in headers.items()]
-        return self.methods[method](path, headers=headers, data=data, content_type='application/json')
+        header_tuples = [(x, y) for x, y in headers.items()]
+        return self.methods[method](path, headers=header_tuples, data=data, content_type='application/json')
 
     def make_authenticated_request(self, method='GET', path='/', headers=None, data=None, creds=None):
         assert creds is not None
@@ -125,6 +134,7 @@ class FlaskApiTestCase(BaseTestCase):
             method='DELETE',
             path='/api/v1/users/%s' % self.known_user_id
         )
+        self.assert_200(response)
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
@@ -158,6 +168,7 @@ class FlaskApiTestCase(BaseTestCase):
             method='DELETE',
             path='/api/v1/users/%s' % self.known_user_id
         )
+        self.assert_200(response)
         # Test instance creation fails for the user
         response = self.make_request(
             method='POST',
@@ -461,6 +472,70 @@ class FlaskApiTestCase(BaseTestCase):
     def test_what_is_my_ip(self):
         response = self.make_authenticated_user_request(path='/api/v1/what_is_my_ip')
         self.assert_200(response)
+
+    def test_anonymous_get_variables(self):
+        response = self.make_request(path='/api/v1/variables')
+        self.assert_401(response)
+
+    def test_user_get_variables(self):
+        response = self.make_authenticated_user_request(path='/api/v1/variables')
+        self.assert_403(response)
+
+    def test_admin_get_variables(self):
+        response = self.make_authenticated_admin_request(path='/api/v1/variables')
+        self.assert_200(response)
+
+    def test_anonymous_get_variable(self):
+        response = self.make_request(path='/api/v1/variables/DEBUG')
+        self.assert_401(response)
+
+    def test_user_get_variable(self):
+        response = self.make_authenticated_user_request(path='/api/v1/variables/DEBUG')
+        self.assert_403(response)
+
+    def test_admin_get_variable(self):
+        response = self.make_authenticated_admin_request(path='/api/v1/variables/DEBUG')
+        self.assert_200(response)
+
+    def test_anonymous_set_variable(self):
+        response = self.make_request(
+            method='PUT',
+            path='/api/v1/variables/DEBUG',
+            data=json.dumps({'key': 'DEBUG', 'value': True})
+        )
+        self.assert_401(response)
+
+    def test_user_set_variable(self):
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/variables/DEBUG',
+            data=json.dumps({'key': 'DEBUG', 'value': True})
+        )
+        self.assert_403(response)
+
+    def test_admin_set_variable(self):
+        var_data = self.make_authenticated_admin_request(path='/api/v1/variables/DEBUG').json
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/variables/%s' % var_data['id'],
+            data=json.dumps({'key': 'DEBUG', 'value': str(not var_data['value'])})
+        )
+        self.assert_200(response)
+        new_var_data = self.make_authenticated_admin_request(path='/api/v1/variables/DEBUG').json
+        self.assertNotEquals(new_var_data['value'], var_data['value'])
+
+    def test_admin_set_ro_variable(self):
+        var_data = self.make_authenticated_admin_request(path='/api/v1/variables/SECRET_KEY').json
+
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/variables/%s' % var_data['id'],
+            data=json.dumps({'key': 'SECRET_KEY', 'value': 'foo'})
+        )
+        self.assertEquals(response.status_code, 409)
+        new_var_data = self.make_authenticated_admin_request(path='/api/v1/variables/SECRET_KEY').json
+        self.assertEquals(new_var_data['value'], var_data['value'])
+
 
 if __name__ == '__main__':
     unittest.main()
