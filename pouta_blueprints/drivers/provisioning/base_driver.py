@@ -19,14 +19,18 @@ class ProvisioningDriverBase(object):
         self.logger = logger
         self.config = config
 
+    def get_m2m_credentials(self):
+        if getattr(self, '_m2m_credentials', None):
+            return self._m2m_credentials
+
         m2m_credential_store = self.config['M2M_CREDENTIAL_STORE']
         try:
-            self.m2m_credentials = json.load(open(m2m_credential_store))
-            for key in self.m2m_credentials.keys():
+            self._m2m_credentials = json.load(open(m2m_credential_store))
+            for key in self._m2m_credentials.keys():
                 if key == 'OS_PASSWORD':
                     self.logger.debug('m2m creds: OS_PASSWORD is set (not shown)')
                 elif key in ('OS_USERNAME', 'OS_TENANT_NAME', 'OS_TENANT_ID', 'OS_AUTH_URL'):
-                    self.logger.debug('m2m creds: %s: %s' % (key, self.m2m_credentials[key]))
+                    self.logger.debug('m2m creds: %s: %s' % (key, self._m2m_credentials[key]))
                 else:
                     self.logger.warn('m2m creds: unknown key %s' % key)
 
@@ -199,12 +203,11 @@ class ProvisioningDriverBase(object):
             log_uploader(''.join(log_buffer))
 
     def create_openstack_env(self):
-        if not getattr(self, 'm2m_credentials', None):
-            return None
+        m2m_creds = self.get_m2m_credentials()
         env = os.environ.copy()
         for key in ('OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_NAME', 'OS_TENANT_ID', 'OS_AUTH_URL'):
-            if key in self.m2m_credentials:
-                env[key] = self.m2m_credentials[key]
+            if key in m2m_creds:
+                env[key] = m2m_creds[key]
         env['PYTHONUNBUFFERED'] = '1'
         env['ANSIBLE_HOST_KEY_CHECKING'] = '0'
         return env
