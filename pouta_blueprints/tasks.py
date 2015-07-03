@@ -128,9 +128,16 @@ def send_mails(users):
 def get_provisioning_manager():
     from stevedore import dispatch
 
+    config = get_config()
+    if config.get('PLUGIN_WHITELIST', ''):
+        plugin_whitelist=config.get('PLUGIN_WHITELIST').split()
+        whitelist_filter = lambda x: x.name in plugin_whitelist
+    else:
+        whitelist_filter = lambda x: True
+
     mgr = dispatch.NameDispatchExtensionManager(
         namespace='pouta_blueprints.drivers.provisioning',
-        check_func=lambda x: True,
+        check_func=whitelist_filter,
         invoke_on_load=True,
         invoke_args=(logger, get_config()),
     )
