@@ -130,17 +130,20 @@ def get_provisioning_manager():
 
     config = get_config()
     if config.get('PLUGIN_WHITELIST', ''):
-        plugin_whitelist=config.get('PLUGIN_WHITELIST').split()
-        whitelist_filter = lambda x: x.name in plugin_whitelist
+        plugin_whitelist = config.get('PLUGIN_WHITELIST').split()
+        mgr = dispatch.NameDispatchExtensionManager(
+            namespace='pouta_blueprints.drivers.provisioning',
+            check_func=lambda x: x.name in plugin_whitelist,
+            invoke_on_load=True,
+            invoke_args=(logger, get_config()),
+        )
     else:
-        whitelist_filter = lambda x: True
-
-    mgr = dispatch.NameDispatchExtensionManager(
-        namespace='pouta_blueprints.drivers.provisioning',
-        check_func=whitelist_filter,
-        invoke_on_load=True,
-        invoke_args=(logger, get_config()),
-    )
+        mgr = dispatch.NameDispatchExtensionManager(
+            namespace='pouta_blueprints.drivers.provisioning',
+            check_func=lambda x: True,
+            invoke_on_load=True,
+            invoke_args=(logger, get_config()),
+        )
 
     logger.debug('provisioning manager loaded, extensions: %s ' % mgr.names())
 
