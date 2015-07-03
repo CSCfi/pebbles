@@ -9,7 +9,7 @@ setup(
     author='Olli Tourunen',
     author_email='olli.tourunen@csc.fi',
 
-    url='https://github.com/CSC-IT-Center-for-Science/resource-cloud',
+    url='https://github.com/CSC-IT-Center-for-Science/pouta-blueprints',
 
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -33,6 +33,7 @@ setup(
             'DummyDriver = pouta_blueprints.drivers.provisioning.dummy_driver:DummyDriver',
             'PvcCmdLineDriver = pouta_blueprints.drivers.provisioning.pvc_cmdline_driver:PvcCmdLineDriver',
             'OpenStackDriver = pouta_blueprints.drivers.provisioning.openstack_driver:OpenStackDriver',
+            'DockerDriver = pouta_blueprints.drivers.provisioning.docker_driver:DockerDriver',
         ],
     },
 
