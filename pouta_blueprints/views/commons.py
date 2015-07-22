@@ -73,5 +73,4 @@ def add_user(email, password=None, is_admin=False):
         content = render_template('invitation.txt', activation_link=activation_url)
         logging.warn(content)
 
-
     return user
