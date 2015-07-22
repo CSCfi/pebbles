@@ -133,6 +133,9 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
             controller: 'ResetPasswordController',
             templateUrl: partialsDir + '/reset_password.html'
         })
+        .when('/registration_success', {
+            templateUrl: partialsDir + '/registration_success.html'
+        })
         .when('/reset_password', {
             controller: 'ResetPasswordController',
             templateUrl: partialsDir + '/reset_password.html'
