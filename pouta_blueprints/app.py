@@ -13,7 +13,16 @@ if set(['test', 'covtest']).intersection(set(sys.argv)):
 else:
     app.dynamic_config = BaseConfig()
 
+SSO_ATTRIBUTE_MAP = {
+    "HTTP_AJP_SHIB_UID": (True, "uid"),
+    "HTTP_AJP_SHIB_MAIL": (True, "mail"),
+    "HTTP_AJP_SHIB_DISPLAYNAME": (False, "name")
+}
 app.config.from_object(app.dynamic_config)
+app.config.setdefault('SSO_ATTRIBUTE_MAP', SSO_ATTRIBUTE_MAP)
+app.config.setdefault('SSO_LOGIN_URL', '/login')
+app.config.setdefault('PREFERRED_URL_SCHEME', 'https')
+
 mail = Mail()
 mail.init_app(app)
 

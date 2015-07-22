@@ -7,12 +7,11 @@ import logging
 import re
 import werkzeug
 
-from pouta_blueprints.models import db, ActivationToken, Keypair, User
+from pouta_blueprints.models import db, Keypair, User
 from pouta_blueprints.forms import ChangePasswordForm, UserForm
-from pouta_blueprints.server import app, restful
+from pouta_blueprints.server import restful
 from pouta_blueprints.utils import generate_ssh_keypair, requires_admin
-from pouta_blueprints.tasks import send_mails
-from pouta_blueprints.views.commons import user_fields, auth
+from pouta_blueprints.views.commons import user_fields, auth, add_user
 
 users = FlaskBlueprint('users', __name__)
 
@@ -26,31 +25,6 @@ class UserList(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('addresses')
 
-    @staticmethod
-    def add_user(email, password=None, is_admin=False):
-        user = User.query.filter_by(email=email).first()
-        if user:
-            logging.warn("user %s already exists" % email)
-            return None
-
-        user = User(email, password, is_admin)
-        db.session.add(user)
-        db.session.commit()
-
-        token = ActivationToken(user)
-        db.session.add(token)
-        db.session.commit()
-
-        if not app.dynamic_config['SKIP_TASK_QUEUE'] and not app.dynamic_config['MAIL_SUPPRESS_SEND']:
-            send_mails.delay([(user.email, token.token)])
-        else:
-            logging.warn(
-                "Mail sending suppressed in config: SKIP_TASK_QUEUE:%s MAIL_SUPPRESS_SEND:%s" %
-                (app.dynamic_config['SKIP_TASK_QUEUE'], app.dynamic_config['MAIL_SUPPRESS_SEND'])
-            )
-
-        return user
-
     @auth.login_required
     @requires_admin
     @marshal_with(user_fields)
@@ -59,7 +33,7 @@ class UserList(restful.Resource):
         if not form.validate_on_submit():
             logging.warn("validation error on user add: %s" % form.errors)
             abort(422)
-        self.add_user(form.email.data, form.password.data, form.is_admin.data)
+        add_user(form.email.data, form.password.data, form.is_admin.data)
         return User.query.all()
 
     @auth.login_required
@@ -81,7 +55,7 @@ class UserList(restful.Resource):
         addresses = self.address_list(args.addresses)
         for address in addresses:
             try:
-                self.add_user(address)
+                add_user(address)
             except:
                 logging.exception("cannot add user %s" % address)
         return User.query.all()
