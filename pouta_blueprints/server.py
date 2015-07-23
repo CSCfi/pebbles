@@ -1,4 +1,6 @@
-from flask import redirect
+import uuid
+
+from flask import render_template
 from flask.ext import restful
 from flask_sso import SSO
 
@@ -67,5 +69,11 @@ def login(user_info):
     mail = user_info['mail']
     user = User.query.filter_by(email=mail).first()
     if not user:
-        add_user(mail)
-    return redirect("/#/registration_success")
+        user = add_user(mail, password=uuid.uuid4().hex)
+    user = User.query.filter_by(email=mail).first()
+    token = user.generate_auth_token(app.config['SECRET_KEY'])
+    return render_template(
+        'login.html',
+        token=token,
+        username=mail,
+        userid=user.id)
