@@ -1,6 +1,13 @@
-from flask.ext import restful
-from pouta_blueprints.app import app
+import uuid
 
+from flask import render_template
+from flask.ext import restful
+from flask_sso import SSO
+
+from pouta_blueprints.app import app
+from pouta_blueprints.models import User
+
+from pouta_blueprints.views.commons import add_user
 from pouta_blueprints.views.blueprints import blueprints, BlueprintList, BlueprintView
 from pouta_blueprints.views.plugins import plugins, PluginList, PluginView
 from pouta_blueprints.views.users import users, UserList, UserView, KeypairList, CreateKeyPair, UploadKeyPair
@@ -42,6 +49,7 @@ api.add_resource(WhatIsMyIp, api_root + '/what_is_my_ip', methods=['GET'])
 api.add_resource(Quota, api_root + '/quota')
 api.add_resource(UserQuota, api_root + '/quota/<string:user_id>')
 
+
 app.register_blueprint(blueprints)
 app.register_blueprint(plugins)
 app.register_blueprint(users)
@@ -52,3 +60,20 @@ app.register_blueprint(myip)
 app.register_blueprint(sessions)
 app.register_blueprint(variables)
 app.register_blueprint(quota)
+
+sso = SSO(app=app)
+
+
+@sso.login_handler
+def login(user_info):
+    mail = user_info['mail']
+    user = User.query.filter_by(email=mail).first()
+    if not user:
+        user = add_user(mail, password=uuid.uuid4().hex)
+    user = User.query.filter_by(email=mail).first()
+    token = user.generate_auth_token(app.config['SECRET_KEY'])
+    return render_template(
+        'login.html',
+        token=token,
+        username=mail,
+        userid=user.id)

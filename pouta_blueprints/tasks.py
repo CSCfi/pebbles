@@ -119,7 +119,6 @@ def send_mails(users):
             if not mail:
                 raise RuntimeError("mail extension is not configured")
 
-            logger.info(msg.body)
             if not config['MAIL_SUPPRESS_SEND']:
                 # this is not strictly necessary, as flask_mail will also suppress sending if
                 # MAIL_SUPPRESS_SEND is set

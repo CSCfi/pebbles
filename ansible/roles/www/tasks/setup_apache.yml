@@ -1,0 +1,54 @@
+---
+
+- name: Create the Apache configuration file
+  template: src=etc/apache2/sites-available/pouta-blueprints-ssl.j2
+            dest=/etc/apache2/sites-available/{{ application_name }}-ssl.conf
+            backup=yes
+
+- name: Create the Apache configuration file for HTTP redirect
+  template: src=etc/apache2/sites-available/pouta-blueprints.j2
+            dest=/etc/apache2/sites-available/{{ application_name }}.conf
+            backup=yes
+
+- name: Ensure that the default site is disabled
+  command: rm /etc/apache2/sites-enabled/000-default.conf
+           removes=/etc/apache2/sites-enabled/000-default.conf
+
+- name: Ensure that the application site is enabled
+  command: a2ensite {{ application_name }}-ssl
+           creates=/etc/apache2/sites-enabled/{{ application_name }}-ssl.conf
+
+- name: Ensure that the application site redirect is enabled
+  command: a2ensite {{ application_name }}
+           creates=/etc/apache2/sites-enabled/{{ application_name }}.conf
+
+
+- name: Link static root for Apache
+  file:
+    src={{ application_path }}/{{ application_name }}/static
+    dest={{ apache_static_root }}
+    state=link
+    # mode=775
+    # owner={{ application_user }}
+    # group={{ application_group }}
+
+- name: Create provisioning log file root directory
+  file:
+    dest={{ apache_log_file_root }}
+    mode=755 state=directory
+    owner={{ application_user }}
+    group={{ application_group }}
+
+- name: Create ssl dir
+  file:
+    dest={{ apache_ssl_cert_dir }}
+    owner=root
+    group=root
+    mode=0600
+    state=directory
+
+- name: Create self-signed SSL cert
+  command: 
+    openssl req -new -nodes -x509 -subj "/C=FI/ST=SouthernFinland/L=Helsinki/O=IT/CN={{ domain }}" -days 3650 -keyout {{ apache_ssl_key }} -out {{ apache_ssl_crt }} -extensions v3_ca 
+    creates={{ apache_ssl_crt }}
+  notify: restart apache

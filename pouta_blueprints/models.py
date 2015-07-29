@@ -287,6 +287,27 @@ class Variable(db.Model):
 
         self.value = v
 
+    @classmethod
+    def sync_local_config_to_db(cls, config_cls, config, force_sync=False):
+        """
+        Synchronizes keys from given config object to current database
+        """
+
+        # Prevent over-writing old entries in DB by accident
+        if Variable.query.count() and not force_sync:
+            return
+
+        for k in vars(config_cls).keys():
+            if not k.startswith("_") and k.isupper():
+                variable = Variable.query.filter_by(key=k).first()
+                if not variable:
+                    variable = Variable(k, config[k])
+                    db.session.add(variable)
+                else:
+                    variable.key = k
+                    variable.value = config[k]
+        db.session.commit()
+
     @hybrid_property
     def value(self):
         if self.t == "str":
