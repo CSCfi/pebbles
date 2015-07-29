@@ -19,7 +19,7 @@
            creates=/etc/apache2/sites-enabled/{{ application_name }}-ssl.conf
 
 - name: Ensure that the application site redirect is enabled
-  command: a2ensite {{ application_name }
+  command: a2ensite {{ application_name }}
            creates=/etc/apache2/sites-enabled/{{ application_name }}.conf
 
 
@@ -41,11 +41,11 @@
 
 - name: Create ssl dir
   file:
-    dest: {{ apache_ssl_cert_dir }}
-    owner: root
-    group: root
-    mode: 0600
-    state: directory
+    dest={{ apache_ssl_cert_dir }}
+    owner=root
+    group=root
+    mode=0600
+    state=directory
 
 - name: Create self-signed SSL cert
   command: 

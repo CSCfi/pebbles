@@ -60,7 +60,7 @@ enable_shibboleth: 'False'
 shibboleth_entity_id: ''
 
 # apache
-apache_static_root: {{ nginx_static_root }}
+apache_static_root: "/webapps/{{ application_name }}/static"
 apache_log_file_root: "/webapps/{{ application_name }}/provisioning_logs"
 apache_access_log_file: "{{application_log_dir}}/apache_access.log"
 apache_error_log_file: "{{application_log_dir}}/apache_error.log"
