@@ -1,0 +1,46 @@
+<VirtualHost _default_:443>
+    ServerAdmin {{ server_admin_email }}
+    ServerName {{ domain }}
+
+    DocumentRoot {{ apache_static_root }}
+
+    ProxyPass /api http://localhost:8888/api
+    ProxyPassReverse /api http://localhost:8888/api
+
+    ProxyPass /login http://localhost:8888/login
+    ProxyPassReverse /login http://localhost:8888/login
+    <Directory {{ apache_static_root }}>
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    <Location /login>
+        AuthType shibboleth
+        ShibRequestSetting requireSession 1
+        ShibUseHeaders On
+        require shib-session
+    </Location>
+
+    ErrorLog {{ apache_error_log_file }}
+    CustomLog {{ apache_access_log_file }} combined
+
+    SSLEngine on
+
+    SSLCertificateFile  /etc/nginx/ssl/server.crt
+    SSLCertificateKeyFile   /etc/nginx/ssl/server.key
+
+    <FilesMatch "\.(cgi|shtml|phtml|php)$">
+            SSLOptions +StdEnvVars
+    </FilesMatch>
+    <Directory /usr/lib/cgi-bin>
+            SSLOptions +StdEnvVars
+    </Directory>
+
+    BrowserMatch "MSIE [2-6]" \
+            nokeepalive ssl-unclean-shutdown \
+            downgrade-1.0 force-response-1.0
+    BrowserMatch "MSIE [17-9]" ssl-unclean-shutdown
+</VirtualHost>
+
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet
