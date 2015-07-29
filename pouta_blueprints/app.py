@@ -3,7 +3,7 @@ import sys
 from flask import Flask
 from flask.ext.mail import Mail
 
-from pouta_blueprints.models import db
+from pouta_blueprints.models import db, Variable
 from pouta_blueprints.config import BaseConfig, TestConfig
 
 app = Flask(__name__)
@@ -29,3 +29,4 @@ mail.init_app(app)
 db.init_app(app)
 with app.app_context():
     db.create_all()
+    Variable.sync_local_config_to_db(BaseConfig, app.dynamic_config)

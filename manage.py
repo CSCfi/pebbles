@@ -66,19 +66,8 @@ def createworker():
 @manager.command
 def syncconf():
     """Synchronizes configuration from filesystem to database"""
-    config = BaseConfig()
-    Variable.query.delete()
-    for k in vars(BaseConfig).keys():
-        if not k.startswith("_") and k.isupper():
-            variable = Variable.query.filter_by(key=k).first()
-            if not variable:
-                variable = Variable(k, config[k])
-                db.session.add(variable)
-            else:
-                variable.key = k
-                variable.value = config[k]
-    db.session.commit()
+    Variable.sync_local_config_to_db(BaseConfig, BaseConfig(), force_sync=True)
 
 
 if __name__ == '__main__':
-        manager.run()
+    manager.run()
