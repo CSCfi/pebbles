@@ -1,5 +1,5 @@
 <VirtualHost _default_:443>
-    ServerAdmin {{ server_admin_email }}
+    ServerAdmin {{ apache_server_admin_email }}
     ServerName {{ domain }}
 
     DocumentRoot {{ apache_static_root }}
@@ -27,8 +27,8 @@
 
     SSLEngine on
 
-    SSLCertificateFile  /etc/nginx/ssl/server.crt
-    SSLCertificateKeyFile   /etc/nginx/ssl/server.key
+    SSLCertificateFile  {{ apache_ssl_crt }}
+    SSLCertificateKeyFile {{ apache_ssl_key }}
 
     <FilesMatch "\.(cgi|shtml|phtml|php)$">
             SSLOptions +StdEnvVars

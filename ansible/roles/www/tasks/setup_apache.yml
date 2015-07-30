@@ -14,13 +14,28 @@
   command: rm /etc/apache2/sites-enabled/000-default.conf
            removes=/etc/apache2/sites-enabled/000-default.conf
 
-- name: Ensure that the application site is enabled
+- name: Enable application site with SSL
   command: a2ensite {{ application_name }}-ssl
            creates=/etc/apache2/sites-enabled/{{ application_name }}-ssl.conf
 
-- name: Ensure that the application site redirect is enabled
+- name: Enable redirect from non-SSL to SSL
   command: a2ensite {{ application_name }}
            creates=/etc/apache2/sites-enabled/{{ application_name }}.conf
+
+- name: Install shib2 module for Apache
+  apt: pkg=libapache2-mod-shib2 state=present
+  when: enable_shibboleth == "True"
+
+- name: Enable required Apache modules
+  apache2_module: state=present name={{ item }}
+  with_items:
+      - proxy
+      - proxy_http
+      - ssl
+
+- name: Enable Apache Shibboleth module
+  apache2_module: state=present name=shib2
+  when: enable_shibboleth == "True"
 
 
 - name: Link static root for Apache

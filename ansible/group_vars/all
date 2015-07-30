@@ -57,7 +57,11 @@ nginx_ssl_key: "/etc/nginx/ssl/server.key"
 
 # shibboleth; requires apache instead of nginx
 enable_shibboleth: 'False'
-shibboleth_entity_id: ''
+shibboleth_entity_id: 'https://myserviceid.example.org'
+shibboleth_discovery_url: 'https://disco.example.org/shibboleth/WAYF'
+shibboleth_cert: 'example.crt'
+shibboleth_metadata_url: 'https://idp.exmaple.org/metadata.xml'
+shibboleth_support_contact: 'admin@example.org'
 
 # apache
 apache_static_root: "/webapps/{{ application_name }}/static"
@@ -67,7 +71,7 @@ apache_error_log_file: "{{application_log_dir}}/apache_error.log"
 apache_ssl_cert_dir: "/etc/apache2/ssl"
 apache_ssl_crt: "{{ apache_ssl_cert_dir }}/server.crt"
 apache_ssl_key: "{{ apache_ssl_cert_dir }}/server.key"
-
+apache_server_admin_email: "admin@example.org"
 
 # gunicorn
 gunicorn_num_workers: "{{ 2 * ansible_processor_vcpus }}"
