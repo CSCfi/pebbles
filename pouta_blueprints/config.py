@@ -72,6 +72,7 @@ class BaseConfig(object):
     WRITE_PROVISIONING_LOGS = True
     INSTANCE_NAME_PREFIX = 'pb-'
     DEFAULT_QUOTA = 1.0
+    ENABLE_SHIBBOLETH_LOGIN = False
 
     # enable access by []
     def __getitem__(self, item):

@@ -61,19 +61,15 @@ app.register_blueprint(sessions)
 app.register_blueprint(variables)
 app.register_blueprint(quota)
 
-sso = SSO(app=app)
+if app.config['ENABLE_SHIBBOLETH_LOGIN']:
+    sso = SSO(app=app)
 
-
-@sso.login_handler
-def login(user_info):
-    mail = user_info['mail']
-    user = User.query.filter_by(email=mail).first()
-    if not user:
-        user = add_user(mail, password=uuid.uuid4().hex)
-    user = User.query.filter_by(email=mail).first()
-    token = user.generate_auth_token(app.config['SECRET_KEY'])
-    return render_template(
-        'login.html',
-        token=token,
-        username=mail,
-        userid=user.id)
+    @sso.login_handler
+    def login(user_info):
+        mail = user_info['mail']
+        user = User.query.filter_by(email=mail).first()
+        if not user:
+            user = add_user(mail, password=uuid.uuid4().hex)
+        user = User.query.filter_by(email=mail).first()
+        token = user.generate_auth_token(app.config['SECRET_KEY'])
+        return render_template('login.html', token=token, username=mail, userid=user.id)
