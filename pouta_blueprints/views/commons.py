@@ -1,9 +1,10 @@
 from flask.ext.restful import fields
 from flask.ext.httpauth import HTTPBasicAuth
-from flask import g
-
-from pouta_blueprints.models import db, SystemToken, User
+from flask import g, render_template
+import logging
+from pouta_blueprints.models import db, ActivationToken, SystemToken, User
 from pouta_blueprints.server import app
+from pouta_blueprints.tasks import send_mails
 
 user_fields = {
     'id': fields.String,
@@ -44,4 +45,32 @@ def create_user(email, password, is_admin=False):
     user = User(email, password, is_admin=is_admin)
     db.session.add(user)
     db.session.commit()
+    return user
+
+
+def add_user(email, password=None, is_admin=False):
+    user = User.query.filter_by(email=email).first()
+    if user:
+        logging.warn("user %s already exists" % email)
+        return None
+
+    user = User(email, password, is_admin)
+    db.session.add(user)
+    db.session.commit()
+
+    token = ActivationToken(user)
+    db.session.add(token)
+    db.session.commit()
+
+    if not app.dynamic_config['SKIP_TASK_QUEUE'] and not app.dynamic_config['MAIL_SUPPRESS_SEND']:
+        send_mails.delay([(user.email, token.token)])
+    else:
+        logging.warn(
+            "email sending suppressed in config: SKIP_TASK_QUEUE:%s MAIL_SUPPRESS_SEND:%s" %
+            (app.dynamic_config['SKIP_TASK_QUEUE'], app.dynamic_config['MAIL_SUPPRESS_SEND'])
+        )
+        activation_url = '%s/#/activate/%s' % (app.config['BASE_URL'], token.token)
+        content = render_template('invitation.txt', activation_link=activation_url)
+        logging.warn(content)
+
     return user
