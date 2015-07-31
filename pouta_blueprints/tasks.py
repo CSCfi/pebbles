@@ -108,7 +108,8 @@ def send_mails(users):
         config = get_config()
         for email, token in users:
 
-            activation_url = '%s/#/activate/%s' % (config['BASE_URL'], token)
+            base_url = config['BASE_URL'].strip('/')
+            activation_url = '%s/#/activate/%s' % (base_url, token)
             msg = MIMEText(render_template('invitation.txt', activation_link=activation_url))
             msg['Subject'] = 'Resource cloud activation'
             msg['To'] = email
