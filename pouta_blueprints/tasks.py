@@ -1,13 +1,14 @@
 import base64
+from email.mime.text import MIMEText
 import json
 import logging
+import smtplib
 
 import requests
 from celery import Celery
 from celery.utils.log import get_task_logger
 from celery.schedules import crontab
 from flask import render_template
-from flask.ext.mail import Message
 
 from pouta_blueprints.app import app as flask_app
 
@@ -16,16 +17,15 @@ from pouta_blueprints.app import app as flask_app
 requests.packages.urllib3.disable_warnings()
 logging.getLogger("requests").setLevel(logging.WARNING)
 
-config = flask_app.dynamic_config
+flask_config = flask_app.dynamic_config
 
 
 def get_token():
-    config = flask_app.dynamic_config
-    auth_url = '%s/sessions' % config['INTERNAL_API_BASE_URL']
+    auth_url = '%s/sessions' % flask_config['INTERNAL_API_BASE_URL']
     auth_credentials = {'email': 'worker@pouta_blueprints',
-                        'password': config['SECRET_KEY']}
+                        'password': flask_config['SECRET_KEY']}
     try:
-        r = requests.post(auth_url, auth_credentials, verify=config['SSL_VERIFY'])
+        r = requests.post(auth_url, auth_credentials, verify=flask_config['SSL_VERIFY'])
         return json.loads(r.text).get('token')
     except:
         return None
@@ -35,8 +35,8 @@ def do_get(token, object_url):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
-    url = '%s/%s' % (config['INTERNAL_API_BASE_URL'], object_url)
-    resp = requests.get(url, headers=headers, verify=config['SSL_VERIFY'])
+    url = '%s/%s' % (flask_config['INTERNAL_API_BASE_URL'], object_url)
+    resp = requests.get(url, headers=headers, verify=flask_config['SSL_VERIFY'])
     return resp
 
 
@@ -44,8 +44,8 @@ def do_post(token, api_path, data):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
-    url = '%s/%s' % (config['INTERNAL_API_BASE_URL'], api_path)
-    resp = requests.post(url, data, headers=headers, verify=config['SSL_VERIFY'])
+    url = '%s/%s' % (flask_config['INTERNAL_API_BASE_URL'], api_path)
+    resp = requests.post(url, data, headers=headers, verify=flask_config['SSL_VERIFY'])
     return resp
 
 
@@ -61,7 +61,7 @@ def get_config():
 
 
 logger = get_task_logger(__name__)
-app = Celery('tasks', broker=config['MESSAGE_QUEUE_URI'], backend=config['MESSAGE_QUEUE_URI'])
+app = Celery('tasks', broker=flask_config['MESSAGE_QUEUE_URI'], backend=flask_config['MESSAGE_QUEUE_URI'])
 app.conf.CELERY_TASK_SERIALIZER = 'json'
 app.conf.CELERYBEAT_SCHEDULE = {
     'deprovision-expired-every-minute': {
@@ -107,23 +107,19 @@ def send_mails(users):
     with flask_app.test_request_context():
         config = get_config()
         for email, token in users:
-            msg = Message('Pouta Blueprints activation')
-            msg.recipients = [email]
-            msg.sender = config['SENDER_EMAIL']
-            activation_url = '%s/#/activate/%s' % (config['BASE_URL'], token)
-            msg.html = render_template('invitation.html',
-                                       activation_link=activation_url)
-            msg.body = render_template('invitation.txt',
-                                       activation_link=activation_url)
-            mail = flask_app.extensions.get('mail')
-            if not mail:
-                raise RuntimeError("mail extension is not configured")
 
-            logger.info(msg.body)
+            activation_url = '%s/#/activate/%s' % (config['BASE_URL'], token)
+            msg = MIMEText(render_template('invitation.txt', activation_link=activation_url))
+            msg['Subject'] = 'Resource cloud activation'
+            msg['To'] = email
+            msg['From'] = config['SENDER_EMAIL']
+            logger.info(msg)
             if not config['MAIL_SUPPRESS_SEND']:
-                # this is not strictly necessary, as flask_mail will also suppress sending if
-                # MAIL_SUPPRESS_SEND is set
-                mail.send(msg)
+                s = smtplib.SMTP(config['MAIL_SERVER'])
+                if config['MAIL_USE_TLS']:
+                    s.starttls()
+                s.sendmail(msg['From'], [msg['To']], msg.as_string())
+                s.quit()
             else:
                 logger.info('Mail sending suppressed in config')
 
@@ -176,9 +172,7 @@ def publish_plugins():
     token = get_token()
     mgr = get_provisioning_manager()
     for plugin in mgr.names():
-        payload = {}
-        payload['plugin'] = plugin
-
+        payload = {'plugin': plugin}
         res = mgr.map_method([plugin], 'get_configuration')
         if not len(res):
             logger.warn('plugin returned empty configuration: %s' % plugin)
