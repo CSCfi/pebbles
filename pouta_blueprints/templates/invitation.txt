@@ -5,5 +5,3 @@ Click following activation link to activate your account:
 {{ activation_link }}
 
 
-Regards,
-
