@@ -62,12 +62,8 @@ class BaseConfig(object):
     FAKE_PROVISIONING = False
     SENDER_EMAIL = 'sender@example.org'
     MAIL_SERVER = 'smtp.example.org'
-    MAIL_PORT = 25
-    MAIL_USERNAME = None
-    MAIL_PASSWORD = None
-    MAIL_USE_TLS = False
-    MAIL_USE_SSL = False
     MAIL_SUPPRESS_SEND = True
+    MAIL_USE_TLS = False
     SKIP_TASK_QUEUE = False
     WRITE_PROVISIONING_LOGS = True
     INSTANCE_NAME_PREFIX = 'pb-'
