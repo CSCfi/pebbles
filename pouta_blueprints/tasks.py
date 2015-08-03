@@ -61,6 +61,8 @@ def get_config():
 
 
 logger = get_task_logger(__name__)
+if flask_config['DEBUG']:
+    logger.setLevel('DEBUG')
 app = Celery('tasks', broker=flask_config['MESSAGE_QUEUE_URI'], backend=flask_config['MESSAGE_QUEUE_URI'])
 app.conf.CELERY_TASK_SERIALIZER = 'json'
 app.conf.CELERYBEAT_SCHEDULE = {
@@ -128,12 +130,22 @@ def send_mails(users):
 def get_provisioning_manager():
     from stevedore import dispatch
 
-    mgr = dispatch.NameDispatchExtensionManager(
-        namespace='pouta_blueprints.drivers.provisioning',
-        check_func=lambda x: True,
-        invoke_on_load=True,
-        invoke_args=(logger, get_config()),
-    )
+    config = get_config()
+    if config.get('PLUGIN_WHITELIST', ''):
+        plugin_whitelist = config.get('PLUGIN_WHITELIST').split()
+        mgr = dispatch.NameDispatchExtensionManager(
+            namespace='pouta_blueprints.drivers.provisioning',
+            check_func=lambda x: x.name in plugin_whitelist,
+            invoke_on_load=True,
+            invoke_args=(logger, get_config()),
+        )
+    else:
+        mgr = dispatch.NameDispatchExtensionManager(
+            namespace='pouta_blueprints.drivers.provisioning',
+            check_func=lambda x: True,
+            invoke_on_load=True,
+            invoke_args=(logger, get_config()),
+        )
 
     logger.debug('provisioning manager loaded, extensions: %s ' % mgr.names())
 
