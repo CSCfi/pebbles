@@ -21,6 +21,7 @@ class ProvisioningDriverBase(object):
 
     def get_m2m_credentials(self):
         if getattr(self, '_m2m_credentials', None):
+            self.logger.debug('m2m creds: found cached m2m creds')
             return self._m2m_credentials
 
         m2m_credential_store = self.config['M2M_CREDENTIAL_STORE']
@@ -34,6 +35,7 @@ class ProvisioningDriverBase(object):
                 else:
                     self.logger.warn('m2m creds: unknown key %s' % key)
 
+            return self._m2m_credentials
         except (IOError, ValueError) as e:
             self.logger.warn("Unable to read/parse M2M credentials from path %s %s" % (m2m_credential_store, e))
 
