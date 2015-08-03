@@ -61,6 +61,8 @@ def get_config():
 
 
 logger = get_task_logger(__name__)
+if flask_config['DEBUG']:
+    logger.setLevel('DEBUG')
 app = Celery('tasks', broker=flask_config['MESSAGE_QUEUE_URI'], backend=flask_config['MESSAGE_QUEUE_URI'])
 app.conf.CELERY_TASK_SERIALIZER = 'json'
 app.conf.CELERYBEAT_SCHEDULE = {
