@@ -224,4 +224,8 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         except:
             log_uploader.info("Unable to delete security group\n")
 
-        log_uploader.info("Deprovisioning ready\n")
+        write_log("Deprovisioning ready\n")
+
+    def do_housekeep(self, token):
+        pass
+        

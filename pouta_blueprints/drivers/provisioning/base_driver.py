@@ -92,6 +92,14 @@ class ProvisioningDriverBase(object):
             pbclient.do_instance_patch(instance_id, {'state': 'failed'})
             raise e
 
+    def housekeep(self, token):
+        self.logger.debug('housekeep')
+        self.do_housekeep(token)
+
+    @abc.abstractmethod
+    def do_housekeep(self, token):
+        pass
+
     @abc.abstractmethod
     def do_update_connectivity(self, token, instance_id):
         pass

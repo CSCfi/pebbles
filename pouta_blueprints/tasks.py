@@ -77,6 +77,11 @@ app.conf.CELERYBEAT_SCHEDULE = {
         'task': 'pouta_blueprints.tasks.publish_plugins',
         'schedule': crontab(minute='*/1'),
         'options': {'expires': 60},
+    },
+    'housekeeping-every-minute': {
+        'task': 'pouta_blueprints.tasks.housekeeping',
+        'schedule': crontab(minute='*/1'),
+        'options': {'expires': 60},
     }
 }
 app.conf.CELERY_TIMEZONE = 'UTC'
@@ -206,6 +211,14 @@ def publish_plugins():
             payload[key] = json.dumps(config.get(key, {}))
 
         do_post(token, 'plugins', payload)
+
+
+@app.task(name="pouta_blueprints.tasks.housekeeping")
+def publish_plugins():
+    token = get_token()
+    logger.info('provisioning plugins queried from worker')
+    mgr = get_provisioning_manager()
+    mgr.map_method(mgr.names(), 'housekeep', token)
 
 
 @app.task(name="pouta_blueprints.tasks.update_user_connectivity")
