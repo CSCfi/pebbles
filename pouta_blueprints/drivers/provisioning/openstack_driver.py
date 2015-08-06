@@ -1,12 +1,10 @@
 import time
 import json
-import logging
 
 from novaclient.v2 import client
 import novaclient
 
 from pouta_blueprints.drivers.provisioning import base_driver
-from pouta_blueprints.logger import PBInstanceLogHandler
 
 SLEEP_BETWEEN_POLLS = 3
 POLL_MAX_WAIT = 180
@@ -76,14 +74,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         blueprint_config = self.get_blueprint_description(token, instance['blueprint_id'])
         config = blueprint_config['config']
 
-        log_uploader = logging.getLogger('provisioning')
-        log_uploader.setLevel(logging.INFO)
-        log_uploader.addHandler(PBInstanceLogHandler(
-            self.config['INTERNAL_API_BASE_URL'],
-            instance_id,
-            token,
-            'provisioning',
-            ssl_verify=self.config['SSL_VERIFY']))
+        log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
         log_uploader.info("Provisioning OpenStack instance (%s)\n" % instance_id)
 
         # fetch user public key
@@ -186,47 +177,47 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         log_uploader.info("Provisioning complete\n")
 
     def do_deprovision(self, token, instance_id):
-        write_log = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
-        write_log("Deprovisioning instance %s\n" % instance_id)
+        log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
+        log_uploader.info("Deprovisioning instance %s\n" % instance_id)
         instance = self.get_instance_description(token, instance_id)
         instance_data = instance['instance_data']
         instance_name = instance['name']
         nc = self.get_openstack_nova_client()
 
-        write_log("Destroying server instance . . ")
+        log_uploader.info("Destroying server instance . . ")
         try:
             nc.servers.delete(instance_data['server_id'])
         except:
-            write_log("Unable to delete server\n")
+            log_uploader.info("Unable to delete server\n")
 
         delete_ts = time.time()
         while True:
             try:
                 nc.servers.get(instance_data['server_id'])
-                write_log(" . ")
+                log_uploader.info(" . ")
                 time.sleep(SLEEP_BETWEEN_POLLS)
             except:
-                write_log("Server instance deleted\n")
+                log_uploader.info("Server instance deleted\n")
                 break
 
             if time.time() - delete_ts > POLL_MAX_WAIT:
-                write_log("Server instance still running, giving up\n")
+                log_uploader.info("Server instance still running, giving up\n")
                 break
 
         if instance_data.get('allocated_from_pool'):
-            write_log("Releasing public IP\n")
+            log_uploader.info("Releasing public IP\n")
             try:
                 nc.floating_ips.delete(nc.floating_ips.find(ip=instance_data['floating_ip']).id)
             except:
-                write_log("Unable to release public IP\n")
+                log_uploader.info("Unable to release public IP\n")
         else:
-            write_log("Not releasing public IP\n")
+            log_uploader.info("Not releasing public IP\n")
 
-        write_log("Removing security group\n")
+        log_uploader.info("Removing security group\n")
         try:
             sg = nc.security_groups.find(name=instance_name)
             nc.security_groups.delete(sg.id)
         except:
-            write_log("Unable to delete security group\n")
+            log_uploader.info("Unable to delete security group\n")
 
-        write_log("Deprovisioning ready\n")
+        log_uploader.info("Deprovisioning ready\n")

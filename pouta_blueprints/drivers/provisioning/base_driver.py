@@ -5,10 +5,13 @@ import json
 import subprocess
 import time
 import os
+import logging
 
 import abc
 import six
 import requests
+
+from pouta_blueprints.logger import PBInstanceLogHandler
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -120,8 +123,14 @@ class ProvisioningDriverBase(object):
         return resp
 
     def create_prov_log_uploader(self, token, instance_id, log_type):
-        def uploader(text):
-            self.upload_provisioning_log(token, instance_id, log_type, text)
+        uploader = logging.getLogger('provisioning')
+        uploader.setLevel(logging.INFO)
+        uploader.addHandler(PBInstanceLogHandler(
+            self.config['INTERNAL_API_BASE_URL'],
+            instance_id,
+            token,
+            log_type,
+            ssl_verify=self.config['SSL_VERIFY']))
 
         return uploader
 
