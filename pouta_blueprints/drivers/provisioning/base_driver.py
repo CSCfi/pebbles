@@ -5,10 +5,13 @@ import json
 import subprocess
 import time
 import os
+import logging
 
 import abc
 import six
 import requests
+
+from pouta_blueprints.logger import PBInstanceLogHandler
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -126,8 +129,14 @@ class ProvisioningDriverBase(object):
         return resp
 
     def create_prov_log_uploader(self, token, instance_id, log_type):
-        def uploader(text):
-            self.upload_provisioning_log(token, instance_id, log_type, text)
+        uploader = logging.getLogger('provisioning')
+        uploader.setLevel(logging.INFO)
+        uploader.addHandler(PBInstanceLogHandler(
+            self.config['INTERNAL_API_BASE_URL'],
+            instance_id,
+            token,
+            log_type,
+            ssl_verify=self.config['SSL_VERIFY']))
 
         return uploader
 
@@ -197,12 +206,12 @@ class ProvisioningDriverBase(object):
 
                 if log_uploader and (last_upload < time.time() - 10 or len(log_buffer) > 100):
                     if len(log_buffer) > 0:
-                        log_uploader(''.join(log_buffer))
+                        log_uploader.info(''.join(log_buffer))
                         log_buffer = []
                         last_upload = time.time()
 
         if log_uploader and len(log_buffer) > 0:
-            log_uploader(''.join(log_buffer))
+            log_uploader.info(''.join(log_buffer))
 
     def create_openstack_env(self):
         m2m_creds = self.get_m2m_credentials()
