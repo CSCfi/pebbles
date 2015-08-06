@@ -5,6 +5,7 @@ from novaclient.v2 import client
 import novaclient
 
 from pouta_blueprints.drivers.provisioning import base_driver
+from pouta_blueprints.client import PBClient
 
 SLEEP_BETWEEN_POLLS = 3
 POLL_MAX_WAIT = 180
@@ -40,7 +41,8 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         return config
 
     def do_update_connectivity(self, token, instance_id):
-        instance = self.get_instance_description(token, instance_id)
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        instance = pbclient.get_instance_description(instance_id)
         instance_data = instance['instance_data']
         instance_name = instance['name']
 
@@ -65,24 +67,26 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
 
         prefix = self.config['INSTANCE_NAME_PREFIX']
 
-        instance = self.get_instance_description(token, instance_id)
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        instance = pbclient.get_instance_description(instance_id)
+
         self.logger.debug(instance['user']['id'])
         instance_name = instance['name']
         instance_user = instance['user']['id']
 
         # fetch config
-        blueprint_config = self.get_blueprint_description(token, instance['blueprint_id'])
+        blueprint_config = pbclient.get_blueprint_description(instance['blueprint_id'])
         config = blueprint_config['config']
 
         log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
         log_uploader.info("Provisioning OpenStack instance (%s)\n" % instance_id)
 
         # fetch user public key
-        key_data = self.get_user_key_data(token, instance_user).json()
+        key_data = pbclient.get_user_key_data(instance_user).json()
         if not key_data:
             error = 'user\'s public key is missing'
             error_body = {'state': 'failed', 'error_msg': error}
-            self.do_instance_patch(token, instance_id, error_body)
+            pbclient.do_instance_patch(instance_id, error_body)
             self.logger.debug(error)
             raise RuntimeError(error)
 
@@ -170,8 +174,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
             ]
         }
         log_uploader.info("Publishing server data\n")
-        self.do_instance_patch(
-            token,
+        pbclient.do_instance_patch(
             instance_id,
             {'instance_data': json.dumps(instance_data), 'public_ip': ip.ip})
         log_uploader.info("Provisioning complete\n")
@@ -179,7 +182,8 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
     def do_deprovision(self, token, instance_id):
         log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
         log_uploader.info("Deprovisioning instance %s\n" % instance_id)
-        instance = self.get_instance_description(token, instance_id)
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        instance = pbclient.get_instance_description(instance_id)
         instance_data = instance['instance_data']
         instance_name = instance['name']
         nc = self.get_openstack_nova_client()

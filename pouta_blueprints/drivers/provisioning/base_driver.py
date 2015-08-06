@@ -1,4 +1,3 @@
-import base64
 import select
 import shlex
 import json
@@ -9,9 +8,9 @@ import logging
 
 import abc
 import six
-import requests
 
 from pouta_blueprints.logger import PBInstanceLogHandler
+from pouta_blueprints.client import PBClient
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -58,31 +57,33 @@ class ProvisioningDriverBase(object):
 
     def provision(self, token, instance_id):
         self.logger.debug('starting provisioning')
-        self.do_instance_patch(token, instance_id, {'state': 'provisioning'})
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        pbclient.do_instance_patch(instance_id, {'state': 'provisioning'})
 
         try:
             self.logger.debug('calling subclass do_provision')
             self.do_provision(token, instance_id)
 
             self.logger.debug('finishing provisioning')
-            self.do_instance_patch(token, instance_id, {'state': 'running'})
+            pbclient.do_instance_patch(instance_id, {'state': 'running'})
         except Exception as e:
             self.logger.exception('do_provision raised %s' % e)
-            self.do_instance_patch(token, instance_id, {'state': 'failed'})
+            pbclient.do_instance_patch(instance_id, {'state': 'failed'})
             raise e
 
     def deprovision(self, token, instance_id):
         self.logger.debug('starting deprovisioning')
-        self.do_instance_patch(token, instance_id, {'state': 'deprovisioning'})
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        pbclient.do_instance_patch(instance_id, {'state': 'deprovisioning'})
         try:
             self.logger.debug('calling subclass do_deprovision')
             self.do_deprovision(token, instance_id)
 
             self.logger.debug('finishing deprovisioning')
-            self.do_instance_patch(token, instance_id, {'state': 'deleted'})
+            pbclient.do_instance_patch(instance_id, {'state': 'deleted'})
         except Exception as e:
             self.logger.exception('do_deprovision raised %s' % e)
-            self.do_instance_patch(token, instance_id, {'state': 'failed'})
+            pbclient.do_instance_patch(instance_id, {'state': 'failed'})
             raise e
 
     @abc.abstractmethod
@@ -97,31 +98,6 @@ class ProvisioningDriverBase(object):
     def do_deprovision(self, token, instance_id):
         pass
 
-    def do_instance_patch(self, token, instance_id, payload):
-        auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
-        headers = {'Content-type': 'application/x-www-form-urlencoded',
-                   'Accept': 'text/plain',
-                   'Authorization': 'Basic %s' % auth}
-        url = '%s/instances/%s' % (self.config['INTERNAL_API_BASE_URL'], instance_id)
-
-        self.logger.debug('do_instance_patch() url: %s ssl_verify: %s' % (url, self.config['SSL_VERIFY']))
-        resp = requests.patch(url, data=payload, headers=headers,
-                              verify=self.config['SSL_VERIFY'])
-        self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
-        return resp
-
-    def upload_provisioning_log(self, token, instance_id, log_type, log_text):
-        payload = {'text': log_text, 'type': log_type}
-        auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
-        headers = {'Content-type': 'application/x-www-form-urlencoded',
-                   'Accept': 'text/plain',
-                   'Authorization': 'Basic %s' % auth}
-        url = '%s/instances/%s/logs' % (self.config['INTERNAL_API_BASE_URL'], instance_id)
-        resp = requests.patch(url, data=payload, headers=headers,
-                              verify=self.config['SSL_VERIFY'])
-        self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
-        return resp
-
     def create_prov_log_uploader(self, token, instance_id, log_type):
         uploader = logging.getLogger('provisioning')
         uploader.setLevel(logging.INFO)
@@ -133,31 +109,6 @@ class ProvisioningDriverBase(object):
             ssl_verify=self.config['SSL_VERIFY']))
 
         return uploader
-
-    def do_get(self, token, object_url):
-        auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
-        headers = {'Accept': 'text/plain',
-                   'Authorization': 'Basic %s' % auth}
-
-        url = '%s/%s' % (self.config['INTERNAL_API_BASE_URL'], object_url)
-        resp = requests.get(url, headers=headers, verify=self.config['SSL_VERIFY'])
-        self.logger.debug('got response %s %s' % (resp.status_code, resp.reason))
-        return resp
-
-    def get_instance_description(self, token, instance_id):
-        resp = self.do_get(token, 'instances/%s' % instance_id)
-        if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for provisioned blueprints, %s' % resp.reason)
-        return resp.json()
-
-    def get_blueprint_description(self, token, blueprint_id):
-        resp = self.do_get(token, 'blueprints/%s' % blueprint_id)
-        if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for provisioned blueprints, %s' % resp.reason)
-        return resp.json()
-
-    def get_user_key_data(self, token, user_id):
-        return self.do_get(token, 'users/%s/keypairs' % user_id)
 
     def run_logged_process(self, cmd, cwd='.', shell=False, env=None, log_uploader=None):
         if shell:

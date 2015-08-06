@@ -8,6 +8,7 @@ import jinja2
 import stat
 
 from pouta_blueprints.drivers.provisioning import base_driver
+from pouta_blueprints.client import PBClient
 
 
 class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
@@ -56,7 +57,9 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         return config
 
     def do_update_connectivity(self, token, instance_id):
-        instance = self.get_instance_description(token, instance_id)
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+
+        instance = pbclient.get_instance_description(instance_id)
         cluster_name = instance['name']
 
         instance_dir = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], cluster_name)
@@ -70,7 +73,8 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_openstack_env(), log_uploader=uploader)
 
     def do_provision(self, token, instance_id):
-        instance = self.get_instance_description(token, instance_id)
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        instance = pbclient.get_instance_description(instance_id)
         cluster_name = instance['name']
 
         prefix = self.config['INSTANCE_NAME_PREFIX']
@@ -81,7 +85,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         os.makedirs(instance_dir)
 
         # generate pvc config for this cluster
-        blueprint_config = self.get_blueprint_description(token, instance['blueprint_id'])['config']
+        blueprint_config = pbclient.get_blueprint_description(instance['blueprint_id'])['config']
 
         self.logger.debug('Blueprint config: %s' % blueprint_config)
 
@@ -98,10 +102,10 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
             num_nodes = 2
 
         # fetch user public key and save it
-        key_data = self.get_user_key_data(token, instance['user']['id']).json()
+        key_data = pbclient.get_user_key_data(instance['user']['id']).json()
         user_key_file = '%s/userkey.pub' % instance_dir
         if not key_data:
-            self.do_instance_patch(token, instance_id, {'state': 'failed'})
+            pbclient.do_instance_patch(instance_id, {'state': 'failed'})
             raise RuntimeError("User's public key missing")
 
         with open(user_key_file, 'w') as kf:
@@ -144,8 +148,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
                     {'name': 'SSH', 'access': 'ssh cloud-user@%s' % public_ip},
                 ]
             }
-            self.do_instance_patch(
-                token,
+            pbclient.do_instance_patch(
                 instance_id,
                 {'public_ip': public_ip, 'instance_data': json.dumps(instance_data)}
             )
@@ -156,7 +159,9 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         self.run_logged_process(cmd=cmd, cwd=instance_dir, env=self.create_openstack_env(), log_uploader=uploader)
 
     def do_deprovision(self, token, instance_id):
-        instance = self.get_instance_description(token, instance_id)
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+
+        instance = pbclient.get_instance_description(instance_id)
         cluster_name = instance['name']
 
         prefix = self.config['INSTANCE_NAME_PREFIX']

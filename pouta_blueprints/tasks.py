@@ -11,7 +11,7 @@ from celery.schedules import crontab
 from flask import render_template
 
 from pouta_blueprints.app import app as flask_app
-
+from pouta_blueprints.client import PBClient
 
 # tune requests to give less spam in development environment with self signed certificate
 requests.packages.urllib3.disable_warnings()
@@ -57,7 +57,9 @@ def get_config():
     cannot be modified during the runtime.
     """
     token = get_token()
-    return dict([(x['key'], x['value']) for x in do_get(token, 'variables').json()])
+    pbclient = PBClient(token, flask_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+
+    return dict([(x['key'], x['value']) for x in pbclient.do_get('variables').json()])
 
 
 logger = get_task_logger(__name__)
@@ -81,7 +83,8 @@ app.conf.CELERY_TIMEZONE = 'UTC'
 @app.task(name="pouta_blueprints.tasks.deprovision_expired")
 def deprovision_expired():
     token = get_token()
-    instances = get_instances(token)
+    pbclient = PBClient(token, flask_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+    instances = pbclient.get_instances()
 
     for instance in instances:
         logger.debug('checking instance for expiration %s' % instance)
@@ -141,9 +144,12 @@ def get_provisioning_manager():
 
 
 def get_provisioning_type(token, instance_id):
-    blueprint = get_instance_parent_data(token, instance_id)
+    config = get_config()
+    pbclient = PBClient(token, flask_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+
+    blueprint = pbclient.get_instance_parent_data(instance_id)
     plugin_id = blueprint['plugin']
-    return get_plugin_data(token, plugin_id)['name']
+    return pbclient.get_plugin_data(plugin_id)['name']
 
 
 def run_provisioning_impl(token, instance_id, method):
@@ -198,42 +204,3 @@ def update_user_connectivity(instance_id):
     plugin = get_provisioning_type(token, instance_id)
     mgr.map_method([plugin], 'update_connectivity', token, instance_id)
     logger.info('update connectivity for instance %s ready' % instance_id)
-
-
-def get_instances(token):
-    resp = do_get(token, 'instances')
-    if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for instances, %s' % resp.reason)
-    return resp.json()
-
-
-def get_instance(token, instance_id):
-    resp = do_get(token, 'instances/%s' % instance_id)
-    if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for instances %s, %s' % (instance_id, resp.reason))
-    return resp.json()
-
-
-def get_blueprint_description(token, blueprint_id):
-    resp = do_get(token, 'blueprints/%s' % blueprint_id)
-    if resp.status_code != 200:
-        raise RuntimeError('Cannot fetch data for blueprint %s, %s' % (blueprint_id, resp.reason))
-    return resp.json()
-
-
-def get_instance_parent_data(token, instance_id):
-    blueprint_id = get_instance(token, instance_id)['blueprint_id']
-
-    resp = do_get(token, 'blueprints/%s' % blueprint_id)
-    if resp.status_code != 200:
-        raise RuntimeError('Error loading blueprint data: %s, %s' % (blueprint_id, resp.reason))
-
-    return resp.json()
-
-
-def get_plugin_data(token, plugin_id):
-    resp = do_get(token, 'plugins/%s' % plugin_id)
-    if resp.status_code != 200:
-        raise RuntimeError('Error loading plugin data: %s, %s' % (plugin_id, resp.reason))
-
-    return resp.json()
