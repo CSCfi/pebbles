@@ -200,12 +200,12 @@ class ProvisioningDriverBase(object):
 
                 if log_uploader and (last_upload < time.time() - 10 or len(log_buffer) > 100):
                     if len(log_buffer) > 0:
-                        log_uploader(''.join(log_buffer))
+                        log_uploader.info(''.join(log_buffer))
                         log_buffer = []
                         last_upload = time.time()
 
         if log_uploader and len(log_buffer) > 0:
-            log_uploader(''.join(log_buffer))
+            log_uploader.info(''.join(log_buffer))
 
     def create_openstack_env(self):
         if not getattr(self, 'm2m_credentials', None):
