@@ -19,3 +19,4 @@ Jinja2==2.7.3
 names==0.3.0
 stevedore==1.2.0
 coverage==3.7.1
+taskflow==1.18.0
