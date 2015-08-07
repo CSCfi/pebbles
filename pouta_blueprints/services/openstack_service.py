@@ -134,4 +134,3 @@ class OpenStackService(object):
             logger.error("Flow failed")
             logger.error(e)
             return {'error': 'flow failed'}
-
