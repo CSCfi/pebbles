@@ -128,8 +128,7 @@ class OpenStackService(object):
                 image_name=image_name,
                 flavor_name=flavor_name,
                 display_name=display_name,
-                key_name=key_name,
-                ))
+                key_name=key_name))
         except Exception as e:
             logger.error("Flow failed")
             logger.error(e)
