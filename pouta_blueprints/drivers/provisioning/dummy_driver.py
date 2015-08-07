@@ -4,6 +4,7 @@ from random import randint
 import os
 
 from pouta_blueprints.drivers.provisioning import base_driver
+from pouta_blueprints.client import PBClient
 
 
 class DummyDriver(base_driver.ProvisioningDriverBase):
@@ -16,7 +17,9 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         pass
 
     def do_provision(self, token, instance_id):
-        instance = self.get_instance_description(token, instance_id)
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+
+        instance = pbclient.get_instance_description(instance_id)
         cluster_name = instance['name']
 
         instance_dir = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], cluster_name)
@@ -28,11 +31,11 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         # config = self.get_blueprint_description(token, instance['blueprint_id'])
 
         # fetch user public key and save it
-        key_data = self.get_user_key_data(token, instance['user']['id']).json()
+        key_data = pbclient.get_user_key_data(instance['user']['id']).json()
         user_key_file = '%s/userkey.pub' % instance_dir
         if not key_data:
             error_body = {'state': 'failed', 'error_msg': 'user\'s public key is missing'}
-            self.do_instance_patch(token, instance_id, error_body)
+            pbclient.do_instance_patch(instance_id, error_body)
             raise RuntimeError("User's public key missing")
 
         with open(user_key_file, 'w') as kf:
@@ -50,8 +53,7 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
                 {'name': 'Some Web Interface', 'access': 'http://%s/service-x' % public_ip},
             ]
         }
-        self.do_instance_patch(
-            token,
+        pbclient.do_instance_patch(
             instance_id,
             {
                 'public_ip': public_ip, 'instance_data': json.dumps(instance_data)
@@ -59,7 +61,9 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         )
 
     def do_deprovision(self, token, instance_id):
-        instance = self.get_instance_description(token, instance_id)
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+
+        instance = pbclient.get_instance_description(instance_id)
         cluster_name = instance['name']
 
         instance_dir = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], cluster_name)
