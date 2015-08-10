@@ -1,0 +1,34 @@
+- name: Install common tools
+  yum: name={{ item }} state=present
+  with_items:
+    - dstat
+    - lsof
+    - bash-completion
+    - time
+    - tmux
+  when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"
+
+- name: Install docker
+  yum: name=docker state=present
+  when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"
+
+- name: Copy the server key to the host
+  copy: src={{ runtime_path }}/server_key.pem dest=/etc/docker/server_key.pem
+
+- name: Copy the server cert to the host
+  copy: src={{ runtime_path }}/server_cert.pem dest=/etc/docker/server_cert.pem
+
+- name: Copy the CA certificate to the host
+  copy: src={{ runtime_path }}/ca_cert.pem dest=/etc/docker/ca_cert.pem
+
+- name: Upload custom docker configuration
+  template:
+    src=etc/sysconfig/docker.j2
+    dest=/etc/sysconfig/docker
+    backup=True
+  notify: restart docker
+  when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"
+
+- name: Enable and start docker service
+  service: name=docker state=started enabled=yes
+  when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"

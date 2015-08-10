@@ -1,5 +1,6 @@
 ---
 
+- include: setup_ca.yml
 - include: install_provisioning_drivers.yml
 - include: setup_supervisor_config.yml
 - include: setup_pvc.yml
