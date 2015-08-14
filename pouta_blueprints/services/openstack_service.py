@@ -131,11 +131,11 @@ class AllocateIPForInstance(task.Task):
         logger.debug("Allocate IP for server %s" % server_id)
 
         nc = get_openstack_nova_client(config)
-        retries=0
+        retries = 0
         while nc.servers.get(server_id).status is "BUILDING" or not nc.servers.get(server_id).networks:
             time.sleep(5)
-            retries+=1
-            if retries>30:
+            retries += 1
+            if retries > 30:
                 raise RuntimeError('Server %s is stuck in building' % server_id)
 
         ips = nc.floating_ips.findall(instance_id=None)
@@ -218,9 +218,8 @@ class OpenStackService(object):
         except:
             pass
 
-        with open (key_file, "r") as pkfile:
-            public_key=pkfile.read().replace('\n', '')
+        with open(key_file, "r") as pkfile:
+            public_key = pkfile.read().replace('\n', '')
 
         nc.keypairs.create(key_name, public_key)
         logger.info('created key %s' % key_name)
-
