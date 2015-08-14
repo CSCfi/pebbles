@@ -1,29 +1,18 @@
 import json
 import time
 import uuid
-import novaclient
+from docker.tls import TLSConfig
 import os
-from novaclient.v2 import client
+from pouta_blueprints.client import PBClient
 from pouta_blueprints.drivers.provisioning import base_driver
 import docker
+from pouta_blueprints.services.openstack_service import OpenStackService
 
 SLEEP_BETWEEN_POLLS = 3
 POLL_MAX_WAIT = 180
 
 
 class DockerDriver(base_driver.ProvisioningDriverBase):
-    def get_openstack_nova_client(self):
-        openstack_env = self.create_openstack_env()
-        if not openstack_env:
-            return None
-
-        os_username = openstack_env['OS_USERNAME']
-        os_password = openstack_env['OS_PASSWORD']
-        os_tenant_name = openstack_env['OS_TENANT_NAME']
-        os_auth_url = openstack_env['OS_AUTH_URL']
-
-        return client.Client(os_username, os_password, os_tenant_name, os_auth_url, service_type="compute")
-
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.docker_driver_config import CONFIG
 
@@ -36,13 +25,22 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     def do_provision(self, token, instance_id):
         self.logger.debug("do_provision %s" % instance_id)
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
-        instance = self.get_instance_description(token, instance_id)
+        instance = pbclient.get_instance_description(instance_id)
 
         dh = self._select_host()
         self.logger.debug('selected host %s' % dh)
 
-        dc = docker.Client(dh['docker_url'])
+        # TODO: fix certificate/runtime path
+        # TODO: figure out why server verification does not work (crls?)
+        tls_config = TLSConfig(
+            client_cert=(
+                '/webapps/pouta_blueprints/run/client_cert.pem', '/webapps/pouta_blueprints/run/client_key.pem'),
+            #            ca_cert='/webapps/pouta_blueprints/run/ca_cert.pem',
+            verify=False,
+        )
+        dc = docker.Client(base_url=dh['docker_url'], tls=tls_config)
 
         container_name = instance['name']
 
@@ -71,8 +69,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'docker_url': dh['docker_url']
         }
 
-        self.do_instance_patch(
-            token,
+        pbclient.do_instance_patch(
             instance_id,
             {'public_ip': public_ip, 'instance_data': json.dumps(instance_data)}
         )
@@ -82,16 +79,21 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def do_deprovision(self, token, instance_id):
         self.logger.debug("do_deprovision %s" % instance_id)
 
-        instance = self.get_instance_description(token, instance_id)
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        instance = pbclient.get_instance_description(instance_id)
+
         docker_url = instance['instance_data']['docker_url']
 
-        dc = docker.Client(docker_url)
+        tls_config = TLSConfig(
+            client_cert=(
+                '/webapps/pouta_blueprints/run/client_cert.pem', '/webapps/pouta_blueprints/run/client_key.pem'),
+            verify=False,
+        )
+        dc = docker.Client(docker_url, tls=tls_config)
 
         container_name = instance['name']
 
         dc.remove_container(container_name, force=True)
-
-        self._check_hosts()
 
         self.logger.debug("do_deprovision done for %s" % instance_id)
 
@@ -103,7 +105,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         # if there are no active hosts, spawn one
         if len(active_hosts) == 0:
-            new_host = self._spawn_host(token)
+            new_host = self._spawn_host()
             self.logger.info('do_housekeep() spawned a new host %s' % new_host['id'])
             hosts.append(new_host)
             self._save_hosts(hosts)
@@ -111,7 +113,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         # mark old ones inactive
         for host in active_hosts:
-            if host['spawn_ts'] < time.time() - 300:
+            if host['spawn_ts'] < time.time() - 36000:
                 self.logger.info('do_housekeep() making host %s inactive' % host['id'])
                 host['is_active'] = False
 
@@ -154,93 +156,56 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         with open(data_file, 'w') as df:
             json.dump(hosts, df)
 
-    def _spawn_host(self, token):
+    def _spawn_host(self):
+        return self._spawn_host_os_service()
+
+    def _spawn_host_dummy(self):
         self.logger.debug("_spawn_host")
         return {
             'id': uuid.uuid4().hex,
             'provider_id': uuid.uuid4().hex,
-            'docker_url': 'tcp://localhost:12375',
+            'docker_url': 'https://192.168.44.152:2376',
             'public_ip': '86.50.169.98',
             'spawn_ts': int(time.time()),
             'is_active': True,
             'num_instances': 0,
         }
 
-    def _spawn_host_os(self, token):
-        self.logger.debug("_spawn_host_os")
+    def _spawn_host_os_service(self):
+        self.logger.debug("_spawn_host_os_service")
 
-        instance_name = uuid.uuid4().hex
-
-        nc = self.get_openstack_nova_client()
         config = {
-            'image': 'Ubuntu-14.04',
-            'flavor': 'small',
+            'image': 'CentOS-7.0',
+            'flavor': 'mini',
+            'key': 'pb_dockerdriver',
             '': '',
         }
+        instance_name = 'pb_dd_%s' % uuid.uuid4().hex
         image_name = config['image']
-
-        try:
-            image = nc.images.find(name=image_name)
-        except novaclient.exceptions.NotFound:
-            error = 'requested image %s not found' % image_name
-            self.logger.warning(error)
-            raise RuntimeError(error)
-
         flavor_name = config['flavor']
-        try:
-            flavor = nc.flavors.find(name=flavor_name)
-        except novaclient.exceptions.NotFound:
-            error = 'requested flavor %s not found' % flavor_name
-            self.logger.warning(error)
-            raise RuntimeError(error)
+        key_name = config['key']
 
-        prefix = self.config['INSTANCE_NAME_PREFIX']
-        key_name = '%s%s' % (prefix, 'docker_driver')
-        try:
-            private_key = nc.keypairs.create(key_name)
-            with open('%s/%s' % (self.config['INSTANCE_DATA_DIR'], key_name)) as pk_file:
-                pk_file.write(private_key)
-        except:
-            self.logger.debug('conflict: public key already exists')
-            self.logger.debug('conflict: using existing key (%s)' % key_name)
+        oss = OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
 
-        security_group_name = 'default'
+        # make sure the our key is in openstack
+        oss.upload_key(key_name, '/home/pouta_blueprints/.ssh/id_rsa.pub')
 
-        server = nc.servers.create(
-            instance_name,
-            image,
-            flavor,
+        # run actual provisioning
+        res = oss.provision_instance(
+            display_name=instance_name,
+            image_name=image_name,
+            flavor_name=flavor_name,
             key_name=key_name,
-            security_groups=[security_group_name],
-            userdata=config.get('userdata'))
+            master_sg_name='pb_server'
+        )
 
-        while nc.servers.get(server.id).status is "BUILDING" or not nc.servers.get(server.id).networks:
-            self.logger.debug("waiting for server to come up")
-            time.sleep(SLEEP_BETWEEN_POLLS)
-
-        ips = nc.floating_ips.findall(instance_id=None)
-        allocated_from_pool = False
-        if not ips:
-            self.logger.info("No allocated free IPs left, trying to allocate one\n")
-            try:
-                ip = nc.floating_ips.create(pool="public")
-                allocated_from_pool = True
-            except novaclient.exceptions.ClientException as e:
-                self.logger.info("Cannot allocate IP, quota exceeded?\n")
-                raise e
-        else:
-            ip = ips[0]
-
-        self.logger.info("Got IP %s\n" % ip.ip)
-
-        server.add_floating_ip(ip)
+        self.logger.debug("_spawn_host_os_service: spawned %s" % res)
 
         return {
             'id': instance_name,
-            'provider_id': server.id,
-            'docker_url': 'tcp://localhost:12375',
-            'public_ip': ip.ip,
-            'public_ip_allocated_from_pool': allocated_from_pool,
+            'provider_id': res['server_id'],
+            'docker_url': 'https://%s:2376' % res['ip']['private_ip'],
+            'public_ip': res['ip']['public_ip'],
             'spawn_ts': int(time.time()),
             'is_active': True,
             'num_instances': 0,
@@ -248,7 +213,12 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     def _remove_host(self, host):
         self.logger.debug("_remove_host")
-        self.logger.warning("_remove_host not implemented")
+        self._remove_host_os_service(host)
+
+    def _remove_host_os_service(self, host):
+        self.logger.debug("_remove_host_os_service")
+        oss = OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
+        oss.deprovision_instance(host['provider_id'])
 
     def _check_host(self, host):
         self.logger.debug("_check_host %s" % host)
