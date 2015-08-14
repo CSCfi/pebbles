@@ -10,21 +10,28 @@
 ## Todo:
 
 ### Essentials
-- docker host spawning (OpenStack driver to the rescue?)
+- add periodical plugin calls to tasks for housekeeping *DONE* 
+- setup openstack ssh-key *DONE*
+- docker host spawning *DONE*
     - TBD: Where is host config stored?
     - TBD: Is there a host config per blueprint? This would mean a host pool per blueprint.
-- docker host configuration with ansible
-- setup openstack ssh-key (per host?)
-- set up secure PB to docker host comms
+- docker host configuration ansible playbooks *DONE*
+- security group configuration *DONE*
+- trigger automatic host configuration
+- set up secure PB to docker host comms *DONE*
     - https://docs.docker.com/articles/https/
-- create a resource pool
+- create a resource pool *DONE*
+- add more states for hosts in pool
+    - spawned
+    - prepared
+    - active
+    - inactive
+    - removed
 - implement host selection
 - periodical tasks
-    - implement spawn host
-    - implement remove host
+    - implement spawn host *DONE*
+    - implement remove host *DONE*
 
-### Done
-- add periodical plugin calls to tasks for housekeeping 
 
 
 ### Optional features
