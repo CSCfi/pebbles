@@ -15,6 +15,9 @@
 OPTIONS='--selinux-enabled -H tcp://0.0.0.0:2376 --tlsverify \
 --tlscacert=/etc/docker/ca_cert.pem --tlscert=/etc/docker/server_cert.pem --tlskey=/etc/docker/server_key.pem'
 
+# turn on debugging
+# OPTIONS="--debug=true $OPTIONS"
+
 DOCKER_CERT_PATH=/etc/docker
 
 # If you want to add your own registry to be used for docker search and docker
