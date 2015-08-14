@@ -36,6 +36,6 @@ CONFIG = {
     ],
     'model': {
         'name': 'docker-machine',
-        'docker_image': 'jupyter/demo',
+        'docker_image': 'jupyter/minimal',
     }
 }
