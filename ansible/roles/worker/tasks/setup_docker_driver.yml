@@ -1,0 +1,4 @@
+- name: Setup ansible config
+  template: src=etc/ansible/ansible.cfg.j2
+            dest=/etc/ansible/ansible.cfg
+            backup=yes
