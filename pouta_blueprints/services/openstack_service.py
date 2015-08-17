@@ -111,10 +111,8 @@ class ProvisionInstance(task.Task):
             logger.error("error provisioning instance: %s" % e)
             raise e
 
-        logger.debug("instance provisioned")
-
         self.instance_id = instance.id
-        logger.debug("instance provisioning ok")
+        logger.debug("instance provisioning successful")
         return instance.id
 
     def revert(self, config, **kwargs):
@@ -133,6 +131,7 @@ class AllocateIPForInstance(task.Task):
         nc = get_openstack_nova_client(config)
         retries = 0
         while nc.servers.get(server_id).status is "BUILDING" or not nc.servers.get(server_id).networks:
+            logger.debug("...waiting for server to be ready")
             time.sleep(5)
             retries += 1
             if retries > 30:
@@ -142,12 +141,12 @@ class AllocateIPForInstance(task.Task):
         server = nc.servers.get(server_id)
         allocated_from_pool = False
         if not ips:
-            logger.debug("No allocated free IPs left, trying to allocate one\n")
+            logger.debug("No allocated free IPs left, trying to allocate one")
             try:
                 ip = nc.floating_ips.create(pool="public")
                 allocated_from_pool = True
             except novaclient.exceptions.ClientException as e:
-                logger.warning("Cannot allocate IP, quota exceeded?\n")
+                logger.warning("Cannot allocate IP, quota exceeded?")
                 raise e
         else:
             ip = ips[0]
