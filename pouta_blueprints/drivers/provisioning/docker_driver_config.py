@@ -22,6 +22,11 @@ CONFIG = {
                 'title': "Allow user to request instance firewall to allow access to user's IP address",
                 'default': False,
             },
+            'cost_multiplier': {
+                'type': 'number',
+                'title': 'Cost multiplier (default 1.0)',
+                'default': 1.0,
+            },
         }
     },
     'form': [
@@ -32,6 +37,7 @@ CONFIG = {
         'name',
         'docker_image',
         'maximum_lifetime',
+        'cost_multiplier',
         'allow_update_client_connectivity',
     ],
     'model': {
