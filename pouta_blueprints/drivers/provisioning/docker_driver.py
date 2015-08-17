@@ -8,8 +8,20 @@ from pouta_blueprints.drivers.provisioning import base_driver
 import docker
 from pouta_blueprints.services.openstack_service import OpenStackService
 
+import ansible.runner
+import ansible.playbook
+import ansible.inventory
+from ansible import callbacks
+from ansible import utils
+
 SLEEP_BETWEEN_POLLS = 3
 POLL_MAX_WAIT = 180
+
+DD_STATE_SPAWNED = 'spawned'
+DD_STATE_PREPARED = 'prepared'
+DD_STATE_ACTIVE = 'active'
+DD_STATE_INACTIVE = 'inactive'
+DD_STATE_REMOVED = 'removed'
 
 
 class DockerDriver(base_driver.ProvisioningDriverBase):
@@ -45,7 +57,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         container_name = instance['name']
 
         config = {
-            'image': 'jupyter/demo',
+            'image': 'jupyter/minimal',
             'name': container_name
         }
         dc.pull(config['image'])
@@ -82,6 +94,10 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance_description(instance_id)
 
+        if instance['state'] == 'deleted':
+            self.logger.debug("do_deprovision: instance already deleted %s" % instance_id)
+            return
+
         docker_url = instance['instance_data']['docker_url']
 
         tls_config = TLSConfig(
@@ -100,8 +116,28 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def do_housekeep(self, token):
         hosts = self._get_hosts()
 
+        # find just spawned hosts
+        spawned_hosts = [x for x in hosts if x['state'] == DD_STATE_SPAWNED]
+        if len(spawned_hosts):
+            for host in spawned_hosts:
+                self.logger.info('do_housekeep() preparing host %s' % host['id'])
+                self._prepare_host(host)
+                host['state'] = DD_STATE_PREPARED
+            self._save_hosts(hosts)
+            return
+
+        # find prepared hosts, make them active
+        # TODO: do we really need this?
+        prepared_hosts = [x for x in hosts if x['state'] == DD_STATE_PREPARED]
+        if len(prepared_hosts):
+            for host in prepared_hosts:
+                self.logger.info('do_housekeep() activating host %s' % host['id'])
+                host['state'] = DD_STATE_ACTIVE
+            self._save_hosts(hosts)
+            return
+
         # find active hosts
-        active_hosts = [x for x in hosts if x['is_active']]
+        active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
 
         # if there are no active hosts, spawn one
         if len(active_hosts) == 0:
@@ -115,11 +151,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         for host in active_hosts:
             if host['spawn_ts'] < time.time() - 36000:
                 self.logger.info('do_housekeep() making host %s inactive' % host['id'])
-                host['is_active'] = False
+                host['state'] = DD_STATE_INACTIVE
 
         # remove inactive hosts that have no instances on them
         for host in hosts:
-            if host['is_active']:
+            if host['state'] != DD_STATE_INACTIVE:
                 continue
             if host['num_instances'] == 0:
                 self.logger.info('do_housekeep() removing host %s' % host['id'])
@@ -167,7 +203,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'docker_url': 'https://192.168.44.152:2376',
             'public_ip': '86.50.169.98',
             'spawn_ts': int(time.time()),
-            'is_active': True,
+            'state': DD_STATE_SPAWNED,
             'num_instances': 0,
         }
 
@@ -206,10 +242,49 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'provider_id': res['server_id'],
             'docker_url': 'https://%s:2376' % res['ip']['private_ip'],
             'public_ip': res['ip']['public_ip'],
+            'private_ip': res['ip']['private_ip'],
             'spawn_ts': int(time.time()),
-            'is_active': True,
+            'state': DD_STATE_SPAWNED,
             'num_instances': 0,
         }
+
+    def _prepare_host(self, host):
+        self.logger.debug("_prepare_host")
+
+        # global verbosity for debugging e.g. ssh problems with ansible. ugly.
+        utils.VERBOSITY = 4
+
+        # set up ansible inventory for the host
+        a_host = ansible.inventory.host.Host(name=host['id'])
+        a_host.set_variable('ansible_ssh_host', host['private_ip'])
+
+        a_group = ansible.inventory.group.Group(name='notebook_host')
+        a_group.add_host(a_host)
+
+        a_inventory = ansible.inventory.Inventory(host_list=[host['private_ip']])
+        a_inventory.add_group(a_group)
+
+        stats = callbacks.AggregateStats()
+        playbook_cb = callbacks.PlaybookCallbacks(verbose=utils.VERBOSITY)
+        runner_cb = callbacks.PlaybookRunnerCallbacks(stats, verbose=utils.VERBOSITY)
+
+        pb = ansible.playbook.PlayBook(
+            playbook="/webapps/pouta_blueprints/source/ansible/notebook_playbook.yml",
+            stats=stats,
+            callbacks=playbook_cb,
+            runner_callbacks=runner_cb,
+            inventory=a_inventory,
+            remote_user='cloud-user',
+        )
+
+        pb_res = pb.run()
+
+        self.logger.debug(json.dumps(pb_res, sort_keys=True, indent=4, separators=(',', ': ')))
+
+        for host_name in pb_res.keys():
+            host_data = pb_res[host_name]
+            if host_data.get('unreachable', 0) + host_data.get('failures', 0) > 0:
+                raise RuntimeError('_prepare_host failed')
 
     def _remove_host(self, host):
         self.logger.debug("_remove_host")
