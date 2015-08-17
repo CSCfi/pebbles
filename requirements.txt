@@ -23,3 +23,4 @@ coverage==3.7.1
 taskflow==1.18.0
 docker-py==1.2.3
 websocket_client==0.32.0
+ansible==1.9.2
