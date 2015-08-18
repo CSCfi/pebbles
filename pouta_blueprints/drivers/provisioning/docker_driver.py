@@ -189,15 +189,15 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
         active_hosts = sorted(active_hosts, key=lambda x: -x['spawn_ts'])
 
-        selected_host=None
+        selected_host = None
         for host in active_hosts:
-            if host['num_instances']<DD_CONTAINERS_PER_HOST:
-                selected_host=host
+            if host['num_instances'] < DD_CONTAINERS_PER_HOST:
+                selected_host = host
                 break
         if not selected_host:
             raise RuntimeWarning('_select_host(): no space left, active hosts:%s' % active_hosts)
 
-        self.logger.debug("_select_host(): %d total active, selected %s" % (len(active_hosts), selected_host ))
+        self.logger.debug("_select_host(): %d total active, selected %s" % (len(active_hosts), selected_host))
         return selected_host
 
     def _get_hosts(self):
