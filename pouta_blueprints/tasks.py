@@ -87,6 +87,7 @@ app.conf.CELERYBEAT_SCHEDULE = {
 app.conf.CELERY_TIMEZONE = 'UTC'
 app.conf.CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
 
+
 @app.task(name="pouta_blueprints.tasks.deprovision_expired")
 def deprovision_expired():
     token = get_token()
