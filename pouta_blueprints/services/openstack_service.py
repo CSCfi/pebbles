@@ -1,4 +1,5 @@
 import novaclient
+from novaclient.exceptions import NotFound
 from novaclient.v2 import client
 
 import taskflow.engines
@@ -194,19 +195,33 @@ class OpenStackService(object):
             logger.error(e)
             return {'error': 'flow failed'}
 
-    def deprovision_instance(self, instance_id):
+    def deprovision_instance(self, instance_id, name=None, error_if_not_exists=False):
         nc = get_openstack_nova_client(self._config)
-        server = nc.servers.get(instance_id)
-        name = server.name
+
+        if not name:
+            server = nc.servers.get(instance_id)
+            name = server.name
 
         logger.info('Deleting instance %s' % instance_id)
-        nc.servers.delete(instance_id)
+        try:
+            nc.servers.delete(instance_id)
+        except NotFound as e:
+            if error_if_not_exists:
+                raise e
+            else:
+                logger.info('Instance already deleted')
 
         time.sleep(5)
 
         logger.info('Deleting security group %s' % name)
-        sg = nc.security_groups.find(name=name)
-        nc.security_groups.delete(sg.id)
+        try:
+            sg = nc.security_groups.find(name=name)
+            nc.security_groups.delete(sg.id)
+        except NotFound as e:
+            if error_if_not_exists:
+                raise e
+            else:
+                logger.info('Security group already deleted')
 
     def upload_key(self, key_name, key_file):
         nc = get_openstack_nova_client(self._config)
