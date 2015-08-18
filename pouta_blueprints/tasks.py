@@ -85,7 +85,7 @@ app.conf.CELERYBEAT_SCHEDULE = {
     }
 }
 app.conf.CELERY_TIMEZONE = 'UTC'
-
+app.conf.CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
 
 @app.task(name="pouta_blueprints.tasks.deprovision_expired")
 def deprovision_expired():
@@ -104,7 +104,7 @@ def deprovision_expired():
             logger.info('deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % instance.get('id'))
             deprovision_required = True
         elif user.get('credits_quota') <= user.get('credits_spent'):
-            if instance.cost_multiplier > 0:
+            if instance.get('cost_multiplier', 0) > 0:
                 logger.info('deprovisioning triggered for %s (reason: user out of quota)' % instance.get('id'))
                 deprovision_required = True
 
