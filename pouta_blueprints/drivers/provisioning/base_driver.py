@@ -29,13 +29,16 @@ class ProvisioningDriverBase(object):
         m2m_credential_store = self.config['M2M_CREDENTIAL_STORE']
         try:
             self._m2m_credentials = json.load(open(m2m_credential_store))
+
+            debug_str = ['m2m_creds:']
             for key in self._m2m_credentials.keys():
                 if key == 'OS_PASSWORD':
-                    self.logger.debug('m2m creds: OS_PASSWORD is set (not shown)')
+                    debug_str.append('OS_PASSWORD is set (not shown)')
                 elif key in ('OS_USERNAME', 'OS_TENANT_NAME', 'OS_TENANT_ID', 'OS_AUTH_URL'):
-                    self.logger.debug('m2m creds: %s: %s' % (key, self._m2m_credentials[key]))
+                    debug_str.append('%s: %s' % (key, self._m2m_credentials[key]))
                 else:
-                    self.logger.warn('m2m creds: unknown key %s' % key)
+                    debug_str.append('unknown key %s' % key)
+            self.logger.debug(' '.join(debug_str))
 
             return self._m2m_credentials
         except (IOError, ValueError) as e:
