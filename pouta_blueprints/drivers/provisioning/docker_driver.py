@@ -17,7 +17,6 @@ from ansible import callbacks
 from ansible import utils
 
 DD_STATE_SPAWNED = 'spawned'
-DD_STATE_PREPARED = 'prepared'
 DD_STATE_ACTIVE = 'active'
 DD_STATE_INACTIVE = 'inactive'
 DD_STATE_REMOVED = 'removed'
@@ -131,18 +130,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             for host in spawned_hosts:
                 self.logger.info('do_housekeep() preparing host %s' % host['id'])
                 self._prepare_host(host)
-                host['state'] = DD_STATE_PREPARED
-            self._save_hosts(hosts)
-            return
-
-        # find prepared hosts, make them active
-        # TODO: do we really need this?
-        prepared_hosts = [x for x in hosts if x['state'] == DD_STATE_PREPARED]
-        if len(prepared_hosts):
-            for host in prepared_hosts:
-                self.logger.info('do_housekeep(): activating host %s' % host['id'])
                 host['state'] = DD_STATE_ACTIVE
-            self._save_hosts(hosts)
+            self._save_host_state(hosts)
             return
 
         # find active hosts
@@ -153,7 +142,16 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             new_host = self._spawn_host()
             self.logger.info('do_housekeep(): no active hosts, spawned a new host %s' % new_host['id'])
             hosts.append(new_host)
-            self._save_hosts(hosts)
+            self._save_host_state(hosts)
+            return
+
+        # if we only have one active host and it is near EOL, spawn a new one
+        if len(active_hosts) == 1 and active_hosts[0]['spawn_ts'] < time.time() - (DD_HOST_LIFETIME * 0.9):
+            self.logger.debug('do_housekeep(): found near EOL host: %s' % active_hosts[0]['id'])
+            new_host = self._spawn_host()
+            self.logger.info('do_housekeep(): active host near EOL, spawned a new host %s' % new_host['id'])
+            hosts.append(new_host)
+            self._save_host_state(hosts)
             return
 
         # if there is little space, spawn a new container
@@ -162,32 +160,37 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             new_host = self._spawn_host()
             self.logger.info('do_housekeep(): little space, spawned a new host %s' % new_host['id'])
             hosts.append(new_host)
-            self._save_hosts(hosts)
+            self._save_host_state(hosts)
             return
 
-        # mark old ones inactive
+        # mark old ones inactive (one at a time)
         for host in active_hosts:
             if host['spawn_ts'] < time.time() - DD_HOST_LIFETIME:
                 self.logger.info('do_housekeep(): making host %s inactive' % host['id'])
                 host['state'] = DD_STATE_INACTIVE
+                self._save_host_state(hosts)
+                return
 
         # remove inactive hosts that have no instances on them
-        for host in hosts:
-            if host['state'] != DD_STATE_INACTIVE:
-                continue
+        inactive_hosts = [x for x in hosts if x['state'] == DD_STATE_INACTIVE]
+        for host in inactive_hosts:
             if host['num_instances'] == 0:
                 self.logger.info('do_housekeep(): removing host %s' % host['id'])
                 self._remove_host(host)
                 hosts.remove(host)
-                self._save_hosts(hosts)
+                self._save_host_state(hosts)
+                return
             else:
                 self.logger.debug('do_housekeep(): inactive host %s still has %d instances' %
                                   (host['id'], host['num_instances']))
 
+        # no changes to host states, but the number of instances might have changes
+        self._save_host_state(hosts)
+
     def _select_host(self):
         hosts = self._get_hosts()
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
-        active_hosts = sorted(active_hosts, key=lambda x: -x['spawn_ts'])
+        active_hosts = sorted(active_hosts, key=lambda host: -host['spawn_ts'])
 
         selected_host = None
         for host in active_hosts:
@@ -195,7 +198,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 selected_host = host
                 break
         if not selected_host:
-            raise RuntimeWarning('_select_host(): no space left, active hosts:%s' % active_hosts)
+            raise RuntimeWarning('_select_host(): no space left, active hosts: %s' % active_hosts)
 
         self.logger.debug("_select_host(): %d total active, selected %s" % (len(active_hosts), selected_host))
         return selected_host
@@ -226,12 +229,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         return hosts
 
-    def _save_hosts(self, hosts):
-        self.logger.debug("_save_hosts")
+    def _save_host_state(self, hosts):
+        self.logger.debug("_save_host_state")
 
         data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
         if os.path.exists(data_file):
-            os.rename(data_file, '%s.%s' % (data_file, int(time.time())))
+            ts = int(time.time())
+            os.rename(data_file, '%s.%s' % (data_file, ts - ts % 3600))
         with open(data_file, 'w') as df:
             json.dump(hosts, df)
 
@@ -254,7 +258,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         self.logger.debug("_spawn_host_os_service")
 
         config = {
-            'image': 'CentOS-7.0',
+            # 'image': 'CentOS-7.0',
+            'image': 'pb_dd_base.20150819',
             'flavor': 'mini',
             'key': 'pb_dockerdriver',
             '': '',
