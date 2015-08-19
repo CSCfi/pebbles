@@ -12,32 +12,42 @@
 ### Essentials
 - add periodical plugin calls to tasks for housekeeping *DONE* 
 - setup openstack ssh-key *DONE*
+
 - docker host spawning *DONE*
     - TBD: Where is host config stored?
     - TBD: Is there a host config per blueprint? This would mean a host pool per blueprint.
+
 - docker host configuration ansible playbooks *DONE*
 - security group configuration *DONE*
-- trigger automatic host configuration
+- trigger automatic host configuration *DONE*
+
 - set up secure PB to docker host comms *DONE*
     - https://docs.docker.com/articles/https/
+
 - create a resource pool *DONE*
-- add more states for hosts in pool
+
+- add more states for hosts in pool *DONE*
     - spawned
     - prepared
     - active
     - inactive
     - removed
-- implement host selection
+
+- implement host selection *DONE*
+
 - periodical tasks
     - implement spawn host *DONE*
     - implement remove host *DONE*
 
+- get rid of hard coded configuration  
+    - image, flavor, security groups, docker image, number of instances per host,...  
+    - blueprint config, (pool of hosts per blueprint)
+    - OR a commmon configuration for the hosts, stored in the file system?
+       
+- setting password for jupyter + rstudio containers
 
 
 ### Optional features
 - implement session backups
 - proxy in front of containers
 - implement a service for plugins for storing the state 
-
-### Done
-- 
