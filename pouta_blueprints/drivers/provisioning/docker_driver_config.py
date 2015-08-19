@@ -12,6 +12,11 @@ CONFIG = {
             'docker_image': {
                 'type': 'string'
             },
+            'maximum_instances_per_user': {
+                'type': 'integer',
+                'title': 'Maximum instances per user',
+                'default': 1,
+            },
             'maximum_lifetime': {
                 'type': 'integer',
                 'title': 'Maximum life-time (seconds)',
@@ -36,6 +41,7 @@ CONFIG = {
         },
         'name',
         'docker_image',
+        'maximum_instances_per_user',
         'maximum_lifetime',
         'cost_multiplier',
         'allow_update_client_connectivity',
