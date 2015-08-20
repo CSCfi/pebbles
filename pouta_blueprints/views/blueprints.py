@@ -57,12 +57,23 @@ class BlueprintList(restful.Resource):
         blueprint.plugin = form.plugin.data
         blueprint.config = form.config.data
 
-        for config_key in ('maximum_lifetime', 'preallocated_credits', 'cost_multiplier'):
-            if config_key in form.config.data:
-                try:
-                    setattr(blueprint, config_key, int(form.config.data[config_key]))
-                except:
-                    logging.warn('unable to parse %s for a blueprint, got %s' % (config_key, form.config.data[config_key]))
+        if 'preallocated_credits' in form.config.data:
+            try:
+                blueprint.preallocated_credits = bool(form.config.data['preallocated_credits'])
+            except:
+                pass
+
+        if 'maximum_lifetime' in form.config.data:
+            try:
+                blueprint.maximum_lifetime = int(form.config.data['maximum_lifetime'])
+            except:
+                pass
+
+        if 'cost_multiplier' in form.config.data:
+            try:
+                blueprint.cost_multiplier = float(form.config.data['cost_multiplier'])
+            except:
+                pass
 
         db.session.add(blueprint)
         db.session.commit()
@@ -88,9 +99,21 @@ class BlueprintView(restful.Resource):
             abort(404)
         blueprint.name = form.name.data
         blueprint.config = form.config.data
+        if 'preallocated_credits' in blueprint.config:
+            try:
+                blueprint.preallocated_credits = bool(blueprint.config['preallocated_credits'])
+            except:
+                pass
+
         if 'maximum_lifetime' in blueprint.config:
             try:
                 blueprint.maximum_lifetime = int(blueprint.config['maximum_lifetime'])
+            except:
+                pass
+
+        if 'cost_multiplier' in blueprint.config:
+            try:
+                blueprint.cost_multiplier = float(blueprint.config['cost_multiplier'])
             except:
                 pass
 
