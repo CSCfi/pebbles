@@ -96,18 +96,20 @@ class CreateSecurityGroup(task.Task):
 
 
 class ProvisionInstance(task.Task):
-    def execute(self, display_name, image, flavor, key_name, security_group, config):
+    def execute(self, display_name, image, flavor, key_name, security_group, extra_sec_groups, config):
         logger.debug("provisioning instance %s" % display_name)
         logger.debug("image=%s, flavor=%s, key=%s, secgroup=%s" % (image, flavor, key_name, security_group))
         nc = get_openstack_nova_client(config)
 
+        sgs = [security_group]
+        sgs.extend(extra_sec_groups)
         try:
             instance = nc.servers.create(
                 display_name,
                 image,
                 flavor,
                 key_name=key_name,
-                security_groups=[security_group])
+                security_groups=sgs)
         except Exception as e:
             logger.error("error provisioning instance: %s" % e)
             raise e
@@ -181,7 +183,7 @@ class OpenStackService(object):
         else:
             self._config = None
 
-    def provision_instance(self, display_name, image_name, flavor_name, key_name, master_sg_name=None):
+    def provision_instance(self, display_name, image_name, flavor_name, key_name, extra_sec_groups, master_sg_name=None):
         try:
             return taskflow.engines.run(flow, engine='parallel', store=dict(
                 image_name=image_name,
@@ -189,6 +191,7 @@ class OpenStackService(object):
                 display_name=display_name,
                 key_name=key_name,
                 master_sg_name=master_sg_name,
+                extra_sec_groups=extra_sec_groups,
                 config=self._config))
         except Exception as e:
             logger.error("Flow failed")
