@@ -12,6 +12,9 @@ CONFIG = {
             'docker_image': {
                 'type': 'string'
             },
+            'internal_port': {
+                'type': 'integer'
+            },
             'maximum_instances_per_user': {
                 'type': 'integer',
                 'title': 'Maximum instances per user',
@@ -41,6 +44,7 @@ CONFIG = {
         },
         'name',
         'docker_image',
+        'internal_port',
         'maximum_instances_per_user',
         'maximum_lifetime',
         'cost_multiplier',
@@ -49,5 +53,6 @@ CONFIG = {
     'model': {
         'name': 'docker-machine',
         'docker_image': 'jupyter/minimal',
+        'internal_port': 8888,
     }
 }

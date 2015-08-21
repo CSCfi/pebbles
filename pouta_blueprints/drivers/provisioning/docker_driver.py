@@ -23,7 +23,7 @@ DD_STATE_REMOVED = 'removed'
 
 DD_HOST_LIFETIME = 900
 DD_CONTAINERS_PER_HOST = 4
-
+DD_FREE_SLOT_TARGET = 4
 
 class DockerDriver(base_driver.ProvisioningDriverBase):
     def get_configuration(self):
@@ -57,17 +57,23 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         instance = pbclient.get_instance_description(instance_id)
 
+        # fetch config
+        blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
+        blueprint_config = blueprint['config']
+
         dh = self._select_host()
 
         dc = self.get_docker_client(dh['docker_url'])
 
         container_name = instance['name']
+        password = uuid.uuid4().hex[:16]
 
         config = {
-            'image': 'jupyter/minimal',
-            'name': container_name
+            'image': blueprint_config['docker_image'],
+            'ports': [blueprint_config['internal_port']],
+            'name': container_name,
+            'environment': {'PASSWORD': password},
         }
-        dc.pull(config['image'])
 
         res = dc.create_container(**config)
         container_id = res['Id']
@@ -78,19 +84,23 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         public_ip = dh['public_ip']
         # get the public port
-        res = dc.port(container_id, 8888)
+        res = dc.port(container_id, blueprint_config['internal_port'])
         public_port = res[0]['HostPort']
 
         instance_data = {
             'endpoints': [
                 {'name': 'http', 'access': 'http://%s:%s' % (public_ip, public_port)},
+                {'name': 'password', 'access': password},
             ],
-            'docker_url': dh['docker_url']
+            'docker_url': dh['docker_url'],
         }
 
         pbclient.do_instance_patch(
             instance_id,
-            {'public_ip': public_ip, 'instance_data': json.dumps(instance_data)}
+            {
+                'public_ip': public_ip,
+                'instance_data': json.dumps(instance_data),
+            }
         )
 
         self.logger.debug("do_provision done for %s" % instance_id)
@@ -136,11 +146,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         # find active hosts
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
+        num_free_slots = sum(DD_CONTAINERS_PER_HOST - x['num_instances'] for x in active_hosts)
+        self.logger.info('do_housekeep(): %d active hosts with %d free slots' % (len(active_hosts), num_free_slots))
 
-        # if there are no active hosts, spawn one
-        if len(active_hosts) == 0:
+        # if we have less available slots than our target, spawn a new host
+        if num_free_slots < DD_FREE_SLOT_TARGET:
             new_host = self._spawn_host()
-            self.logger.info('do_housekeep(): no active hosts, spawned a new host %s' % new_host['id'])
+            self.logger.info('do_housekeep(): too few free slots, spawned a new host %s' % new_host['id'])
             hosts.append(new_host)
             self._save_host_state(hosts)
             return
@@ -154,18 +166,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             self._save_host_state(hosts)
             return
 
-        # if there is little space, spawn a new container
-        hosts_with_space = [x for x in active_hosts if x['num_instances'] < DD_CONTAINERS_PER_HOST - 1]
-        if len(hosts_with_space) == 0:
-            new_host = self._spawn_host()
-            self.logger.info('do_housekeep(): little space, spawned a new host %s' % new_host['id'])
-            hosts.append(new_host)
-            self._save_host_state(hosts)
-            return
-
-        # mark old ones inactive (one at a time)
+        # mark old hosts without instances inactive (one at a time)
         for host in active_hosts:
-            if host['spawn_ts'] < time.time() - DD_HOST_LIFETIME:
+            if host['spawn_ts'] < time.time() - DD_HOST_LIFETIME and host['num_instances'] == 0:
                 self.logger.info('do_housekeep(): making host %s inactive' % host['id'])
                 host['state'] = DD_STATE_INACTIVE
                 self._save_host_state(hosts)
@@ -280,7 +283,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             image_name=image_name,
             flavor_name=flavor_name,
             key_name=key_name,
-            master_sg_name='pb_server'
+            master_sg_name='pb_server',
+            extra_sec_groups=['csc_vpn_all_open', 'csc_ws_all_open'],
         )
 
         self.logger.debug("_spawn_host_os_service: spawned %s" % res)
@@ -335,9 +339,10 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             if host_data.get('unreachable', 0) + host_data.get('failures', 0) > 0:
                 raise RuntimeError('_prepare_host failed')
 
-        self.logger.debug("_prepare_host(): pulling docker image")
-        dc = self.get_docker_client(host['docker_url'])
-        dc.pull('jupyter/minimal')
+        for pull_image in ('jupyter/minimal', 'rocker/rstudio'):
+            self.logger.debug("_prepare_host(): pulling image %s" % pull_image)
+            dc = self.get_docker_client(host['docker_url'])
+            dc.pull(pull_image)
 
     def _remove_host(self, host):
         self.logger.debug("_remove_host")
