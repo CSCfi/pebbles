@@ -28,7 +28,7 @@
 
 - add more states for hosts in pool *DONE*
     - spawned
-    - prepared
+    - prepared *REJECTED*
     - active
     - inactive
     - removed
@@ -45,6 +45,10 @@
     - OR a commmon configuration for the hosts, stored in the file system?
        
 - setting password for jupyter + rstudio containers
+
+- implement memory limits for containers
+
+- configure swap on host + allow swapping for containers for fitting even more on a single host?
 
 
 ### Optional features
