@@ -25,6 +25,7 @@ DD_HOST_LIFETIME = 900
 DD_CONTAINERS_PER_HOST = 4
 DD_FREE_SLOT_TARGET = 4
 
+
 class DockerDriver(base_driver.ProvisioningDriverBase):
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.docker_driver_config import CONFIG
