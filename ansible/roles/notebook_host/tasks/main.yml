@@ -13,13 +13,25 @@
   when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"
 
 - name: Copy the server key to the host
-  copy: src={{ runtime_path }}/server_key.pem dest=/etc/docker/server_key.pem
+  copy:
+    src={{ runtime_path }}/server_key.pem
+    dest=/etc/docker/server_key.pem
+    mode=0400
+  notify: restart docker
 
 - name: Copy the server cert to the host
-  copy: src={{ runtime_path }}/server_cert.pem dest=/etc/docker/server_cert.pem
+  copy:
+    src={{ runtime_path }}/server_cert.pem
+    dest=/etc/docker/server_cert.pem
+    mode=0400
+  notify: restart docker
 
 - name: Copy the CA certificate to the host
-  copy: src={{ runtime_path }}/ca_cert.pem dest=/etc/docker/ca_cert.pem
+  copy:
+    src={{ runtime_path }}/ca_cert.pem
+    dest=/etc/docker/ca_cert.pem
+    mode=0400
+  notify: restart docker
 
 - name: Upload custom docker configuration
   template:
