@@ -179,7 +179,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         )
 
         self.logger.info(
-            'do_housekeep(): %d active hosts with %d free slots, %d projected for near future' %
+            'do_housekeep(): active hosts: %d, free slots: %d now, %d projected for near future' %
             (len(active_hosts), num_free_slots, num_projected_free_slots)
         )
 
