@@ -24,6 +24,8 @@ DD_STATE_REMOVED = 'removed'
 DD_HOST_LIFETIME = 900
 DD_CONTAINERS_PER_HOST = 4
 DD_FREE_SLOT_TARGET = 4
+DD_PROVISION_RETRIES = 10
+DD_PROVISION_RETRY_SLEEP = 30
 
 
 class DockerDriver(base_driver.ProvisioningDriverBase):
@@ -51,9 +53,26 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def do_update_connectivity(self, token, instance_id):
         self.logger.warning('do_update_connectivity not implemented')
 
-    @locked('/webapps/pouta_blueprints/run/docker_driver_provisioning')
     def do_provision(self, token, instance_id):
         self.logger.debug("do_provision %s" % instance_id)
+        retries = 0
+        while True:
+            try:
+                self._do_provision(token, instance_id)
+                break
+            except RuntimeWarning as e:
+                retries += 1
+                if retries > DD_PROVISION_RETRIES:
+                    raise e
+                self.logger.warning(
+                    "do_provision failed for %s, sleeping and retrying (%d/%d)" % (
+                        instance_id, retries, DD_PROVISION_RETRIES
+                    )
+                )
+                time.sleep(DD_PROVISION_RETRY_SLEEP)
+
+    @locked('/webapps/pouta_blueprints/run/docker_driver_provisioning')
+    def _do_provision(self, token, instance_id):
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
         instance = pbclient.get_instance_description(instance_id)
@@ -73,6 +92,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'image': blueprint_config['docker_image'],
             'ports': [blueprint_config['internal_port']],
             'name': container_name,
+            'mem_limit': blueprint_config['memory_limit'],
+            'cpu_shares': 5,
             'environment': {'PASSWORD': password},
         }
 
@@ -147,33 +168,29 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         # find active hosts
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
+
+        # find current free slots
         num_free_slots = sum(DD_CONTAINERS_PER_HOST - x['num_instances'] for x in active_hosts)
-        self.logger.info('do_housekeep(): %d active hosts with %d free slots' % (len(active_hosts), num_free_slots))
+
+        # find projected free slots (only take active hosts with more than 10% lifetime left into account)
+        num_projected_free_slots = sum(
+            DD_CONTAINERS_PER_HOST - x['num_instances'] for x in active_hosts
+            if x['spawn_ts'] < time.time() - (DD_HOST_LIFETIME * 0.9)
+        )
+
+        self.logger.info(
+            'do_housekeep(): %d active hosts with %d free slots, %d projected for near future' %
+            (len(active_hosts), num_free_slots, num_projected_free_slots)
+        )
 
         # if we have less available slots than our target, spawn a new host
-        if num_free_slots < DD_FREE_SLOT_TARGET:
+        if ((num_free_slots < DD_FREE_SLOT_TARGET) or (
+                num_free_slots == DD_FREE_SLOT_TARGET and num_projected_free_slots < DD_FREE_SLOT_TARGET)):
             new_host = self._spawn_host()
             self.logger.info('do_housekeep(): too few free slots, spawned a new host %s' % new_host['id'])
             hosts.append(new_host)
             self._save_host_state(hosts)
             return
-
-        # if we only have one active host and it is near EOL, spawn a new one
-        if len(active_hosts) == 1 and active_hosts[0]['spawn_ts'] < time.time() - (DD_HOST_LIFETIME * 0.9):
-            self.logger.debug('do_housekeep(): found near EOL host: %s' % active_hosts[0]['id'])
-            new_host = self._spawn_host()
-            self.logger.info('do_housekeep(): active host near EOL, spawned a new host %s' % new_host['id'])
-            hosts.append(new_host)
-            self._save_host_state(hosts)
-            return
-
-        # mark old hosts without instances inactive (one at a time)
-        for host in active_hosts:
-            if host['spawn_ts'] < time.time() - DD_HOST_LIFETIME and host['num_instances'] == 0:
-                self.logger.info('do_housekeep(): making host %s inactive' % host['id'])
-                host['state'] = DD_STATE_INACTIVE
-                self._save_host_state(hosts)
-                return
 
         # remove inactive hosts that have no instances on them
         inactive_hosts = [x for x in hosts if x['state'] == DD_STATE_INACTIVE]
@@ -187,6 +204,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             else:
                 self.logger.debug('do_housekeep(): inactive host %s still has %d instances' %
                                   (host['id'], host['num_instances']))
+
+        # mark old hosts without instances inactive (one at a time)
+        for host in active_hosts:
+            if host['spawn_ts'] < time.time() - DD_HOST_LIFETIME and host['num_instances'] == 0:
+                self.logger.info('do_housekeep(): making host %s inactive' % host['id'])
+                host['state'] = DD_STATE_INACTIVE
+                self._save_host_state(hosts)
+                return
 
         # no changes to host states, but the number of instances might have changes
         self._save_host_state(hosts)
@@ -263,7 +288,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         config = {
             # 'image': 'CentOS-7.0',
-            'image': 'pb_dd_base.20150819',
+            'image': 'pb_dd_base.20150825',
             'flavor': 'mini',
             'key': 'pb_dockerdriver',
             '': '',
@@ -289,6 +314,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         )
 
         self.logger.debug("_spawn_host_os_service: spawned %s" % res)
+
+        # remove the key from OpenStack
+        oss.delete_key(key_name)
 
         return {
             'id': instance_name,

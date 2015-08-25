@@ -15,6 +15,10 @@ CONFIG = {
             'internal_port': {
                 'type': 'integer'
             },
+            'memory_limit': {
+                'type': 'string',
+                'default': '256m',
+            },
             'maximum_instances_per_user': {
                 'type': 'integer',
                 'title': 'Maximum instances per user',
@@ -40,11 +44,12 @@ CONFIG = {
     'form': [
         {
             'type': 'help',
-            'helpvalue': '<h4>OpenStack Instance config</h4>'
+            'helpvalue': '<h4>Docker instance config</h4>'
         },
         'name',
         'docker_image',
         'internal_port',
+        'memory_limit',
         'maximum_instances_per_user',
         'maximum_lifetime',
         'cost_multiplier',
@@ -54,5 +59,6 @@ CONFIG = {
         'name': 'docker-machine',
         'docker_image': 'jupyter/minimal',
         'internal_port': 8888,
+        'memory_limit': '256m',
     }
 }
