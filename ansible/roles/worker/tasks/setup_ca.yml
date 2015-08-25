@@ -28,3 +28,16 @@
   command:
     openssl x509 -req -days 3650 -in {{ runtime_path }}/server.csr -CA {{ runtime_path }}/ca_cert.pem -CAkey {{ runtime_path }}/ca_key.pem -CAcreateserial -out {{ runtime_path }}/server_cert.pem
     creates={{ runtime_path }}/server_cert.pem
+
+- name: Change ownership and fix permissions of certificates and keys
+  file:
+    name={{ runtime_path }}/{{ item }}
+    owner={{ application_user }}
+    mode="u=r"
+  with_items:
+    - ca_cert.pem
+    - ca_key.pem
+    - client_cert.pem
+    - client_key.pem
+    - server_cert.pem
+    - server_key.pem
