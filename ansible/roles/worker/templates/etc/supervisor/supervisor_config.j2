@@ -1,5 +1,5 @@
 [program:{{ application_name }}-worker]
-command = {{ virtualenv_path }}/bin/celery worker -A pouta_blueprints.tasks --loglevel={{ 'DEBUG' if deploy_mode == 'devel' else 'INFO' }}
+command = {{ virtualenv_path }}/bin/celery worker -A pouta_blueprints.tasks -Ofair --loglevel={{ 'DEBUG' if deploy_mode == 'devel' else 'INFO' }}
 directory = {{ application_path }}
 user = {{ application_user }}
 stdout_logfile = {{ celery_log_file }}
