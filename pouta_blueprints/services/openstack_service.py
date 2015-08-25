@@ -183,7 +183,8 @@ class OpenStackService(object):
         else:
             self._config = None
 
-    def provision_instance(self, display_name, image_name, flavor_name, key_name, extra_sec_groups, master_sg_name=None):
+    def provision_instance(self, display_name, image_name, flavor_name, key_name, extra_sec_groups,
+                           master_sg_name=None):
         try:
             return taskflow.engines.run(flow, engine='parallel', store=dict(
                 image_name=image_name,
@@ -240,3 +241,12 @@ class OpenStackService(object):
 
         nc.keypairs.create(key_name, public_key)
         logger.info('created key %s' % key_name)
+
+    def delete_key(self, key_name):
+        logger.debug('Deleting key: %s' % key_name)
+        nc = get_openstack_nova_client(self._config)
+        try:
+            key = nc.keypairs.find(name=key_name)
+            key.delete()
+        except:
+            logger.warning('Key not found: %s' % key_name)
