@@ -1,6 +1,7 @@
 import json
 import time
 import uuid
+from docker.errors import APIError
 from docker.tls import TLSConfig
 import os
 from requests import ConnectionError
@@ -22,6 +23,7 @@ DD_STATE_INACTIVE = 'inactive'
 DD_STATE_REMOVED = 'removed'
 
 DD_HOST_LIFETIME = 900
+DD_MAX_HOSTS = 4
 DD_CONTAINERS_PER_HOST = 4
 DD_FREE_SLOT_TARGET = 4
 DD_PROVISION_RETRIES = 10
@@ -148,7 +150,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         container_name = instance['name']
 
-        dc.remove_container(container_name, force=True)
+        try:
+            dc.remove_container(container_name, force=True)
+        except APIError as e:
+            if e.response.status_code == 404:
+                self.logger.info('no container found instance %s, assuming already deleted' % instance_id)
+            else:
+                raise e
 
         self.logger.debug("do_deprovision done for %s" % instance_id)
 
@@ -165,6 +173,19 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 host['state'] = DD_STATE_ACTIVE
             self._save_host_state(hosts)
             return
+
+        # remove inactive hosts that have no instances on them
+        inactive_hosts = [x for x in hosts if x['state'] == DD_STATE_INACTIVE]
+        for host in inactive_hosts:
+            if host['num_instances'] == 0:
+                self.logger.info('do_housekeep(): removing host %s' % host['id'])
+                self._remove_host(host)
+                hosts.remove(host)
+                self._save_host_state(hosts)
+                return
+            else:
+                self.logger.debug('do_housekeep(): inactive host %s still has %d instances' %
+                                  (host['id'], host['num_instances']))
 
         # find active hosts
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
@@ -184,26 +205,15 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         )
 
         # if we have less available slots than our target, spawn a new host
-        if ((num_free_slots < DD_FREE_SLOT_TARGET) or (
-                num_free_slots == DD_FREE_SLOT_TARGET and num_projected_free_slots < DD_FREE_SLOT_TARGET)):
-            new_host = self._spawn_host()
-            self.logger.info('do_housekeep(): too few free slots, spawned a new host %s' % new_host['id'])
-            hosts.append(new_host)
-            self._save_host_state(hosts)
-            return
-
-        # remove inactive hosts that have no instances on them
-        inactive_hosts = [x for x in hosts if x['state'] == DD_STATE_INACTIVE]
-        for host in inactive_hosts:
-            if host['num_instances'] == 0:
-                self.logger.info('do_housekeep(): removing host %s' % host['id'])
-                self._remove_host(host)
-                hosts.remove(host)
+        if num_projected_free_slots < DD_FREE_SLOT_TARGET:
+            if len(hosts) < DD_MAX_HOSTS:
+                new_host = self._spawn_host()
+                self.logger.info('do_housekeep(): too few free slots, spawned a new host %s' % new_host['id'])
+                hosts.append(new_host)
                 self._save_host_state(hosts)
                 return
             else:
-                self.logger.debug('do_housekeep(): inactive host %s still has %d instances' %
-                                  (host['id'], host['num_instances']))
+                self.logger.info('do_housekeep(): too few free slots, but host limit reached')
 
         # mark old hosts without instances inactive (one at a time)
         for host in active_hosts:
@@ -219,7 +229,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def _select_host(self):
         hosts = self._get_hosts()
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
-        active_hosts = sorted(active_hosts, key=lambda host: -host['spawn_ts'])
+        active_hosts = sorted(active_hosts, key=lambda entry: -entry['spawn_ts'])
 
         selected_host = None
         for host in active_hosts:
