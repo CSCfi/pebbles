@@ -31,6 +31,7 @@ DD_PROVISION_RETRY_SLEEP = 30
 
 DD_RUNTIME_PATH = '/webapps/pouta_blueprints/run'
 
+
 class DockerDriver(base_driver.ProvisioningDriverBase):
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.docker_driver_config import CONFIG
