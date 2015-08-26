@@ -29,6 +29,7 @@ DD_FREE_SLOT_TARGET = 4
 DD_PROVISION_RETRIES = 10
 DD_PROVISION_RETRY_SLEEP = 30
 
+DD_RUNTIME_PATH = '/webapps/pouta_blueprints/run'
 
 class DockerDriver(base_driver.ProvisioningDriverBase):
     def get_configuration(self):
@@ -40,12 +41,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     @staticmethod
     def get_docker_client(docker_url):
-        # TODO: fix certificate/runtime path
         # TODO: figure out why server verification does not work (crls?)
         tls_config = TLSConfig(
             client_cert=(
-                '/webapps/pouta_blueprints/run/client_cert.pem', '/webapps/pouta_blueprints/run/client_key.pem'),
-            #            ca_cert='/webapps/pouta_blueprints/run/ca_cert.pem',
+                '%s/client_cert.pem' % DD_RUNTIME_PATH, '%s/client_key.pem' % DD_RUNTIME_PATH),
+            #   ca_cert='%s/ca_cert.pem' % DD_RUNTIME_PATH,
             verify=False,
         )
         dc = docker.Client(base_url=docker_url, tls=tls_config)
@@ -162,19 +162,35 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     @locked('/webapps/pouta_blueprints/run/docker_driver_housekeep')
     def do_housekeep(self, token):
+
+        # in shutdown mode we remove the hosts as soon as no instances are running on them
+        shutdown_mode = os.path.exists('%s/docker_driver_shutdown' % DD_RUNTIME_PATH)
+        if shutdown_mode:
+            self.logger.info('do_housekeep(): in shutdown mode')
+
+        # fetch host data
         hosts = self._get_hosts()
 
-        # find just spawned hosts
+        # calculate lifetime
+        for host in hosts:
+            if shutdown_mode:
+                host['lifetime_left'] = 0
+            else:
+                host['lifetime_left'] = max(DD_HOST_LIFETIME - int(time.time() - host['spawn_ts']), 0)
+
+            self.logger.debug('do_housekeep(): host %s has lifetime %d' % (host['id'], host['lifetime_left']))
+
+        # priority one: find just spawned hosts, prepare and activate those
         spawned_hosts = [x for x in hosts if x['state'] == DD_STATE_SPAWNED]
         if len(spawned_hosts):
             for host in spawned_hosts:
-                self.logger.info('do_housekeep() preparing host %s' % host['id'])
+                self.logger.info('do_housekeep(): preparing host %s' % host['id'])
                 self._prepare_host(host)
                 host['state'] = DD_STATE_ACTIVE
             self._save_host_state(hosts)
             return
 
-        # remove inactive hosts that have no instances on them
+        # priority two: remove inactive hosts that have no instances on them
         inactive_hosts = [x for x in hosts if x['state'] == DD_STATE_INACTIVE]
         for host in inactive_hosts:
             if host['num_instances'] == 0:
@@ -193,10 +209,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         # find current free slots
         num_free_slots = sum(DD_CONTAINERS_PER_HOST - x['num_instances'] for x in active_hosts)
 
-        # find projected free slots (only take active hosts with more than 10% lifetime left into account)
+        # find projected free slots (only take active hosts with more than a minute to go)
         num_projected_free_slots = sum(
-            DD_CONTAINERS_PER_HOST - x['num_instances'] for x in active_hosts
-            if x['spawn_ts'] < time.time() - (DD_HOST_LIFETIME * 0.9)
+            DD_CONTAINERS_PER_HOST - x['num_instances'] for x in active_hosts if x['lifetime_left'] > 60
         )
 
         self.logger.info(
@@ -204,9 +219,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             (len(active_hosts), num_free_slots, num_projected_free_slots)
         )
 
-        # if we have less available slots than our target, spawn a new host
+        # priority three: if we have less available slots than our target, spawn a new host
         if num_projected_free_slots < DD_FREE_SLOT_TARGET:
-            if len(hosts) < DD_MAX_HOSTS:
+            if shutdown_mode:
+                self.logger.info('do_housekeep(): too few free slots, but in shutdown mode')
+            elif len(hosts) < DD_MAX_HOSTS:
                 new_host = self._spawn_host()
                 self.logger.info('do_housekeep(): too few free slots, spawned a new host %s' % new_host['id'])
                 hosts.append(new_host)
@@ -215,9 +232,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             else:
                 self.logger.info('do_housekeep(): too few free slots, but host limit reached')
 
-        # mark old hosts without instances inactive (one at a time)
+        # finally mark old hosts without instances inactive (one at a time)
         for host in active_hosts:
-            if host['spawn_ts'] < time.time() - DD_HOST_LIFETIME and host['num_instances'] == 0:
+            if host['lifetime_left'] == 0 and host['num_instances'] == 0:
                 self.logger.info('do_housekeep(): making host %s inactive' % host['id'])
                 host['state'] = DD_STATE_INACTIVE
                 self._save_host_state(hosts)
