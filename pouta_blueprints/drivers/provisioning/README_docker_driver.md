@@ -44,14 +44,18 @@
     - blueprint config, (pool of hosts per blueprint)
     - OR a commmon configuration for the hosts, stored in the file system?
        
-- setting password for jupyter + rstudio containers
+- setting password for containers
+    - rstudio *DONE*
+    - jupyter
 
-- implement memory limits for containers
-
-- configure swap on host + allow swapping for containers for fitting even more on a single host?
-
+- implement memory limits for containers 
+  - pending for docker-py update https://github.com/docker/docker-py/pull/732
+  
+- implement error tracking per host
+    - prevent a bad host from stalling the pool 
 
 ### Optional features
 - implement session backups
 - proxy in front of containers
 - implement a service for plugins for storing the state 
+- configure swap on host + allow swapping for containers for fitting even more on a single host?
