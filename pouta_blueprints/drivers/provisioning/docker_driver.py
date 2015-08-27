@@ -28,6 +28,7 @@ DD_CONTAINERS_PER_HOST = 4
 DD_FREE_SLOT_TARGET = 4
 DD_PROVISION_RETRIES = 10
 DD_PROVISION_RETRY_SLEEP = 30
+DD_MAX_HOST_ERRORS = 5
 
 DD_RUNTIME_PATH = '/webapps/pouta_blueprints/run'
 
@@ -95,9 +96,10 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'image': blueprint_config['docker_image'],
             'ports': [blueprint_config['internal_port']],
             'name': container_name,
-            'mem_limit': blueprint_config['memory_limit'],
+            #            'mem_limit': blueprint_config['memory_limit'],
             'cpu_shares': 5,
             'environment': {'PASSWORD': password},
+            #            'host_config': {'Memory': 256 * 1024 * 1024},
         }
 
         res = dc.create_container(**config)
@@ -174,35 +176,18 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         # calculate lifetime
         for host in hosts:
+            # shutdown mode, try to get rid of all hosts
             if shutdown_mode:
-                host['lifetime_left'] = 0
+                lifetime = 0
+            # if the host has been used, calculate lifetime normally
+            elif host.get('first_use_ts', 0):
+                lifetime = max(DD_HOST_LIFETIME - int(time.time() - host['first_use_ts']), 0)
+            # host has not been used, let it run
             else:
-                host['lifetime_left'] = max(DD_HOST_LIFETIME - int(time.time() - host['spawn_ts']), 0)
+                lifetime = DD_HOST_LIFETIME
 
-            self.logger.debug('do_housekeep(): host %s has lifetime %d' % (host['id'], host['lifetime_left']))
-
-        # priority one: find just spawned hosts, prepare and activate those
-        spawned_hosts = [x for x in hosts if x['state'] == DD_STATE_SPAWNED]
-        if len(spawned_hosts):
-            for host in spawned_hosts:
-                self.logger.info('do_housekeep(): preparing host %s' % host['id'])
-                self._prepare_host(host)
-                host['state'] = DD_STATE_ACTIVE
-            self._save_host_state(hosts)
-            return
-
-        # priority two: remove inactive hosts that have no instances on them
-        inactive_hosts = [x for x in hosts if x['state'] == DD_STATE_INACTIVE]
-        for host in inactive_hosts:
-            if host['num_instances'] == 0:
-                self.logger.info('do_housekeep(): removing host %s' % host['id'])
-                self._remove_host(host)
-                hosts.remove(host)
-                self._save_host_state(hosts)
-                return
-            else:
-                self.logger.debug('do_housekeep(): inactive host %s still has %d instances' %
-                                  (host['id'], host['num_instances']))
+            host['lifetime_left'] = lifetime
+            self.logger.debug('do_housekeep(): host %s has lifetime %d' % (host['id'], lifetime))
 
         # find active hosts
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
@@ -219,6 +204,37 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'do_housekeep(): active hosts: %d, free slots: %d now, %d projected for near future' %
             (len(active_hosts), num_free_slots, num_projected_free_slots)
         )
+
+        # priority one: find just spawned hosts, prepare and activate those
+        spawned_hosts = [x for x in hosts if x['state'] == DD_STATE_SPAWNED]
+        if len(spawned_hosts):
+            for host in spawned_hosts:
+                self.logger.info('do_housekeep(): preparing host %s' % host['id'])
+                try:
+                    self._prepare_host(host)
+                    host['state'] = DD_STATE_ACTIVE
+                except:
+                    self.logger.info('do_housekeep(): preparing host %s failed' % host['id'])
+                    host['error_count'] = host.get('error_count', 0) + 1
+                    if host['error_count'] > DD_MAX_HOST_ERRORS:
+                        self.logger.warn('do_housekeep(): maximum error count exceeded for host %s' % host['id'])
+                        host['state'] = DD_STATE_INACTIVE
+
+                self._save_host_state(hosts)
+                return
+
+        # priority two: remove inactive hosts that have no instances on them
+        inactive_hosts = [x for x in hosts if x['state'] == DD_STATE_INACTIVE]
+        for host in inactive_hosts:
+            if host['num_instances'] == 0:
+                self.logger.info('do_housekeep(): removing host %s' % host['id'])
+                self._remove_host(host)
+                hosts.remove(host)
+                self._save_host_state(hosts)
+                return
+            else:
+                self.logger.debug('do_housekeep(): inactive host %s still has %d instances' %
+                                  (host['id'], host['num_instances']))
 
         # priority three: if we have less available slots than our target, spawn a new host
         if num_projected_free_slots < DD_FREE_SLOT_TARGET:
@@ -247,8 +263,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def _select_host(self):
         hosts = self._get_hosts()
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
-        active_hosts = sorted(active_hosts, key=lambda entry: -entry['spawn_ts'])
 
+        # try to use the newest active host with space
+        active_hosts = sorted(active_hosts, key=lambda entry: -entry['spawn_ts'])
         selected_host = None
         for host in active_hosts:
             if host['num_instances'] < DD_CONTAINERS_PER_HOST:
@@ -278,9 +295,18 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 continue
             dc = self.get_docker_client(host['docker_url'])
             try:
+                # update the number of instances
                 containers = dc.containers()
                 host['num_instances'] = len(containers)
                 self.logger.debug('_get_hosts(): found %d instances on %s' % (len(containers), host['id']))
+                # update the usage
+                usage = host.get('usage', 0)
+                usage += len(containers)
+                host['usage'] = usage
+                # populate the first use timestamp
+                if usage and not host.get('first_use_ts', 0):
+                    host['first_use_ts'] = int(time.time())
+
             except ConnectionError:
                 self.logger.warning('_get_hosts(): updating number of instances failed for %s' % host['id'])
 
