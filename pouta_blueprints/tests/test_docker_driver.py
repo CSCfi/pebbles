@@ -98,8 +98,9 @@ class PBClientMock(object):
     def do_instance_patch(self, instance_id, payload):
         data = self.instance_data[instance_id]
         data.update(payload)
-        if data.has_key('instance_data') and isinstance(data['instance_data'],basestring):
+        if 'instance_data' in data.keys() and isinstance(data['instance_data'], basestring):
             data['instance_data'] = json.loads(data['instance_data'])
+
 
 class DockerDriverAccessMock(object):
     def __init__(self, config):
