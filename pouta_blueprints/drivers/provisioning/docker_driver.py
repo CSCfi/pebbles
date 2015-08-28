@@ -11,12 +11,6 @@ import docker
 from pouta_blueprints.services.openstack_service import OpenStackService
 from lockfile import locked
 
-import ansible.runner
-import ansible.playbook
-import ansible.inventory
-from ansible import callbacks
-from ansible import utils
-
 DD_STATE_SPAWNED = 'spawned'
 DD_STATE_ACTIVE = 'active'
 DD_STATE_INACTIVE = 'inactive'
@@ -78,6 +72,11 @@ class DockerDriverAccessProxy(object):
 
     @staticmethod
     def run_ansible_on_host(host, logger):
+        import ansible.runner
+        import ansible.playbook
+        import ansible.inventory
+        from ansible import callbacks
+        from ansible import utils
 
         # global verbosity for debugging e.g. ssh problems with ansible. ugly.
         utils.VERBOSITY = 4
