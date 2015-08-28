@@ -1,6 +1,6 @@
 import json
 import logging
-from pouta_blueprints.drivers.provisioning.docker_driver import DockerDriver, DD_HOST_LIFETIME
+import pouta_blueprints.drivers.provisioning.docker_driver as docker_driver
 
 from pouta_blueprints.tests.base import BaseTestCase
 
@@ -150,7 +150,7 @@ class DockerDriverTestCase(BaseTestCase):
             M2M_CREDENTIAL_STORE='',
             INTERNAL_API_BASE_URL='bogus',
         )
-        dd = DockerDriver(logger, config)
+        dd = docker_driver.DockerDriver(logger, config)
         dd._ap = DockerDriverAccessMock(config)
         return dd
 
@@ -189,7 +189,7 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         # fast forward time past lifetime, but when the host is not used the lifetime should not tick
-        cur_ts += 60 + DD_HOST_LIFETIME
+        cur_ts += 60 + docker_driver.DD_HOST_LIFETIME
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 1)
 
@@ -210,7 +210,7 @@ class DockerDriverTestCase(BaseTestCase):
         host_file_data[0]['first_use_ts'] = cur_ts
 
         # fast forward time past host lifetime, should have one active and one spawned
-        cur_ts += 60 + DD_HOST_LIFETIME
+        cur_ts += 60 + docker_driver.DD_HOST_LIFETIME
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 2)
         host_file_data = ddam.json_data['/tmp/docker_driver.json']
