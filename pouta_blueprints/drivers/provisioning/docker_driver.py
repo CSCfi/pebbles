@@ -33,13 +33,19 @@ DD_MAX_HOST_ERRORS = 5
 DD_RUNTIME_PATH = '/webapps/pouta_blueprints/run'
 
 
-class DockerDriver(base_driver.ProvisioningDriverBase):
-    def get_configuration(self):
-        from pouta_blueprints.drivers.provisioning.docker_driver_config import CONFIG
+class DockerDriverAccessProxy(object):
+    @staticmethod
+    def is_shutdown_mode():
+        return os.path.exists('%s/docker_driver_shutdown' % DD_RUNTIME_PATH)
 
-        config = CONFIG.copy()
+    @staticmethod
+    def save_as_json(data_file, data):
+        if os.path.exists(data_file):
+            ts = int(time.time())
+            os.rename(data_file, '%s.%s' % (data_file, ts - ts % 3600))
 
-        return config
+            with open(data_file, 'w') as df:
+                json.dump(data, df)
 
     @staticmethod
     def get_docker_client(docker_url):
@@ -54,6 +60,75 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         return dc
 
+    @staticmethod
+    def load_json(data_file, default):
+        if os.path.exists(data_file):
+            with open(data_file, 'r') as df:
+                return json.load(df)
+        else:
+            return default
+
+    @staticmethod
+    def get_openstack_service(config):
+        return OpenStackService(config)
+
+    @staticmethod
+    def get_pb_client(token, api_base_url, ssl_verify):
+        return PBClient(token, api_base_url, ssl_verify)
+
+    @staticmethod
+    def run_ansible_on_host(host, logger):
+
+        # global verbosity for debugging e.g. ssh problems with ansible. ugly.
+        utils.VERBOSITY = 4
+
+        # set up ansible inventory for the host
+        a_host = ansible.inventory.host.Host(name=host['id'])
+        a_host.set_variable('ansible_ssh_host', host['private_ip'])
+
+        a_group = ansible.inventory.group.Group(name='notebook_host')
+        a_group.add_host(a_host)
+
+        a_inventory = ansible.inventory.Inventory(host_list=[host['private_ip']])
+        a_inventory.add_group(a_group)
+
+        stats = callbacks.AggregateStats()
+        playbook_cb = callbacks.PlaybookCallbacks(verbose=utils.VERBOSITY)
+        runner_cb = callbacks.PlaybookRunnerCallbacks(stats, verbose=utils.VERBOSITY)
+
+        logger.debug("_prepare_host(): running ansible")
+        pb = ansible.playbook.PlayBook(
+            playbook="/webapps/pouta_blueprints/source/ansible/notebook_playbook.yml",
+            stats=stats,
+            callbacks=playbook_cb,
+            runner_callbacks=runner_cb,
+            inventory=a_inventory,
+            remote_user='cloud-user',
+        )
+
+        pb_res = pb.run()
+
+        logger.debug(json.dumps(pb_res, sort_keys=True, indent=4, separators=(',', ': ')))
+
+        for host_name in pb_res.keys():
+            host_data = pb_res[host_name]
+            if host_data.get('unreachable', 0) + host_data.get('failures', 0) > 0:
+                raise RuntimeError('run_ansible_on_host(%s) failed' % host['id'])
+
+
+class DockerDriver(base_driver.ProvisioningDriverBase):
+    def get_configuration(self):
+        from pouta_blueprints.drivers.provisioning.docker_driver_config import CONFIG
+
+        config = CONFIG.copy()
+
+        return config
+
+    def _get_ap(self):
+        if not getattr(self, '_ap', None):
+            self._ap = DockerDriverAccessProxy()
+        return self._ap
+
     def do_update_connectivity(self, token, instance_id):
         self.logger.warning('do_update_connectivity not implemented')
 
@@ -62,7 +137,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         retries = 0
         while True:
             try:
-                self._do_provision(token, instance_id)
+                self._do_provision_locked(token, instance_id, int(time.time()))
                 break
             except RuntimeWarning as e:
                 retries += 1
@@ -76,8 +151,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 time.sleep(DD_PROVISION_RETRY_SLEEP)
 
     @locked('/webapps/pouta_blueprints/run/docker_driver_provisioning')
-    def _do_provision(self, token, instance_id):
-        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+    def _do_provision_locked(self, token, instance_id, cur_ts):
+        return self._do_provision(token, instance_id, cur_ts)
+
+    def _do_provision(self, token, instance_id, cur_ts):
+        ap = self._get_ap()
+
+        pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
         instance = pbclient.get_instance_description(instance_id)
 
@@ -85,9 +165,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
         blueprint_config = blueprint['config']
 
-        dh = self._select_host()
+        dh = self._select_host(cur_ts)
 
-        dc = self.get_docker_client(dh['docker_url'])
+        dc = ap.get_docker_client(dh['docker_url'])
 
         container_name = instance['name']
         password = uuid.uuid4().hex[:16]
@@ -134,9 +214,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     @locked('/webapps/pouta_blueprints/run/docker_driver_provisioning')
     def do_deprovision(self, token, instance_id):
+        return self._do_deprovision(token, instance_id)
+
+    def _do_deprovision(self, token, instance_id):
         self.logger.debug("do_deprovision %s" % instance_id)
 
-        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        ap = self._get_ap()
+
+        pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance_description(instance_id)
 
         if instance['state'] == 'deleted':
@@ -149,7 +234,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             self.logger.info('no docker url for instance %s, assuming provisioning has failed' % instance_id)
             return
 
-        dc = self.get_docker_client(docker_url)
+        dc = ap.get_docker_client(docker_url)
 
         container_name = instance['name']
 
@@ -165,29 +250,20 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     @locked('/webapps/pouta_blueprints/run/docker_driver_housekeep')
     def do_housekeep(self, token):
+        return self._do_housekeep(token, int(time.time()))
+
+    def _do_housekeep(self, token, cur_ts):
+        ap = self._get_ap()
 
         # in shutdown mode we remove the hosts as soon as no instances are running on them
-        shutdown_mode = os.path.exists('%s/docker_driver_shutdown' % DD_RUNTIME_PATH)
+        shutdown_mode = ap.is_shutdown_mode()
         if shutdown_mode:
             self.logger.info('do_housekeep(): in shutdown mode')
 
         # fetch host data
-        hosts = self._get_hosts()
+        hosts = self._get_hosts(cur_ts)
 
-        # calculate lifetime
-        for host in hosts:
-            # shutdown mode, try to get rid of all hosts
-            if shutdown_mode:
-                lifetime = 0
-            # if the host has been used, calculate lifetime normally
-            elif host.get('first_use_ts', 0):
-                lifetime = max(DD_HOST_LIFETIME - int(time.time() - host['first_use_ts']), 0)
-            # host has not been used, let it run
-            else:
-                lifetime = DD_HOST_LIFETIME
-
-            host['lifetime_left'] = lifetime
-            self.logger.debug('do_housekeep(): host %s has lifetime %d' % (host['id'], lifetime))
+        self.update_host_lifetime(hosts, shutdown_mode, cur_ts)
 
         # find active hosts
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
@@ -207,21 +283,20 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         # priority one: find just spawned hosts, prepare and activate those
         spawned_hosts = [x for x in hosts if x['state'] == DD_STATE_SPAWNED]
-        if len(spawned_hosts):
-            for host in spawned_hosts:
-                self.logger.info('do_housekeep(): preparing host %s' % host['id'])
-                try:
-                    self._prepare_host(host)
-                    host['state'] = DD_STATE_ACTIVE
-                except:
-                    self.logger.info('do_housekeep(): preparing host %s failed' % host['id'])
-                    host['error_count'] = host.get('error_count', 0) + 1
-                    if host['error_count'] > DD_MAX_HOST_ERRORS:
-                        self.logger.warn('do_housekeep(): maximum error count exceeded for host %s' % host['id'])
-                        host['state'] = DD_STATE_INACTIVE
+        for host in spawned_hosts:
+            self.logger.info('do_housekeep(): preparing host %s' % host['id'])
+            try:
+                self._prepare_host(host)
+                host['state'] = DD_STATE_ACTIVE
+            except Exception as e:
+                self.logger.info('do_housekeep(): preparing host %s failed, %s' % (host['id'], e))
+                host['error_count'] = host.get('error_count', 0) + 1
+                if host['error_count'] > DD_MAX_HOST_ERRORS:
+                    self.logger.warn('do_housekeep(): maximum error count exceeded for host %s' % host['id'])
+                    host['state'] = DD_STATE_INACTIVE
 
-                self._save_host_state(hosts)
-                return
+            self._save_host_state(hosts)
+            return
 
         # priority two: remove inactive hosts that have no instances on them
         inactive_hosts = [x for x in hosts if x['state'] == DD_STATE_INACTIVE]
@@ -241,7 +316,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             if shutdown_mode:
                 self.logger.info('do_housekeep(): too few free slots, but in shutdown mode')
             elif len(hosts) < DD_MAX_HOSTS:
-                new_host = self._spawn_host()
+                new_host = self._spawn_host(cur_ts)
                 self.logger.info('do_housekeep(): too few free slots, spawned a new host %s' % new_host['id'])
                 hosts.append(new_host)
                 self._save_host_state(hosts)
@@ -260,8 +335,24 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         # no changes to host states, but the number of instances might have changes
         self._save_host_state(hosts)
 
-    def _select_host(self):
-        hosts = self._get_hosts()
+    def update_host_lifetime(self, hosts, shutdown_mode, cur_ts):
+        # calculate lifetime
+        for host in hosts:
+            # shutdown mode, try to get rid of all hosts
+            if shutdown_mode:
+                lifetime = 0
+            # if the host has been used, calculate lifetime normally
+            elif host.get('first_use_ts', 0):
+                lifetime = max(DD_HOST_LIFETIME - (cur_ts - host['first_use_ts']), 0)
+            # host has not been used, let it run
+            else:
+                lifetime = DD_HOST_LIFETIME
+
+            host['lifetime_left'] = lifetime
+            self.logger.debug('do_housekeep(): host %s has lifetime %d' % (host['id'], lifetime))
+
+    def _select_host(self, cur_ts):
+        hosts = self._get_hosts(cur_ts)
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
 
         # try to use the newest active host with space
@@ -277,23 +368,20 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         self.logger.debug("_select_host(): %d total active, selected %s" % (len(active_hosts), selected_host))
         return selected_host
 
-    def _get_hosts(self):
+    def _get_hosts(self, cur_ts):
         self.logger.debug("_get_hosts")
+        ap = self._get_ap()
 
         data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
 
-        if os.path.exists(data_file):
-            with open(data_file, 'r') as df:
-                hosts = json.load(df)
-        else:
-            hosts = []
+        hosts = ap.load_json(data_file, [])
 
         # populate hosts with container data
         for host in hosts:
             if host['state'] not in (DD_STATE_ACTIVE, DD_STATE_INACTIVE):
                 self.logger.debug('_get_hosts(): skipping container data fetching for %s' % host['id'])
                 continue
-            dc = self.get_docker_client(host['docker_url'])
+            dc = ap.get_docker_client(host['docker_url'])
             try:
                 # update the number of instances
                 containers = dc.containers()
@@ -305,7 +393,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 host['usage'] = usage
                 # populate the first use timestamp
                 if usage and not host.get('first_use_ts', 0):
-                    host['first_use_ts'] = int(time.time())
+                    host['first_use_ts'] = cur_ts
 
             except ConnectionError:
                 self.logger.warning('_get_hosts(): updating number of instances failed for %s' % host['id'])
@@ -314,30 +402,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     def _save_host_state(self, hosts):
         self.logger.debug("_save_host_state")
-
+        ap = self._get_ap()
         data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
-        if os.path.exists(data_file):
-            ts = int(time.time())
-            os.rename(data_file, '%s.%s' % (data_file, ts - ts % 3600))
-        with open(data_file, 'w') as df:
-            json.dump(hosts, df)
+        ap.save_as_json(data_file, hosts)
 
-    def _spawn_host(self):
-        return self._spawn_host_os_service()
+    def _spawn_host(self, cur_ts):
+        return self._spawn_host_os_service(cur_ts)
 
-    def _spawn_host_dummy(self):
-        self.logger.debug("_spawn_host")
-        return {
-            'id': uuid.uuid4().hex,
-            'provider_id': uuid.uuid4().hex,
-            'docker_url': 'https://192.168.44.152:2376',
-            'public_ip': '86.50.169.98',
-            'spawn_ts': int(time.time()),
-            'state': DD_STATE_SPAWNED,
-            'num_instances': 0,
-        }
-
-    def _spawn_host_os_service(self):
+    def _spawn_host_os_service(self, cur_ts):
         self.logger.debug("_spawn_host_os_service")
 
         config = {
@@ -352,7 +424,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         flavor_name = config['flavor']
         key_name = config['key']
 
-        oss = OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
+        oss = self._get_ap().get_openstack_service({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
 
         # make sure the our key is in openstack
         oss.upload_key(key_name, '/home/pouta_blueprints/.ssh/id_rsa.pub')
@@ -378,7 +450,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'docker_url': 'https://%s:2376' % res['ip']['private_ip'],
             'public_ip': res['ip']['public_ip'],
             'private_ip': res['ip']['private_ip'],
-            'spawn_ts': int(time.time()),
+            'spawn_ts': cur_ts,
             'state': DD_STATE_SPAWNED,
             'num_instances': 0,
         }
@@ -386,45 +458,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def _prepare_host(self, host):
         self.logger.debug("_prepare_host")
 
-        # global verbosity for debugging e.g. ssh problems with ansible. ugly.
-        utils.VERBOSITY = 4
+        ap = self._get_ap()
 
-        # set up ansible inventory for the host
-        a_host = ansible.inventory.host.Host(name=host['id'])
-        a_host.set_variable('ansible_ssh_host', host['private_ip'])
+        ap.run_ansible_on_host(host, self.logger)
 
-        a_group = ansible.inventory.group.Group(name='notebook_host')
-        a_group.add_host(a_host)
-
-        a_inventory = ansible.inventory.Inventory(host_list=[host['private_ip']])
-        a_inventory.add_group(a_group)
-
-        stats = callbacks.AggregateStats()
-        playbook_cb = callbacks.PlaybookCallbacks(verbose=utils.VERBOSITY)
-        runner_cb = callbacks.PlaybookRunnerCallbacks(stats, verbose=utils.VERBOSITY)
-
-        self.logger.debug("_prepare_host(): running ansible")
-        pb = ansible.playbook.PlayBook(
-            playbook="/webapps/pouta_blueprints/source/ansible/notebook_playbook.yml",
-            stats=stats,
-            callbacks=playbook_cb,
-            runner_callbacks=runner_cb,
-            inventory=a_inventory,
-            remote_user='cloud-user',
-        )
-
-        pb_res = pb.run()
-
-        self.logger.debug(json.dumps(pb_res, sort_keys=True, indent=4, separators=(',', ': ')))
-
-        for host_name in pb_res.keys():
-            host_data = pb_res[host_name]
-            if host_data.get('unreachable', 0) + host_data.get('failures', 0) > 0:
-                raise RuntimeError('_prepare_host failed')
+        dc = ap.get_docker_client(host['docker_url'])
 
         for pull_image in ('jupyter/minimal', 'rocker/rstudio'):
             self.logger.debug("_prepare_host(): pulling image %s" % pull_image)
-            dc = self.get_docker_client(host['docker_url'])
             dc.pull(pull_image)
 
     def _remove_host(self, host):
@@ -433,7 +474,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     def _remove_host_os_service(self, host):
         self.logger.debug("_remove_host_os_service")
-        oss = OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
+        oss = self._get_ap().get_openstack_service({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
         oss.deprovision_instance(host['provider_id'], host['id'])
 
     def _check_host(self, host):
