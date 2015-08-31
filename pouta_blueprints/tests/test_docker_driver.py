@@ -1,12 +1,17 @@
 import json
 import logging
+import docker.errors
 import pouta_blueprints.drivers.provisioning.docker_driver as docker_driver
-
 from pouta_blueprints.tests.base import BaseTestCase
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+class MockResponse(object):
+    def __init__(self, status_code):
+        self.status_code = status_code
 
 
 class OpenStackServiceMock(object):
@@ -62,7 +67,15 @@ class DockerClientMock(object):
         pass
 
     def remove_container(self, name, **kwargs):
-        self._containers = [x for x in self._containers if x['Name'] != name]
+        matches = [x for x in self._containers if x['Name'] == name]
+        if len(matches) == 1:
+            container = matches[0]
+            self._containers.remove(container)
+        elif len(matches) == 0:
+            response = MockResponse(status_code=404)
+            raise docker.errors.APIError("foo", response=response, explanation='')
+        else:
+            raise RuntimeError('More than one container with same name detected')
 
     @staticmethod
     def port(*args):
@@ -86,7 +99,7 @@ class PBClientMock(object):
     def add_instance_data(self, instance_id):
         self.instance_data[instance_id] = dict(
             id='%s' % instance_id,
-            name='pb-%s' % 1001,
+            name='pb-%s' % instance_id,
             state='starting',
             blueprint_id='bp-01',
         )
@@ -111,6 +124,7 @@ class DockerDriverAccessMock(object):
         self.dc_mocks = {}
         self.pbc_mock = PBClientMock()
         self.shutdown_mode = False
+        self.failure_mode = False
 
     def load_json(self, data_file, default):
         return self.json_data.get(data_file, default)
@@ -133,9 +147,9 @@ class DockerDriverAccessMock(object):
     def get_pb_client(self, token, base_url, ssl_verify):
         return self.pbc_mock
 
-    @staticmethod
-    def run_ansible_on_host(host, custom_logger):
-        pass
+    def run_ansible_on_host(self, host, custom_logger):
+        if self.failure_mode:
+            raise RuntimeError
 
     def __repr__(self):
         res = dict(
@@ -271,6 +285,24 @@ class DockerDriverTestCase(BaseTestCase):
         ddam.pbc_mock.add_instance_data('1001')
         dd._do_provision(token='foo', instance_id='1001', cur_ts=cur_ts)
         dd._do_deprovision(token='foo', instance_id='1001')
+        # because base driver is bypassed in tests, instance state has to be set manually
+        ddam.pbc_mock.do_instance_patch('1001', dict(state='deleted'))
+        dd._do_deprovision(token='foo', instance_id='1001')
+
+    def test_double_deprovision_404(self):
+        dd = self.create_docker_driver()
+        ddam = dd._get_ap()
+
+        # spawn a host and activate it
+        cur_ts = 1000000
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        # spawn an instance and destroy it twice, should not blow up
+        ddam.pbc_mock.add_instance_data('1001')
+        dd._do_provision(token='foo', instance_id='1001', cur_ts=cur_ts)
+        dd._do_deprovision(token='foo', instance_id='1001')
         dd._do_deprovision(token='foo', instance_id='1001')
 
     def test_scale_up_to_the_limit(self):
@@ -328,3 +360,106 @@ class DockerDriverTestCase(BaseTestCase):
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         self.assertEquals(len(ddam.oss_mock.servers), 1)
+
+    def test_shutdown_mode(self):
+        dd = self.create_docker_driver()
+        ddam = dd._get_ap()
+
+        # spawn a host and activate it
+        cur_ts = 1000000
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        # set shutdown mode and see that we have scaled down
+        ddam.shutdown_mode = True
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        self.assertEquals(len(ddam.oss_mock.servers), 0)
+
+    def test_inactive_host_with_instances(self):
+        dd = self.create_docker_driver()
+        ddam = dd._get_ap()
+
+        # spawn a host and activate it
+        cur_ts = 1000000
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        # add an instance
+        ddam.pbc_mock.add_instance_data('1000')
+        dd._do_provision(token='foo', instance_id='1000', cur_ts=cur_ts)
+
+        # change the state to inactive under the hood (this is possible due to a race
+        # between housekeep() and provision())
+        host_file_data = ddam.json_data['/tmp/docker_driver.json']
+        host_file_data[0]['state'] = 'inactive'
+
+        for i in range(5):
+            cur_ts += 60
+            dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        self.assertEquals(len(ddam.oss_mock.servers), 2)
+        self.assertSetEqual({x['state'] for x in host_file_data}, {'inactive', 'active'})
+
+        # remove the instance and check that the host is removed also
+        dd._do_deprovision(token='foo', instance_id='1000')
+        for i in range(5):
+            cur_ts += 60
+            dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        self.assertEquals(len(ddam.oss_mock.servers), 1)
+        self.assertSetEqual({x['state'] for x in host_file_data}, {'active'})
+
+    def test_prepare_failing(self):
+        dd = self.create_docker_driver()
+        ddam = dd._get_ap()
+
+        # spawn a host
+        cur_ts = 1000000
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        # mimic a failure to prepare it
+        ddam.failure_mode = True
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+        host_file_data = ddam.json_data['/tmp/docker_driver.json']
+        self.assertSetEqual({x['state'] for x in host_file_data}, {'spawned'})
+
+        # recover
+        ddam.failure_mode = False
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+        self.assertSetEqual({x['state'] for x in host_file_data}, {'active'})
+
+    def test_prepare_failing_max_retries(self):
+        dd = self.create_docker_driver()
+        ddam = dd._get_ap()
+
+        # spawn a host
+        cur_ts = 1000000
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        # mimic a failure to prepare it
+        ddam.failure_mode = True
+        for i in range(docker_driver.DD_MAX_HOST_ERRORS + 1):
+            cur_ts += 60
+            dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        host_file_data = ddam.json_data['/tmp/docker_driver.json']
+        self.assertSetEqual({x['state'] for x in host_file_data}, {'inactive'})
+
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+        self.assertEqual(len(host_file_data), 0)
+
+        ddam.failure_mode = False
+        for i in range(2):
+            cur_ts += 60
+            dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        self.assertSetEqual({x['state'] for x in host_file_data}, {'active'})
