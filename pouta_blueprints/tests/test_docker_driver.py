@@ -3,6 +3,7 @@ import logging
 import docker.errors
 import pouta_blueprints.drivers.provisioning.docker_driver as docker_driver
 from pouta_blueprints.tests.base import BaseTestCase
+from pouta_blueprints.drivers.provisioning.docker_driver import DD_STATE_ACTIVE, DD_STATE_INACTIVE, DD_STATE_SPAWNED
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -14,6 +15,7 @@ class MockResponse(object):
         self.status_code = status_code
 
 
+# noinspection PyUnusedLocal
 class OpenStackServiceMock(object):
     def __init__(self, config):
         self.spawn_count = 0
@@ -43,18 +45,27 @@ class OpenStackServiceMock(object):
         pass
 
 
+# noinspection PyUnusedLocal
 class DockerClientMock(object):
     def __init__(self):
         self._containers = []
         self.spawn_count = 0
+        self.failure_mode = False
 
     def pull(self, image):
-        pass
+        if self.failure_mode:
+            raise RuntimeError('In failure mode')
 
     def containers(self):
+        if self.failure_mode:
+            raise RuntimeError('In failure mode')
+
         return self._containers[:]
 
     def create_container(self, name, **kwargs):
+        if self.failure_mode:
+            raise RuntimeError('In failure mode')
+
         self.spawn_count += 1
         container = dict(
             Id='%s' % self.spawn_count,
@@ -64,9 +75,13 @@ class DockerClientMock(object):
         return container
 
     def start(self, container_id, **kwargs):
-        pass
+        if self.failure_mode:
+            raise RuntimeError('In failure mode')
 
     def remove_container(self, name, **kwargs):
+        if self.failure_mode:
+            raise RuntimeError('In failure mode')
+
         matches = [x for x in self._containers if x['Name'] == name]
         if len(matches) == 1:
             container = matches[0]
@@ -77,8 +92,10 @@ class DockerClientMock(object):
         else:
             raise RuntimeError('More than one container with same name detected')
 
-    @staticmethod
-    def port(*args):
+    def port(self, *args):
+        if self.failure_mode:
+            raise RuntimeError('In failure mode')
+
         return [{'HostPort': 32566}]
 
 
@@ -117,6 +134,7 @@ class PBClientMock(object):
             data['instance_data'] = json.loads(data['instance_data'])
 
 
+# noinspection PyUnusedLocal
 class DockerDriverAccessMock(object):
     def __init__(self, config):
         self.json_data = {}
@@ -139,6 +157,7 @@ class DockerDriverAccessMock(object):
         if docker_url not in self.dc_mocks.keys():
             self.dc_mocks[docker_url] = DockerClientMock()
 
+        self.dc_mocks[docker_url].failure_mode = self.failure_mode
         return self.dc_mocks[docker_url]
 
     def get_openstack_service(self, config):
@@ -159,11 +178,13 @@ class DockerDriverAccessMock(object):
         return json.dumps(res)
 
 
+# noinspection PyProtectedMember
 class DockerDriverTestCase(BaseTestCase):
     def setUp(self):
         pass
 
-    def create_docker_driver(self):
+    @staticmethod
+    def create_docker_driver():
         config = dict(
             INSTANCE_DATA_DIR='/tmp',
             M2M_CREDENTIAL_STORE='',
@@ -183,7 +204,7 @@ class DockerDriverTestCase(BaseTestCase):
         self.assertEquals(len(ddam.oss_mock.servers), 1)
         hosts_data = ddam.json_data['/tmp/docker_driver.json']
         host = hosts_data[0]
-        self.assertEquals(host['state'], 'spawned')
+        self.assertEquals(host['state'], DD_STATE_SPAWNED)
         self.assertEquals(host['spawn_ts'], cur_ts)
 
         # check that the new host gets activated
@@ -192,7 +213,7 @@ class DockerDriverTestCase(BaseTestCase):
         self.assertEquals(len(ddam.oss_mock.servers), 1)
         hosts_data = ddam.json_data['/tmp/docker_driver.json']
         host = hosts_data[0]
-        self.assertEquals(host['state'], 'active')
+        self.assertEquals(host['state'], DD_STATE_ACTIVE)
 
         # check that we don't scale up if there are no instances
         cur_ts += 60
@@ -223,7 +244,7 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 1)
         host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {'active'})
+        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
 
         # manipulate the host data a bit so that the host is marked as used
         host_file_data[0]['first_use_ts'] = cur_ts
@@ -233,28 +254,28 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 2)
         host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {'active', 'spawned'})
+        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE, DD_STATE_SPAWNED})
 
         # next tick: should have two active
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 2)
         host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {'active', 'active'})
+        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE, DD_STATE_ACTIVE})
 
         # next tick: should have one inactive, one active
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 2)
         host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {'inactive', 'active'})
+        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_INACTIVE, DD_STATE_ACTIVE})
 
         # last tick: should have one active
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 1)
         host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {'active'})
+        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
 
     def test_provision_deprovision(self):
         dd = self.create_docker_driver()
@@ -397,14 +418,14 @@ class DockerDriverTestCase(BaseTestCase):
         # change the state to inactive under the hood (this is possible due to a race
         # between housekeep() and provision())
         host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        host_file_data[0]['state'] = 'inactive'
+        host_file_data[0]['state'] = DD_STATE_INACTIVE
 
         for i in range(5):
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         self.assertEquals(len(ddam.oss_mock.servers), 2)
-        self.assertSetEqual({x['state'] for x in host_file_data}, {'inactive', 'active'})
+        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_INACTIVE, DD_STATE_ACTIVE})
 
         # remove the instance and check that the host is removed also
         dd._do_deprovision(token='foo', instance_id='1000')
@@ -413,7 +434,7 @@ class DockerDriverTestCase(BaseTestCase):
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         self.assertEquals(len(ddam.oss_mock.servers), 1)
-        self.assertSetEqual({x['state'] for x in host_file_data}, {'active'})
+        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
 
     def test_prepare_failing(self):
         dd = self.create_docker_driver()
@@ -428,13 +449,13 @@ class DockerDriverTestCase(BaseTestCase):
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {'spawned'})
+        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_SPAWNED})
 
         # recover
         ddam.failure_mode = False
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        self.assertSetEqual({x['state'] for x in host_file_data}, {'active'})
+        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
 
     def test_prepare_failing_max_retries(self):
         dd = self.create_docker_driver()
@@ -451,15 +472,49 @@ class DockerDriverTestCase(BaseTestCase):
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {'inactive'})
+        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_INACTIVE})
 
+        ddam.failure_mode = False
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEqual(len(host_file_data), 0)
 
-        ddam.failure_mode = False
         for i in range(2):
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        self.assertSetEqual({x['state'] for x in host_file_data}, {'active'})
+        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
+
+    def test_docker_comm_probs(self):
+        dd = self.create_docker_driver()
+        ddam = dd._get_ap()
+
+        # spawn a host and activate it
+        cur_ts = 1000000
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        ddam.pbc_mock.add_instance_data('1000')
+
+        # mimic a docker comm failure
+        ddam.failure_mode = True
+        try:
+            dd._do_provision(token='foo', instance_id='1000', cur_ts=cur_ts)
+            self.fail('should have raised an error')
+        except:
+            pass
+
+        ddam.failure_mode = False
+        dd._do_provision(token='foo', instance_id='1000', cur_ts=cur_ts)
+        ddam.failure_mode = True
+
+        ddam.failure_mode = True
+        try:
+            dd._do_deprovision(token='foo', instance_id='1000')
+            self.fail('should have raised an error')
+        except:
+            pass
+
+        ddam.failure_mode = False
+        dd._do_deprovision(token='foo', instance_id='1000')
