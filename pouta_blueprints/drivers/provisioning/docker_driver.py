@@ -241,7 +241,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             dc.remove_container(container_name, force=True)
         except APIError as e:
             if e.response.status_code == 404:
-                self.logger.info('no container found instance %s, assuming already deleted' % instance_id)
+                self.logger.info('no container found for instance %s, assuming already deleted' % instance_id)
             else:
                 raise e
 
