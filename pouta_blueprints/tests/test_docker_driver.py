@@ -293,6 +293,7 @@ class DockerDriverTestCase(BaseTestCase):
         self.assertEquals(len(ddam.oss_mock.servers), docker_driver.DD_MAX_HOSTS)
 
         try:
+            ddam.pbc_mock.add_instance_data('999')
             dd._do_provision(token='foo', instance_id='999', cur_ts=cur_ts)
             self.fail('pool should have been full')
         except RuntimeWarning:
