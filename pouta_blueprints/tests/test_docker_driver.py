@@ -49,10 +49,11 @@ class DockerClientMock(object):
     def containers(self):
         return self._containers[:]
 
-    def create_container(self, **kwargs):
+    def create_container(self, name, **kwargs):
         self.spawn_count += 1
         container = dict(
-            Id='%s' % self.spawn_count
+            Id='%s' % self.spawn_count,
+            Name=name,
         )
         self._containers.append(container)
         return container
@@ -60,24 +61,17 @@ class DockerClientMock(object):
     def start(self, container_id, **kwargs):
         pass
 
-    def remove_container(self, container_id, **kwargs):
-        pass
+    def remove_container(self, name, **kwargs):
+        self._containers = [x for x in self._containers if x['Name'] != name]
 
-    def port(self, *args):
+    @staticmethod
+    def port(*args):
         return [{'HostPort': 32566}]
 
 
 class PBClientMock(object):
     def __init__(self):
-        self.instance_data = {
-            '1001': dict(
-                id='1001',
-                name='pb-%s' % 1001,
-                state='starting',
-                blueprint_id='bp-01',
-            )
-        }
-
+        self.instance_data = {}
         self.blueprint_data = {
             'bp-01': dict(
                 id='bp-01',
@@ -88,6 +82,14 @@ class PBClientMock(object):
                 ),
             )
         }
+
+    def add_instance_data(self, instance_id):
+        self.instance_data[instance_id] = dict(
+            id='%s' % instance_id,
+            name='pb-%s' % 1001,
+            state='starting',
+            blueprint_id='bp-01',
+        )
 
     def get_instance_description(self, instance_id):
         return self.instance_data[instance_id]
@@ -106,7 +108,7 @@ class DockerDriverAccessMock(object):
     def __init__(self, config):
         self.json_data = {}
         self.oss_mock = OpenStackServiceMock(config)
-        self.dc_mock = DockerClientMock()
+        self.dc_mocks = {}
         self.pbc_mock = PBClientMock()
         self.shutdown_mode = False
 
@@ -120,7 +122,10 @@ class DockerDriverAccessMock(object):
         return self.shutdown_mode
 
     def get_docker_client(self, docker_url):
-        return self.dc_mock
+        if docker_url not in self.dc_mocks.keys():
+            self.dc_mocks[docker_url] = DockerClientMock()
+
+        return self.dc_mocks[docker_url]
 
     def get_openstack_service(self, config):
         return self.oss_mock
@@ -239,6 +244,7 @@ class DockerDriverTestCase(BaseTestCase):
 
     def test_provision_deprovision(self):
         dd = self.create_docker_driver()
+        ddam = dd._get_ap()
 
         # spawn a host and activate it
         cur_ts = 1000000
@@ -247,11 +253,13 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         # spawn an instance and destroy it
+        ddam.pbc_mock.add_instance_data('1001')
         dd._do_provision(token='foo', instance_id='1001', cur_ts=cur_ts)
         dd._do_deprovision(token='foo', instance_id='1001')
 
     def test_double_deprovision(self):
         dd = self.create_docker_driver()
+        ddam = dd._get_ap()
 
         # spawn a host and activate it
         cur_ts = 1000000
@@ -260,6 +268,62 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         # spawn an instance and destroy it twice, should not blow up
+        ddam.pbc_mock.add_instance_data('1001')
         dd._do_provision(token='foo', instance_id='1001', cur_ts=cur_ts)
         dd._do_deprovision(token='foo', instance_id='1001')
         dd._do_deprovision(token='foo', instance_id='1001')
+
+    def test_scale_up_to_the_limit(self):
+        dd = self.create_docker_driver()
+        ddam = dd._get_ap()
+
+        # spawn a host and activate it
+        cur_ts = 1000000
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        # spawn instances up to the limit
+        for i in range(0, docker_driver.DD_MAX_HOSTS * docker_driver.DD_CONTAINERS_PER_HOST):
+            ddam.pbc_mock.add_instance_data('%d' % (1000 + i))
+            dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts)
+            cur_ts += 60
+            dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        self.assertEquals(len(ddam.oss_mock.servers), docker_driver.DD_MAX_HOSTS)
+
+        try:
+            dd._do_provision(token='foo', instance_id='999', cur_ts=cur_ts)
+            self.fail('pool should have been full')
+        except RuntimeWarning:
+            pass
+
+    def test_scale_down(self):
+        dd = self.create_docker_driver()
+        ddam = dd._get_ap()
+
+        # spawn a host and activate it
+        cur_ts = 1000000
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        # spawn instances up to the limit
+        for i in range(0, docker_driver.DD_MAX_HOSTS * docker_driver.DD_CONTAINERS_PER_HOST):
+            ddam.pbc_mock.add_instance_data('%d' % (1000 + i))
+            dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts)
+            cur_ts += 60
+            dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        self.assertEquals(len(ddam.oss_mock.servers), docker_driver.DD_MAX_HOSTS)
+
+        # remove instances
+        for i in range(0, docker_driver.DD_MAX_HOSTS * docker_driver.DD_CONTAINERS_PER_HOST):
+            dd._do_deprovision(token='foo', instance_id='%d' % (1000 + i))
+
+        # let logic scale down (3 ticks per host should be enough)
+        cur_ts += docker_driver.DD_HOST_LIFETIME
+        for i in range(0, docker_driver.DD_MAX_HOSTS * 3):
+            dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        self.assertEquals(len(ddam.oss_mock.servers), 1)
