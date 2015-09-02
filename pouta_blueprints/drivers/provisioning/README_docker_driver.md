@@ -14,8 +14,8 @@
 - setup openstack ssh-key *DONE*
 
 - docker host spawning *DONE*
-    - TBD: Where is host config stored?
-    - TBD: Is there a host config per blueprint? This would mean a host pool per blueprint.
+    - TBD: Where is host config stored? In app config *DONE*
+    - TBD: Is there a host config per blueprint? This would mean a host pool per blueprint. Nope. *DONE*
 
 - docker host configuration ansible playbooks *DONE*
 - security group configuration *DONE*
@@ -40,7 +40,7 @@
     - implement remove host *DONE*
 
 - get rid of hard coded configuration  
-    - image, flavor, security groups, docker image, number of instances per host,...  
+    - image, flavor, security groups, docker image, number of instances per host,... *DONE*  
     - blueprint config, (pool of hosts per blueprint)
     - OR a commmon configuration for the hosts, stored in the file system?
        
@@ -51,7 +51,7 @@
 - implement memory limits for containers 
   - pending for docker-py update https://github.com/docker/docker-py/pull/732
   
-- implement error tracking per host
+- implement error tracking per host *DONE*
     - prevent a bad host from stalling the pool 
 
 ### Optional features
