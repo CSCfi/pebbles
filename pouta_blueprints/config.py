@@ -72,6 +72,14 @@ class BaseConfig(object):
     INSTALLATION_NAME = 'Pouta Blueprints'
     PLUGIN_WHITELIST = ''
 
+    DD_HOST_IMAGE = 'CentOS-7.0'
+    DD_MAX_HOSTS = 4
+    DD_FREE_SLOT_TARGET = 4
+    DD_HOST_FLAVOR_NAME_SMALL = 'mini'
+    DD_HOST_FLAVOR_SLOTS_SMALL = 6
+    DD_HOST_FLAVOR_NAME_LARGE = 'small'
+    DD_HOST_FLAVOR_SLOTS_LARGE = 24
+
     # enable access by []
     def __getitem__(self, item):
         return getattr(self, item)

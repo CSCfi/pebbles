@@ -16,10 +16,9 @@ DD_STATE_ACTIVE = 'active'
 DD_STATE_INACTIVE = 'inactive'
 DD_STATE_REMOVED = 'removed'
 
-DD_HOST_LIFETIME = 900
-DD_MAX_HOSTS = 4
-DD_CONTAINERS_PER_HOST = 4
-DD_FREE_SLOT_TARGET = 4
+DD_HOST_LIFETIME = 600
+DD_HOST_LIFETIME_LOW = 60
+
 DD_PROVISION_RETRIES = 10
 DD_PROVISION_RETRY_SLEEP = 30
 DD_MAX_HOST_ERRORS = 5
@@ -79,7 +78,7 @@ class DockerDriverAccessProxy(object):
         from ansible import utils
 
         # global verbosity for debugging e.g. ssh problems with ansible. ugly.
-        utils.VERBOSITY = 4
+        # utils.VERBOSITY = 4
 
         # set up ansible inventory for the host
         a_host = ansible.inventory.host.Host(name=host['id'])
@@ -149,7 +148,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 )
                 time.sleep(DD_PROVISION_RETRY_SLEEP)
 
-    @locked('/webapps/pouta_blueprints/run/docker_driver_provisioning')
+    @locked('%s/docker_driver_provisioning' % DD_RUNTIME_PATH)
     def _do_provision_locked(self, token, instance_id, cur_ts):
         return self._do_provision(token, instance_id, cur_ts)
 
@@ -211,7 +210,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         self.logger.debug("do_provision done for %s" % instance_id)
 
-    @locked('/webapps/pouta_blueprints/run/docker_driver_provisioning')
+    @locked('%s/docker_driver_provisioning' % DD_RUNTIME_PATH)
     def do_deprovision(self, token, instance_id):
         return self._do_deprovision(token, instance_id)
 
@@ -247,10 +246,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         self.logger.debug("do_deprovision done for %s" % instance_id)
 
-    @locked('/webapps/pouta_blueprints/run/docker_driver_housekeep')
+    @locked('%s/docker_driver_housekeep' % DD_RUNTIME_PATH)
     def do_housekeep(self, token):
         return self._do_housekeep(token, int(time.time()))
 
+    # noinspection PyUnusedLocal
     def _do_housekeep(self, token, cur_ts):
         ap = self._get_ap()
 
@@ -262,17 +262,21 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         # fetch host data
         hosts = self._get_hosts(cur_ts)
 
-        self.update_host_lifetime(hosts, shutdown_mode, cur_ts)
+        self._update_host_lifetimes(hosts, shutdown_mode, cur_ts)
+
+        # count allocated slots
+        num_allocated_slots = sum(x['num_instances'] for x in hosts)
 
         # find active hosts
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
 
         # find current free slots
-        num_free_slots = sum(DD_CONTAINERS_PER_HOST - x['num_instances'] for x in active_hosts)
+        num_free_slots = sum(x['num_slots'] - x['num_instances'] for x in active_hosts)
 
         # find projected free slots (only take active hosts with more than a minute to go)
         num_projected_free_slots = sum(
-            DD_CONTAINERS_PER_HOST - x['num_instances'] for x in active_hosts if x['lifetime_left'] > 60
+            x['num_slots'] - x['num_instances'] for x in active_hosts
+            if x['lifetime_left'] > DD_HOST_LIFETIME_LOW
         )
 
         self.logger.info(
@@ -311,12 +315,19 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                                   (host['id'], host['num_instances']))
 
         # priority three: if we have less available slots than our target, spawn a new host
-        if num_projected_free_slots < DD_FREE_SLOT_TARGET:
+        if num_projected_free_slots < self.config['DD_FREE_SLOT_TARGET']:
             if shutdown_mode:
                 self.logger.info('do_housekeep(): too few free slots, but in shutdown mode')
-            elif len(hosts) < DD_MAX_HOSTS:
-                new_host = self._spawn_host(cur_ts)
-                self.logger.info('do_housekeep(): too few free slots, spawned a new host %s' % new_host['id'])
+            elif len(hosts) < self.config['DD_MAX_HOSTS']:
+                # try to figure out if we need to use the larger flavor
+                # if we at some point can get the number of queueing instances that can be used
+                if num_allocated_slots > 0:
+                    ramp_up = True
+                else:
+                    ramp_up = False
+                self.logger.debug('do_housekeep(): too few free slots, spawning, ramp_up=%s' % ramp_up)
+                new_host = self._spawn_host(cur_ts, ramp_up)
+                self.logger.info('do_housekeep(): spawned a new host %s' % new_host['id'])
                 hosts.append(new_host)
                 self._save_host_state(hosts)
                 return
@@ -334,16 +345,21 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         # no changes to host states, but the number of instances might have changes
         self._save_host_state(hosts)
 
-    def update_host_lifetime(self, hosts, shutdown_mode, cur_ts):
+    def _update_host_lifetimes(self, hosts, shutdown_mode, cur_ts):
+        self.logger.debug("_update_host_lifetimes()")
         # calculate lifetime
         for host in hosts:
             # shutdown mode, try to get rid of all hosts
             if shutdown_mode:
                 lifetime = 0
-            # if the host has been used, calculate lifetime normally
-            elif host.get('first_use_ts', 0):
-                lifetime = max(DD_HOST_LIFETIME - (cur_ts - host['first_use_ts']), 0)
-            # host has not been used, let it run
+            # if the host has been used or it is a bigger flavor, calculate lifetime normally
+            elif host.get('lifetime_tick_ts', 0):
+                lifetime = max(DD_HOST_LIFETIME - (cur_ts - host['lifetime_tick_ts']), 0)
+            # if the host is the only one and bigger flavor, don't leave it waiting
+            elif len(hosts) == 1 and host['num_slots'] == self.config['DD_HOST_FLAVOR_SLOTS_LARGE']:
+                host['lifetime_tick_ts'] = cur_ts
+                lifetime = DD_HOST_LIFETIME
+            # host has not been used
             else:
                 lifetime = DD_HOST_LIFETIME
 
@@ -351,16 +367,24 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             self.logger.debug('do_housekeep(): host %s has lifetime %d' % (host['id'], lifetime))
 
     def _select_host(self, cur_ts):
+        self.logger.debug("_select_host()")
         hosts = self._get_hosts(cur_ts)
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
 
-        # try to use the newest active host with space
-        active_hosts = sorted(active_hosts, key=lambda entry: -entry['spawn_ts'])
+        # first try to use the oldest active host with space and lifetime left
+        active_hosts = sorted(active_hosts, key=lambda entry: entry['spawn_ts'])
         selected_host = None
         for host in active_hosts:
-            if host['num_instances'] < DD_CONTAINERS_PER_HOST:
+            if host['lifetime_left'] > DD_HOST_LIFETIME_LOW and host['num_instances'] < host['num_slots']:
                 selected_host = host
                 break
+        if not selected_host:
+            # try to use any active host with space
+            for host in active_hosts:
+                if host['num_instances'] < host['num_slots']:
+                    selected_host = host
+                    break
+
         if not selected_host:
             raise RuntimeWarning('_select_host(): no space left, active hosts: %s' % active_hosts)
 
@@ -368,7 +392,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         return selected_host
 
     def _get_hosts(self, cur_ts):
-        self.logger.debug("_get_hosts")
+        self.logger.debug("_get_hosts()")
         ap = self._get_ap()
 
         data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
@@ -390,9 +414,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 usage = host.get('usage', 0)
                 usage += len(containers)
                 host['usage'] = usage
-                # populate the first use timestamp
-                if usage and not host.get('first_use_ts', 0):
-                    host['first_use_ts'] = cur_ts
+                # start lifetime ticking
+                if usage and not host.get('lifetime_tick_ts', 0):
+                    host['lifetime_tick_ts'] = cur_ts
 
             except ConnectionError:
                 self.logger.warning('_get_hosts(): updating number of instances failed for %s' % host['id'])
@@ -400,28 +424,25 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         return hosts
 
     def _save_host_state(self, hosts):
-        self.logger.debug("_save_host_state")
+        self.logger.debug("_save_host_state()")
         ap = self._get_ap()
         data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
         ap.save_as_json(data_file, hosts)
 
-    def _spawn_host(self, cur_ts):
-        return self._spawn_host_os_service(cur_ts)
+    def _spawn_host(self, cur_ts, ramp_up=False):
+        self.logger.debug("_spawn_host()")
 
-    def _spawn_host_os_service(self, cur_ts):
-        self.logger.debug("_spawn_host_os_service")
-
-        config = {
-            # 'image': 'CentOS-7.0',
-            'image': 'pb_dd_base.20150825',
-            'flavor': 'mini',
-            'key': 'pb_dockerdriver',
-            '': '',
-        }
         instance_name = 'pb_dd_%s' % uuid.uuid4().hex
-        image_name = config['image']
-        flavor_name = config['flavor']
-        key_name = config['key']
+        image_name = self.config['DD_HOST_IMAGE']
+
+        if ramp_up:
+            flavor_name = self.config['DD_HOST_FLAVOR_NAME_LARGE']
+            flavor_slots = self.config['DD_HOST_FLAVOR_SLOTS_LARGE']
+        else:
+            flavor_name = self.config['DD_HOST_FLAVOR_NAME_SMALL']
+            flavor_slots = self.config['DD_HOST_FLAVOR_SLOTS_SMALL']
+
+        key_name = 'pb_dockerdriver'
 
         oss = self._get_ap().get_openstack_service({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
 
@@ -452,10 +473,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'spawn_ts': cur_ts,
             'state': DD_STATE_SPAWNED,
             'num_instances': 0,
+            'num_slots': flavor_slots,
         }
 
     def _prepare_host(self, host):
-        self.logger.debug("_prepare_host")
+        self.logger.debug("_prepare_host()")
 
         ap = self._get_ap()
 
@@ -463,19 +485,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         dc = ap.get_docker_client(host['docker_url'])
 
-        for pull_image in ('jupyter/minimal', 'rocker/rstudio'):
+        dconf = self.get_configuration()
+
+        for pull_image in dconf['schema']['properties']['docker_image']['enum']:
             self.logger.debug("_prepare_host(): pulling image %s" % pull_image)
             dc.pull(pull_image)
 
     def _remove_host(self, host):
-        self.logger.debug("_remove_host")
-        self._remove_host_os_service(host)
-
-    def _remove_host_os_service(self, host):
-        self.logger.debug("_remove_host_os_service")
+        self.logger.debug("_remove_host()")
         oss = self._get_ap().get_openstack_service({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
         oss.deprovision_instance(host['provider_id'], host['id'])
-
-    def _check_host(self, host):
-        self.logger.debug("_check_host %s" % host)
-        self.logger.warning("_check_host not implemented")

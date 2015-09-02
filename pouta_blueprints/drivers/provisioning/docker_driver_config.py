@@ -10,7 +10,11 @@ CONFIG = {
                 'type': 'string'
             },
             'docker_image': {
-                'type': 'string'
+                'type': 'string',
+                'enum': [
+                    'jupyter/minimal',
+                    'rocker/rstudio',
+                ]
             },
             'internal_port': {
                 'type': 'integer'
