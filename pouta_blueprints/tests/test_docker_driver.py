@@ -180,9 +180,9 @@ class DockerDriverAccessMock(object):
 
 # noinspection PyProtectedMember
 class DockerDriverTestCase(BaseTestCase):
+
     def setUp(self):
-        # set up a few constants to known values for tests
-        docker_driver.DD_HOST_FLAVORS = docker_driver.DD_HOST_FLAVORS[0:1]
+        # set up a constants to known values for tests
         docker_driver.DD_HOST_LIFETIME = 900
 
     @staticmethod
@@ -191,6 +191,13 @@ class DockerDriverTestCase(BaseTestCase):
             INSTANCE_DATA_DIR='/tmp',
             M2M_CREDENTIAL_STORE='',
             INTERNAL_API_BASE_URL='bogus',
+            DD_HOST_IMAGE='CentOS-7.0',
+            DD_MAX_HOSTS=4,
+            DD_FREE_SLOT_TARGET=4,
+            DD_HOST_FLAVOR_NAME_SMALL='mini',
+            DD_HOST_FLAVOR_SLOTS_SMALL=4,
+            DD_HOST_FLAVOR_NAME_LARGE='mini',
+            DD_HOST_FLAVOR_SLOTS_LARGE=4,
         )
         dd = docker_driver.DockerDriver(logger, config)
         dd._ap = DockerDriverAccessMock(config)
@@ -340,13 +347,13 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         # spawn instances up to the limit
-        for i in range(0, docker_driver.DD_MAX_HOSTS * docker_driver.DD_HOST_FLAVORS[0]['slots']):
+        for i in range(0, dd.config['DD_MAX_HOSTS'] * dd.config['DD_HOST_FLAVOR_SLOTS_SMALL']):
             ddam.pbc_mock.add_instance_data('%d' % (1000 + i))
             dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts)
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        self.assertEquals(len(ddam.oss_mock.servers), docker_driver.DD_MAX_HOSTS)
+        self.assertEquals(len(ddam.oss_mock.servers), dd.config['DD_MAX_HOSTS'])
 
         try:
             ddam.pbc_mock.add_instance_data('999')
@@ -366,21 +373,21 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         # spawn instances up to the limit
-        for i in range(0, docker_driver.DD_MAX_HOSTS * docker_driver.DD_HOST_FLAVORS[0]['slots']):
+        for i in range(0, dd.config['DD_MAX_HOSTS'] * dd.config['DD_HOST_FLAVOR_SLOTS_SMALL']):
             ddam.pbc_mock.add_instance_data('%d' % (1000 + i))
             dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts)
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        self.assertEquals(len(ddam.oss_mock.servers), docker_driver.DD_MAX_HOSTS)
+        self.assertEquals(len(ddam.oss_mock.servers), dd.config['DD_MAX_HOSTS'])
 
         # remove instances
-        for i in range(0, docker_driver.DD_MAX_HOSTS * docker_driver.DD_HOST_FLAVORS[0]['slots']):
+        for i in range(0, dd.config['DD_MAX_HOSTS'] * dd.config['DD_HOST_FLAVOR_SLOTS_SMALL']):
             dd._do_deprovision(token='foo', instance_id='%d' % (1000 + i))
 
         # let logic scale down (3 ticks per host should be enough)
         cur_ts += docker_driver.DD_HOST_LIFETIME
-        for i in range(0, docker_driver.DD_MAX_HOSTS * 3):
+        for i in range(0, dd.config['DD_MAX_HOSTS'] * 3):
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         self.assertEquals(len(ddam.oss_mock.servers), 1)
