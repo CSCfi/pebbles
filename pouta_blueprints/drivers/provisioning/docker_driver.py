@@ -455,8 +455,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             image_name=image_name,
             flavor_name=flavor_name,
             key_name=key_name,
-            master_sg_name='pb_server',
-            extra_sec_groups=['csc_vpn_all_open', 'csc_ws_all_open'],
+            master_sg_name=self.config['DD_HOST_MASTER_SG'],
+            extra_sec_groups=[x.strip() for x in self.config['DD_HOST_EXTRA_SGS'].split()],
         )
 
         self.logger.debug("_spawn_host_os_service: spawned %s" % res)

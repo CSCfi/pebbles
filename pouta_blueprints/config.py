@@ -79,6 +79,8 @@ class BaseConfig(object):
     DD_HOST_FLAVOR_SLOTS_SMALL = 6
     DD_HOST_FLAVOR_NAME_LARGE = 'small'
     DD_HOST_FLAVOR_SLOTS_LARGE = 24
+    DD_HOST_MASTER_SG = 'pb_server'
+    DD_HOST_EXTRA_SGS = ''
 
     # enable access by []
     def __getitem__(self, item):
