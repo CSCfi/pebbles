@@ -37,8 +37,8 @@ class DockerDriverAccessProxy(object):
             ts = int(time.time())
             os.rename(data_file, '%s.%s' % (data_file, ts - ts % 3600))
 
-            with open(data_file, 'w') as df:
-                json.dump(data, df)
+        with open(data_file, 'w') as df:
+            json.dump(data, df)
 
     @staticmethod
     def get_docker_client(docker_url):
