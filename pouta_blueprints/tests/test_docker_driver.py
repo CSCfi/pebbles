@@ -180,7 +180,6 @@ class DockerDriverAccessMock(object):
 
 # noinspection PyProtectedMember
 class DockerDriverTestCase(BaseTestCase):
-
     def setUp(self):
         # set up a constants to known values for tests
         docker_driver.DD_HOST_LIFETIME = 900
@@ -198,6 +197,8 @@ class DockerDriverTestCase(BaseTestCase):
             DD_HOST_FLAVOR_SLOTS_SMALL=4,
             DD_HOST_FLAVOR_NAME_LARGE='mini',
             DD_HOST_FLAVOR_SLOTS_LARGE=4,
+            DD_HOST_MASTER_SG='pb_server',
+            DD_HOST_EXTRA_SGS='',
         )
         dd = docker_driver.DockerDriver(logger, config)
         dd._ap = DockerDriverAccessMock(config)
