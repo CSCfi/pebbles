@@ -70,6 +70,7 @@ class DockerClientMock(object):
         container = dict(
             Id='%s' % self.spawn_count,
             Name=name,
+            Labels=dict(slots='1')
         )
         self._containers.append(container)
         return container
@@ -109,6 +110,7 @@ class PBClientMock(object):
                 config=dict(
                     docker_image='csc/test_image',
                     internal_port=8888,
+                    consumed_slots=1,
                 ),
             )
         }

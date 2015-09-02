@@ -23,6 +23,10 @@ CONFIG = {
                 'type': 'string',
                 'default': '256m',
             },
+            'consumed_slots': {
+                'type': 'integer',
+                'default': '1',
+            },
             'maximum_instances_per_user': {
                 'type': 'integer',
                 'title': 'Maximum instances per user',
@@ -54,6 +58,7 @@ CONFIG = {
         'docker_image',
         'internal_port',
         'memory_limit',
+        'consumed_slots',
         'maximum_instances_per_user',
         'maximum_lifetime',
         'cost_multiplier',
@@ -64,5 +69,6 @@ CONFIG = {
         'docker_image': 'jupyter/minimal',
         'internal_port': 8888,
         'memory_limit': '256m',
+        'consumed_slots': 1,
     }
 }

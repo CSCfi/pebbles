@@ -132,9 +132,17 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     def do_provision(self, token, instance_id):
         self.logger.debug("do_provision %s" % instance_id)
+
+        ap = self._get_ap()
+        pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+
         retries = 0
         while True:
             try:
+                instance = pbclient.get_instance_description(instance_id)
+                if instance['state'] != 'provisioning':
+                    raise RuntimeError('Instance in wrong state for provisioning')
+
                 self._do_provision_locked(token, instance_id, int(time.time()))
                 break
             except RuntimeWarning as e:
@@ -142,8 +150,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 if retries > DD_PROVISION_RETRIES:
                     raise e
                 self.logger.warning(
-                    "do_provision failed for %s, sleeping and retrying (%d/%d)" % (
-                        instance_id, retries, DD_PROVISION_RETRIES
+                    "do_provision failed for %s, sleeping and retrying (%d/%d): %s" % (
+                        instance_id, retries, DD_PROVISION_RETRIES, e
                     )
                 )
                 time.sleep(DD_PROVISION_RETRY_SLEEP)
@@ -163,7 +171,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
         blueprint_config = blueprint['config']
 
-        dh = self._select_host(cur_ts)
+        dh = self._select_host(blueprint_config['consumed_slots'], cur_ts)
 
         dc = ap.get_docker_client(dh['docker_url'])
 
@@ -178,6 +186,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'cpu_shares': 5,
             'environment': {'PASSWORD': password},
             #            'host_config': {'Memory': 256 * 1024 * 1024},
+            'labels': {'slots': '%d' % blueprint_config['consumed_slots']},
         }
 
         res = dc.create_container(**config)
@@ -265,17 +274,17 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         self._update_host_lifetimes(hosts, shutdown_mode, cur_ts)
 
         # count allocated slots
-        num_allocated_slots = sum(x['num_instances'] for x in hosts)
+        num_allocated_slots = sum(x['num_reserved_slots'] for x in hosts)
 
         # find active hosts
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
 
         # find current free slots
-        num_free_slots = sum(x['num_slots'] - x['num_instances'] for x in active_hosts)
+        num_free_slots = sum(x['num_slots'] - x['num_reserved_slots'] for x in active_hosts)
 
         # find projected free slots (only take active hosts with more than a minute to go)
         num_projected_free_slots = sum(
-            x['num_slots'] - x['num_instances'] for x in active_hosts
+            x['num_slots'] - x['num_reserved_slots'] for x in active_hosts
             if x['lifetime_left'] > DD_HOST_LIFETIME_LOW
         )
 
@@ -291,6 +300,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             try:
                 self._prepare_host(host)
                 host['state'] = DD_STATE_ACTIVE
+                self.logger.info('do_housekeep(): host %s now active' % host['id'])
             except Exception as e:
                 self.logger.info('do_housekeep(): preparing host %s failed, %s' % (host['id'], e))
                 host['error_count'] = host.get('error_count', 0) + 1
@@ -304,15 +314,15 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         # priority two: remove inactive hosts that have no instances on them
         inactive_hosts = [x for x in hosts if x['state'] == DD_STATE_INACTIVE]
         for host in inactive_hosts:
-            if host['num_instances'] == 0:
+            if host['num_reserved_slots'] == 0:
                 self.logger.info('do_housekeep(): removing host %s' % host['id'])
                 self._remove_host(host)
                 hosts.remove(host)
                 self._save_host_state(hosts)
                 return
             else:
-                self.logger.debug('do_housekeep(): inactive host %s still has %d instances' %
-                                  (host['id'], host['num_instances']))
+                self.logger.debug('do_housekeep(): inactive host %s still has %d reserved slots' %
+                                  (host['id'], host['num_reserved_slots']))
 
         # priority three: if we have less available slots than our target, spawn a new host
         if num_projected_free_slots < self.config['DD_FREE_SLOT_TARGET']:
@@ -336,7 +346,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         # finally mark old hosts without instances inactive (one at a time)
         for host in active_hosts:
-            if host['lifetime_left'] == 0 and host['num_instances'] == 0:
+            if host['lifetime_left'] == 0 and host['num_reserved_slots'] == 0:
                 self.logger.info('do_housekeep(): making host %s inactive' % host['id'])
                 host['state'] = DD_STATE_INACTIVE
                 self._save_host_state(hosts)
@@ -366,7 +376,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             host['lifetime_left'] = lifetime
             self.logger.debug('do_housekeep(): host %s has lifetime %d' % (host['id'], lifetime))
 
-    def _select_host(self, cur_ts):
+    def _select_host(self, slots, cur_ts):
         self.logger.debug("_select_host()")
         hosts = self._get_hosts(cur_ts)
         active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
@@ -375,13 +385,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         active_hosts = sorted(active_hosts, key=lambda entry: entry['spawn_ts'])
         selected_host = None
         for host in active_hosts:
-            if host['lifetime_left'] > DD_HOST_LIFETIME_LOW and host['num_instances'] < host['num_slots']:
+            if host['lifetime_left'] > DD_HOST_LIFETIME_LOW and host['num_slots'] - host['num_reserved_slots'] >= slots:
                 selected_host = host
                 break
         if not selected_host:
             # try to use any active host with space
             for host in active_hosts:
-                if host['num_instances'] < host['num_slots']:
+                if host['num_slots'] - host['num_reserved_slots'] >= slots:
                     selected_host = host
                     break
 
@@ -406,13 +416,15 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 continue
             dc = ap.get_docker_client(host['docker_url'])
             try:
-                # update the number of instances
+                # update the number of reserved slots
                 containers = dc.containers()
-                host['num_instances'] = len(containers)
-                self.logger.debug('_get_hosts(): found %d instances on %s' % (len(containers), host['id']))
-                # update the usage
+                host['num_reserved_slots'] = sum(int(cont['Labels'].get('slots', 1)) for cont in containers)
+                self.logger.debug('_get_hosts(): found %d instances with %d slots on %s' %
+                                  (len(containers), host['num_reserved_slots'], host['id']))
+
+                # update the accumulative usage
                 usage = host.get('usage', 0)
-                usage += len(containers)
+                usage += host['num_reserved_slots']
                 host['usage'] = usage
                 # start lifetime ticking
                 if usage and not host.get('lifetime_tick_ts', 0):
@@ -472,7 +484,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'private_ip': res['ip']['private_ip'],
             'spawn_ts': cur_ts,
             'state': DD_STATE_SPAWNED,
-            'num_instances': 0,
+            'num_reserved_slots': 0,
             'num_slots': flavor_slots,
         }
 
