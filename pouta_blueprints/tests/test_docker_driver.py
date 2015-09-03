@@ -97,7 +97,7 @@ class DockerClientMock(object):
         if self.failure_mode:
             raise RuntimeError('In failure mode')
 
-        return [{'HostPort': 32566}]
+        return [{'HostPort': 32768 + self.spawn_count % 32768}]
 
 
 class PBClientMock(object):
