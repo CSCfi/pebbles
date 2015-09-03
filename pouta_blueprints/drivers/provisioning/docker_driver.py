@@ -27,9 +27,6 @@ DD_RUNTIME_PATH = '/webapps/pouta_blueprints/run'
 
 
 class DockerDriverAccessProxy(object):
-    @staticmethod
-    def is_shutdown_mode():
-        return os.path.exists('%s/docker_driver_shutdown' % DD_RUNTIME_PATH)
 
     @staticmethod
     def save_as_json(data_file, data):
@@ -133,6 +130,10 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def do_provision(self, token, instance_id):
         self.logger.debug("do_provision %s" % instance_id)
 
+        # in shutdown mode we bail out right away
+        if self.config['DD_SHUTDOWN_MODE']:
+            raise RuntimeWarning('Shutdown mode, no provisioning')
+
         ap = self._get_ap()
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
@@ -182,11 +183,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'image': blueprint_config['docker_image'],
             'ports': [blueprint_config['internal_port']],
             'name': container_name,
-            #            'mem_limit': blueprint_config['memory_limit'],
             'cpu_shares': 5,
             'environment': {'PASSWORD': password},
-            #            'host_config': {'Memory': 256 * 1024 * 1024},
             'labels': {'slots': '%d' % blueprint_config['consumed_slots']},
+            #            'mem_limit': blueprint_config['memory_limit'],
+            #            'host_config': {'Memory': 256 * 1024 * 1024},
         }
 
         res = dc.create_container(**config)
@@ -264,7 +265,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         ap = self._get_ap()
 
         # in shutdown mode we remove the hosts as soon as no instances are running on them
-        shutdown_mode = ap.is_shutdown_mode()
+        shutdown_mode = self.config['DD_SHUTDOWN_MODE']
         if shutdown_mode:
             self.logger.info('do_housekeep(): in shutdown mode')
 

@@ -72,6 +72,7 @@ class BaseConfig(object):
     INSTALLATION_NAME = 'Pouta Blueprints'
     PLUGIN_WHITELIST = ''
 
+    DD_SHUTDOWN_MODE = True
     DD_HOST_IMAGE = 'CentOS-7.0'
     DD_MAX_HOSTS = 4
     DD_FREE_SLOT_TARGET = 4

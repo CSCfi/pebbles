@@ -152,9 +152,6 @@ class DockerDriverAccessMock(object):
     def save_as_json(self, data_file, data):
         self.json_data[data_file] = data
 
-    def is_shutdown_mode(self):
-        return self.shutdown_mode
-
     def get_docker_client(self, docker_url):
         if docker_url not in self.dc_mocks.keys():
             self.dc_mocks[docker_url] = DockerClientMock()
@@ -194,6 +191,7 @@ class DockerDriverTestCase(BaseTestCase):
             INTERNAL_API_BASE_URL='bogus',
             DD_HOST_IMAGE='CentOS-7.0',
             DD_MAX_HOSTS=4,
+            DD_SHUTDOWN_MODE=False,
             DD_FREE_SLOT_TARGET=4,
             DD_HOST_FLAVOR_NAME_SMALL='mini',
             DD_HOST_FLAVOR_SLOTS_SMALL=4,
@@ -406,7 +404,7 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         # set shutdown mode and see that we have scaled down
-        ddam.shutdown_mode = True
+        dd.config['DD_SHUTDOWN_MODE'] = True
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         cur_ts += 60
