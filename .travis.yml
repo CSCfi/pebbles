@@ -1,27 +1,29 @@
 language: python
 python:
-  - "2.7"
-  - "3.4"
-
-# command to install dependencies
+- '2.7'
+- '3.4'
 install:
-  - "pip install -r requirements.txt"
-  - "pip install pep8 --use-mirrors"
-  - "pip install ."
-  - "npm install -g grunt-cli"
+- pip install -r requirements.txt
+- pip install pep8 --use-mirrors
+- pip install .
+- npm install -g protractor
 
 before_script:
-  - "pep8 --ignore=E501,E402 pouta_blueprints"
-  - "export DISPLAY=:99.0"
-  - sh -e /etc/init.d/xvfb start
-  - nohup bash -c "./node_modules/protractor/bin/webdriver-manager start 2>&1 &"
-  - "python manage.py runserver -h localhost -p 8888 &"
-
-# command to run tests
+- pep8 --ignore=E501,E402 pouta_blueprints
+- export DISPLAY=:99.0
+- sh -e /etc/init.d/xvfb start
+- ./node_modules/protractor/bin/webdriver-manager update
+- nohup bash -c "./node_modules/protractor/bin/webdriver-manager start 2>&1 &"
+- python manage.py runserver -h localhost -p 8888 &
 script:
-  - nosetests
-  - grunt travis-protractor
-
+- nosetests
+- protractor protractor/conf.js
 notifications:
   flowdock:
-    secure: "VteCDhr47oT0S2kST2s755cYJMVZachfn+utiPAasqxTiaFb+ZpxB7jR9Dt6BTIyPTkxfVYGpfJv8+6sM72ezQNETu6XmwCatQvVIQ8S5jdSb5uW6jv+0bcZbyBfK+D6xzEG/yBjy6UZGdwhYDmf+aUd1RR1GAzl6BBDtvRP3Vk="
+    secure: VteCDhr47oT0S2kST2s755cYJMVZachfn+utiPAasqxTiaFb+ZpxB7jR9Dt6BTIyPTkxfVYGpfJv8+6sM72ezQNETu6XmwCatQvVIQ8S5jdSb5uW6jv+0bcZbyBfK+D6xzEG/yBjy6UZGdwhYDmf+aUd1RR1GAzl6BBDtvRP3Vk=
+env:
+  global:
+  - secure: aC1Z9lbous/dOTOCNhGGjz0mrhRFCTTpSwZyqlEQmkheEOkJhclhQRoecyADwsRKlGwOb1CSwmyuz5rjtd1MqbP8dpBKJwbJEgkezGCk75QokIdrPGV+zyNdcVYPvZgBXytiERIRxYmiL/rqVUWOELDvPI35LowolF1b5ENgzlg=
+  - secure: FxVF7Khh7biG235ruvv7e5DfoasJM7hZrpzdycO24PqZhbQm5MpEoGEotbhaGxksFj4a0xePmZjFI9/GN87AD1HJ+IRqB8hC1yQXQoPM5UY6dqj9Gm14qr3D+6xUmjFbWdKotYz/mq9alT//tLr9Uf3qFxDHfk0B7o8qr8LpwKs=
+addons:
+  sauce_connect: true
