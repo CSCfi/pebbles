@@ -1,11 +1,22 @@
 describe('Pouta Blueprints', function() {
+  var testUserName = 'test@example.org';
+  var testPassword = 'testpass';
+
   beforeEach(function() {
     browser.get('http://localhost:8888/#/');
   });
 
+  it('create first user', function() {
+    browser.get('http://localhost:8888/#/initialize');
+    element(by.model('user.email')).sendKeys(testUserName);
+    element(by.model('user.password')).sendKeys(testPassword);
+    element(by.model('user.passwordConfirm')).sendKeys(testPassword);
+    element(by.buttonText('Create')).click();
+  });
+
   it('should see dashboard as admin', function() {
-    element(by.model('email')).sendKeys('test@example.org');
-    element(by.model('password')).sendKeys('testpass');
+    element(by.model('email')).sendKeys(testUserName);
+    element(by.model('password')).sendKeys(testPassword);
     element(by.css('[value="Sign in"]')).click();
     var title = element.all(by.tagName('h1')).first();
     expect(title.getText()).toBe('Dashboard');
