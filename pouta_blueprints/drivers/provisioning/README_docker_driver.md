@@ -39,15 +39,24 @@
     - implement spawn host *DONE*
     - implement remove host *DONE*
 
-- get rid of hard coded configuration  
+- get rid of hard coded configuration *DONE*  
     - image, flavor, security groups, docker image, number of instances per host,... *DONE*  
     - blueprint config, (pool of hosts per blueprint)
     - OR a commmon configuration for the hosts, stored in the file system?
+    - OR a common config, but just use variables *DONE* 
        
-- setting password for containers
+- setting password for containers 
     - rstudio *DONE*
     - jupyter
 
+- proxy in front of containers
+    - spawn a third container
+    - install configurable-http-proxy from jupyter project
+    - setup keys for API
+    - add hooks to provisioning/deprovisioning/housekeeping to add/remove forwarded ports
+    - add the proxy hash path to the instance URL, get rid of the password
+    - later, add ssl termination to the proxy
+    
 - implement memory limits for containers 
   - pending for docker-py update https://github.com/docker/docker-py/pull/732
   
@@ -56,6 +65,5 @@
 
 ### Optional features
 - implement session backups
-- proxy in front of containers
 - implement a service for plugins for storing the state 
 - configure swap on host + allow swapping for containers for fitting even more on a single host?
