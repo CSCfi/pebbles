@@ -1,4 +1,4 @@
-from flask.ext.script import Manager, Shell
+from flask.ext.script import Manager, Server, Shell
 import getpass
 from pouta_blueprints import models
 from pouta_blueprints.server import app
@@ -19,6 +19,7 @@ def _make_context():
     return dict(app=app, db=db, models=models)
 
 manager.add_command("shell", Shell(make_context=_make_context))
+manager.add_command("runserver", Server())
 
 
 @manager.command
