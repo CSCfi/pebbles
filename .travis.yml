@@ -12,8 +12,8 @@ before_script:
 - pep8 --ignore=E501,E402 pouta_blueprints
 - python manage.py runserver -h localhost -p 8888 &
 script:
-- nosetests
 - protractor protractor/conf.js
+- nosetests
 notifications:
   flowdock:
     secure: VteCDhr47oT0S2kST2s755cYJMVZachfn+utiPAasqxTiaFb+ZpxB7jR9Dt6BTIyPTkxfVYGpfJv8+6sM72ezQNETu6XmwCatQvVIQ8S5jdSb5uW6jv+0bcZbyBfK+D6xzEG/yBjy6UZGdwhYDmf+aUd1RR1GAzl6BBDtvRP3Vk=
