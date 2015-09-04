@@ -8,6 +8,8 @@ install:
   - "pip install -r requirements.txt"
   - "pip install pep8 --use-mirrors"
   - "pip install ."
+  - "npm install -g grunt-cli"
+
 before_script:
   - "pep8 --ignore=E501,E402 pouta_blueprints"
   - "export DISPLAY=:99.0"
