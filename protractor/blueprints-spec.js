@@ -1,6 +1,6 @@
 describe('Pouta Blueprints', function() {
   beforeEach(function() {
-    browser.get('https://localhost:8888/#/');
+    browser.get('http://localhost:8888/#/');
   });
 
   it('should see dashboard as admin', function() {

@@ -5,7 +5,15 @@ from flask import Flask
 from pouta_blueprints.models import db, Variable
 from pouta_blueprints.config import BaseConfig, TestConfig
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='')
+
+
+# Setup static files to be served by Flask for automated testing
+@app.route('/')
+def root():
+    return app.send_static_file('index.html')
+
+
 test_run = set(['test', 'covtest']).intersection(set(sys.argv))
 
 if test_run:
