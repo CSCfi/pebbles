@@ -10,10 +10,6 @@ install:
 
 before_script:
 - pep8 --ignore=E501,E402 pouta_blueprints
-- export DISPLAY=:99.0
-- sh -e /etc/init.d/xvfb start
-- ./node_modules/protractor/bin/webdriver-manager update
-- nohup bash -c "./node_modules/protractor/bin/webdriver-manager start 2>&1 &"
 - python manage.py runserver -h localhost -p 8888 &
 script:
 - nosetests
