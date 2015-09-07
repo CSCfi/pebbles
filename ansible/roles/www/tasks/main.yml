@@ -3,9 +3,16 @@
 - name: install dependencies
   apt: pkg={{item}} state=present
   with_items:
-    - nginx
     - redis-server
     - sqlite3
+
+- name: install nginx
+  apt: pkg=nginx state=present
+  when: web_server_type == "nginx"
+
+- name: install apache
+  apt: pkg=apache2 state=present
+  when: web_server_type == "apache"
 
 - name: Set redis to listen to all interfaces
   lineinfile:
@@ -21,4 +28,7 @@
 
 - include: setup_runtime_directories.yml
 - include: setup_nginx.yml
+  when: web_server_type == "nginx"
+- include: setup_apache.yml
+  when: web_server_type == "apache"
 - include: setup_supervisor_config.yml
