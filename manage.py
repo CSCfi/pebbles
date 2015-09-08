@@ -1,4 +1,4 @@
-from flask.ext.script import Manager, Shell
+from flask.ext.script import Manager, Server, Shell
 import getpass
 from pouta_blueprints import models
 from pouta_blueprints.server import app
@@ -19,6 +19,7 @@ def _make_context():
     return dict(app=app, db=db, models=models)
 
 manager.add_command("shell", Shell(make_context=_make_context))
+manager.add_command("runserver", Server())
 
 
 @manager.command
@@ -66,19 +67,8 @@ def createworker():
 @manager.command
 def syncconf():
     """Synchronizes configuration from filesystem to database"""
-    config = BaseConfig()
-    Variable.query.delete()
-    for k in vars(BaseConfig).keys():
-        if not k.startswith("_") and k.isupper():
-            variable = Variable.query.filter_by(key=k).first()
-            if not variable:
-                variable = Variable(k, config[k])
-                db.session.add(variable)
-            else:
-                variable.key = k
-                variable.value = config[k]
-    db.session.commit()
+    Variable.sync_local_config_to_db(BaseConfig, BaseConfig(), force_sync=True)
 
 
 if __name__ == '__main__':
-        manager.run()
+    manager.run()

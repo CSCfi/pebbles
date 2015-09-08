@@ -26,7 +26,7 @@ class VariableList(restful.Resource):
     @requires_admin
     @marshal_with(variable_fields)
     def get(self):
-        return Variable.query.all()
+        return Variable.query.order_by(Variable.key).all()
 
     @auth.login_required
     @requires_admin
@@ -34,9 +34,7 @@ class VariableList(restful.Resource):
         form = VariableForm()
         if not form.validate_on_submit():
             return form.errors, 422
-        variable = Variable()
-        variable.key = form.key.data
-        variable.value = form.value.data
+        variable = Variable(form.key.data, form.value.data)
         db.session.add(variable)
         db.session.commit()
 

@@ -288,6 +288,28 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(data))
         self.assert_200(response)
 
+    def test_modify_blueprint_config_magic_vars_admin(self):
+        data = {
+            'name': 'test_blueprint_2',
+            'config': {
+                "name": "foo",
+                "maximum_lifetime": '1234',
+                "cost_multiplier": '0.1',
+                "preallocated_credits": "true",
+            },
+            'plugin': self.known_plugin_id
+        }
+        put_response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/blueprints/%s' % self.known_blueprint_id_2,
+            data=json.dumps(data))
+        self.assert_200(put_response)
+
+        blueprint = Blueprint.query.filter_by(id=self.known_blueprint_id_2).first()
+        self.assertEqual(blueprint.maximum_lifetime, 1234)
+        self.assertEqual(blueprint.cost_multiplier, 0.1)
+        self.assertEqual(blueprint.preallocated_credits, True)
+
     def test_create_blueprint_admin_invalid_data(self):
         invalid_form_data = [
             {'name': '', 'config': 'foo: bar', 'plugin': 'dummy'},
