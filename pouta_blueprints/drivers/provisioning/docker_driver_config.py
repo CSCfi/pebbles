@@ -37,11 +37,6 @@ CONFIG = {
                 'title': 'Maximum life-time (seconds)',
                 'default': 3600,
             },
-            'allow_update_client_connectivity': {
-                'type': 'boolean',
-                'title': "Allow user to request instance firewall to allow access to user's IP address",
-                'default': False,
-            },
             'cost_multiplier': {
                 'type': 'number',
                 'title': 'Cost multiplier (default 1.0)',
@@ -62,13 +57,13 @@ CONFIG = {
         'maximum_instances_per_user',
         'maximum_lifetime',
         'cost_multiplier',
-        'allow_update_client_connectivity',
     ],
     'model': {
-        'name': 'docker-machine',
-        'docker_image': 'jupyter/minimal',
-        'internal_port': 8888,
+        'name': 'docker-rstudio',
+        'docker_image': 'rocker/rstudio',
+        'internal_port': 8787,
         'memory_limit': '256m',
+        'cost_multiplier': 0.0,
         'consumed_slots': 1,
     }
 }
