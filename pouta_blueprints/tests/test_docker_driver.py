@@ -169,6 +169,14 @@ class DockerDriverAccessMock(object):
         if self.failure_mode:
             raise RuntimeError
 
+    @staticmethod
+    def proxy_add_route(route_id, target_url):
+        pass
+
+    @staticmethod
+    def proxy_remove_route(route_id):
+        pass
+
     def __repr__(self):
         res = dict(
             json_data=self.json_data,
@@ -189,6 +197,7 @@ class DockerDriverTestCase(BaseTestCase):
             INSTANCE_DATA_DIR='/tmp',
             M2M_CREDENTIAL_STORE='',
             INTERNAL_API_BASE_URL='bogus',
+            PUBLIC_IPV4='10.0.0.1',
             DD_HOST_IMAGE='CentOS-7.0',
             DD_MAX_HOSTS=4,
             DD_SHUTDOWN_MODE=False,
