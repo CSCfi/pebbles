@@ -57,6 +57,7 @@ class BaseConfig(object):
     MESSAGE_QUEUE_URI = 'redis://www:6379/0'
     INSTANCE_DATA_DIR = '/var/spool/pb_instances'
     INTERNAL_API_BASE_URL = 'https://www/api/v1'
+    PUBLIC_IPV4 = '127.0.0.1'
     BASE_URL = 'https://localhost:8888'
     MAX_CONTENT_LENGTH = 1024 * 1024
     FAKE_PROVISIONING = False
@@ -82,6 +83,9 @@ class BaseConfig(object):
     DD_HOST_FLAVOR_SLOTS_LARGE = 24
     DD_HOST_MASTER_SG = 'pb_server'
     DD_HOST_EXTRA_SGS = ''
+
+    PUBLIC_HTTP_PROXY_PORT = 8000
+    INTERNAL_HTTP_PROXY_PORT = 8000
 
     # enable access by []
     def __getitem__(self, item):
