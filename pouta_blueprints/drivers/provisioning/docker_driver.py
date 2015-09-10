@@ -501,6 +501,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             key_name=key_name,
             master_sg_name=self.config['DD_HOST_MASTER_SG'],
             extra_sec_groups=[x.strip() for x in self.config['DD_HOST_EXTRA_SGS'].split()],
+            allocate_public_ip=False,
         )
 
         self.logger.debug("_spawn_host_os_service: spawned %s" % res)

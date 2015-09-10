@@ -128,7 +128,7 @@ class ProvisionInstance(task.Task):
 
 
 class AllocateIPForInstance(task.Task):
-    def execute(self, server_id, config):
+    def execute(self, server_id, allocate_public_ip, config):
         logger.debug("Allocate IP for server %s" % server_id)
 
         nc = get_openstack_nova_client(config)
@@ -140,28 +140,38 @@ class AllocateIPForInstance(task.Task):
             if retries > 30:
                 raise RuntimeError('Server %s is stuck in building' % server_id)
 
-        ips = nc.floating_ips.findall(instance_id=None)
         server = nc.servers.get(server_id)
-        allocated_from_pool = False
-        if not ips:
-            logger.debug("No allocated free IPs left, trying to allocate one")
+        if allocate_public_ip:
+
+            ips = nc.floating_ips.findall(instance_id=None)
+            allocated_from_pool = False
+            if not ips:
+                logger.debug("No allocated free IPs left, trying to allocate one")
+                try:
+                    ip = nc.floating_ips.create(pool="public")
+                    allocated_from_pool = True
+                except novaclient.exceptions.ClientException as e:
+                    logger.warning("Cannot allocate IP, quota exceeded?")
+                    raise e
+            else:
+                ip = ips[0]
             try:
-                ip = nc.floating_ips.create(pool="public")
-                allocated_from_pool = True
-            except novaclient.exceptions.ClientException as e:
-                logger.warning("Cannot allocate IP, quota exceeded?")
-                raise e
+                server.add_floating_ip(ip)
+            except Exception as e:
+                logger.error(e)
+
+            address_data = {
+                'public_ip': ip.ip,
+                'allocated_from_pool': allocated_from_pool,
+                'private_ip': server.networks.values()[0][0],
+            }
         else:
-            ip = ips[0]
-        try:
-            server.add_floating_ip(ip)
-        except Exception as e:
-            logger.error(e)
-        address_data = {
-            'public_ip': ip.ip,
-            'allocated_from_pool': allocated_from_pool,
-            'private_ip': server.networks.values()[0][0],
-        }
+            address_data = {
+                'public_ip': None,
+                'allocated_from_pool': False,
+                'private_ip': server.networks.values()[0][0],
+            }
+
         return address_data
 
 
@@ -184,7 +194,7 @@ class OpenStackService(object):
             self._config = None
 
     def provision_instance(self, display_name, image_name, flavor_name, key_name, extra_sec_groups,
-                           master_sg_name=None):
+                           master_sg_name=None, allocate_public_ip=True):
         try:
             return taskflow.engines.run(flow, engine='parallel', store=dict(
                 image_name=image_name,
@@ -193,6 +203,7 @@ class OpenStackService(object):
                 key_name=key_name,
                 master_sg_name=master_sg_name,
                 extra_sec_groups=extra_sec_groups,
+                allocate_public_ip=allocate_public_ip,
                 config=self._config))
         except Exception as e:
             logger.error("Flow failed")

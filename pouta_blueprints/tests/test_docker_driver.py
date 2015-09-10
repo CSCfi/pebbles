@@ -22,15 +22,18 @@ class OpenStackServiceMock(object):
         self.servers = []
 
     def provision_instance(self, display_name, image_name, flavor_name, key_name, extra_sec_groups,
-                           master_sg_name=None):
+                           master_sg_name=None, allocate_public_ip=True):
         self.spawn_count += 1
         res = dict(
             server_id='%s' % self.spawn_count
         )
         res['ip'] = dict(
             private_ip='192.168.1.%d' % self.spawn_count,
-            public_ip='172.16.0.%d' % self.spawn_count,
+            public_ip=None,
         )
+        if allocate_public_ip:
+            res['public_ip']= '172.16.0.%d' % self.spawn_count
+
         self.servers.append(res)
 
         return res
