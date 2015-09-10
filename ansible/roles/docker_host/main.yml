@@ -97,6 +97,33 @@
       # when: item.Config.Hostname == "www" and item.State.Running == True
       # with_items: docker_containers
 
+    - name: Bring up container for proxy
+      docker:
+        hostname: proxy
+        image: "{{ image_name }}"
+        state: running
+        restart_policy: always
+        name: proxy
+        expose:
+          - 22
+          - "{{ internal_http_proxy_port }}"
+        ports:
+          - "2224:22"
+          - "{{ public_http_proxy_port }}:{{ internal_http_proxy_port }}"
+        links:
+          - "www:www"
+        volumes:
+          - "{{ docker_host_app_root }}:/shared_folder/source:ro"
+
+    - name: add proxy to inventory
+      add_host:
+        name=proxy
+        groups=docker,proxy
+        ansible_ssh_host=localhost
+        ansible_ssh_port=2224
+        ansible_ssh_user=ansible
+
+
     - name: Bring up container for worker
       docker:
         hostname: worker
@@ -110,6 +137,7 @@
           - "2223:22"
         links:
           - "www:www"
+          - "proxy:proxy"
         volumes:
           - "{{ docker_host_app_root }}:/shared_folder/source:ro"
           - "{{ docker_host_m2m_credentials_dir }}:{{ application_m2m_credentials_dir }}:ro"
@@ -128,10 +156,12 @@
     - name: "Wait a bit for sshd to come up"
       pause: seconds=5
 
+
 - name: Add cloud-user to containers
   hosts:
     - www
     - worker
+    - proxy
   sudo: yes
   tasks:
     - name: Add cloud-user
