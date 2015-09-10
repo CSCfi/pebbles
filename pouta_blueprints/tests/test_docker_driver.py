@@ -198,6 +198,8 @@ class DockerDriverTestCase(BaseTestCase):
             M2M_CREDENTIAL_STORE='',
             INTERNAL_API_BASE_URL='bogus',
             PUBLIC_IPV4='10.0.0.1',
+            PUBLIC_HTTP_PROXY_PORT=8000,
+            INTERNAL_HTTP_PROXY_PORT=8000,
             DD_HOST_IMAGE='CentOS-7.0',
             DD_MAX_HOSTS=4,
             DD_SHUTDOWN_MODE=False,
