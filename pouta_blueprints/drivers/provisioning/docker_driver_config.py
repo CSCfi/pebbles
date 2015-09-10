@@ -42,6 +42,11 @@ CONFIG = {
                 'title': 'Cost multiplier (default 1.0)',
                 'default': 1.0,
             },
+            'needs_ssh_keys': {
+                'type': 'boolean',
+                'title': "Needs ssh-keys to access",
+                'default': False,
+            },
         }
     },
     'form': [
@@ -65,5 +70,6 @@ CONFIG = {
         'memory_limit': '256m',
         'cost_multiplier': 0.0,
         'consumed_slots': 1,
+        'needs_ssh_keys': False,
     }
 }
