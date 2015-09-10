@@ -7,24 +7,12 @@ import logging
 from pouta_blueprints.models import db, Blueprint, Plugin
 from pouta_blueprints.forms import BlueprintForm
 from pouta_blueprints.server import restful
-from pouta_blueprints.views.commons import auth
+from pouta_blueprints.views.commons import auth, blueprint_fields
 from pouta_blueprints.utils import requires_admin
 
 blueprints = FlaskBlueprint('blueprints', __name__)
 
 MAX_ACTIVATION_TOKENS_PER_USER = 3
-
-
-blueprint_fields = {
-    'id': fields.String(attribute='id'),
-    'maximum_lifetime': fields.Integer,
-    'name': fields.String,
-    'is_enabled': fields.Boolean,
-    'plugin': fields.String,
-    'config': fields.Raw,
-    'schema': fields.Raw,
-    'form': fields.Raw
-}
 
 
 @blueprints.route('/')

@@ -13,7 +13,7 @@ from pouta_blueprints.forms import InstanceForm, UserIPForm
 from pouta_blueprints.server import app, restful
 from pouta_blueprints.utils import requires_admin
 from pouta_blueprints.tasks import run_provisioning, run_deprovisioning, update_user_connectivity
-from pouta_blueprints.views.commons import auth, user_fields
+from pouta_blueprints.views.commons import auth, user_fields, blueprint_fields
 
 instances = FlaskBlueprint('instances', __name__)
 
@@ -30,6 +30,7 @@ instance_fields = {
     'error_msg': fields.String,
     'user': fields.Nested(user_fields),
     'blueprint_id': fields.String,
+    'blueprint': fields.Nested(blueprint_fields),
     'cost_multiplier': fields.Float(default=1.0),
     'can_update_connectivity': fields.Boolean(default=False),
     'instance_data': fields.Raw,
