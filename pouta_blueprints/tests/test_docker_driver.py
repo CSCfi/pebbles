@@ -32,7 +32,7 @@ class OpenStackServiceMock(object):
             public_ip=None,
         )
         if allocate_public_ip:
-            res['public_ip']= '172.16.0.%d' % self.spawn_count
+            res['public_ip'] = '172.16.0.%d' % self.spawn_count
 
         self.servers.append(res)
 
