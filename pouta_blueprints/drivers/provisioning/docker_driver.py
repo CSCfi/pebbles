@@ -9,6 +9,7 @@ from pouta_blueprints.client import PBClient
 from pouta_blueprints.drivers.provisioning import base_driver
 import docker
 from pouta_blueprints.services.openstack_service import OpenStackService
+import pouta_blueprints.tasks
 from lockfile import locked
 
 DD_STATE_SPAWNED = 'spawned'
@@ -27,7 +28,6 @@ DD_RUNTIME_PATH = '/webapps/pouta_blueprints/run'
 
 
 class DockerDriverAccessProxy(object):
-
     @staticmethod
     def save_as_json(data_file, data):
         if os.path.exists(data_file):
@@ -110,6 +110,20 @@ class DockerDriverAccessProxy(object):
             if host_data.get('unreachable', 0) + host_data.get('failures', 0) > 0:
                 raise RuntimeError('run_ansible_on_host(%s) failed' % host['id'])
 
+    @staticmethod
+    def proxy_add_route(route_id, target_url):
+        pouta_blueprints.tasks.proxy_add_route.apply_async(
+            args=[route_id, target_url],
+            queue='proxy_tasks'
+        )
+
+    @staticmethod
+    def proxy_remove_route(route_id):
+        pouta_blueprints.tasks.proxy_remove_route.apply_async(
+            args=[route_id],
+            queue='proxy_tasks'
+        )
+
 
 class DockerDriver(base_driver.ProvisioningDriverBase):
     def get_configuration(self):
@@ -177,14 +191,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         dc = ap.get_docker_client(dh['docker_url'])
 
         container_name = instance['name']
-        password = uuid.uuid4().hex[:16]
+        # password = uuid.uuid4().hex[:16]
 
         config = {
             'image': blueprint_config['docker_image'],
             'ports': [blueprint_config['internal_port']],
             'name': container_name,
-            'cpu_shares': 5,
-            'environment': {'PASSWORD': password},
+            #            'environment': {'PASSWORD': password},
             'labels': {'slots': '%d' % blueprint_config['consumed_slots']},
             #            'mem_limit': blueprint_config['memory_limit'],
             #            'host_config': {'Memory': 256 * 1024 * 1024},
@@ -197,26 +210,38 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         dc.start(container_id, publish_all_ports=True)
         self.logger.info("started container '%s'", container_name)
 
-        public_ip = dh['public_ip']
+        # public_ip = dh['public_ip']
+
         # get the public port
         res = dc.port(container_id, blueprint_config['internal_port'])
         public_port = res[0]['HostPort']
 
+        proxy_route = uuid.uuid4().hex
+
         instance_data = {
             'endpoints': [
-                {'name': 'http', 'access': 'http://%s:%s' % (public_ip, public_port)},
-                {'name': 'password', 'access': password},
+                {
+                    'name': 'http',
+                    'access': 'http://%s:%s/%s' % (
+                        self.config['PUBLIC_IPV4'],
+                        self.config['PUBLIC_HTTP_PROXY_PORT'],
+                        proxy_route
+                    )
+                },
             ],
             'docker_url': dh['docker_url'],
+            'proxy_route': proxy_route,
         }
 
         pbclient.do_instance_patch(
             instance_id,
             {
-                'public_ip': public_ip,
+                #                'public_ip': self.config['PUBLIC_IPV4'],
                 'instance_data': json.dumps(instance_data),
             }
         )
+
+        ap.proxy_add_route(proxy_route, 'http://%s:%s' % (dh['private_ip'], public_port))
 
         self.logger.debug("do_provision done for %s" % instance_id)
 
@@ -231,6 +256,12 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance_description(instance_id)
+
+        try:
+            proxy_route = instance['instance_data']['proxy_route']
+            ap.proxy_remove_route(proxy_route)
+        except KeyError:
+            self.logger.info("do_deprovision: No proxy route in instance data for %s" % instance_id)
 
         if instance['state'] == 'deleted':
             self.logger.debug("do_deprovision: instance already deleted %s" % instance_id)
