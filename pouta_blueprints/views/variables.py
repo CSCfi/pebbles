@@ -19,6 +19,7 @@ variable_fields = {
 
 
 variables = Blueprint('variables', __name__)
+PUBLIC_CONFIG_VARIABLES = set(['ENABLE_SHIBBOLETH_LOGIN', 'INSTALLATION_NAME'])
 
 
 class VariableList(restful.Resource):
@@ -71,3 +72,12 @@ class VariableView(restful.Resource):
         variable.key = form.key.data
         variable.value = form.value.data
         db.session.commit()
+
+
+class InstanceConfig(restful.Resource):
+    @marshal_with(variable_fields)
+    def get(self):
+        try:
+            return Variable.query.filter(Variable.key.in_(PUBLIC_CONFIG_VARIABLES)).order_by(Variable.key).all()
+        except:
+            return []

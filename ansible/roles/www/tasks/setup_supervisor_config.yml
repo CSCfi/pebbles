@@ -4,6 +4,13 @@
             dest=/etc/supervisor/conf.d/{{ application_name }}-common_services.conf
             backup=yes
 
+- name: Create the Supervisor config file for nginx on www
+  template: src=etc/supervisor/supervisor_config_nginx.j2
+            dest=/etc/supervisor/conf.d/{{ application_name }}-nginx.conf
+            backup=yes
+  when: web_server_type == "nginx"
+
+
 - name: Create the Supervisor config file for www (devel)
   template: src=etc/supervisor/supervisor_config_devserver.j2
             dest=/etc/supervisor/conf.d/{{ application_name }}-application.conf

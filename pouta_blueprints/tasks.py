@@ -112,14 +112,14 @@ def send_mails(users):
     with flask_app.test_request_context():
         config = get_config()
         for email, token in users:
-
             base_url = config['BASE_URL'].strip('/')
             activation_url = '%s/#/activate/%s' % (base_url, token)
             msg = MIMEText(render_template('invitation.txt', activation_link=activation_url))
-            msg['Subject'] = 'Resource cloud activation'
+            msg['Subject'] = 'Pouta Blueprints account activation'
             msg['To'] = email
             msg['From'] = config['SENDER_EMAIL']
             logger.info(msg)
+
             if not config['MAIL_SUPPRESS_SEND']:
                 s = smtplib.SMTP(config['MAIL_SERVER'])
                 if config['MAIL_USE_TLS']:

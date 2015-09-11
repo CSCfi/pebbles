@@ -1,0 +1,9 @@
+---
+
+- name: Create the Shibboleth configuration file
+  template: src=etc/shibboleth/shibboleth2.j2
+            dest=/etc/shibboleth/shibboleth2.xml
+            backup=yes
+
+- name: Create Shibboleth keypair
+  command: shib-keygen -h {{ domain }} creates=/etc/shibboleth/sp-key.pem

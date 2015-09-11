@@ -1,0 +1,21 @@
+<html ng-app="poutaBlueprintsLoginApp">
+    <head>
+        <script src="/js/vendor/jquery-1.11.1.min.js"></script>
+        <script src="/js/vendor/angular.min.js"></script>
+        <script src="/js/vendor/angular-local-storage.min.js"></script>
+
+
+        <script type="text/javascript">
+            angular.module('poutaBlueprintsLoginApp', ['LocalStorageModule'])
+            .controller('HakaController', function($location,
+                        localStorageService) {
+                localStorageService.set('userName', '{{ username }}');
+                localStorageService.set('token', btoa('{{ token }}' + ":"));
+                localStorageService.set('userId', '{{ userid }}');
+                window.location.assign("/");
+            });
+        </script>
+    </head>
+    <body ng-controller="HakaController">
+    </body>
+</html>

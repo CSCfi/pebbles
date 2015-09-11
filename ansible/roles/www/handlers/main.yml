@@ -1,2 +1,5 @@
 - name: restart nginx
   command: supervisorctl restart nginx
+
+- name: restart apache
+  command: supervisorctl restart apache

@@ -68,6 +68,8 @@ class BaseConfig(object):
     WRITE_PROVISIONING_LOGS = True
     INSTANCE_NAME_PREFIX = 'pb-'
     DEFAULT_QUOTA = 1.0
+    ENABLE_SHIBBOLETH_LOGIN = False
+    INSTALLATION_NAME = 'Pouta Blueprints'
     PLUGIN_WHITELIST = ''
 
     # enable access by []
