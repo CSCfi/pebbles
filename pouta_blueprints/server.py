@@ -1,8 +1,12 @@
+import logging
 import uuid
 
 from flask import render_template
 from flask.ext import restful
-from flask_sso import SSO
+try:
+    from flask_sso import SSO
+except:
+    logging.info("flask_sso library is not installed, Shibboleth authentication will not work")
 
 from pouta_blueprints.app import app
 from pouta_blueprints.models import User

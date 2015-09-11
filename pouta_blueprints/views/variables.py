@@ -77,4 +77,7 @@ class VariableView(restful.Resource):
 class InstanceConfig(restful.Resource):
     @marshal_with(variable_fields)
     def get(self):
-        return Variable.query.filter(Variable.key.in_(PUBLIC_CONFIG_VARIABLES)).order_by(Variable.key).all()
+        try:
+            return Variable.query.filter(Variable.key.in_(PUBLIC_CONFIG_VARIABLES)).order_by(Variable.key).all()
+        except:
+            return []
