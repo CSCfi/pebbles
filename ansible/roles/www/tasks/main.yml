@@ -6,6 +6,10 @@
     - redis-server
     - sqlite3
 
+- name: install Shibboleth module for Apache
+  apt: pkg=libapache2-mod-shib2 state=present
+  when: enable_shibboleth == "True"
+
 - name: install nginx
   apt: pkg=nginx state=present
   when: web_server_type == "nginx"
@@ -32,3 +36,5 @@
 - include: setup_apache.yml
   when: web_server_type == "apache"
 - include: setup_supervisor_config.yml
+- include: setup_shibboleth.yml
+  when: enable_shibboleth == "True"

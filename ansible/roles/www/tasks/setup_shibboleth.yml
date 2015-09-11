@@ -6,5 +6,4 @@
             backup=yes
 
 - name: Create Shibboleth keypair
-  command: shib-keygen -h {{ domain }}
-
+  command: shib-keygen -h {{ domain }} creates=/etc/shibboleth/sp-key.pem

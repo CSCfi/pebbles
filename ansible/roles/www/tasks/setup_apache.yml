@@ -9,6 +9,7 @@
   template: src=etc/apache2/sites-available/pouta-blueprints.j2
             dest=/etc/apache2/sites-available/{{ application_name }}.conf
             backup=yes
+  notify: restart apache
 
 - name: Ensure that the default site is disabled
   command: rm /etc/apache2/sites-enabled/000-default.conf
