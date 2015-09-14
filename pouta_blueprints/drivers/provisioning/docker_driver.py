@@ -290,6 +290,32 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         self.logger.debug("do_deprovision done for %s" % instance_id)
 
+    @staticmethod
+    def get_active_hosts(hosts):
+        active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
+        return active_hosts
+
+    @staticmethod
+    def calculate_allocated_slots(hosts):
+        num_allocated_slots = sum(x['num_reserved_slots'] for x in hosts)
+        return num_allocated_slots
+
+    @staticmethod
+    def calculate_free_slots(active_hosts):
+        num_free_slots = sum(
+            x['num_slots'] - x['num_reserved_slots'] for x in active_hosts
+            if x['state'] == DD_STATE_ACTIVE
+        )
+        return num_free_slots
+
+    @staticmethod
+    def calculate_projected_free_slots(hosts):
+        num_projected_free_slots = sum(
+            x['num_slots'] - x['num_reserved_slots'] for x in hosts
+            if x['lifetime_left'] > DD_HOST_LIFETIME_LOW and x['state'] == DD_STATE_ACTIVE
+        )
+        return num_projected_free_slots
+
     @locked('%s/docker_driver_housekeep' % DD_RUNTIME_PATH)
     def do_housekeep(self, token):
         return self._do_housekeep(token, int(time.time()))
@@ -308,20 +334,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         self._update_host_lifetimes(hosts, shutdown_mode, cur_ts)
 
-        # count allocated slots
-        num_allocated_slots = sum(x['num_reserved_slots'] for x in hosts)
-
         # find active hosts
-        active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
+        active_hosts = self.get_active_hosts(hosts)
 
         # find current free slots
-        num_free_slots = sum(x['num_slots'] - x['num_reserved_slots'] for x in active_hosts)
+        num_free_slots = self.calculate_free_slots(hosts)
 
         # find projected free slots (only take active hosts with more than a minute to go)
-        num_projected_free_slots = sum(
-            x['num_slots'] - x['num_reserved_slots'] for x in active_hosts
-            if x['lifetime_left'] > DD_HOST_LIFETIME_LOW
-        )
+        num_projected_free_slots = self.calculate_projected_free_slots(hosts)
 
         self.logger.info(
             'do_housekeep(): active hosts: %d, free slots: %d now, %d projected for near future' %
@@ -329,6 +349,27 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         )
 
         # priority one: find just spawned hosts, prepare and activate those
+        if self._activate_spawned_hosts(hosts=hosts, cur_ts=cur_ts):
+            self.logger.debug('do_housekeep(): activate action taken')
+
+        # priority two: remove inactive hosts that have no instances on them
+        elif self._remove_inactive_hosts(hosts=hosts, cur_ts=cur_ts):
+            self.logger.debug('do_housekeep(): remove action taken')
+
+        # priority three: if we have less available slots than our target, spawn a new host
+        # in shutdown mode we skip this
+        elif not shutdown_mode and self._spawn_new_host(hosts=hosts, cur_ts=cur_ts):
+            self.logger.debug('do_housekeep(): spawn action taken')
+
+        # finally mark old hosts without instances inactive (one at a time)
+        elif self._inactivate_old_hosts(hosts=hosts, cur_ts=cur_ts):
+            self.logger.debug('do_housekeep(): inactivate action taken')
+
+        # save host state in the end
+        self._save_host_state(hosts, cur_ts)
+
+    # noinspection PyUnusedLocal
+    def _activate_spawned_hosts(self, hosts, cur_ts):
         spawned_hosts = [x for x in hosts if x['state'] == DD_STATE_SPAWNED]
         for host in spawned_hosts:
             self.logger.info('do_housekeep(): preparing host %s' % host['id'])
@@ -342,28 +383,32 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 if host['error_count'] > DD_MAX_HOST_ERRORS:
                     self.logger.warn('do_housekeep(): maximum error count exceeded for host %s' % host['id'])
                     host['state'] = DD_STATE_INACTIVE
+            return True
 
-            self._save_host_state(hosts)
-            return
+        return False
 
-        # priority two: remove inactive hosts that have no instances on them
+    # noinspection PyUnusedLocal
+    def _remove_inactive_hosts(self, hosts, cur_ts):
         inactive_hosts = [x for x in hosts if x['state'] == DD_STATE_INACTIVE]
         for host in inactive_hosts:
             if host['num_reserved_slots'] == 0:
                 self.logger.info('do_housekeep(): removing host %s' % host['id'])
                 self._remove_host(host)
                 hosts.remove(host)
-                self._save_host_state(hosts)
-                return
+                return True
             else:
                 self.logger.debug('do_housekeep(): inactive host %s still has %d reserved slots' %
                                   (host['id'], host['num_reserved_slots']))
 
-        # priority three: if we have less available slots than our target, spawn a new host
+        return False
+
+    def _spawn_new_host(self, hosts, cur_ts):
+        # find projected free slots (only take active hosts with more than a minute to go)
+        num_projected_free_slots = self.calculate_projected_free_slots(hosts)
+        num_allocated_slots = self.calculate_allocated_slots(hosts)
+
         if num_projected_free_slots < self.config['DD_FREE_SLOT_TARGET']:
-            if shutdown_mode:
-                self.logger.info('do_housekeep(): too few free slots, but in shutdown mode')
-            elif len(hosts) < self.config['DD_MAX_HOSTS']:
+            if len(hosts) < self.config['DD_MAX_HOSTS']:
                 # try to figure out if we need to use the larger flavor
                 # if we at some point can get the number of queueing instances that can be used
                 if num_allocated_slots > 0:
@@ -374,21 +419,22 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 new_host = self._spawn_host(cur_ts, ramp_up)
                 self.logger.info('do_housekeep(): spawned a new host %s' % new_host['id'])
                 hosts.append(new_host)
-                self._save_host_state(hosts)
-                return
+                return True
             else:
                 self.logger.info('do_housekeep(): too few free slots, but host limit reached')
 
-        # finally mark old hosts without instances inactive (one at a time)
+        return False
+
+    # noinspection PyUnusedLocal
+    def _inactivate_old_hosts(self, hosts, cur_ts):
+        active_hosts = self.get_active_hosts(hosts)
         for host in active_hosts:
             if host['lifetime_left'] == 0 and host['num_reserved_slots'] == 0:
                 self.logger.info('do_housekeep(): making host %s inactive' % host['id'])
                 host['state'] = DD_STATE_INACTIVE
-                self._save_host_state(hosts)
-                return
+                return True
 
-        # no changes to host states, but the number of instances might have changes
-        self._save_host_state(hosts)
+        return False
 
     def _update_host_lifetimes(self, hosts, shutdown_mode, cur_ts):
         self.logger.debug("_update_host_lifetimes()")
@@ -414,7 +460,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def _select_host(self, slots, cur_ts):
         self.logger.debug("_select_host()")
         hosts = self._get_hosts(cur_ts)
-        active_hosts = [x for x in hosts if x['state'] == DD_STATE_ACTIVE]
+        active_hosts = self.get_active_hosts(hosts)
 
         # first try to use the oldest active host with space and lifetime left
         active_hosts = sorted(active_hosts, key=lambda entry: entry['spawn_ts'])
@@ -470,8 +516,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         return hosts
 
-    def _save_host_state(self, hosts):
-        self.logger.debug("_save_host_state()")
+    def _save_host_state(self, hosts, cur_ts):
+        self.logger.debug("_save_host_state() at %d" % cur_ts)
         ap = self._get_ap()
         data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
         ap.save_as_json(data_file, hosts)
