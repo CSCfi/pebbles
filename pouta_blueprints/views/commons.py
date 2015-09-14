@@ -16,6 +16,18 @@ user_fields = {
     'is_deleted': fields.Boolean,
 }
 
+blueprint_fields = {
+    'id': fields.String(attribute='id'),
+    'maximum_lifetime': fields.Integer,
+    'name': fields.String,
+    'is_enabled': fields.Boolean,
+    'plugin': fields.String,
+    'config': fields.Raw,
+    'schema': fields.Raw,
+    'form': fields.Raw
+}
+
+
 auth = HTTPBasicAuth()
 auth.authenticate_header = lambda: "Authentication Required"
 

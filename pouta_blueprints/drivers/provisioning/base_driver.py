@@ -3,6 +3,7 @@ import shlex
 import json
 import subprocess
 import time
+import datetime
 import os
 import logging
 
@@ -29,13 +30,16 @@ class ProvisioningDriverBase(object):
         m2m_credential_store = self.config['M2M_CREDENTIAL_STORE']
         try:
             self._m2m_credentials = json.load(open(m2m_credential_store))
+
+            debug_str = ['m2m_creds:']
             for key in self._m2m_credentials.keys():
                 if key == 'OS_PASSWORD':
-                    self.logger.debug('m2m creds: OS_PASSWORD is set (not shown)')
+                    debug_str.append('OS_PASSWORD is set (not shown)')
                 elif key in ('OS_USERNAME', 'OS_TENANT_NAME', 'OS_TENANT_ID', 'OS_AUTH_URL'):
-                    self.logger.debug('m2m creds: %s: %s' % (key, self._m2m_credentials[key]))
+                    debug_str.append('%s: %s' % (key, self._m2m_credentials[key]))
                 else:
-                    self.logger.warn('m2m creds: unknown key %s' % key)
+                    debug_str.append('unknown key %s' % key)
+            self.logger.debug(' '.join(debug_str))
 
             return self._m2m_credentials
         except (IOError, ValueError) as e:
@@ -86,11 +90,20 @@ class ProvisioningDriverBase(object):
             self.do_deprovision(token, instance_id)
 
             self.logger.debug('finishing deprovisioning')
+            pbclient.do_instance_patch(instance_id, {'deprovisioned_at': datetime.datetime.utcnow()})
             pbclient.do_instance_patch(instance_id, {'state': 'deleted'})
         except Exception as e:
             self.logger.exception('do_deprovision raised %s' % e)
             pbclient.do_instance_patch(instance_id, {'state': 'failed'})
             raise e
+
+    def housekeep(self, token):
+        self.logger.debug('housekeep')
+        self.do_housekeep(token)
+
+    @abc.abstractmethod
+    def do_housekeep(self, token):
+        pass
 
     @abc.abstractmethod
     def do_update_connectivity(self, token, instance_id):

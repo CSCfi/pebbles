@@ -16,8 +16,13 @@
             <td>{{blueprint.name}}</td>
             <td><lifetime seconds="{{ blueprint.maximum_lifetime }}"/></td>
             <td>
-                <button ng-click="provision(blueprint)" type="submit" class="btn btn-default" ng-disabled="!keypair_exists()">Launch</button>
-                <span ng-show="keypairs && !keypair_exists()">To launch instances, first <a href="/#/account">add SSH keys</a>.</span>
+                <button ng-click="provision(blueprint)" type="submit" class="btn btn-default"
+                        ng-disabled="blueprint.config.needs_ssh_keys && !keypair_exists()">
+                    Launch
+                </button>
+                <span ng-show="blueprint.config.needs_ssh_keys && keypairs && !keypair_exists()">
+                    To launch instances, first <a href="/#/account">add SSH keys</a>.
+                </span>
             </td>
         </tr>
         <tr ng-hide="(blueprints | filter : {is_enabled: 'true'}).length">
@@ -28,20 +33,30 @@
     <table class="table table-striped">
         <thead>
         <tr>
-            <td>name</td>
-            <td>state</td>
-            <td ng-show="isAdmin()">user</td>
-            <td>public IP</td>
+            <td>Name</td>
+            <td>State</td>
+            <td>Blueprint</td>
+            <td ng-show="isAdmin()">User</td>
+            <td>Access</td>
             <td>Life-time left</td>
-            <td>actions</td>
+            <td>Actions</td>
         </tr>
         </thead>
         <tbody>
         <tr ng-repeat="instance in instances">
             <td><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></td>
             <td>{{instance.state}} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>
+            <td>{{instance.blueprint.name}}</td>
             <td ng-show="isAdmin()">{{instance.user.email}}</td>
-            <td>{{instance.public_ip}}</td>
+            <td>
+                <a ng-show="instance.instance_data['endpoints'][0]['name']=='http'"
+                   href="{{instance.instance_data['endpoints'][0].access}}" target="_blank">
+                    Open in browser
+                </a>
+                <div ng-show="instance.instance_data['endpoints'][0]['name']=='SSH'">
+                    {{ instance.instance_data['endpoints'][0].access }}
+                </div>
+            </td>
             <td><lifetime seconds="{{instance.lifetime_left}}"/></td>
             <td>
                 <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger" ng-disabled="instance.state=='deleting'" >Destroy</button>

@@ -4,6 +4,7 @@
 - hosts:
     - www
     - worker
+    - proxy
   sudo: True
   roles:
       - common
@@ -17,3 +18,8 @@
   sudo: True
   roles:
       - worker
+
+- hosts: proxy
+  sudo: True
+  roles:
+      - proxy

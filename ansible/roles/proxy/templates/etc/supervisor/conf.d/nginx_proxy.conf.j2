@@ -1,0 +1,24 @@
+[program:nginx]
+command = /usr/sbin/nginx
+user = root
+autostart = true
+autorestart=true
+
+[program:nginx_reload]
+command = /usr/local/sbin/wait_and_reload_nginx.sh /webapps/pouta_blueprints/run/proxy.conf
+user = root
+autostart = true
+autorestart = true
+
+[program:{{ application_name }}-proxy_worker]
+command = {{ virtualenv_path }}/bin/celery worker
+    -A pouta_blueprints.tasks
+    -Ofair
+    --loglevel={{ 'DEBUG' if deploy_mode == 'devel' else 'INFO' }}
+    -Q proxy_tasks
+
+directory = {{ application_path }}
+user = {{ application_user }}
+stdout_logfile = {{ celery_log_file }}
+environment=PATH="{{ virtualenv_path }}/bin:%(ENV_PATH)s",HOME="/home/{{ application_user }}"
+redirect_stderr = true

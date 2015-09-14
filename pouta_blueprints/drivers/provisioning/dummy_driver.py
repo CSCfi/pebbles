@@ -76,3 +76,6 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
 
         # use instance id as a part of the name to make tombstones always unique
         os.rename(instance_dir, '%s.deleted.%s' % (instance_dir, instance_id))
+
+    def do_housekeep(self, token):
+        pass

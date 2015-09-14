@@ -200,6 +200,18 @@ Host worker
 EOF_SSH
 
     fi
+
+    if ! grep -q "Host proxy" ~/.ssh/config; then
+        echo "adding entry for proxy"
+        cat >> ~/.ssh/config << EOF_SSH
+Host proxy
+        StrictHostKeyChecking no
+        HostName localhost
+        Port 2224
+EOF_SSH
+
+    fi
+
     echo
 }
 

@@ -1,10 +1,14 @@
 import base64
 from email.mime.text import MIMEText
+import glob
 import json
 import logging
+from string import Template
+import os
 import smtplib
 
 import requests
+from kombu import Queue
 from celery import Celery
 from celery.utils.log import get_task_logger
 from celery.schedules import crontab
@@ -18,6 +22,8 @@ requests.packages.urllib3.disable_warnings()
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 flask_config = flask_app.dynamic_config
+
+RUNTIME_PATH = '/webapps/pouta_blueprints/run'
 
 
 def get_token():
@@ -65,8 +71,31 @@ def get_config():
 logger = get_task_logger(__name__)
 if flask_config['DEBUG']:
     logger.setLevel('DEBUG')
-app = Celery('tasks', broker=flask_config['MESSAGE_QUEUE_URI'], backend=flask_config['MESSAGE_QUEUE_URI'])
+
+app = Celery(
+    'tasks',
+    broker=flask_config['MESSAGE_QUEUE_URI'],
+    backend=flask_config['MESSAGE_QUEUE_URI']
+)
+
+app.conf.CELERY_TIMEZONE = 'UTC'
+app.conf.CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
+app.conf.CELERYD_CONCURRENCY = 16
+app.conf.CELERYD_PREFETCH_MULTIPLIER = 1
 app.conf.CELERY_TASK_SERIALIZER = 'json'
+
+app.conf.CELERY_QUEUES = (
+    Queue('celery', routing_key='task.#'),
+    Queue('proxy_tasks', routing_key='proxy_task.#'),
+)
+
+# app.conf.CELERY_ROUTES = {
+#         'pouta_blueprints.tasks.proxy_add_route': {
+#             'queue': 'proxy_tasks',
+#             'routing_key': 'proxy_task.proxy_add_route',
+#         },
+# }
+
 app.conf.CELERYBEAT_SCHEDULE = {
     'deprovision-expired-every-minute': {
         'task': 'pouta_blueprints.tasks.deprovision_expired',
@@ -77,9 +106,13 @@ app.conf.CELERYBEAT_SCHEDULE = {
         'task': 'pouta_blueprints.tasks.publish_plugins',
         'schedule': crontab(minute='*/1'),
         'options': {'expires': 60},
+    },
+    'housekeeping-every-minute': {
+        'task': 'pouta_blueprints.tasks.housekeeping',
+        'schedule': crontab(minute='*/1'),
+        'options': {'expires': 60},
     }
 }
-app.conf.CELERY_TIMEZONE = 'UTC'
 
 
 @app.task(name="pouta_blueprints.tasks.deprovision_expired")
@@ -99,7 +132,7 @@ def deprovision_expired():
             logger.info('deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % instance.get('id'))
             deprovision_required = True
         elif user.get('credits_quota') <= user.get('credits_spent'):
-            if instance.cost_multiplier > 0:
+            if instance.get('cost_multiplier', 0) > 0:
                 logger.info('deprovisioning triggered for %s (reason: user out of quota)' % instance.get('id'))
                 deprovision_required = True
 
@@ -156,7 +189,6 @@ def get_provisioning_manager():
 
 
 def get_provisioning_type(token, instance_id):
-    config = get_config()
     pbclient = PBClient(token, flask_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
     blueprint = pbclient.get_instance_parent_data(instance_id)
@@ -208,6 +240,14 @@ def publish_plugins():
         do_post(token, 'plugins', payload)
 
 
+@app.task(name="pouta_blueprints.tasks.housekeeping")
+def housekeeping():
+    token = get_token()
+    logger.info('provisioning plugins queried from worker')
+    mgr = get_provisioning_manager()
+    mgr.map_method(mgr.names(), 'housekeep', token)
+
+
 @app.task(name="pouta_blueprints.tasks.update_user_connectivity")
 def update_user_connectivity(instance_id):
     logger.info('updating connectivity for instance %s' % instance_id)
@@ -216,3 +256,66 @@ def update_user_connectivity(instance_id):
     plugin = get_provisioning_type(token, instance_id)
     mgr.map_method([plugin], 'update_connectivity', token, instance_id)
     logger.info('update connectivity for instance %s ready' % instance_id)
+
+
+@app.task(name="pouta_blueprints.tasks.proxy_add_route")
+def proxy_add_route(route_key, target):
+    logger.info('proxy_add_route(%s, %s)' % (route_key, target))
+
+    # generate a location snippet for nginx proxy config
+    # see https://support.rstudio.com/hc/en-us/articles/200552326-Running-with-a-Proxy
+    template = Template(
+        """
+        location /${route_key}/ {
+          rewrite ^/${route_key}/(.*)$$ /$$1 break;
+          proxy_pass ${target};
+          proxy_redirect ${target} $$scheme://$$host:${public_http_proxy_port}/${route_key};
+        }
+        """
+    )
+
+    path = '%s/route_key-%s' % (RUNTIME_PATH, route_key)
+    with open(path, 'w') as f:
+        f.write(
+            template.substitute(
+                route_key=route_key,
+                target=target,
+                public_http_proxy_port=get_config()['PUBLIC_HTTP_PROXY_PORT']
+            )
+        )
+
+    refresh_nginx_config()
+
+
+@app.task(name="pouta_blueprints.tasks.proxy_remove_route")
+def proxy_remove_route(route_key):
+    logger.info('proxy_remove_route(%s)' % route_key)
+
+    path = '%s/route_key-%s' % (RUNTIME_PATH, route_key)
+    if os.path.exists(path):
+        os.remove(path)
+    else:
+        logger.info('proxy_remove_route(): no such file')
+
+    refresh_nginx_config()
+
+
+def refresh_nginx_config():
+    logger.debug('refresh_nginx_config()')
+
+    config = ['server {', 'listen %s;' % get_config()['INTERNAL_HTTP_PROXY_PORT']]
+
+    pattern = '%s/route_key-*' % RUNTIME_PATH
+    for proxy_route in glob.glob(pattern):
+        logger.debug('refresh_nginx_config(): adding %s to config' % proxy_route)
+        with open(proxy_route, 'r') as f:
+            config.extend(x.rstrip() for x in f.readlines())
+
+    config.append('}')
+
+    # path = '/etc/nginx/sites-enabled/proxy'
+    # path = '/tmp/proxy.conf'
+    path = '%s/proxy.conf' % RUNTIME_PATH
+
+    with open(path, 'w') as f:
+        f.write('\n'.join(config))

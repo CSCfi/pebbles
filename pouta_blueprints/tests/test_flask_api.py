@@ -33,6 +33,7 @@ class FlaskApiTestCase(BaseTestCase):
         b1.name = "TestBlueprint"
         b1.plugin = p1.id
         db.session.add(b1)
+        self.known_blueprint_id_disabled = b1.id
 
         b2 = Blueprint()
         b2.name = "EnabledTestBlueprint"
@@ -389,6 +390,14 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/instances',
             data=json.dumps(data))
         self.assert_200(response)
+
+    def test_user_create_instance_blueprint_disabled(self):
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/instances',
+            data=json.dumps({'blueprint': self.known_blueprint_id_disabled}),
+        )
+        self.assert_404(response)
 
     def test_anonymous_update_client_ip(self):
         data = {'client_ip': '1.1.1.1'}

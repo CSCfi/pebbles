@@ -265,6 +265,9 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         )
         return cluster_config
 
+    def do_housekeep(self, token):
+        pass
+
 # testing templating
 if __name__ == '__main__':
     blueprint_config = {

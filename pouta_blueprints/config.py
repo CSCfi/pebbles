@@ -57,6 +57,7 @@ class BaseConfig(object):
     MESSAGE_QUEUE_URI = 'redis://www:6379/0'
     INSTANCE_DATA_DIR = '/var/spool/pb_instances'
     INTERNAL_API_BASE_URL = 'https://www/api/v1'
+    PUBLIC_IPV4 = '127.0.0.1'
     BASE_URL = 'https://localhost:8888'
     MAX_CONTENT_LENGTH = 1024 * 1024
     FAKE_PROVISIONING = False
@@ -70,7 +71,21 @@ class BaseConfig(object):
     DEFAULT_QUOTA = 1.0
     ENABLE_SHIBBOLETH_LOGIN = False
     INSTALLATION_NAME = 'Pouta Blueprints'
-    PLUGIN_WHITELIST = ''
+    PLUGIN_WHITELIST = 'OpenStackDriver PvcCmdLineDriver'
+
+    DD_SHUTDOWN_MODE = True
+    DD_HOST_IMAGE = 'CentOS-7.0'
+    DD_MAX_HOSTS = 4
+    DD_FREE_SLOT_TARGET = 4
+    DD_HOST_FLAVOR_NAME_SMALL = 'mini'
+    DD_HOST_FLAVOR_SLOTS_SMALL = 6
+    DD_HOST_FLAVOR_NAME_LARGE = 'small'
+    DD_HOST_FLAVOR_SLOTS_LARGE = 24
+    DD_HOST_MASTER_SG = 'pb_server'
+    DD_HOST_EXTRA_SGS = ''
+
+    PUBLIC_HTTP_PROXY_PORT = 8000
+    INTERNAL_HTTP_PROXY_PORT = 8000
 
     # enable access by []
     def __getitem__(self, item):

@@ -59,6 +59,11 @@ CONFIG = {
                 'title': "Allow user to request instance firewall to allow access to user's IP address",
                 'default': False,
             },
+            'needs_ssh_keys': {
+                'type': 'boolean',
+                'title': "Needs ssh-keys to access",
+                'default': True,
+            },
         }
     },
     'form': [
@@ -85,6 +90,7 @@ CONFIG = {
         'name': 'os-machine',
         'flavor': 'mini',
         'image': 'Ubuntu-14.04',
-        'firewall_rules': ['tcp 22 22 192.168.1.0/24']
+        'firewall_rules': ['tcp 22 22 192.168.1.0/24'],
+        'needs_ssh_keys': True,
     }
 }

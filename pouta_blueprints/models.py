@@ -197,6 +197,7 @@ class Instance(db.Model):
     state = db.Column(db.String(32))
     error_msg = db.Column(db.String(256))
     _instance_data = db.Column('instance_data', db.Text)
+    blueprint = db.relationship('Blueprint', uselist=False, backref='blueprint_id')
 
     def __init__(self, blueprint, user):
         self.id = uuid.uuid4().hex
