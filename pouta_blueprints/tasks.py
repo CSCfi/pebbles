@@ -283,7 +283,6 @@ def proxy_add_route(route_key, target):
                 public_http_proxy_port=get_config()['PUBLIC_HTTP_PROXY_PORT']
             )
         )
-        f.close()
 
     refresh_nginx_config()
 
@@ -311,7 +310,6 @@ def refresh_nginx_config():
         logger.debug('refresh_nginx_config(): adding %s to config' % proxy_route)
         with open(proxy_route, 'r') as f:
             config.extend(x.rstrip() for x in f.readlines())
-            f.close()
 
     config.append('}')
 
