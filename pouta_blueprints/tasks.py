@@ -319,4 +319,3 @@ def refresh_nginx_config():
 
     with open(path, 'w') as f:
         f.write('\n'.join(config))
-        f.close()
