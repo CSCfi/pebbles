@@ -46,9 +46,9 @@ class DockerDriverAccessProxy(object):
             #   ca_cert='%s/ca_cert.pem' % DD_RUNTIME_PATH,
             verify=False,
         )
-        dc = docker.Client(base_url=docker_url, tls=tls_config)
+        docker_client = docker.Client(base_url=docker_url, tls=tls_config)
 
-        return dc
+        return docker_client
 
     @staticmethod
     def load_json(data_file, default):
@@ -186,9 +186,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
         blueprint_config = blueprint['config']
 
-        dh = self._select_host(blueprint_config['consumed_slots'], cur_ts)
+        docker_host = self._select_host(blueprint_config['consumed_slots'], cur_ts)
 
-        dc = ap.get_docker_client(dh['docker_url'])
+        docker_client = ap.get_docker_client(docker_host['docker_url'])
 
         container_name = instance['name']
         # password = uuid.uuid4().hex[:16]
@@ -203,18 +203,21 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             #            'host_config': {'Memory': 256 * 1024 * 1024},
         }
 
-        res = dc.create_container(**config)
-        container_id = res['Id']
+        container = docker_client.create_container(**config)
+        container_id = container['Id']
         self.logger.info("created container '%s' (id: %s)", container_name, container_id)
 
-        dc.start(container_id, publish_all_ports=True)
+        docker_client.start(container_id, publish_all_ports=True)
         self.logger.info("started container '%s'", container_name)
 
-        # public_ip = dh['public_ip']
+        # public_ip = docker_host['public_ip']
 
         # get the public port
-        res = dc.port(container_id, blueprint_config['internal_port'])
-        public_port = res[0]['HostPort']
+        ports = docker_client.port(container_id, blueprint_config['internal_port'])
+        if len(ports) == 1:
+            public_port = ports[0]['HostPort']
+        else:
+            raise RuntimeError('Expected exactly one mapped port')
 
         proxy_route = uuid.uuid4().hex
 
@@ -229,7 +232,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                     )
                 },
             ],
-            'docker_url': dh['docker_url'],
+            'docker_url': docker_host['docker_url'],
             'proxy_route': proxy_route,
         }
 
@@ -241,7 +244,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             }
         )
 
-        ap.proxy_add_route(proxy_route, 'http://%s:%s' % (dh['private_ip'], public_port))
+        ap.proxy_add_route(proxy_route, 'http://%s:%s' % (docker_host['private_ip'], public_port))
 
         self.logger.debug("do_provision done for %s" % instance_id)
 
@@ -273,12 +276,12 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             self.logger.info('no docker url for instance %s, assuming provisioning has failed' % instance_id)
             return
 
-        dc = ap.get_docker_client(docker_url)
+        docker_client = ap.get_docker_client(docker_url)
 
         container_name = instance['name']
 
         try:
-            dc.remove_container(container_name, force=True)
+            docker_client.remove_container(container_name, force=True)
         except APIError as e:
             if e.response.status_code == 404:
                 self.logger.info('no container found for instance %s, assuming already deleted' % instance_id)
@@ -446,10 +449,10 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             if host['state'] not in (DD_STATE_ACTIVE, DD_STATE_INACTIVE):
                 self.logger.debug('_get_hosts(): skipping container data fetching for %s' % host['id'])
                 continue
-            dc = ap.get_docker_client(host['docker_url'])
+            docker_client = ap.get_docker_client(host['docker_url'])
             try:
                 # update the number of reserved slots
-                containers = dc.containers()
+                containers = docker_client.containers()
                 host['num_reserved_slots'] = sum(int(cont['Labels'].get('slots', 1)) for cont in containers)
                 self.logger.debug('_get_hosts(): found %d instances with %d slots on %s' %
                                   (len(containers), host['num_reserved_slots'], host['id']))
@@ -528,13 +531,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         ap.run_ansible_on_host(host, self.logger)
 
-        dc = ap.get_docker_client(host['docker_url'])
+        docker_client = ap.get_docker_client(host['docker_url'])
 
         dconf = self.get_configuration()
 
         for pull_image in dconf['schema']['properties']['docker_image']['enum']:
             self.logger.debug("_prepare_host(): pulling image %s" % pull_image)
-            dc.pull(pull_image)
+            docker_client.pull(pull_image)
 
     def _remove_host(self, host):
         self.logger.debug("_remove_host()")
