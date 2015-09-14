@@ -74,7 +74,7 @@ class VariableView(restful.Resource):
         db.session.commit()
 
 
-class InstanceConfig(restful.Resource):
+class PublicVariableList(restful.Resource):
     @marshal_with(variable_fields)
     def get(self):
         try:
