@@ -43,12 +43,18 @@ class GetImage(task.Task):
         nc = get_openstack_nova_client(config)
         return nc.images.find(name=image_name).id
 
+    def revert(self, *args, **kwargs):
+        pass
+
 
 class GetFlavor(task.Task):
     def execute(self, flavor_name, config):
         logger.debug("getting flavor %s" % flavor_name)
         nc = get_openstack_nova_client(config)
         return nc.flavors.find(name=flavor_name).id
+
+    def revert(self, *args, **kwargs):
+        pass
 
 
 class CreateSecurityGroup(task.Task):
@@ -95,21 +101,70 @@ class CreateSecurityGroup(task.Task):
         nc.security_groups.delete(self.secgroup.id)
 
 
+# noinspection PyDeprecation
+class CreateRootVolume(task.Task):
+    def execute(self, display_name, image, root_volume_size, config):
+        if root_volume_size:
+            logger.debug("creating a root volume for instance %s" % display_name)
+            nc = get_openstack_nova_client(config)
+            volume_name = '%s-root' % display_name
+
+            volume = nc.volumes.create(
+                size=root_volume_size,
+                imageRef=image,
+                display_name=volume_name
+            )
+            retries = 0
+            while nc.volumes.get(volume.id).status not in ('available', 'deleted'):
+                logger.debug("...waiting for volume to be ready")
+                time.sleep(5)
+                retries += 1
+                if retries > 30:
+                    raise RuntimeError('Volume creation %s is stuck')
+
+            self.volume_id = volume.id
+            return volume.id
+        else:
+            logger.debug("no root volume defined")
+            return ""
+
+    def revert(self, config, **kwargs):
+        logger.debug("revert: delete root volume")
+
+        try:
+            if getattr(self, 'volume_id', None):
+                nc = get_openstack_nova_client(config)
+                nc.volumes.delete(self.volume_id)
+            else:
+                logger.debug("revert: no volume_id stored, unable to revert")
+        except Exception as e:
+            logger.error('revert: deleting volume failed: %s' % e)
+
+
 class ProvisionInstance(task.Task):
-    def execute(self, display_name, image, flavor, key_name, security_group, extra_sec_groups, config):
+    def execute(self, display_name, image, flavor, key_name, security_group, extra_sec_groups, volume_id,
+                config):
         logger.debug("provisioning instance %s" % display_name)
         logger.debug("image=%s, flavor=%s, key=%s, secgroup=%s" % (image, flavor, key_name, security_group))
         nc = get_openstack_nova_client(config)
 
         sgs = [security_group]
-        sgs.extend(extra_sec_groups)
+        if extra_sec_groups:
+            sgs.extend(extra_sec_groups)
         try:
+            if len(volume_id):
+                bdm = {'vda': '%s:::1' % (volume_id)}
+            else:
+                bdm = None
+
             instance = nc.servers.create(
                 display_name,
                 image,
                 flavor,
                 key_name=key_name,
-                security_groups=sgs)
+                security_groups=sgs,
+                block_device_mapping=bdm)
+
         except Exception as e:
             logger.error("error provisioning instance: %s" % e)
             raise e
@@ -120,13 +175,17 @@ class ProvisionInstance(task.Task):
 
     def revert(self, config, **kwargs):
         logger.debug("revert: deleting instance %s", kwargs)
-        if getattr(self, 'instance_id'):
-            nc = get_openstack_nova_client(config)
-            nc.servers.delete(self.instance_id)
-        else:
-            logger.debug("revert: no instance_id stored, unable to revert")
+        try:
+            if getattr(self, 'instance_id', None):
+                nc = get_openstack_nova_client(config)
+                nc.servers.delete(self.instance_id)
+            else:
+                logger.debug("revert: no instance_id stored, unable to revert")
+        except Exception as e:
+            logger.error('revert: deleting instance failed: %s' % e)
 
 
+# noinspection PyDeprecation
 class AllocateIPForInstance(task.Task):
     def execute(self, server_id, allocate_public_ip, config):
         logger.debug("Allocate IP for server %s" % server_id)
@@ -174,12 +233,16 @@ class AllocateIPForInstance(task.Task):
 
         return address_data
 
+    def revert(self, *args, **kwargs):
+        pass
+
 
 flow = lf.Flow('ProvisionInstance').add(
     gf.Flow('BootInstance').add(
         GetImage('get_image', provides='image'),
         GetFlavor('get_flavor', provides='flavor'),
         CreateSecurityGroup('create_security_group', provides='security_group'),
+        CreateRootVolume('create_root_volume', provides='volume_id'),
         ProvisionInstance('provision_instance', provides='server_id')
     ),
     AllocateIPForInstance('allocate_ip_for_instance', provides='ip'),
@@ -193,8 +256,8 @@ class OpenStackService(object):
         else:
             self._config = None
 
-    def provision_instance(self, display_name, image_name, flavor_name, key_name, extra_sec_groups,
-                           master_sg_name=None, allocate_public_ip=True):
+    def provision_instance(self, display_name, image_name, flavor_name, key_name,
+                           extra_sec_groups=None, master_sg_name=None, allocate_public_ip=True, root_volume_size=0):
         try:
             return taskflow.engines.run(flow, engine='parallel', store=dict(
                 image_name=image_name,
@@ -204,6 +267,7 @@ class OpenStackService(object):
                 master_sg_name=master_sg_name,
                 extra_sec_groups=extra_sec_groups,
                 allocate_public_ip=allocate_public_ip,
+                root_volume_size=root_volume_size,
                 config=self._config))
         except Exception as e:
             logger.error("Flow failed")
