@@ -25,7 +25,7 @@
 
 - name: Create provisioning log file root directory
   file:
-    dest={{ nginx_log_file_root }}
+    dest={{ provisioning_log_file_root }}
     mode=755 state=directory
     owner={{ application_user }}
     group={{ application_group }}
