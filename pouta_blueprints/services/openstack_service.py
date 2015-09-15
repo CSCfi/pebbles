@@ -105,7 +105,8 @@ class CreateSecurityGroup(task.Task):
 class CreateRootVolume(task.Task):
     def execute(self, display_name, image, root_volume_size, config):
         if root_volume_size:
-            logger.debug("creating a root volume for instance %s" % display_name)
+            logger.debug("creating a root volume for instance %s from image %s" %
+                         (display_name, image))
             nc = get_openstack_nova_client(config)
             volume_name = '%s-root' % display_name
 
@@ -114,15 +115,15 @@ class CreateRootVolume(task.Task):
                 imageRef=image,
                 display_name=volume_name
             )
+            self.volume_id = volume.id
             retries = 0
-            while nc.volumes.get(volume.id).status not in ('available', 'deleted'):
+            while nc.volumes.get(volume.id).status not in ('available'):
                 logger.debug("...waiting for volume to be ready")
                 time.sleep(5)
                 retries += 1
                 if retries > 30:
                     raise RuntimeError('Volume creation %s is stuck')
 
-            self.volume_id = volume.id
             return volume.id
         else:
             logger.debug("no root volume defined")
