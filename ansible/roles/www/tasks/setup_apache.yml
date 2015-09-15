@@ -4,6 +4,7 @@
   template: src=etc/apache2/sites-available/pouta-blueprints-ssl.j2
             dest=/etc/apache2/sites-available/{{ application_name }}-ssl.conf
             backup=yes
+  notify: restart apache
 
 - name: Create the Apache configuration file for HTTP redirect
   template: src=etc/apache2/sites-available/pouta-blueprints.j2
@@ -38,7 +39,6 @@
   apache2_module: state=present name=shib2
   when: enable_shibboleth == "True"
 
-
 - name: Link static root for Apache
   file:
     src={{ application_path }}/{{ application_name }}/static
@@ -50,7 +50,7 @@
 
 - name: Create provisioning log file root directory
   file:
-    dest={{ apache_log_file_root }}
+    dest={{ provisioning_log_file_root }}
     mode=755 state=directory
     owner={{ application_user }}
     group={{ application_group }}
@@ -65,6 +65,11 @@
 
 - name: Create self-signed SSL cert
   command: 
-    openssl req -new -nodes -x509 -subj "/C=FI/ST=SouthernFinland/L=Helsinki/O=IT/CN={{ domain }}" -days 3650 -keyout {{ apache_ssl_key }} -out {{ apache_ssl_crt }} -extensions v3_ca 
+    openssl req -new -nodes -x509 -subj "/C=FI/ST=SouthernFinland/L=Helsinki/O=IT/CN={{ domain }}" -days 3650 -keyout {{ apache_ssl_key }} -out {{ apache_ssl_crt }} -extensions v3_ca
     creates={{ apache_ssl_crt }}
   notify: restart apache
+
+- name: Use self-signed SSL cert as a dummy file for chain
+  command: cp {{ apache_ssl_crt }} {{ apache_ssl_chain }}
+  notify: restart apache
+

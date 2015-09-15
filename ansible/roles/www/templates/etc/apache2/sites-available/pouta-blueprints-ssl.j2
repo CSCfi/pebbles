@@ -22,6 +22,13 @@
         require shib-session
     </Location>
 
+    Alias /provisioning_logs {{ provisioning_log_file_root }}
+    <Directory {{ provisioning_log_file_root }}>
+        Order allow,deny
+        Allow from all
+        Require all granted
+    </Directory>
+
     ErrorLog {{ apache_error_log_file }}
     CustomLog {{ apache_access_log_file }} combined
 
@@ -29,6 +36,7 @@
 
     SSLCertificateFile  {{ apache_ssl_crt }}
     SSLCertificateKeyFile {{ apache_ssl_key }}
+    SSLCertificateChainFile {{ apache_ssl_chain }}
 
     <FilesMatch "\.(cgi|shtml|phtml|php)$">
             SSLOptions +StdEnvVars

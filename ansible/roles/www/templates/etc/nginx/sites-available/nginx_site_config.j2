@@ -31,7 +31,7 @@ server {
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header Host $http_host;
         proxy_redirect off;
-        
+
         # Unicorns are not dealing with static files
         if (!-f $request_filename) {
             proxy_pass http://wsgi_server;
@@ -43,7 +43,7 @@ server {
         autoindex off;
     }
     location /provisioning_logs {
-        alias {{ nginx_log_file_root }}/;
+        alias {{ provisioning_log_file_root }}/;
         autoindex off;
     }
 
