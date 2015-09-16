@@ -25,7 +25,7 @@
                 </span>
             </td>
         </tr>
-        <tr ng-hide="(blueprints | filter : {is_enabled: 'true'}).length">
+        <tr ng-hide="!blueprints || (blueprints | filter : {is_enabled: 'true'}).length">
             <td colspan="3">No blueprints available</td>
         </tbody>
     </table>
@@ -62,7 +62,7 @@
                 <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger" ng-disabled="instance.state=='deleting'" >Destroy</button>
             </td>
         </tr>
-        <tr ng-hide="instances.length">
+        <tr ng-hide="instances.length || !instances">
             <td colspan="{{ isAdmin() ? 7 : 6 }}">No instances running</td>
         </tr>
 
