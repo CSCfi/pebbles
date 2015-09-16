@@ -142,7 +142,7 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps({'email': 'user@example.org', 'password': 'user'}))
         self.assert_401(response)
 
-    def test_a_deleted_user_cannot_use_token(self):
+    def test_deleted_user_cannot_use_token(self):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
@@ -473,7 +473,9 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_403(response2)
 
     def test_admin_get_keypairs(self):
-        response = self.make_authenticated_admin_request(path='/api/v1/users/%s/keypairs' % self.known_user_id)
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/users/%s/keypairs' % self.known_user_id
+        )
         self.assert_200(response)
         self.assertEqual(len(response.json), 0)
         response2 = self.make_authenticated_admin_request(path='/api/v1/users/%s/keypairs' % '0xBogus')
@@ -495,6 +497,63 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/instances',
             data=json.dumps(data))
         self.assertEqual(response2.status_code, 409)
+
+    def test_update_admin_quota_relative(self):
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/users'
+        )
+        assert abs(response.json[0]['credits_quota'] - 1) < 0.001
+        user_id = response.json[0]['id']
+        response2 = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/quota/%s' % user_id,
+            data=json.dumps({'type': 'relative', 'value': 10}))
+        self.assertEqual(response2.status_code, 200)
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/users'
+        )
+        self.assertEqual(user_id, response.json[0]['id'])
+        assert abs(response.json[0]['credits_quota'] - 11) < 0.001
+
+    def test_update_quota_absolute(self):
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/users'
+        )
+
+        for user in response.json:
+            assert abs(user['credits_quota'] - 1) < 0.001
+
+        response2 = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/quota',
+            data=json.dumps({'type': 'absolute', 'value': 42}))
+        self.assertEqual(response2.status_code, 200)
+
+        response3 = self.make_authenticated_admin_request(
+            path='/api/v1/users'
+        )
+
+        for user in response3.json:
+            assert abs(user['credits_quota'] - 42) < 0.001
+
+    def test_user_cannot_update_user_quota_absolute(self):
+        response = self.make_authenticated_user_request(
+            path='/api/v1/users'
+        )
+        self.assertEqual(len(response.json), 1)
+        user_id = response.json[0]['id']
+        response2 = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/quota/%s' % user_id,
+            data=json.dumps({'type': "absolute", 'value': 10}))
+        self.assert_403(response2)
+
+    def test_user_cannot_update_quotas(self):
+        response2 = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/quota',
+            data=json.dumps({'type': "absolute", 'value': 10}))
+        self.assert_403(response2)
 
     def test_anonymous_what_is_my_ip(self):
         response = self.make_request(path='/api/v1/what_is_my_ip')
