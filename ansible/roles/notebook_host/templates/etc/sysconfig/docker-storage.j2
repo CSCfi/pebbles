@@ -1,0 +1,4 @@
+DOCKER_STORAGE_OPTIONS=--storage-driver devicemapper \
+  --storage-opt dm.fs=xfs\
+  --storage-opt dm.thinpooldev=/dev/mapper/vg_ephemeral-docker\
+  --storage-opt dm.use_deferred_removal=true

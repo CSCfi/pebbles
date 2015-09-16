@@ -1,0 +1,52 @@
+- name: Enable lvm2 metadaemon
+  service: name=lvm2-lvmetad state=running enabled=yes
+
+- name: Scan for vg_docker volume group
+  command: vgdisplay vg_ephemeral
+  register: test_vg_ephemeral
+  ignore_errors: yes
+
+- name: Force create a physical volume on {{ notebook_host_block_dev_path }}
+  command: /usr/sbin/pvcreate {{ notebook_host_block_dev_path }}
+  when: test_vg_ephemeral.rc==5
+
+- name: Create volume group on ephemeral
+  lvg: vg=vg_ephemeral pvs={{ notebook_host_block_dev_path }}
+  when: test_vg_ephemeral.rc==5
+
+- name: Check for swap
+  shell: 'sudo swapon -s | grep -E "^/"'
+  register: swap_configured
+  ignore_errors: yes
+
+- name: Create logical volume for swap
+  lvol: lv=swap vg=vg_ephemeral size={{ ansible_memtotal_mb * 2 }}M
+  when: swap_configured|failed
+
+- name: Run mkswap on swap lv
+  command: mkswap /dev/mapper/vg_ephemeral-swap
+  when: swap_configured|failed
+
+- name: Run swapon on swap lv
+  command: swapon /dev/mapper/vg_ephemeral-swap
+  when: swap_configured|failed
+
+# TODO: in Ansible 2.0, we could use lvol + opts
+- name: Check for docker thin pool
+  command: lvdisplay vg_ephemeral/docker
+  register: test_lv_docker
+  ignore_errors: yes
+
+# TODO: in Ansible 2.0, we could use lvol + opts
+- name: Create docker thin pool
+  command: lvcreate --extents 100%FREE --poolmetadatasize 1G -T vg_ephemeral/docker
+  when: test_lv_docker|failed
+
+- name: Upload custom docker storage configuration
+  template:
+    src=etc/sysconfig/docker-storage.j2
+    dest=/etc/sysconfig/docker-storage
+    backup=True
+  notify: restart docker
+  when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"
+

@@ -81,6 +81,9 @@ class DockerDriverAccessProxy(object):
         a_host = ansible.inventory.host.Host(name=host['id'])
         a_host.set_variable('ansible_ssh_host', host['private_ip'])
 
+        # the following does not work, have to use the extra_vars instead
+        # a_host.set_variable('notebook_host_block_dev_path', '/dev/vdb')
+
         a_group = ansible.inventory.group.Group(name='notebook_host')
         a_group.add_host(a_host)
 
@@ -92,6 +95,8 @@ class DockerDriverAccessProxy(object):
         runner_cb = callbacks.PlaybookRunnerCallbacks(stats, verbose=utils.VERBOSITY)
 
         logger.debug("_prepare_host(): running ansible")
+        logger.debug('_prepare_host(): inventory hosts %s' % a_inventory.host_list)
+
         pb = ansible.playbook.PlayBook(
             playbook="/webapps/pouta_blueprints/source/ansible/notebook_playbook.yml",
             stats=stats,
@@ -99,6 +104,7 @@ class DockerDriverAccessProxy(object):
             runner_callbacks=runner_cb,
             inventory=a_inventory,
             remote_user='cloud-user',
+            extra_vars={'notebook_host_block_dev_path': '/dev/vdb'},
         )
 
         pb_res = pb.run()
