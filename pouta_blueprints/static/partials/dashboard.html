@@ -63,7 +63,7 @@
             </td>
         </tr>
         <tr ng-hide="instances.length">
-            <td colspan="6">No instances running</td>
+            <td colspan="{{ isAdmin() ? 7 : 6 }}">No instances running</td>
         </tr>
 
         </tbody>
