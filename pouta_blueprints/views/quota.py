@@ -12,8 +12,8 @@ quota = FlaskBlueprint('quota', __name__)
 
 parser = reqparse.RequestParser()
 quota_update_functions = {
-    'absolute': lambda user, value: user.credits_quota + value,
-    'relative': lambda user, value: value
+    'absolute': lambda user, value: value,
+    'relative': lambda user, value: user.credits_quota + value
 }
 parser.add_argument('type')
 parser.add_argument('value', type=float)
@@ -27,7 +27,7 @@ quota_fields = {
 def parse_arguments():
     try:
         args = parser.parse_args()
-        if not args['type'] in types:
+        if not args['type'] in quota_update_functions.keys():
             raise RuntimeError("Invalid arguement type = %s" % args['type'])
     except:
         abort(422)
