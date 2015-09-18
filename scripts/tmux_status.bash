@@ -2,7 +2,7 @@
 tmux start-server\; has-session -t status 2>/dev/null
 
 if [ "$?" -eq 1 ]; then
-  cd /home/tourunen
+  cd /home/cloud-user
 
   # Run pre command.
   
@@ -12,9 +12,9 @@ if [ "$?" -eq 1 ]; then
 
 
   # Create other windows.
-  tmux new-window -c /home/tourunen -t status:1 -n www
-  tmux new-window -c /home/tourunen -t status:2 -n worker
-  tmux new-window -c /home/tourunen -t status:3 -n proxy
+  tmux new-window -c /home/cloud-user -t status:1 -n www
+  tmux new-window -c /home/cloud-user -t status:2 -n worker
+  tmux new-window -c /home/cloud-user -t status:3 -n proxy
 
 
   # Window "server"
@@ -49,6 +49,12 @@ if [ "$?" -eq 1 ]; then
   tmux send-keys -t status:1.0 '' C-m
   tmux send-keys -t status:1.0 ssh\ www\ tail\ -F\ /webapps/pouta_blueprints/logs/gunicorn\*.log C-m
 
+  tmux splitw -t status:1
+  tmux select-layout -t status:1 even-vertical
+  
+  tmux send-keys -t status:1.1 '' C-m
+  tmux send-keys -t status:1.1 ssh\ www\ sudo\ tail\ -F\ /var/log/nginx/\{access,error\}.log C-m
+
   tmux select-layout -t status:1 even-vertical
 
   tmux select-pane -t status:1.0
@@ -56,15 +62,21 @@ if [ "$?" -eq 1 ]; then
   # Window "worker"
   
   tmux send-keys -t status:2.0 '' C-m
-  tmux send-keys -t status:2.0 ssh\ worker\ tail\ -F\ /webapps/pouta_blueprints/logs/celery\*.log C-m
+  tmux send-keys -t status:2.0 ssh\ worker\ tail\ -F\ /webapps/pouta_blueprints/logs/celery.log C-m
 
   tmux splitw -t status:2
-  tmux select-layout -t status:2 tiled
+  tmux select-layout -t status:2 even-vertical
   
   tmux send-keys -t status:2.1 '' C-m
-  tmux send-keys -t status:2.1 ssh\ -t\ worker\ watch\ -n\ 5\ \"python\ -m\ json.tool\ /var/spool/pb_instances/docker_driver.json\" C-m
+  tmux send-keys -t status:2.1 ssh\ worker\ tail\ -F\ /webapps/pouta_blueprints/logs/celery-system.log C-m
 
-  tmux select-layout -t status:2 tiled
+  tmux splitw -t status:2
+  tmux select-layout -t status:2 even-vertical
+  
+  tmux send-keys -t status:2.2 '' C-m
+  tmux send-keys -t status:2.2 ssh\ -t\ worker\ watch\ -n\ 5\ \'\"python\ -m\ json.tool\ /var/spool/pb_instances/docker_driver.json\ \|\ egrep\ \\\"state\|docker_url\|num\\\"\"\' C-m
+
+  tmux select-layout -t status:2 even-vertical
 
   tmux select-pane -t status:2.0
 
