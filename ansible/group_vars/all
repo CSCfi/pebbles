@@ -57,7 +57,7 @@ nginx_ssl_crt: "/etc/nginx/ssl/server.crt"
 nginx_ssl_key: "/etc/nginx/ssl/server.key"
 
 # shibboleth; requires apache instead of nginx
-enable_shibboleth: "False"
+enable_shibboleth: False
 shibboleth_entity_id: "https://myserviceid.example.org"
 shibboleth_discovery_url: "https://disco.example.org/shibboleth/WAYF"
 shibboleth_cert: "example.crt"
