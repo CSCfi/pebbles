@@ -1,7 +1,7 @@
 - include: install_tools.yml
 
 - include: prepare_ephemeral.yml
-  when: notebook_host_block_dev_path == "/dev/vdb"
+  when: notebook_host_block_dev_path is defined and notebook_host_block_dev_path == "/dev/vdb"
 
 - include: setup_block_storage.yml
   when: notebook_host_block_dev_path is defined

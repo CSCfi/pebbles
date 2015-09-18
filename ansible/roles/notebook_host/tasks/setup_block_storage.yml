@@ -6,7 +6,7 @@
   register: test_vg_ephemeral
   ignore_errors: yes
 
-- name: Force create a physical volume on {{ notebook_host_block_dev_path }}
+- name: Create a physical volume on {{ notebook_host_block_dev_path }}
   command: /usr/sbin/pvcreate {{ notebook_host_block_dev_path }}
   when: test_vg_ephemeral.rc==5
 
