@@ -1,0 +1,19 @@
+name: sample
+root: ~/
+
+windows:
+  - www:
+      layout: main-vertical
+      panes:
+        - ssh www tail -f /webapps/pouta_blueprints/logs/gunicorn*.log
+  - worker:
+      layout: tiled
+      panes:
+        - ssh worker tail -f /webapps/pouta_blueprints/logs/celery*.log
+        - ssh worker watch -n 5 "python -m json.tool /var/spool/pb_instances/docker_driver.json"
+  - proxy:
+      layout: tiled
+      panes:
+        - ssh proxy tail -f /webapps/pouta_blueprints/logs/celery*.log
+        - ssh proxy watch grep location /etc/nginx/sites-enabled/proxy.conf
+
