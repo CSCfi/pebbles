@@ -26,7 +26,12 @@ Change the following configuration variables in the web configuration page visib
 
     PLUGIN_WHITELIST DockerDriver
     DD_SHUTDOWN_MODE False
-    
+
+### Open port 8000 in your security group
+
+The notebook connections from clients to the backing docker containers are proxied
+through port 8000 on the server. Make sure that is open to the networks you want to
+expose the system to.
 
 ## Todo:
 
