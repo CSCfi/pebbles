@@ -138,7 +138,10 @@ def deprovision_expired():
                 deprovision_required = True
 
         if deprovision_required:
-            run_deprovisioning.delay(token, instance.get('id'))
+            run_deprovisioning.apply_async(
+                args=[token, instance.get('id')],
+                queue='system_tasks',
+            )
 
 
 @app.task(name="pouta_blueprints.tasks.send_mails")
