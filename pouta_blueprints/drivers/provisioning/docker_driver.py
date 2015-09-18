@@ -443,7 +443,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         return False
 
     def _update_host_lifetimes(self, hosts, shutdown_mode, cur_ts):
-        self.logger.debug("_update_host_lifetimes()")
         # calculate lifetime
         for host in hosts:
             # shutdown mode, try to get rid of all hosts
@@ -464,7 +463,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             self.logger.debug('do_housekeep(): host %s has lifetime %d' % (host['id'], lifetime))
 
     def _select_host(self, slots, cur_ts):
-        self.logger.debug("_select_host()")
         hosts = self._get_hosts(cur_ts)
         active_hosts = self.get_active_hosts(hosts)
 
@@ -489,7 +487,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         return selected_host
 
     def _get_hosts(self, cur_ts):
-        self.logger.debug("_get_hosts()")
         ap = self._get_ap()
 
         data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
@@ -523,14 +520,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         return hosts
 
     def _save_host_state(self, hosts, cur_ts):
-        self.logger.debug("_save_host_state() at %d" % cur_ts)
         ap = self._get_ap()
         data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
         ap.save_as_json(data_file, hosts)
 
     def _spawn_host(self, cur_ts, ramp_up=False):
-        self.logger.debug("_spawn_host()")
-
         instance_name = 'pb_dd_%s' % uuid.uuid4().hex
         image_name = self.config['DD_HOST_IMAGE']
 
@@ -578,8 +572,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         }
 
     def _prepare_host(self, host):
-        self.logger.debug("_prepare_host()")
-
         ap = self._get_ap()
 
         ap.run_ansible_on_host(host, self.logger)
@@ -593,10 +585,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             self.logger.debug("_prepare_host(): uploading image %s from file %s" % (image_name, filename))
             with open(filename, 'r') as img_file:
                 docker_client.load_image(img_file)
-            #            docker_client.import_image_from_file(
-            #                filename='%s/%s.img' % ('/images', image_name.replace('/', '.')),
-            #                repository=image_name,
-            #            )
 
     def _remove_host(self, host):
         self.logger.debug("_remove_host()")
