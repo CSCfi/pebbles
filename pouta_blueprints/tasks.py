@@ -301,17 +301,18 @@ def proxy_remove_route(route_key):
 
 
 def refresh_nginx_config():
-    logger.debug('refresh_nginx_config()')
-
     config = ['server {', 'listen %s;' % get_config()['INTERNAL_HTTP_PROXY_PORT']]
 
+    nroutes = 0
     pattern = '%s/route_key-*' % RUNTIME_PATH
     for proxy_route in glob.glob(pattern):
-        logger.debug('refresh_nginx_config(): adding %s to config' % proxy_route)
+        nroutes += 1
         with open(proxy_route, 'r') as f:
             config.extend(x.rstrip() for x in f.readlines())
 
     config.append('}')
+
+    logger.debug('refresh_nginx_config(): added %d routes' % nroutes)
 
     # path = '/etc/nginx/sites-enabled/proxy'
     # path = '/tmp/proxy.conf'
