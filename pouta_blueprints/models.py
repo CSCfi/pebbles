@@ -202,6 +202,7 @@ class Instance(db.Model):
     def __init__(self, blueprint, user):
         self.id = uuid.uuid4().hex
         self.blueprint_id = blueprint.id
+        self.blueprint = blueprint
         self.user_id = user.id
         self.state = 'starting'
 
@@ -212,12 +213,11 @@ class Instance(db.Model):
         if not duration:
             duration = self.runtime
 
-        blueprint = Blueprint.query.filter_by(id=self.blueprint_id).first()
-        if blueprint.preallocated_credits:
-            duration = blueprint.maximum_lifetime
+        if self.blueprint.preallocated_credits:
+            duration = self.blueprint.maximum_lifetime
 
         try:
-            cost_multiplier = blueprint.cost_multiplier
+            cost_multiplier = self.blueprint.cost_multiplier
         except:
             logging.warn("invalid cost_multiplier in blueprint with id %s, defaulting to 1.0" % self.blueprint_id)
             cost_multiplier = 1.0
