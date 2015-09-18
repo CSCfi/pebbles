@@ -1,4 +1,4 @@
-app.controller('AuthController', ['$scope', '$location', 'AuthService', function($scope, $location, AuthService) {
+app.controller('NavbarController', ['$scope', '$location', 'AuthService', function($scope, $location, AuthService) {
     var _invalidLogin = false;
 
     $scope.isLoggedIn = function() {
@@ -20,6 +20,10 @@ app.controller('AuthController', ['$scope', '$location', 'AuthService', function
         }, function() {
             _invalidLogin = true;
         });
+    };
+
+    $scope.isActive = function (viewLocation) { 
+        return viewLocation === $location.path();
     };
 
     $scope.invalidLogin = function() {
