@@ -1,0 +1,43 @@
+#
+# If you make changes to this file, update the corresponding .bash
+#
+# - install tmuxinator
+# - create a new project
+#   $ tmuxinator new status
+#
+# - link or copy this file over ~/.tmuxinator/status.yml
+#   $ ln -sf $PWD/tmuxinator_status.yml ~/.tmuxinator/status.yml
+#
+# - generate the bash
+#   $ tmuxinator debug status | tee ../scripts/tmux_status.bash
+#   $ chmod 755 ../scripts/tmux_status.bash
+#
+
+name: status
+root: ~/
+
+windows:
+  - server:
+      layout: even-vertical
+      panes:
+        - top -c
+        - watch -n 10 df -h
+        - dstat -tsmcpyf 60
+        - dstat -tndrf --socket 60
+
+  - www:
+      layout: even-vertical
+      panes:
+        - ssh www tail -F /webapps/pouta_blueprints/logs/gunicorn*.log
+
+  - worker:
+      layout: tiled
+      panes:
+        - ssh worker tail -F /webapps/pouta_blueprints/logs/celery*.log
+        - ssh -t worker watch -n 5 "python -m json.tool /var/spool/pb_instances/docker_driver.json"
+
+  - proxy:
+      layout: tiled
+      panes:
+        - ssh proxy tail -F /webapps/pouta_blueprints/logs/celery*.log
+        - ssh proxy -t watch grep location /etc/nginx/sites-enabled/proxy.conf

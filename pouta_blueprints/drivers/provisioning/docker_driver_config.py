@@ -12,8 +12,8 @@ CONFIG = {
             'docker_image': {
                 'type': 'string',
                 'enum': [
-                    'jupyter/minimal',
                     'rocker/rstudio',
+                    'rocker/ropensci',
                 ]
             },
             'internal_port': {

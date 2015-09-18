@@ -1,11 +1,37 @@
 # DockerDriver
 
-## Things to do to get the early hack up and running:
+## Getting started
 
-- set up a docker host on cPouta
-    - add -H tcp://0.0.0.0:2375 to the config in either /etc/defaults/docker (Ubuntu) or /etc/sysconfig/docker (CentOS 7)
-- set up an ssh tunnel from worker port 12375 to the docker host port 2375
-- change the public IP in docker_driver.DockerDriver._get_hosts() to match the public ip on your docker host
+After following the standard install instructions the following additional steps
+are required to activate docker driver:
+
+### Pull the docker images
+
+At the time of writing, docker driver will try to upload two images to new notebook hosts. The images
+will need to be downloaded from dockerhub and placed in worker's /images -directory:
+
+As cloud-user@server on the server, pull the images
+    
+    docker pull rocker/rstudio
+    docker pull rocker/ropensci
+
+Then stream the images to worker:/images/ over ssh
+
+    docker save rocker/rstudio | ssh worker sudo dd of=/images/rocker.rstudio.img
+    docker save rocker/ropensci | ssh worker sudo dd of=/images/rocker.ropensci.img
+
+### Configure the driver
+
+Change the following configuration variables in the web configuration page visible for admins.
+
+    PLUGIN_WHITELIST DockerDriver
+    DD_SHUTDOWN_MODE False
+
+### Open port 8000 in your security group
+
+The notebook connections from clients to the backing docker containers are proxied
+through port 8000 on the server. Make sure that is open to the networks you want to
+expose the system to.
 
 ## Todo:
 

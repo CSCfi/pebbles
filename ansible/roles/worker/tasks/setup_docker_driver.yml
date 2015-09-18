@@ -31,3 +31,8 @@
     name=/home/{{ application_user }}/.docker/cert.pem
     src={{ runtime_path }}/client_cert.pem
     state=link
+
+- name: Create images directory
+  file:
+    name=/images
+    state=directory

@@ -17,8 +17,8 @@ DD_STATE_ACTIVE = 'active'
 DD_STATE_INACTIVE = 'inactive'
 DD_STATE_REMOVED = 'removed'
 
-DD_HOST_LIFETIME = 600
-DD_HOST_LIFETIME_LOW = 60
+DD_HOST_LIFETIME = 3600 * 4
+DD_HOST_LIFETIME_LOW = 300
 
 DD_PROVISION_RETRIES = 10
 DD_PROVISION_RETRY_SLEEP = 30
@@ -81,6 +81,9 @@ class DockerDriverAccessProxy(object):
         a_host = ansible.inventory.host.Host(name=host['id'])
         a_host.set_variable('ansible_ssh_host', host['private_ip'])
 
+        # the following does not work, have to use the extra_vars instead
+        # a_host.set_variable('notebook_host_block_dev_path', '/dev/vdb')
+
         a_group = ansible.inventory.group.Group(name='notebook_host')
         a_group.add_host(a_host)
 
@@ -92,6 +95,8 @@ class DockerDriverAccessProxy(object):
         runner_cb = callbacks.PlaybookRunnerCallbacks(stats, verbose=utils.VERBOSITY)
 
         logger.debug("_prepare_host(): running ansible")
+        logger.debug('_prepare_host(): inventory hosts %s' % a_inventory.host_list)
+
         pb = ansible.playbook.PlayBook(
             playbook="/webapps/pouta_blueprints/source/ansible/notebook_playbook.yml",
             stats=stats,
@@ -99,6 +104,7 @@ class DockerDriverAccessProxy(object):
             runner_callbacks=runner_cb,
             inventory=a_inventory,
             remote_user='cloud-user',
+            # extra_vars={'notebook_host_block_dev_path': '/dev/vdb'},
         )
 
         pb_res = pb.run()
@@ -437,7 +443,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         return False
 
     def _update_host_lifetimes(self, hosts, shutdown_mode, cur_ts):
-        self.logger.debug("_update_host_lifetimes()")
         # calculate lifetime
         for host in hosts:
             # shutdown mode, try to get rid of all hosts
@@ -458,7 +463,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             self.logger.debug('do_housekeep(): host %s has lifetime %d' % (host['id'], lifetime))
 
     def _select_host(self, slots, cur_ts):
-        self.logger.debug("_select_host()")
         hosts = self._get_hosts(cur_ts)
         active_hosts = self.get_active_hosts(hosts)
 
@@ -483,7 +487,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         return selected_host
 
     def _get_hosts(self, cur_ts):
-        self.logger.debug("_get_hosts()")
         ap = self._get_ap()
 
         data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
@@ -517,14 +520,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         return hosts
 
     def _save_host_state(self, hosts, cur_ts):
-        self.logger.debug("_save_host_state() at %d" % cur_ts)
         ap = self._get_ap()
         data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
         ap.save_as_json(data_file, hosts)
 
     def _spawn_host(self, cur_ts, ramp_up=False):
-        self.logger.debug("_spawn_host()")
-
         instance_name = 'pb_dd_%s' % uuid.uuid4().hex
         image_name = self.config['DD_HOST_IMAGE']
 
@@ -551,6 +551,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             master_sg_name=self.config['DD_HOST_MASTER_SG'],
             extra_sec_groups=[x.strip() for x in self.config['DD_HOST_EXTRA_SGS'].split()],
             allocate_public_ip=False,
+            root_volume_size=20,
         )
 
         self.logger.debug("_spawn_host_os_service: spawned %s" % res)
@@ -571,8 +572,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         }
 
     def _prepare_host(self, host):
-        self.logger.debug("_prepare_host()")
-
         ap = self._get_ap()
 
         ap.run_ansible_on_host(host, self.logger)
@@ -581,9 +580,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         dconf = self.get_configuration()
 
-        for pull_image in dconf['schema']['properties']['docker_image']['enum']:
-            self.logger.debug("_prepare_host(): pulling image %s" % pull_image)
-            docker_client.pull(pull_image)
+        for image_name in dconf['schema']['properties']['docker_image']['enum']:
+            filename = '%s/%s.img' % ('/images', image_name.replace('/', '.'))
+            self.logger.debug("_prepare_host(): uploading image %s from file %s" % (image_name, filename))
+            with open(filename, 'r') as img_file:
+                docker_client.load_image(img_file)
 
     def _remove_host(self, host):
         self.logger.debug("_remove_host()")

@@ -1,0 +1,12 @@
+- name: Check if ephemeral is mounted -> assume that it is unconfigured
+  shell: "mount | grep -q '^/dev/vdb on'"
+  register: ephemeral_vanilla
+  ignore_errors: yes
+
+- name: Unmount ephemeral on /mnt/
+  mount: name=/mnt state=unmounted src=/dev/vdb fstype=ext3
+  when: ephemeral_vanilla | success
+
+- name: Wipe the fs from ephemeral
+  command: dd if=/dev/zero of=/dev/vdb bs=1M count=10
+  when: ephemeral_vanilla | success

@@ -5,9 +5,25 @@ import pouta_blueprints.drivers.provisioning.docker_driver as docker_driver
 from pouta_blueprints.tests.base import BaseTestCase
 from pouta_blueprints.drivers.provisioning.docker_driver import DD_STATE_ACTIVE, DD_STATE_INACTIVE, DD_STATE_SPAWNED
 
+import mock
+from sys import version_info
+
+if version_info.major == 2:
+    import __builtin__ as builtins
+else:
+    import builtins
+
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+def mock_open_context(func):
+    def inner(*args, **kwargs):
+        with mock.patch.object(builtins, 'open', mock.mock_open(read_data='1234123412341234')):
+            return func(*args, **kwargs)
+
+    return inner
 
 
 class MockResponse(object):
@@ -22,7 +38,7 @@ class OpenStackServiceMock(object):
         self.servers = []
 
     def provision_instance(self, display_name, image_name, flavor_name, key_name, extra_sec_groups,
-                           master_sg_name=None, allocate_public_ip=True):
+                           master_sg_name=None, allocate_public_ip=True, root_volume_size=0):
         self.spawn_count += 1
         res = dict(
             server_id='%s' % self.spawn_count
@@ -101,6 +117,9 @@ class DockerClientMock(object):
             raise RuntimeError('In failure mode')
 
         return [{'HostPort': 32768 + self.spawn_count % 32768}]
+
+    def load_image(self, *args):
+        pass
 
 
 class PBClientMock(object):
@@ -187,6 +206,10 @@ class DockerDriverAccessMock(object):
         )
         return json.dumps(res)
 
+    @staticmethod
+    def open(*args, **kwargs):
+        return ""
+
 
 # noinspection PyProtectedMember
 class DockerDriverTestCase(BaseTestCase):
@@ -219,6 +242,7 @@ class DockerDriverTestCase(BaseTestCase):
 
         return dd
 
+    @mock_open_context
     def test_spawn_one_host(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
@@ -245,6 +269,7 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(dd._ap.oss_mock.servers), 1)
 
+    @mock_open_context
     def test_do_not_spawn_if_not_used(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
@@ -258,6 +283,7 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 1)
 
+    @mock_open_context
     def test_spawn_activate_remove(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
@@ -302,6 +328,7 @@ class DockerDriverTestCase(BaseTestCase):
         host_file_data = ddam.json_data['/tmp/docker_driver.json']
         self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
 
+    @mock_open_context
     def test_provision_deprovision(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
@@ -317,6 +344,7 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_provision(token='foo', instance_id='1001', cur_ts=cur_ts)
         dd._do_deprovision(token='foo', instance_id='1001')
 
+    @mock_open_context
     def test_double_deprovision(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
@@ -335,6 +363,7 @@ class DockerDriverTestCase(BaseTestCase):
         ddam.pbc_mock.do_instance_patch('1001', dict(state='deleted'))
         dd._do_deprovision(token='foo', instance_id='1001')
 
+    @mock_open_context
     def test_double_deprovision_404(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
@@ -351,6 +380,7 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_deprovision(token='foo', instance_id='1001')
         dd._do_deprovision(token='foo', instance_id='1001')
 
+    @mock_open_context
     def test_scale_up_to_the_limit(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
@@ -377,6 +407,7 @@ class DockerDriverTestCase(BaseTestCase):
         except RuntimeWarning:
             pass
 
+    @mock_open_context
     def test_scale_down(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
@@ -407,6 +438,7 @@ class DockerDriverTestCase(BaseTestCase):
 
         self.assertEquals(len(ddam.oss_mock.servers), 1)
 
+    @mock_open_context
     def test_shutdown_mode(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
@@ -426,6 +458,7 @@ class DockerDriverTestCase(BaseTestCase):
 
         self.assertEquals(len(ddam.oss_mock.servers), 0)
 
+    @mock_open_context
     def test_inactive_host_with_instances(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
@@ -461,6 +494,7 @@ class DockerDriverTestCase(BaseTestCase):
         self.assertEquals(len(ddam.oss_mock.servers), 1)
         self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
 
+    @mock_open_context
     def test_prepare_failing(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
@@ -482,6 +516,7 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
 
+    @mock_open_context
     def test_prepare_failing_max_retries(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
@@ -510,6 +545,7 @@ class DockerDriverTestCase(BaseTestCase):
 
         self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
 
+    @mock_open_context
     def test_docker_comm_probs(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
