@@ -161,6 +161,12 @@ run_ansible()
     export ANSIBLE_HOST_KEY_CHECKING=0
     export PYTHONUNBUFFERED=1
 
+    if [ $use_shibboleth ]; then
+        use_shibboleth_extra_args="-e web_server_type=apache -e enable_shibboleth=True"
+    else
+        use_shibboleth_extra_args=""
+    fi
+
     echo "-------------------------------------------------------------------------------"
     echo
     echo "Running ansible to create containers and install software"
@@ -171,7 +177,8 @@ run_ansible()
      -e server_type=prod \
      -e application_secret_key=$application_secret_key \
      -e public_ipv4=$public_ipv4 \
-     -e docker_host_app_root=$PWD
+     -e docker_host_app_root=$PWD \
+     $use_shibboleth_extra_args
 }
 
 create_ssh_aliases()
@@ -224,9 +231,16 @@ if [ "xxx$1" != "xxx" ]; then
         exit 0
     ;;
 
+    shibboleth|--shibboleth)
+        echo
+        echo "Ansible provisioning will enable Shibboleth and Apache"
+        echo
+        use_shibboleth=1
+    ;;
+
     help|-h|--help)
         echo
-        echo "Usage: $0 [creds]"
+        echo "Usage: $0 [creds] [shibboleth]"
         echo
         echo "By default, a full install/configuration run is performed"
         echo

@@ -12,3 +12,6 @@ BASE_URL: 'https://{{ public_ipv4 }}/'
 {% endif %}
 PUBLIC_HTTP_PROXY_PORT: {{ public_http_proxy_port }}
 INTERNAL_HTTP_PROXY_PORT: {{ internal_http_proxy_port }}
+{% if enable_shibboleth %}
+ENABLE_SHIBBOLETH_LOGIN: True
+{% endif %}
