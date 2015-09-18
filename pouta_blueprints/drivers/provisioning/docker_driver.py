@@ -104,7 +104,7 @@ class DockerDriverAccessProxy(object):
             runner_callbacks=runner_cb,
             inventory=a_inventory,
             remote_user='cloud-user',
-            extra_vars={'notebook_host_block_dev_path': '/dev/vdb'},
+            # extra_vars={'notebook_host_block_dev_path': '/dev/vdb'},
         )
 
         pb_res = pb.run()
@@ -557,6 +557,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             master_sg_name=self.config['DD_HOST_MASTER_SG'],
             extra_sec_groups=[x.strip() for x in self.config['DD_HOST_EXTRA_SGS'].split()],
             allocate_public_ip=False,
+            root_volume_size=20,
         )
 
         self.logger.debug("_spawn_host_os_service: spawned %s" % res)
@@ -587,9 +588,15 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         dconf = self.get_configuration()
 
-        for pull_image in dconf['schema']['properties']['docker_image']['enum']:
-            self.logger.debug("_prepare_host(): pulling image %s" % pull_image)
-            docker_client.pull(pull_image)
+        for image_name in dconf['schema']['properties']['docker_image']['enum']:
+            filename = '%s/%s.img' % ('/images', image_name.replace('/', '.'))
+            self.logger.debug("_prepare_host(): uploading image %s from file %s" % (image_name, filename))
+            with open(filename, 'r') as img_file:
+                docker_client.load_image(img_file)
+            #            docker_client.import_image_from_file(
+            #                filename='%s/%s.img' % ('/images', image_name.replace('/', '.')),
+            #                repository=image_name,
+            #            )
 
     def _remove_host(self, host):
         self.logger.debug("_remove_host()")
