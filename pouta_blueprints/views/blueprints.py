@@ -85,7 +85,7 @@ class BlueprintView(restful.Resource):
         blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
         if not blueprint:
             abort(404)
-        blueprint.name = form.name.data
+        blueprint.name = form.config.data.get('name') or form.name.data
         blueprint.config = form.config.data
         if 'preallocated_credits' in blueprint.config:
             try:
