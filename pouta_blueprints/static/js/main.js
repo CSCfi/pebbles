@@ -50,7 +50,7 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
 
     $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|blob):/);
 
-    var redirectIf = function(serviceName, methodName, route) {
+    var redirectIf = function(serviceName, serviceMethod, route) {
         return function($location, $q, $injector) {
             var deferred = $q.defer();
             if ($injector.get(serviceName)[serviceMethod]()) {
