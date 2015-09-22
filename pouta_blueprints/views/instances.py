@@ -209,20 +209,13 @@ class InstanceView(restful.Resource):
         if not instance:
             abort(404)
 
-        # TODO: add a model for state transitions
         if args.get('state'):
-            if args['state'] == 'deprovisioning':
-                if instance.state in ['starting', 'running', 'failed']:
-                    instance.state = args['state']
-                    instance.error_msg = ''
-                    self.delete(instance_id)
-            else:
-                instance.state = args['state']
-                if instance.state == 'running':
-                    if not instance.provisioned_at:
-                        instance.provisioned_at = datetime.datetime.utcnow()
-                if args['state'] == 'failed':
-                    instance.errored = True
+            instance.state = args['state']
+            if instance.state == 'running':
+                if not instance.provisioned_at:
+                    instance.provisioned_at = datetime.datetime.utcnow()
+            if args['state'] == 'failed':
+                instance.errored = True
 
             db.session.commit()
 

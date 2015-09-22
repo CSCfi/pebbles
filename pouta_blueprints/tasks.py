@@ -80,13 +80,13 @@ app = Celery(
 
 app.conf.CELERY_TIMEZONE = 'UTC'
 app.conf.CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
-app.conf.CELERYD_CONCURRENCY = 16
 app.conf.CELERYD_PREFETCH_MULTIPLIER = 1
 app.conf.CELERY_TASK_SERIALIZER = 'json'
 
 app.conf.CELERY_QUEUES = (
     Queue('celery', routing_key='task.#'),
     Queue('proxy_tasks', routing_key='proxy_task.#'),
+    Queue('system_tasks', routing_key='system_task.#'),
 )
 
 # app.conf.CELERY_ROUTES = {
@@ -100,17 +100,17 @@ app.conf.CELERYBEAT_SCHEDULE = {
     'deprovision-expired-every-minute': {
         'task': 'pouta_blueprints.tasks.deprovision_expired',
         'schedule': crontab(minute='*/1'),
-        'options': {'expires': 60},
+        'options': {'expires': 60, 'queue': 'system_tasks'},
     },
     'check-plugins-every-minute': {
         'task': 'pouta_blueprints.tasks.publish_plugins',
         'schedule': crontab(minute='*/1'),
-        'options': {'expires': 60},
+        'options': {'expires': 60, 'queue': 'system_tasks'},
     },
     'housekeeping-every-minute': {
         'task': 'pouta_blueprints.tasks.housekeeping',
         'schedule': crontab(minute='*/1'),
-        'options': {'expires': 60},
+        'options': {'expires': 60, 'queue': 'system_tasks'},
     }
 }
 
@@ -137,7 +137,10 @@ def deprovision_expired():
                 deprovision_required = True
 
         if deprovision_required:
-            run_deprovisioning.delay(token, instance.get('id'))
+            run_deprovisioning.apply_async(
+                args=[token, instance.get('id')],
+                queue='system_tasks',
+            )
 
 
 @app.task(name="pouta_blueprints.tasks.send_mails")

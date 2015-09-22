@@ -14,7 +14,7 @@
 #
 
 name: status
-root: ~/
+root: /home/cloud-user
 
 windows:
   - server:
@@ -29,13 +29,14 @@ windows:
       layout: even-vertical
       panes:
         - ssh www tail -F /webapps/pouta_blueprints/logs/gunicorn*.log
+        - ssh www sudo tail -F /var/log/nginx/{access,error}.log
 
   - worker:
-      layout: tiled
+      layout: even-vertical
       panes:
-        - ssh worker tail -F /webapps/pouta_blueprints/logs/celery*.log
-        - ssh -t worker watch -n 5 "python -m json.tool /var/spool/pb_instances/docker_driver.json"
-
+        - ssh worker tail -F /webapps/pouta_blueprints/logs/celery.log
+        - ssh worker tail -F /webapps/pouta_blueprints/logs/celery-system.log
+        - ssh -t worker watch -n 5 '"python -m json.tool /var/spool/pb_instances/docker_driver.json | egrep \"state|docker_url|num|lifetime\" | xargs -n12"'
   - proxy:
       layout: tiled
       panes:
