@@ -552,7 +552,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             extra_sec_groups=[x.strip() for x in self.config['DD_HOST_EXTRA_SGS'].split()],
             allocate_public_ip=False,
             root_volume_size=0,
-            data_volume_size=flavor_slots * 2,
+            data_volume_size=flavor_slots * 4,
         )
 
         self.logger.debug("_spawn_host_os_service: spawned %s" % res)
