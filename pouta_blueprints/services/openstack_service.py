@@ -280,7 +280,7 @@ class AllocateIPForInstance(task.Task):
 
 class AttachDataVolume(task.Task):
     def execute(self, server_id, data_volume_id, config):
-        logger.debug("Allocate IP for server %s" % server_id)
+        logger.debug("Attach data volume for server %s" % server_id)
 
         if data_volume_id:
             nc = get_openstack_nova_client(config)
