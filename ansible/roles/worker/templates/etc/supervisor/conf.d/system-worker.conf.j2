@@ -1,5 +1,6 @@
 [program:{{ application_name }}-system-worker]
 command = {{ virtualenv_path }}/bin/celery worker
+    -n system-worker
     -A pouta_blueprints.tasks
     -Ofair
     --loglevel={{ 'DEBUG' if deploy_mode == 'devel' else 'INFO' }}
