@@ -74,7 +74,7 @@ if [ "$?" -eq 1 ]; then
   tmux select-layout -t status:2 even-vertical
   
   tmux send-keys -t status:2.2 '' C-m
-  tmux send-keys -t status:2.2 ssh\ -t\ worker\ watch\ -n\ 5\ \'\"python\ -m\ json.tool\ /var/spool/pb_instances/docker_driver.json\ \|\ egrep\ \\\"state\|docker_url\|num\\\"\"\' C-m
+  tmux send-keys -t status:2.2 ssh\ -t\ worker\ watch\ -n\ 5\ \'\"python\ -m\ json.tool\ /var/spool/pb_instances/docker_driver.json\ \|\ egrep\ \\\"state\|docker_url\|num\|lifetime\\\"\ \|\ xargs\ -n12\"\' C-m
 
   tmux select-layout -t status:2 even-vertical
 
