@@ -120,12 +120,13 @@ class ProvisioningDriverBase(object):
     def create_prov_log_uploader(self, token, instance_id, log_type):
         uploader = logging.getLogger('provisioning')
         uploader.setLevel(logging.INFO)
-        uploader.addHandler(PBInstanceLogHandler(
-            self.config['INTERNAL_API_BASE_URL'],
-            instance_id,
-            token,
-            log_type,
-            ssl_verify=self.config['SSL_VERIFY']))
+        if not self.config.get('TEST_MODE', False):
+            uploader.addHandler(PBInstanceLogHandler(
+                self.config['INTERNAL_API_BASE_URL'],
+                instance_id,
+                token,
+                log_type,
+                ssl_verify=self.config['SSL_VERIFY']))
 
         return uploader
 

@@ -102,3 +102,4 @@ class TestConfig(BaseConfig):
     FAKE_PROVISIONING = True
     SKIP_TASK_QUEUE = True
     WRITE_PROVISIONING_LOGS = False
+    TEST_MODE = True
