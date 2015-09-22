@@ -10,7 +10,7 @@ are required to activate docker driver:
 At the time of writing, docker driver will try to upload two images to new notebook hosts. The images
 will need to be downloaded from dockerhub and placed in worker's /images -directory:
 
-As cloud-user@server on the server, pull the images
+As cloud-user on the server, pull the images
     
     docker pull rocker/rstudio
     docker pull rocker/ropensci
