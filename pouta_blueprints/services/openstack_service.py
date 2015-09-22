@@ -294,7 +294,6 @@ class AttachDataVolume(task.Task):
                     raise RuntimeError('Server %s is stuck in building' % server_id)
 
             nc.volumes.create_server_volume(server_id, data_volume_id, '/dev/vdc')
-            # todo: wait for state
 
     def revert(self, *args, **kwargs):
         pass
