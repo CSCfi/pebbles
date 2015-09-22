@@ -80,7 +80,6 @@ app = Celery(
 
 app.conf.CELERY_TIMEZONE = 'UTC'
 app.conf.CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
-# app.conf.CELERYD_CONCURRENCY = 8
 app.conf.CELERYD_PREFETCH_MULTIPLIER = 1
 app.conf.CELERY_TASK_SERIALIZER = 'json'
 
