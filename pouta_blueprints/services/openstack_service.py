@@ -380,8 +380,10 @@ class OpenStackService(object):
                 logger.info('Deleting server data volume %s' % vol.id)
                 nc.volumes.delete(vol.id)
             else:
-                logger.debug('Skipping server data volume %s, name %s does not match %s' %
-                            (vol.id, vol.display_name, '%s-data' % name))
+                logger.debug(
+                    'Skipping server data volume %s, name %s does not match %s' %
+                    (vol.id, vol.display_name, '%s-data' % name)
+                )
 
     def upload_key(self, key_name, key_file):
         nc = get_openstack_nova_client(self._config)
