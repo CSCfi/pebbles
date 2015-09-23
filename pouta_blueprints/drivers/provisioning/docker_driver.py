@@ -195,8 +195,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
         blueprint_config = blueprint['config']
 
+        log_uploader.info("selecting host\n")
         docker_host = self._select_host(blueprint_config['consumed_slots'], cur_ts)
-        log_uploader.info("Selected host\n")
 
         docker_client = ap.get_docker_client(docker_host['docker_url'])
 
@@ -213,12 +213,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             #            'host_config': {'Memory': 256 * 1024 * 1024},
         }
 
+        log_uploader.info("creating container\n")
         container = docker_client.create_container(**config)
         container_id = container['Id']
-        log_uploader.info("created container '%s' (id: %s)\n", container_name, container_id)
+        log_uploader.info("created container '%s'\n" % container_name)
 
         docker_client.start(container_id, publish_all_ports=True)
-        log_uploader.info("started container '%s'\n", container_name)
+        log_uploader.info("started container '%s'\n" % container_name)
 
         # public_ip = docker_host['public_ip']
 
@@ -270,7 +271,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance_description(instance_id)
-        log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
+        log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
 
         log_uploader.info("Deprovisioning Docker based instance (%s)\n" % instance_id)
 
