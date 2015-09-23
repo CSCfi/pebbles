@@ -30,7 +30,7 @@
 
 - name: Create the Supervisor config file for Shibboleth on www
   template: src=etc/supervisor/supervisor_config_shibboleth.j2
-            dest=/etc/supervisor/conf.d/{{ application_name }}-apache.conf
+            dest=/etc/supervisor/conf.d/{{ application_name }}-shibboleth.conf
             backup=yes
   when: enable_shibboleth
 
