@@ -10,6 +10,11 @@
             backup=yes
   when: web_server_type == "nginx"
 
+- name: Create the Supervisor config file for Apache on www
+  template: src=etc/supervisor/supervisor_config_apache.j2
+            dest=/etc/supervisor/conf.d/{{ application_name }}-apache.conf
+            backup=yes
+  when: web_server_type == "apache"
 
 - name: Create the Supervisor config file for www (devel)
   template: src=etc/supervisor/supervisor_config_devserver.j2
@@ -22,6 +27,12 @@
             dest=/etc/supervisor/conf.d/{{ application_name }}-application.conf
             backup=yes
   when: server_type == "prod"
+
+- name: Create the Supervisor config file for Shibboleth on www
+  template: src=etc/supervisor/supervisor_config_shibboleth.j2
+            dest=/etc/supervisor/conf.d/{{ application_name }}-shibboleth.conf
+            backup=yes
+  when: enable_shibboleth
 
 - name: Re-read the Supervisor config files
   command: supervisorctl reread
