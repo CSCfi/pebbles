@@ -186,12 +186,16 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
+        log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
+
         instance = pbclient.get_instance_description(instance_id)
+        log_uploader.info("Provisioning Docker based instance (%s)\n" % instance_id)
 
         # fetch config
         blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
         blueprint_config = blueprint['config']
 
+        log_uploader.info("selecting host\n")
         docker_host = self._select_host(blueprint_config['consumed_slots'], cur_ts)
 
         docker_client = ap.get_docker_client(docker_host['docker_url'])
@@ -209,12 +213,12 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             #            'host_config': {'Memory': 256 * 1024 * 1024},
         }
 
+        log_uploader.info("creating container %s\n" % container_name)
         container = docker_client.create_container(**config)
         container_id = container['Id']
-        self.logger.info("created container '%s' (id: %s)", container_name, container_id)
 
+        log_uploader.info("starting container '%s'\n" % container_name)
         docker_client.start(container_id, publish_all_ports=True)
-        self.logger.info("started container '%s'", container_name)
 
         # public_ip = docker_host['public_ip']
 
@@ -250,6 +254,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             }
         )
 
+        log_uploader.info("adding route\n")
         ap.proxy_add_route(proxy_route, 'http://%s:%s' % (docker_host['private_ip'], public_port))
 
         self.logger.debug("do_provision done for %s" % instance_id)
@@ -265,10 +270,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance_description(instance_id)
+        log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
+
+        log_uploader.info("Deprovisioning Docker based instance (%s)\n" % instance_id)
 
         try:
             proxy_route = instance['instance_data']['proxy_route']
             ap.proxy_remove_route(proxy_route)
+            log_uploader.info("removed route\n")
         except KeyError:
             self.logger.info("do_deprovision: No proxy route in instance data for %s" % instance_id)
 
@@ -288,6 +297,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         try:
             docker_client.remove_container(container_name, force=True)
+            log_uploader.info("removed container %s\n" % container_name)
         except APIError as e:
             if e.response.status_code == 404:
                 self.logger.info('no container found for instance %s, assuming already deleted' % instance_id)
