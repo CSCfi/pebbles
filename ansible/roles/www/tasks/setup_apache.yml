@@ -73,3 +73,7 @@
   command: cp {{ apache_ssl_crt }} {{ apache_ssl_chain }}
   notify: restart apache
 
+- name: Ensure Apache service is stopped and disabled on boot - supervisord takes care of running it
+  service: name=apache2 state=stopped enabled=no
+
+
