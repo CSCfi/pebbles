@@ -213,13 +213,12 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             #            'host_config': {'Memory': 256 * 1024 * 1024},
         }
 
-        log_uploader.info("creating container\n")
+        log_uploader.info("creating container %s\n" % container_name)
         container = docker_client.create_container(**config)
         container_id = container['Id']
-        log_uploader.info("created container '%s'\n" % container_name)
 
+        log_uploader.info("starting container '%s'\n" % container_name)
         docker_client.start(container_id, publish_all_ports=True)
-        log_uploader.info("started container '%s'\n" % container_name)
 
         # public_ip = docker_host['public_ip']
 
@@ -255,8 +254,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             }
         )
 
+        log_uploader.info("adding route\n")
         ap.proxy_add_route(proxy_route, 'http://%s:%s' % (docker_host['private_ip'], public_port))
-        log_uploader.info("route added\n")
 
         self.logger.debug("do_provision done for %s" % instance_id)
 
@@ -298,7 +297,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         try:
             docker_client.remove_container(container_name, force=True)
-            log_uploader.info("removed container\n")
+            log_uploader.info("removed container %s\n" % container_name)
         except APIError as e:
             if e.response.status_code == 404:
                 self.logger.info('no container found for instance %s, assuming already deleted' % instance_id)
