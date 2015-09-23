@@ -104,7 +104,7 @@ class DockerDriverAccessProxy(object):
             runner_callbacks=runner_cb,
             inventory=a_inventory,
             remote_user='cloud-user',
-            # extra_vars={'notebook_host_block_dev_path': '/dev/vdb'},
+            extra_vars={'notebook_host_block_dev_path': '/dev/vdc'},
         )
 
         pb_res = pb.run()
@@ -551,7 +551,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             master_sg_name=self.config['DD_HOST_MASTER_SG'],
             extra_sec_groups=[x.strip() for x in self.config['DD_HOST_EXTRA_SGS'].split()],
             allocate_public_ip=False,
-            root_volume_size=20,
+            root_volume_size=0,
+            data_volume_size=flavor_slots * 4,
         )
 
         self.logger.debug("_spawn_host_os_service: spawned %s" % res)
