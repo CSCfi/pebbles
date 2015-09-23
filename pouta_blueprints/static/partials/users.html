@@ -2,12 +2,15 @@
     <h1>Users</h1>
     <form>
         <div class="row">
-            <div class="form-group col-sm-4">
+            <div class="form-group">
                 <div class="input-group">
                     <div class="input-group-addon"><span class="glyphicon glyphicon-filter" aria-hidden="true"></span></div>
                     <input id="query" class="form-control" ng-model="query" placeholder="Filter users"/>
+                    <span class="input-group-addon">
+                        Include deleted
+                        <input type="checkbox" ng-model="include_deleted" aria-label="Include deleted">
+                    </span>
                 </div>
-                <input ng-model="include_deleted" type="checkbox" /> Show deleted
             </div>
         </div>
     </form>
