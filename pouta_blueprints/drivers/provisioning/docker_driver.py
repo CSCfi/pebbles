@@ -10,7 +10,7 @@ from pouta_blueprints.drivers.provisioning import base_driver
 import docker
 from pouta_blueprints.services.openstack_service import OpenStackService
 import pouta_blueprints.tasks
-from lockfile import locked
+from lockfile import locked, LockTimeout
 
 DD_STATE_SPAWNED = 'spawned'
 DD_STATE_ACTIVE = 'active'
@@ -149,9 +149,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     def do_provision(self, token, instance_id):
         self.logger.debug("do_provision %s" % instance_id)
+        log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
+
+        log_uploader.info("Provisioning Docker based instance (%s)\n" % instance_id)
 
         # in shutdown mode we bail out right away
         if self.config['DD_SHUTDOWN_MODE']:
+            log_uploader.info("system is in shutdown mode, cannot provision new instances\n")
             raise RuntimeWarning('Shutdown mode, no provisioning')
 
         ap = self._get_ap()
@@ -189,14 +193,18 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
 
         instance = pbclient.get_instance_description(instance_id)
-        log_uploader.info("Provisioning Docker based instance (%s)\n" % instance_id)
 
         # fetch config
         blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
         blueprint_config = blueprint['config']
 
-        log_uploader.info("selecting host\n")
-        docker_host = self._select_host(blueprint_config['consumed_slots'], cur_ts)
+        log_uploader.info("selecting host...")
+        try:
+            docker_host = self._select_host(blueprint_config['consumed_slots'], cur_ts)
+            log_uploader.info("done\n")
+        except RuntimeWarning as e:
+            log_uploader.info("no free resources, queueing\n")
+            raise e
 
         docker_client = ap.get_docker_client(docker_host['docker_url'])
 
@@ -213,7 +221,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             #            'host_config': {'Memory': 256 * 1024 * 1024},
         }
 
-        log_uploader.info("creating container %s\n" % container_name)
+        log_uploader.info("creating container '%s'\n" % container_name)
         container = docker_client.create_container(**config)
         container_id = container['Id']
 
@@ -257,7 +265,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         log_uploader.info("adding route\n")
         ap.proxy_add_route(proxy_route, 'http://%s:%s' % (docker_host['private_ip'], public_port))
 
-        self.logger.debug("do_provision done for %s" % instance_id)
+        log_uploader.info("provisioning done for %s\n" % instance_id)
 
     @locked('%s/docker_driver_provisioning' % DD_RUNTIME_PATH)
     def do_deprovision(self, token, instance_id):
@@ -332,8 +340,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         )
         return num_projected_free_slots
 
-    @locked('%s/docker_driver_housekeep' % DD_RUNTIME_PATH)
     def do_housekeep(self, token):
+        try:
+            return self._do_housekeep_locked(token)
+        except LockTimeout:
+            self.logger.debug('do_housekeep(): another thread is locking, skipping')
+
+    @locked('%s/docker_driver_housekeep' % DD_RUNTIME_PATH, 1)
+    def _do_housekeep_locked(self, token):
         return self._do_housekeep(token, int(time.time()))
 
     # noinspection PyUnusedLocal
