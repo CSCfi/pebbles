@@ -64,24 +64,17 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
     };
 
     var notAuthenticatedP = redirectIf('AuthService', 'isNotAuthenticated', '/');
+    var alreadyAuthenticatedP = redirectIf('AuthService', 'isAuthenticated', '/dashboard');
     $routeProvider
         .when('/', {
             templateUrl: partialsDir + '/welcome.html',
             resolve: {
-                redirectIfAuthenticated: redirectIf('AuthService', 'isAuthenticated', '/dashboard')
+                redirectIfAuthenticated: alreadyAuthenticatedP,
             }
         })
         .when('/dashboard', {
             controller: 'DashboardController',
             templateUrl: partialsDir + '/dashboard.html',
-            resolve: {
-                redirectIfNotAuthenticated: notAuthenticatedP,
-                redirectIfAdmin: redirectIf('AuthService', 'isAdmin', '/dashboard-admin')
-            }
-        })
-        .when('/dashboard-admin', {
-            controller: 'DashboardController',
-            templateUrl: partialsDir + '/dashboard-admin.html',
             resolve: {
                 redirectIfNotAuthenticated: notAuthenticatedP,
             }
@@ -118,7 +111,7 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
             controller: 'ActivationController',
             templateUrl: partialsDir + '/activation.html',
             resolve: {
-                redirectIfAuthenticated: notAuthenticatedP,
+                redirectIfAuthenticated: alreadyAuthenticatedP,
             }
         })
         .when('/initialize', {

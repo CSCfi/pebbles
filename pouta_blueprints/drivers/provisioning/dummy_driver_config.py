@@ -64,7 +64,10 @@ CONFIG = {
             "helpvalue": "<h4>Dummy config</h4>"
         },
         "name",
-        "description",
+        {
+            "key": "description",
+            "type": "textarea"
+        },
         "capabilities",
         "maximum_lifetime",
         "maximum_instances_per_user",
