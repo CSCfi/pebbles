@@ -18,7 +18,7 @@ manager = Manager(app)
 def _make_context():
     return dict(app=app, db=db, models=models)
 
-manager.add_command("shell", Shell(make_context=_make_context))
+manager.add_command("shell", Shell(make_context=_make_context, use_bpython=True))
 manager.add_command("runserver", Server())
 
 

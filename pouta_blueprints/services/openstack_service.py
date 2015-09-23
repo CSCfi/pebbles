@@ -142,9 +142,49 @@ class CreateRootVolume(task.Task):
             logger.error('revert: deleting volume failed: %s' % e)
 
 
+# noinspection PyDeprecation
+class CreateDataVolume(task.Task):
+    def execute(self, display_name, data_volume_size, config):
+        if data_volume_size:
+            logger.debug("creating a data volume for instance %s, size %d" %
+                         (display_name, data_volume_size))
+            nc = get_openstack_nova_client(config)
+            volume_name = '%s-data' % display_name
+
+            volume = nc.volumes.create(
+                size=data_volume_size,
+                display_name=volume_name
+            )
+            self.volume_id = volume.id
+            retries = 0
+            while nc.volumes.get(volume.id).status not in ('available'):
+                logger.debug("...waiting for volume to be ready")
+                time.sleep(5)
+                retries += 1
+                if retries > 30:
+                    raise RuntimeError('Volume creation %s is stuck')
+
+            return volume.id
+        else:
+            logger.debug("no root volume defined")
+            return ""
+
+    def revert(self, config, **kwargs):
+        logger.debug("revert: delete root volume")
+
+        try:
+            if getattr(self, 'volume_id', None):
+                nc = get_openstack_nova_client(config)
+                nc.volumes.delete(self.volume_id)
+            else:
+                logger.debug("revert: no volume_id stored, unable to revert")
+        except Exception as e:
+            logger.error('revert: deleting volume failed: %s' % e)
+
+
 class ProvisionInstance(task.Task):
-    def execute(self, display_name, image, flavor, key_name, security_group, extra_sec_groups, volume_id,
-                config):
+    def execute(self, display_name, image, flavor, key_name, security_group, extra_sec_groups,
+                root_volume_id, config):
         logger.debug("provisioning instance %s" % display_name)
         logger.debug("image=%s, flavor=%s, key=%s, secgroup=%s" % (image, flavor, key_name, security_group))
         nc = get_openstack_nova_client(config)
@@ -153,8 +193,8 @@ class ProvisionInstance(task.Task):
         if extra_sec_groups:
             sgs.extend(extra_sec_groups)
         try:
-            if len(volume_id):
-                bdm = {'vda': '%s:::1' % (volume_id)}
+            if len(root_volume_id):
+                bdm = {'vda': '%s:::1' % (root_volume_id)}
             else:
                 bdm = None
 
@@ -238,15 +278,38 @@ class AllocateIPForInstance(task.Task):
         pass
 
 
+class AttachDataVolume(task.Task):
+    def execute(self, server_id, data_volume_id, config):
+        logger.debug("Attach data volume for server %s" % server_id)
+
+        if data_volume_id:
+            nc = get_openstack_nova_client(config)
+            retries = 0
+
+            while nc.servers.get(server_id).status is "BUILDING" or not nc.servers.get(server_id).networks:
+                logger.debug("...waiting for server to be ready")
+                time.sleep(5)
+                retries += 1
+                if retries > 30:
+                    raise RuntimeError('Server %s is stuck in building' % server_id)
+
+            nc.volumes.create_server_volume(server_id, data_volume_id, '/dev/vdc')
+
+    def revert(self, *args, **kwargs):
+        pass
+
+
 flow = lf.Flow('ProvisionInstance').add(
     gf.Flow('BootInstance').add(
         GetImage('get_image', provides='image'),
         GetFlavor('get_flavor', provides='flavor'),
         CreateSecurityGroup('create_security_group', provides='security_group'),
-        CreateRootVolume('create_root_volume', provides='volume_id'),
+        CreateRootVolume('create_root_volume', provides='root_volume_id'),
+        CreateDataVolume('create_data_volume', provides='data_volume_id'),
         ProvisionInstance('provision_instance', provides='server_id')
     ),
     AllocateIPForInstance('allocate_ip_for_instance', provides='ip'),
+    AttachDataVolume('attach_data_volume'),
 )
 
 
@@ -258,7 +321,8 @@ class OpenStackService(object):
             self._config = None
 
     def provision_instance(self, display_name, image_name, flavor_name, key_name,
-                           extra_sec_groups=None, master_sg_name=None, allocate_public_ip=True, root_volume_size=0):
+                           extra_sec_groups=None, master_sg_name=None, allocate_public_ip=True,
+                           root_volume_size=0, data_volume_size=0):
         try:
             return taskflow.engines.run(flow, engine='parallel', store=dict(
                 image_name=image_name,
@@ -269,6 +333,7 @@ class OpenStackService(object):
                 extra_sec_groups=extra_sec_groups,
                 allocate_public_ip=allocate_public_ip,
                 root_volume_size=root_volume_size,
+                data_volume_size=data_volume_size,
                 config=self._config))
         except Exception as e:
             logger.error("Flow failed")
@@ -283,6 +348,10 @@ class OpenStackService(object):
             name = server.name
 
         logger.info('Deleting instance %s' % instance_id)
+
+        # before we delete it, we list attached volumes
+        volumes = nc.volumes.get_server_volumes(instance_id)
+
         try:
             nc.servers.delete(instance_id)
         except NotFound as e:
@@ -302,6 +371,18 @@ class OpenStackService(object):
                 raise e
             else:
                 logger.info('Security group already deleted')
+
+        for vol in volumes:
+            # load details
+            vol.get()
+            if vol.display_name == '%s-data' % name:
+                logger.info('Deleting server data volume %s' % vol.id)
+                nc.volumes.delete(vol.id)
+            else:
+                logger.debug(
+                    'Skipping server data volume %s, name %s does not match %s' %
+                    (vol.id, vol.display_name, '%s-data' % name)
+                )
 
     def upload_key(self, key_name, key_file):
         nc = get_openstack_nova_client(self._config)

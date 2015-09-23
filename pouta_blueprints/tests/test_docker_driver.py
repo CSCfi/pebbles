@@ -222,7 +222,8 @@ class DockerDriverTestCase(BaseTestCase):
         config = dict(
             INSTANCE_DATA_DIR='/tmp',
             M2M_CREDENTIAL_STORE='',
-            INTERNAL_API_BASE_URL='bogus',
+            INTERNAL_API_BASE_URL='http://bogus/api/v1',
+            TEST_MODE=True,
             PUBLIC_IPV4='10.0.0.1',
             PUBLIC_HTTP_PROXY_PORT=8000,
             INTERNAL_HTTP_PROXY_PORT=8000,
