@@ -15,10 +15,10 @@
                     <p><b>Maximum lifetime:</b> <lifetime seconds="{{ blueprint.maximum_lifetime }}"/> </p>
                     </div>
                 </div>
-                <div class="panel-footer">
-                    <button ng-click="provision(blueprint)" type="submit" class="btn btn-primary" ng-disabled="blueprint.config.needs_ssh_keys && !keypair_exists()">
-                        Launch
-                    </button>
+                <div class="panel-footer text-center">
+                    <a ng-click="provision(blueprint)" class="btn btn-block btn-primary" ng-disabled="blueprint.config.needs_ssh_keys && !keypair_exists()">
+                        <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch
+                    </a>
                     <span ng-show="blueprint.config.needs_ssh_keys && keypairs && !keypair_exists()">
                         To launch instances, first <a href="/#/account">add SSH keys</a>.
                     </span>
