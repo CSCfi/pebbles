@@ -1,4 +1,5 @@
 from flask.ext.script import Manager, Server, Shell
+from werkzeug.contrib.profiler import ProfilerMiddleware
 import getpass
 from pouta_blueprints import models
 from pouta_blueprints.server import app
@@ -46,6 +47,13 @@ def cov():
     cov.save()
     print('Coverage Summary:')
     cov.report()
+
+
+@manager.command
+def profile():
+    app.config['PROFILE'] = True
+    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[50])
+    app.run(debug=True)
 
 
 @manager.command
