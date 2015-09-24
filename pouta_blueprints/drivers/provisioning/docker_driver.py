@@ -165,7 +165,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         while True:
             try:
                 instance = pbclient.get_instance_description(instance_id)
-                if instance['state'] != 'provisioning':
+                if instance['state'] not in ('provisioning', 'queueing'):
+                    log_uploader.info("Provisioning aborted\n")
                     raise RuntimeError('Instance in wrong state for provisioning')
 
                 self._do_provision_locked(token, instance_id, int(time.time()))
@@ -173,6 +174,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             except RuntimeWarning as e:
                 retries += 1
                 if retries > DD_PROVISION_RETRIES:
+                    log_uploader.info("Maximum retries exceeded, giving up\n")
                     raise e
                 self.logger.warning(
                     "do_provision failed for %s, sleeping and retrying (%d/%d): %s" % (
@@ -204,6 +206,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             log_uploader.info("done\n")
         except RuntimeWarning as e:
             log_uploader.info("no free resources, queueing\n")
+            pbclient.do_instance_patch(instance_id, {'state': 'queueing'})
             raise e
 
         docker_client = ap.get_docker_client(docker_host['docker_url'])
@@ -505,7 +508,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                     break
 
         if not selected_host:
-            raise RuntimeWarning('_select_host(): no space left, active hosts: %s' % active_hosts)
+            self.logger.debug('_select_host(): no space left, %d slots requested,'
+                              ' active hosts: %s' % (slots, active_hosts))
+            raise RuntimeWarning('_select_host(): no space left for requested %d slots' % slots)
 
         self.logger.debug("_select_host(): %d total active, selected %s" % (len(active_hosts), selected_host))
         return selected_host
