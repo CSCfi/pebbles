@@ -46,8 +46,8 @@
         <tr ng-repeat="instance in instances">
             <td><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></td>
             <td>{{instance.state}} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>
-            <td>{{instance.blueprint.name}}</td>
-            <td ng-show="isAdmin()">{{instance.user.email}}</td>
+            <td>{{instance.blueprint}}</td>
+            <td ng-show="isAdmin()">{{instance.owner}}</td>
             <td>
                 <a ng-show="instance.instance_data['endpoints'][0]['name']=='http'"
                    href="{{instance.instance_data['endpoints'][0].access}}" target="_blank">

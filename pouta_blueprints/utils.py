@@ -22,3 +22,16 @@ def requires_admin(f):
         return f(*args, **kwargs)
 
     return decorated
+
+
+def memoize(func):
+    """
+    Generic memoization implementation suitable for decorator use
+    """
+    cache = {}
+
+    def inner(x):
+        if x not in cache:
+            cache[x] = func(x)
+        return cache[x]
+    return inner

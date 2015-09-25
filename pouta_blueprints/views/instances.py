@@ -1,4 +1,4 @@
-from flask.ext.restful import marshal_with, fields, reqparse
+from flask.ext.restful import marshal, marshal_with, fields, reqparse
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 
@@ -8,12 +8,12 @@ import os
 import json
 import uuid
 
-from pouta_blueprints.models import db, Blueprint, Instance, SystemToken
+from pouta_blueprints.models import db, Blueprint, Instance, User, SystemToken
 from pouta_blueprints.forms import InstanceForm, UserIPForm
 from pouta_blueprints.server import app, restful
-from pouta_blueprints.utils import requires_admin
+from pouta_blueprints.utils import requires_admin, memoize
 from pouta_blueprints.tasks import run_provisioning, run_deprovisioning, update_user_connectivity
-from pouta_blueprints.views.commons import auth, user_fields, blueprint_fields
+from pouta_blueprints.views.commons import auth
 
 instances = FlaskBlueprint('instances', __name__)
 
@@ -28,9 +28,9 @@ instance_fields = {
     'runtime': fields.Float,
     'state': fields.String,
     'error_msg': fields.String,
-    'user': fields.Nested(user_fields),
+    'owner': fields.String,
+    'blueprint': fields.String,
     'blueprint_id': fields.String,
-    'blueprint': fields.Nested(blueprint_fields),
     'cost_multiplier': fields.Float(default=1.0),
     'can_update_connectivity': fields.Boolean(default=False),
     'instance_data': fields.Raw,
@@ -38,6 +38,14 @@ instance_fields = {
     'client_ip': fields.String(default='not set'),
     'logs': fields.Raw,
 }
+
+
+def query_blueprint(blueprint_id):
+    return Blueprint.query.filter_by(id=blueprint_id).first()
+
+
+def query_user(user_id):
+    return User.query.filter_by(id=user_id).first()
 
 
 @instances.route('/')
@@ -52,16 +60,20 @@ class InstanceList(restful.Resource):
             instances = Instance.query.filter_by(user_id=user.id). \
                 filter((Instance.state != 'deleted')).all()
 
+        get_blueprint = memoize(query_blueprint)
+        get_user = memoize(query_user)
         for instance in instances:
             instance.logs = InstanceLogs.get_logfile_urls(instance.id)
 
-            blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
+            user = get_user(instance.user_id)
+            if user:
+                instance.owner = user.email
 
+            blueprint = get_blueprint(instance.blueprint_id)
             if not blueprint:
                 logging.warn("instance %s has a reference to non-existing blueprint" % instance.id)
                 continue
 
-            instance.blueprint_id = blueprint.id
             age = 0
             if instance.provisioned_at:
                 age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
@@ -72,7 +84,6 @@ class InstanceList(restful.Resource):
         return instances
 
     @auth.login_required
-    @marshal_with(instance_fields)
     def post(self):
         user = g.user
 
@@ -83,7 +94,7 @@ class InstanceList(restful.Resource):
 
         blueprint_id = form.blueprint.data
 
-        blueprint = Blueprint.query.filter_by(id=blueprint_id).filter_by(is_enabled=True).first()
+        blueprint = Blueprint.query.filter_by(id=blueprint_id, is_enabled=True).first()
         if not blueprint:
             abort(404)
 
@@ -96,17 +107,19 @@ class InstanceList(restful.Resource):
             if user.credits_quota < total_credits_spent:
                 return {'error': 'USER_OVER_QUOTA'}, 409
 
-        instances_for_user = Instance.query.filter_by(blueprint_id=blueprint.id). \
-            filter_by(user_id=user.id).filter(Instance.state != 'deleted').all()
+        instances_for_user = Instance.query.filter_by(
+            blueprint_id=blueprint.id,
+            user_id=user.id
+        ).filter(Instance.state != 'deleted').all()
+
         user_instance_limit = blueprint.config.get('maximum_instances_per_user', USER_INSTANCE_LIMIT)
         if instances_for_user and len(instances_for_user) >= user_instance_limit:
             return {'error': 'BLUEPRINT_INSTANCE_LIMIT_REACHED'}, 409
 
         instance = Instance(blueprint, user)
-
+        # XXX: Choosing the name should be done in the model's constructor method
         # decide on a name that is not used currently
-        all_instances = Instance.query.all()
-        existing_names = [x.name for x in all_instances]
+        existing_names = Instance.query.with_entities(Instance.name).all()
         # Note: the potential race is solved by unique constraint in database
         while True:
             c_name = Instance.generate_name(prefix=app.dynamic_config.get('INSTANCE_NAME_PREFIX'))
@@ -120,7 +133,7 @@ class InstanceList(restful.Resource):
 
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
             run_provisioning.delay(token.token, instance.id)
-        return instance
+        return marshal(instance, instance_fields), 200
 
 
 @instances.route('/<instance_id>', methods=['GET', 'DELETE', 'PATCH'])
@@ -145,7 +158,7 @@ class InstanceView(restful.Resource):
 
         blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
         instance.blueprint_id = blueprint.id
-
+        instance.owner = instance.user
         instance.logs = InstanceLogs.get_logfile_urls(instance.id)
 
         if 'allow_update_client_connectivity' in blueprint.config \
@@ -268,7 +281,10 @@ class InstanceLogs(restful.Resource):
         for log_type in ['provisioning', 'deprovisioning']:
             log_dir, log_file_name = InstanceLogs.get_base_dir_and_filename(instance_id, log_type)
             if log_file_name:
-                res.append({'url': '/provisioning_logs/%s/%s' % (instance_id, log_file_name), 'type': log_type})
+                res.append({
+                    'url': '/provisioning_logs/%s/%s' % (instance_id, log_file_name),
+                    'type': log_type
+                })
         return res
 
     @auth.login_required
