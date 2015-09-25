@@ -11,7 +11,7 @@ from pouta_blueprints.models import db, Keypair, User
 from pouta_blueprints.forms import ChangePasswordForm, UserForm
 from pouta_blueprints.server import restful
 from pouta_blueprints.utils import generate_ssh_keypair, requires_admin
-from pouta_blueprints.views.commons import user_fields, auth, add_user
+from pouta_blueprints.views.commons import user_fields, auth, invite_user
 
 users = FlaskBlueprint('users', __name__)
 
@@ -33,7 +33,7 @@ class UserList(restful.Resource):
         if not form.validate_on_submit():
             logging.warn("validation error on user add: %s" % form.errors)
             abort(422)
-        add_user(form.email.data, form.password.data, form.is_admin.data)
+        invite_user(form.email.data, form.password.data, form.is_admin.data)
         return User.query.all()
 
     @auth.login_required
@@ -55,7 +55,7 @@ class UserList(restful.Resource):
         addresses = self.address_list(args.addresses)
         for address in addresses:
             try:
-                add_user(address)
+                invite_user(address)
             except:
                 logging.exception("cannot add user %s" % address)
         return User.query.all()

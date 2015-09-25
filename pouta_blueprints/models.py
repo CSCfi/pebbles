@@ -1,7 +1,8 @@
 from flask.ext.bcrypt import generate_password_hash, check_password_hash
 import names
 from flask.ext.sqlalchemy import SQLAlchemy
-from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy import func
+from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import logging
 import uuid
@@ -23,6 +24,11 @@ else:
     unicode_type = str
 
 
+class CaseInsensitiveComparator(Comparator):
+    def __eq__(self, other):
+        return func.lower(self.__clause_element__()) == func.lower(other)
+
+
 def load_column(column):
     try:
         value = json.loads(column)
@@ -35,7 +41,7 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.String(32), primary_key=True)
-    email = db.Column(db.String(MAX_EMAIL_LENGTH), unique=True)
+    _email = db.Column('email', db.String(MAX_EMAIL_LENGTH), unique=True)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
@@ -45,13 +51,29 @@ class User(db.Model):
 
     def __init__(self, email, password=None, is_admin=False):
         self.id = uuid.uuid4().hex
-        self.email = email.lower()
+        self.email = email
         self.is_admin = is_admin
         if password:
             self.set_password(password)
             self.is_active = True
         else:
             self.set_password(uuid.uuid4().hex)
+
+    @hybrid_property
+    def email(self):
+        return self._email
+
+    @email.setter
+    def email(self, value):
+        self._email = value.lower()
+
+    @hybrid_property
+    def email_insensitive(self):
+        return self.email
+
+    @email_insensitive.comparator
+    def email_insensitive(cls):
+        return CaseInsensitiveComparator(cls.word)
 
     def delete(self):
         if self.is_deleted:

@@ -11,7 +11,7 @@ except:
 from pouta_blueprints.app import app
 from pouta_blueprints.models import User
 
-from pouta_blueprints.views.commons import add_user
+from pouta_blueprints.views.commons import create_user
 from pouta_blueprints.views.blueprints import blueprints, BlueprintList, BlueprintView
 from pouta_blueprints.views.plugins import plugins, PluginList, PluginView
 from pouta_blueprints.views.users import users, UserList, UserView, KeypairList, CreateKeyPair, UploadKeyPair
@@ -74,7 +74,7 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
         mail = user_info['mail']
         user = User.query.filter_by(email=mail).first()
         if not user:
-            user = add_user(mail, password=uuid.uuid4().hex)
+            user = create_user(mail, password=uuid.uuid4().hex)
         user = User.query.filter_by(email=mail).first()
         token = user.generate_auth_token(app.config['SECRET_KEY'])
         return render_template('login.html', token=token, username=mail, userid=user.id)

@@ -53,14 +53,16 @@ def create_worker():
 
 def create_user(email, password, is_admin=False):
     if User.query.filter_by(email=email).first():
-        raise RuntimeError("user %s already exists" % email)
+        logging.info("user %s already exists" % email)
+        return None
+
     user = User(email, password, is_admin=is_admin)
     db.session.add(user)
     db.session.commit()
     return user
 
 
-def add_user(email, password=None, is_admin=False):
+def invite_user(email, password=None, is_admin=False):
     user = User.query.filter_by(email=email).first()
     if user:
         logging.warn("user %s already exists" % email)
