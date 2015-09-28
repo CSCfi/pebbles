@@ -1,9 +1,11 @@
 a.navbar-brand:focus {
     color: #9d9d9d !important;
 }
+
 a.navbar-brand:hover {
     color: #9d9d9d !important;
 }
+
 html,body {
     height:100%;
 }
@@ -37,6 +39,7 @@ html,body {
     display: -webkit-flex;
     flex: 1 100%;
     flex-flow: column nowrap;
+    max-width: 350px;
 }
 
 .flex-grow {

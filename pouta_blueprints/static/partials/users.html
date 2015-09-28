@@ -2,14 +2,16 @@
     <h1>Users</h1>
     <form>
         <div class="row">
-            <div class="form-group">
-                <div class="input-group">
-                    <div class="input-group-addon"><span class="glyphicon glyphicon-filter" aria-hidden="true"></span></div>
-                    <input id="query" class="form-control" ng-model="query" placeholder="Filter users"/>
-                    <span class="input-group-addon">
-                        Include deleted
-                        <input type="checkbox" ng-model="include_deleted" aria-label="Include deleted">
-                    </span>
+            <div class="col-md-12">
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-addon"><span class="glyphicon glyphicon-filter" aria-hidden="true"></span></div>
+                        <input id="query" class="form-control" ng-model="query" placeholder="Filter users"/>
+                        <span class="input-group-addon">
+                            Include deleted
+                            <input type="checkbox" ng-model="include_deleted" aria-label="Include deleted">
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -42,24 +44,25 @@
         </tr>
         </tbody>
     </table>
-    <form>
-        <div class="row">
-            <div class="form-group col-sm-4">
-                <input name="email" class="form-control" type="email" ng-model="new_user" placeholder="Email" required/>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input name="email" class="form-control" type="email" ng-model="new_user" placeholder="Email" required />
+                <span class="input-group-btn">
+                    <button ng-click="add_user(new_user)" type="submit" class="btn btn-default">Invite</button>
+                </span>
             </div>
-            <button ng-click="add_user(new_user)" type="submit" class="btn btn-default">Invite</button>
         </div>
-    </form>
+        <div class="col-md-6">
+            <button type="button" class="btn btn-default" data-toggle="modal" data-target="#massInvite">
+              Invite multiple...
+            </button>
 
-    <button type="button" class="btn btn-default" data-toggle="modal" data-target="#massInvite">
-      Invite multiple...
-    </button>
-
-    <button type="button" class="btn btn-default" ng-click="open_quota_dialog([])">
-      Update quotas...
-    </button>
-
-    
+            <button type="button" class="btn btn-default" ng-click="open_quota_dialog([])">
+              Update quotas...
+            </button>
+        </div>
+    </div>
 
     <div class="modal fade" id="massInvite" tabindex="-1" role="dialog" aria-labelledby="massInviteLabel" aria-hidden="true">
         <div class="modal-dialog">
