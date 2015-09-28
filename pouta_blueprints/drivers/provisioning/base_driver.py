@@ -28,6 +28,7 @@ class ProvisioningDriverBase(object):
             return self._m2m_credentials
 
         m2m_credential_store = self.config['M2M_CREDENTIAL_STORE']
+        self._m2m_credentials = {}
         try:
             self._m2m_credentials = json.load(open(m2m_credential_store))
 
@@ -40,10 +41,10 @@ class ProvisioningDriverBase(object):
                 else:
                     debug_str.append('unknown key %s' % key)
             self.logger.debug(' '.join(debug_str))
-
-            return self._m2m_credentials
         except (IOError, ValueError) as e:
-            self.logger.warn("Unable to read/parse M2M credentials from path %s %s" % (m2m_credential_store, e))
+            self.logger.warn("Unable to parse M2M credentials from path %s %s" % (m2m_credential_store, e))
+
+        return self._m2m_credentials
 
     def get_configuration(self):
         return {
@@ -120,6 +121,9 @@ class ProvisioningDriverBase(object):
     def create_prov_log_uploader(self, token, instance_id, log_type):
         uploader = logging.getLogger('%s-%s' % (instance_id, log_type))
         uploader.setLevel(logging.INFO)
+        for handler in uploader.handlers:
+            uploader.removeHandler(handler)
+
         if not self.config.get('TEST_MODE', False):
             # check if the custom handler is already there
             if len(uploader.handlers) == 0:
@@ -138,44 +142,47 @@ class ProvisioningDriverBase(object):
         else:
             args = shlex.split(cmd)
 
-        p = subprocess.Popen(args, cwd=cwd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+        p = subprocess.Popen(
+            args, cwd=cwd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
+        )
         poller = select.poll()
         poller.register(p.stdout)
         poller.register(p.stderr)
         log_buffer = []
         last_upload = time.time()
-        with open('%s/instance_stdout.log' % cwd, 'a') as stdout, open('%s/instance__stderr.log' % cwd, 'a') as stderr:
-            stdout_open = stderr_open = True
-            while stdout_open or stderr_open:
-                poll_results = poller.poll(500)
-                for fd, mask in poll_results:
-                    if fd == p.stdout.fileno():
-                        if mask & select.POLLIN > 0:
-                            line = p.stdout.readline()
-                            self.logger.debug('STDOUT: ' + line.strip('\n'))
-                            stdout.write(line)
-                            stdout.flush()
-                            log_buffer.append('STDOUT %s' % line)
-                        elif mask & select.POLLHUP > 0:
-                            stdout_open = False
+        with open('%s/instance_stdout.log' % cwd, 'a') as stdout:
+            with open('%s/instance__stderr.log' % cwd, 'a') as stderr:
+                stdout_open = stderr_open = True
+                while stdout_open or stderr_open:
+                    poll_results = poller.poll(500)
+                    for fd, mask in poll_results:
+                        if fd == p.stdout.fileno():
+                            if mask & select.POLLIN > 0:
+                                line = p.stdout.readline()
+                                self.logger.debug('STDOUT: ' + line.strip('\n'))
+                                stdout.write(line)
+                                stdout.flush()
+                                log_buffer.append('STDOUT %s' % line)
+                            elif mask & select.POLLHUP > 0:
+                                stdout_open = False
 
-                    elif fd == p.stderr.fileno():
-                        if mask & select.POLLIN > 0:
-                            line = p.stderr.readline()
-                            self.logger.info('STDERR: ' + line.strip('\n'))
-                            stderr.write(line)
-                            stderr.flush()
-                            if log_uploader:
-                                log_buffer.append('STDERR %s' % line)
+                        elif fd == p.stderr.fileno():
+                            if mask & select.POLLIN > 0:
+                                line = p.stderr.readline()
+                                self.logger.info('STDERR: ' + line.strip('\n'))
+                                stderr.write(line)
+                                stderr.flush()
+                                if log_uploader:
+                                    log_buffer.append('STDERR %s' % line)
 
-                        elif mask & select.POLLHUP > 0:
-                            stderr_open = False
+                            elif mask & select.POLLHUP > 0:
+                                stderr_open = False
 
-                if log_uploader and (last_upload < time.time() - 10 or len(log_buffer) > 100):
-                    if len(log_buffer) > 0:
-                        log_uploader.info(''.join(log_buffer))
-                        log_buffer = []
-                        last_upload = time.time()
+                    if log_uploader and (last_upload < time.time() - 10 or len(log_buffer) > 100):
+                        if len(log_buffer) > 0:
+                            log_uploader.info(''.join(log_buffer))
+                            log_buffer = []
+                            last_upload = time.time()
 
         if log_uploader and len(log_buffer) > 0:
             log_uploader.info(''.join(log_buffer))
