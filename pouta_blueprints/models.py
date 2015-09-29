@@ -92,7 +92,7 @@ class User(db.Model):
         return user
 
     def __repr__(self):
-        return '<User %r>' % self.email
+        return self.email
 
 
 class Keypair(db.Model):
@@ -164,6 +164,7 @@ class Blueprint(db.Model):
     maximum_lifetime = db.Column(db.Integer, default=3600)
     preallocated_credits = db.Column(db.Boolean, default=False)
     cost_multiplier = db.Column(db.Float, default=1.0)
+    instances = db.relationship('Instance', backref='blueprint', lazy='dynamic')
 
     def __init__(self):
         self.id = uuid.uuid4().hex
@@ -182,6 +183,9 @@ class Blueprint(db.Model):
 
         return self.cost_multiplier * duration / 3600
 
+    def __repr__(self):
+        return self.name
+
 
 class Instance(db.Model):
     __tablename__ = 'instances'
@@ -197,7 +201,6 @@ class Instance(db.Model):
     state = db.Column(db.String(32))
     error_msg = db.Column(db.String(256))
     _instance_data = db.Column('instance_data', db.Text)
-    blueprint = db.relationship('Blueprint', uselist=False, backref='blueprint_id')
 
     def __init__(self, blueprint, user):
         self.id = uuid.uuid4().hex
@@ -243,10 +246,6 @@ class Instance(db.Model):
     @instance_data.setter
     def instance_data(self, value):
         self._instance_data = json.dumps(value)
-
-    @hybrid_property
-    def user(self):
-        return User.query.filter_by(id=self.user_id).first()
 
     @staticmethod
     def generate_name(prefix):
