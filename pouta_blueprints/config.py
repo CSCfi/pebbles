@@ -71,7 +71,7 @@ class BaseConfig(object):
     DEFAULT_QUOTA = 1.0
     ENABLE_SHIBBOLETH_LOGIN = False
     INSTALLATION_NAME = 'Pouta Blueprints'
-    PLUGIN_WHITELIST = 'DummyDriver OpenStackDriver PvcCmdLineDriver'
+    PLUGIN_WHITELIST = 'DummyDriver'
 
     DD_SHUTDOWN_MODE = True
     DD_HOST_IMAGE = 'CentOS-7.0'
