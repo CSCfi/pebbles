@@ -2,11 +2,15 @@ CONFIG = {
     'schema': {
         'type': 'object',
         'title': 'Comment',
+        'description': 'Description',
         'required': [
             'name',
         ],
         'properties': {
             'name': {
+                'type': 'string'
+            },
+             'description': {
                 'type': 'string'
             },
             'flavor': {
@@ -72,6 +76,7 @@ CONFIG = {
             'helpvalue': '<h4>OpenStack Instance config</h4>'
         },
         'name',
+        'description',
         'flavor',
         'image',
         'maximum_lifetime',
@@ -88,6 +93,7 @@ CONFIG = {
     ],
     'model': {
         'name': 'os-machine',
+        'description': 'openstack blueprint',
         'flavor': 'mini',
         'image': 'Ubuntu-14.04',
         'firewall_rules': ['tcp 22 22 192.168.1.0/24'],

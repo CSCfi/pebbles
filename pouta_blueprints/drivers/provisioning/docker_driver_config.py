@@ -2,11 +2,15 @@ CONFIG = {
     'schema': {
         'type': 'object',
         'title': 'Comment',
+        'description': 'Description',
         'required': [
             'name',
         ],
         'properties': {
             'name': {
+                'type': 'string'
+            },
+            'description': {
                 'type': 'string'
             },
             'docker_image': {
@@ -55,6 +59,7 @@ CONFIG = {
             'helpvalue': '<h4>Docker instance config</h4>'
         },
         'name',
+        'description',
         'docker_image',
         'internal_port',
         'memory_limit',
@@ -65,6 +70,7 @@ CONFIG = {
     ],
     'model': {
         'name': 'docker-rstudio',
+        'description': 'docker blueprint',
         'docker_image': 'rocker/rstudio',
         'internal_port': 8787,
         'memory_limit': '256m',

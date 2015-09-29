@@ -2,11 +2,15 @@ CONFIG = {
     "schema": {
         "type": "object",
         "title": "Comment",
+        "description": "Description",
         "required": [
             "name"
         ],
         "properties": {
             "name": {
+                "type": "string"
+            },
+            "description": {
                 "type": "string"
             },
             "secgroup-rules": {
@@ -60,6 +64,7 @@ CONFIG = {
             "helpvalue": "<h4>Dummy config</h4>"
         },
         "name",
+        "description",
         "capabilities",
         "maximum_lifetime",
         "maximum_instances_per_user",
@@ -68,6 +73,7 @@ CONFIG = {
     ],
     "model": {
         "name": "bar",
+        "description": "dummy blueprint",
         "capabilities": ["Capability A"]
     }
 }
