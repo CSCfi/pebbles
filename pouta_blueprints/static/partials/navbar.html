@@ -24,8 +24,11 @@
   </div>
   <div ng-show="isLoggedIn()" class="navbar-form navbar-right">
     <form ng-submit="logout()">
-        <button type="submit" class="btn btn-success hidden-sm">Log out {{ getUserName() }}</button>
+        <button type="submit" class="btn btn-success hidden-sm">Log out</button>
         <button type="submit" class="btn btn-success visible-sm">Log out</button>
     </form>
   </div>
+   <div ng-show="isLoggedIn()" class="navbar-right">
+   <p class="navbar-text">{{ getUserName() }}</p>
+   </div>
 </div>
