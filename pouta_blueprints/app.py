@@ -25,9 +25,8 @@ app.config.from_object(app.dynamic_config)
 
 if app.config['ENABLE_SHIBBOLETH_LOGIN']:
     SSO_ATTRIBUTE_MAP = {
-        "HTTP_AJP_SHIB_UID": (True, "uid"),
-        "HTTP_AJP_SHIB_MAIL": (True, "mail"),
-        "HTTP_AJP_SHIB_DISPLAYNAME": (False, "name")
+        "HTTP_AJP_SHIB_MAIL": (False, "mail"),
+        "HTTP_AJP_SHIB_SCOPED_EPPN": (True, "eppn"),
     }
     app.config.setdefault('SSO_ATTRIBUTE_MAP', SSO_ATTRIBUTE_MAP)
     app.config.setdefault('SSO_LOGIN_URL', '/login')
