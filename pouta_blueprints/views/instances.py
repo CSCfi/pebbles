@@ -119,7 +119,7 @@ class InstanceList(restful.Resource):
         instance = Instance(blueprint, user)
         # XXX: Choosing the name should be done in the model's constructor method
         # decide on a name that is not used currently
-        existing_names = Instance.query.with_entities(Instance.name).all()
+        existing_names = set(x.name for x in Instance.query.all())
         # Note: the potential race is solved by unique constraint in database
         while True:
             c_name = Instance.generate_name(prefix=app.dynamic_config.get('INSTANCE_NAME_PREFIX'))
