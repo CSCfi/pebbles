@@ -1,5 +1,4 @@
 import datetime
-
 from pouta_blueprints.tests.base import db, BaseTestCase
 from pouta_blueprints.models import User, Blueprint, Plugin, Instance
 
@@ -25,6 +24,26 @@ class ModelsTestCase(BaseTestCase):
         db.session.add(b1)
 
         db.session.commit()
+
+    def test_email_unification(self):
+        u1 = User("UsEr1@example.org", "user")
+        u2 = User("User2@example.org", "user")
+        db.session.add(u1)
+        db.session.add(u2)
+        x1 = User.query.filter_by(email="USER1@EXAMPLE.ORG").first()
+        x2 = User.query.filter_by(email="user2@Example.org").first()
+        assert u1 == x1
+        assert u1.email == x1.email
+        assert u2 == x2
+        assert u2.email == x2.email
+
+    def test_add_duplicate_user_will_fail(self):
+        u1 = User("UsEr1@example.org", "user")
+        db.session.add(u1)
+        u2 = User("User1@example.org", "user")
+        db.session.add(u2)
+        with self.assertRaises(Exception):
+            db.session.commit()
 
     def test_calculate_instance_cost(self):
         i1 = Instance(self.known_blueprint, self.known_user)
