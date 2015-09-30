@@ -10,7 +10,7 @@ CONFIG = {
             'name': {
                 'type': 'string'
             },
-             'description': {
+            'description': {
                 'type': 'string'
             },
             'flavor': {
