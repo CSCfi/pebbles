@@ -31,14 +31,14 @@ class MockResponse(object):
         self.status_code = status_code
 
 
-# noinspection PyUnusedLocal
 class OpenStackServiceMock(object):
     def __init__(self, config):
         self.spawn_count = 0
         self.servers = []
 
     def provision_instance(self, display_name, image_name, flavor_name, key_name, extra_sec_groups,
-                           master_sg_name=None, allocate_public_ip=True, root_volume_size=0):
+                           master_sg_name=None, allocate_public_ip=True,
+                           root_volume_size=0, data_volume_size=0):
         self.spawn_count += 1
         res = dict(
             server_id='%s' % self.spawn_count
