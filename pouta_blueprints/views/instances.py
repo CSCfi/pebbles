@@ -116,7 +116,7 @@ class InstanceList(restful.Resource):
         if instances_for_user and len(instances_for_user) >= user_instance_limit:
             return {'error': 'BLUEPRINT_INSTANCE_LIMIT_REACHED'}, 409
 
-        instance = Instance(blueprint, user)
+        instance = Instance(blueprint, user, name_prefix=app.dynamic_config.get('INSTANCE_NAME_PREFIX'))
         token = SystemToken('provisioning')
         db.session.add(instance)
         db.session.add(token)
