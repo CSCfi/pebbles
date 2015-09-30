@@ -2,12 +2,16 @@ CONFIG = {
     'schema': {
         'type': 'object',
         'title': 'Comment',
+        'description': 'Description',
         'required': [
             'name',
             'number_of_nodes',
         ],
         'properties': {
             'name': {
+                'type': 'string'
+            },
+            'description': {
                 'type': 'string'
             },
             'software': {
@@ -127,6 +131,7 @@ CONFIG = {
             'helpvalue': '<h4>Pouta virtualcluster service config</h4>'
         },
         'name',
+        'description',
         'number_of_nodes',
         'frontend_flavor',
         'frontend_image',
@@ -148,6 +153,7 @@ CONFIG = {
     ],
     'model': {
         'name': 'pvc',
+        'description': 'pvc blueprint',
         'software': ['Common', ],
         'frontend_flavor': 'mini',
         'frontend_image': 'Ubuntu-14.04',
