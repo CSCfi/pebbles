@@ -353,10 +353,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def _do_housekeep_locked(self, token):
         return self._do_housekeep(token, int(time.time()))
 
-    # noinspection PyUnusedLocal
     def _do_housekeep(self, token, cur_ts):
-        ap = self._get_ap()
-
         # in shutdown mode we remove the hosts as soon as no instances are running on them
         shutdown_mode = self.config['DD_SHUTDOWN_MODE']
         if shutdown_mode:
@@ -401,7 +398,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         # save host state in the end
         self._save_host_state(hosts, cur_ts)
 
-    # noinspection PyUnusedLocal
     def _activate_spawned_hosts(self, hosts, cur_ts):
         spawned_hosts = [x for x in hosts if x['state'] == DD_STATE_SPAWNED]
         for host in spawned_hosts:
@@ -420,7 +416,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         return False
 
-    # noinspection PyUnusedLocal
     def _remove_inactive_hosts(self, hosts, cur_ts):
         inactive_hosts = [x for x in hosts if x['state'] == DD_STATE_INACTIVE]
         for host in inactive_hosts:
@@ -458,7 +453,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         return False
 
-    # noinspection PyUnusedLocal
     def _inactivate_old_hosts(self, hosts, cur_ts):
         active_hosts = self.get_active_hosts(hosts)
         for host in active_hosts:
@@ -497,7 +491,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         active_hosts = sorted(active_hosts, key=lambda entry: entry['spawn_ts'])
         selected_host = None
         for host in active_hosts:
-            if host['lifetime_left'] > DD_HOST_LIFETIME_LOW and host['num_slots'] - host['num_reserved_slots'] >= slots:
+            is_fresh = host['lifetime_left'] > DD_HOST_LIFETIME_LOW
+            has_enough_slots = host['num_slots'] - host['num_reserved_slots'] >= slots
+            if is_fresh and has_enough_slots:
                 selected_host = host
                 break
         if not selected_host:
@@ -566,7 +562,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         key_name = 'pb_dockerdriver'
 
-        oss = self._get_ap().get_openstack_service({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
+        oss = self._get_ap().get_openstack_service({
+            'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']
+        })
 
         # make sure the our key is in openstack
         oss.upload_key(key_name, '/home/pouta_blueprints/.ssh/id_rsa.pub')
@@ -618,5 +616,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     def _remove_host(self, host):
         self.logger.debug("_remove_host()")
-        oss = self._get_ap().get_openstack_service({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
+        oss = self._get_ap().get_openstack_service({
+            'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']
+        })
         oss.deprovision_instance(host['provider_id'], host['id'])
