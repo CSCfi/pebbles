@@ -14,13 +14,11 @@ POLL_MAX_WAIT = 180
 class OpenStackDriver(base_driver.ProvisioningDriverBase):
     def get_openstack_nova_client(self):
         openstack_env = self.create_openstack_env()
-        if not openstack_env:
-            return None
 
-        os_username = openstack_env['OS_USERNAME']
-        os_password = openstack_env['OS_PASSWORD']
-        os_tenant_name = openstack_env['OS_TENANT_NAME']
-        os_auth_url = openstack_env['OS_AUTH_URL']
+        os_username = openstack_env.get('OS_USERNAME', '')
+        os_password = openstack_env.get('OS_PASSWORD', '')
+        os_tenant_name = openstack_env.get('OS_TENANT_NAME', '')
+        os_auth_url = openstack_env.get('OS_AUTH_URL', '')
 
         return client.Client(os_username, os_password, os_tenant_name, os_auth_url, service_type="compute")
 
@@ -31,8 +29,15 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         if not nova_client:
             return None
 
-        images = [x.name for x in nova_client.images.list()]
-        flavors = [x.name for x in nova_client.flavors.list()]
+        try:
+            images = [x.name for x in nova_client.images.list()]
+        except:
+            images = []
+
+        try:
+            flavors = [x.name for x in nova_client.flavors.list()]
+        except:
+            flavors = []
 
         config = CONFIG.copy()
         config['schema']['properties']['image']['enum'] = images
