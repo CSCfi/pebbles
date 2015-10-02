@@ -59,21 +59,20 @@ class User(db.Model):
         else:
             self.set_password(uuid.uuid4().hex)
 
+    def __eq__(self, other):
+        return self.id == other.id
+
     @hybrid_property
     def email(self):
-        return self._email
+        return self._email.lower()
 
     @email.setter
     def email(self, value):
         self._email = value.lower()
 
-    @hybrid_property
-    def email_insensitive(self):
-        return self.email
-
-    @email_insensitive.comparator
-    def email_insensitive(cls):
-        return CaseInsensitiveComparator(cls.word)
+    @email.comparator
+    def email(cls):
+        return CaseInsensitiveComparator(cls._email)
 
     def delete(self):
         if self.is_deleted:
