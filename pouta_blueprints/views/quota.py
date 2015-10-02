@@ -60,6 +60,20 @@ class Quota(restful.Resource):
         db.session.commit()
         return results
 
+    @auth.login_required
+    @requires_admin
+    @marshal_with(quota_fields)
+    def get(self):
+        results = []
+        for user in User.query.all():
+            results.append({
+                'id': user.id,
+                'credits_quota': user.credits_quota,
+                'credits_spent': user.calculate_credits_spent()
+            })
+
+        return results
+
 
 @quota.route('/quota/<string:user_id>')
 class UserQuota(restful.Resource):
@@ -87,4 +101,4 @@ class UserQuota(restful.Resource):
         if not g.user.is_admin and user_id != g.user.id:
             abort(403)
 
-        return {'id': user.id, 'credits_quota': user.credits_quota, 'credits_spent': user.credits_spent}
+        return {'id': user.id, 'credits_quota': user.credits_quota, 'credits_spent': user.calculate_credits_spent()}
