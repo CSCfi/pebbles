@@ -31,7 +31,7 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         # config = self.get_blueprint_description(token, instance['blueprint_id'])
 
         # fetch user public key and save it
-        key_data = pbclient.get_user_key_data(instance['user']['id']).json()
+        key_data = pbclient.get_user_key_data(instance['user_id']).json()
         user_key_file = '%s/userkey.pub' % instance_dir
         if not key_data:
             error_body = {'state': 'failed', 'error_msg': 'user\'s public key is missing'}

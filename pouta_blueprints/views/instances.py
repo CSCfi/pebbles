@@ -28,7 +28,8 @@ instance_fields = {
     'runtime': fields.Float,
     'state': fields.String,
     'error_msg': fields.String,
-    'owner': fields.String,
+    'username': fields.String,
+    'user_id': fields.String,
     'blueprint': fields.String,
     'blueprint_id': fields.String,
     'cost_multiplier': fields.Float(default=1.0),
@@ -67,7 +68,7 @@ class InstanceList(restful.Resource):
 
             user = get_user(instance.user_id)
             if user:
-                instance.owner = user.email
+                instance.username = user.email
 
             blueprint = get_blueprint(instance.blueprint_id)
             if not blueprint:
@@ -158,7 +159,7 @@ class InstanceView(restful.Resource):
 
         blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
         instance.blueprint_id = blueprint.id
-        instance.owner = instance.user
+        instance.username = instance.user
         instance.logs = InstanceLogs.get_logfile_urls(instance.id)
 
         if 'allow_update_client_connectivity' in blueprint.config \
