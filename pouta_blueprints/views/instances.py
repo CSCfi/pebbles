@@ -117,16 +117,7 @@ class InstanceList(restful.Resource):
         if instances_for_user and len(instances_for_user) >= user_instance_limit:
             return {'error': 'BLUEPRINT_INSTANCE_LIMIT_REACHED'}, 409
 
-        instance = Instance(blueprint, user)
-        # XXX: Choosing the name should be done in the model's constructor method
-        # decide on a name that is not used currently
-        existing_names = Instance.query.with_entities(Instance.name).all()
-        # Note: the potential race is solved by unique constraint in database
-        while True:
-            c_name = Instance.generate_name(prefix=app.dynamic_config.get('INSTANCE_NAME_PREFIX'))
-            if c_name not in existing_names:
-                instance.name = c_name
-                break
+        instance = Instance(blueprint, user, name_prefix=app.dynamic_config.get('INSTANCE_NAME_PREFIX'))
         token = SystemToken('provisioning')
         db.session.add(instance)
         db.session.add(token)

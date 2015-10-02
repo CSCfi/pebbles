@@ -214,7 +214,7 @@ class Instance(db.Model):
     id = db.Column(db.String(32), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
     blueprint_id = db.Column(db.String(32), db.ForeignKey('blueprints.id'))
-    name = db.Column(db.String(64), unique=True)
+    name = db.Column(db.String(64))
     public_ip = db.Column(db.String(64))
     client_ip = db.Column(db.String(64))
     provisioned_at = db.Column(db.DateTime)
@@ -224,12 +224,13 @@ class Instance(db.Model):
     error_msg = db.Column(db.String(256))
     _instance_data = db.Column('instance_data', db.Text)
 
-    def __init__(self, blueprint, user):
+    def __init__(self, blueprint, user, name_prefix='pb-'):
         self.id = uuid.uuid4().hex
         self.blueprint_id = blueprint.id
         self.blueprint = blueprint
         self.user_id = user.id
         self.state = 'starting'
+        self.name = Instance.generate_name(name_prefix)
 
     def credits_spent(self, duration=None):
         if self.errored:
