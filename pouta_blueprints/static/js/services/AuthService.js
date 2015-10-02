@@ -33,6 +33,10 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
             return false;
         },
 
+        isNotAuthenticated : function() {
+            return ! this.isAuthenticated();
+        },
+
         changePasswordWithToken : function(token_id, password) {
             return $q(function(resolve, reject) {
                 var token = Restangular.one('activations', token_id);

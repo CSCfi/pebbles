@@ -50,79 +50,68 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
 
     $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|blob):/);
 
-    var redirectIfAuthenticated = function(route) {
-        return function($location, $q, AuthService) {
+    var redirectIf = function(serviceName, serviceMethod, route) {
+        return function($location, $q, $injector) {
             var deferred = $q.defer();
-            if (AuthService.isAuthenticated()) {
+            if ($injector.get(serviceName)[serviceMethod]()) {
                 deferred.reject();
                 $location.path(route);
             } else {
                 deferred.resolve();
             }
             return deferred.promise;
-        };
+        }
     };
 
-    var redirectIfNotAuthenticated = function(route) {
-        return function($location, $q, AuthService) {
-            var deferred = $q.defer();
-            if (! AuthService.isAuthenticated()) {
-                deferred.reject();
-                $location.path(route);
-            } else {
-                deferred.resolve();
-            }
-            return deferred.promise;
-        };
-    };
-
+    var notAuthenticatedP = redirectIf('AuthService', 'isNotAuthenticated', '/');
+    var alreadyAuthenticatedP = redirectIf('AuthService', 'isAuthenticated', '/dashboard');
     $routeProvider
         .when('/', {
             templateUrl: partialsDir + '/welcome.html',
             resolve: {
-                redirectIfAuthenticated: redirectIfAuthenticated('/dashboard')
+                redirectIfAuthenticated: alreadyAuthenticatedP,
             }
         })
         .when('/dashboard', {
             controller: 'DashboardController',
             templateUrl: partialsDir + '/dashboard.html',
             resolve: {
-                redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
+                redirectIfNotAuthenticated: notAuthenticatedP,
             }
         })
         .when('/instance_details/:instance_id', {
             controller: 'InstanceDetailsController',
             templateUrl: partialsDir + '/instance_details.html',
             resolve: {
-                redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
+                redirectIfNotAuthenticated: notAuthenticatedP,
             }
         })
         .when('/users', {
             controller: 'UsersController',
             templateUrl: partialsDir + '/users.html',
             resolve: {
-                redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
+                redirectIfNotAuthenticated: notAuthenticatedP,
             }
         })
         .when('/configure', {
             controller: 'ConfigureController',
             templateUrl: partialsDir + '/configure.html',
             resolve: {
-                redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
+                redirectIfNotAuthenticated: notAuthenticatedP,
             }
         })
         .when('/account', {
             controller: 'AccountController',
             templateUrl: partialsDir + '/account.html',
             resolve: {
-                redirectIfNotAuthenticated: redirectIfNotAuthenticated('/')
+                redirectIfNotAuthenticated: notAuthenticatedP,
             }
         })
         .when('/activate/:token', {
             controller: 'ActivationController',
             templateUrl: partialsDir + '/activation.html',
             resolve: {
-                redirectIfAuthenticated: redirectIfAuthenticated('/')
+                redirectIfAuthenticated: alreadyAuthenticatedP,
             }
         })
         .when('/initialize', {
