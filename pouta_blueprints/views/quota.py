@@ -1,4 +1,4 @@
-from flask import abort
+from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 from flask.ext.restful import marshal_with, fields, reqparse
 
@@ -6,7 +6,6 @@ from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth
 from pouta_blueprints.utils import requires_admin
 from pouta_blueprints.models import db, User
-
 
 quota = FlaskBlueprint('quota', __name__)
 
@@ -20,7 +19,8 @@ parser.add_argument('value', type=float)
 
 quota_fields = {
     'id': fields.String,
-    'credits_quota': fields.Float
+    'credits_quota': fields.Float,
+    'credits_spent': fields.Float,
 }
 
 
@@ -63,7 +63,6 @@ class Quota(restful.Resource):
 
 @quota.route('/quota/<string:user_id>')
 class UserQuota(restful.Resource):
-
     @auth.login_required
     @requires_admin
     @marshal_with(quota_fields)
@@ -78,3 +77,14 @@ class UserQuota(restful.Resource):
 
         db.session.commit()
         return {'id': user.id, 'credits_quota': user.credits_quota}
+
+    @auth.login_required
+    @marshal_with(quota_fields)
+    def get(self, user_id):
+        user = User.query.filter_by(id=user_id).first()
+        if not user:
+            abort(404)
+        if not g.user.is_admin and user_id != g.user.id:
+            abort(403)
+
+        return {'id': user.id, 'credits_quota': user.credits_quota, 'credits_spent': user.credits_spent}

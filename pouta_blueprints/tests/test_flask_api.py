@@ -20,6 +20,7 @@ class FlaskApiTestCase(BaseTestCase):
         db.create_all()
         u1 = User("admin@example.org", "admin", is_admin=True)
         u2 = User("user@example.org", "user", is_admin=False)
+        self.known_admin_id = u1.id
         self.known_user_id = u2.id
 
         db.session.add(u1)
@@ -554,6 +555,24 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/quota',
             data=json.dumps({'type': "absolute", 'value': 10}))
         self.assert_403(response2)
+
+    def test_anonymous_cannot_see_quotas(self):
+        response2 = self.make_request(
+            path='/api/v1/quota/%s' % self.known_user_id
+        )
+        self.assert_401(response2)
+
+    def test_user_get_own_quota(self):
+        response = self.make_authenticated_user_request(
+            path='/api/v1/quota/%s' % self.known_user_id
+        )
+        self.assert_200(response)
+
+    def test_user_cannot_see_other_users(self):
+        response = self.make_authenticated_user_request(
+            path='/api/v1/quota/%s' % self.known_admin_id
+        )
+        self.assert_403(response)
 
     def test_anonymous_what_is_my_ip(self):
         response = self.make_request(path='/api/v1/what_is_my_ip')
