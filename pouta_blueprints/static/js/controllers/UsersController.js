@@ -16,8 +16,8 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$modal', '$filt
 
             quota.getList().then(function (response) {
                 $scope.credits_spent = [];
-                angular.forEach(response, function(value, key){
-                    $scope.credits_spent[value.id]=value.credits_spent;
+                angular.forEach(response, function(value, key) {
+                    $scope.credits_spent[value.id] = value.credits_spent;
                 });
                 $scope.quotas = response;
             });
