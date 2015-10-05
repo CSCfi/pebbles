@@ -550,13 +550,31 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_403(response2)
 
     def test_user_cannot_update_quotas(self):
-        response2 = self.make_authenticated_user_request(
+        response = self.make_authenticated_user_request(
             method='PUT',
             path='/api/v1/quota',
             data=json.dumps({'type': "absolute", 'value': 10}))
-        self.assert_403(response2)
+        self.assert_403(response)
 
-    def test_anonymous_cannot_see_quotas(self):
+    def test_anonymous_cannot_see_quota_list(self):
+        response = self.make_request(
+            path='/api/v1/quota'
+        )
+        self.assert_401(response)
+
+    def test_user_cannot_see_quota_list(self):
+        response = self.make_authenticated_user_request(
+            path='/api/v1/quota'
+        )
+        self.assert_403(response)
+
+    def test_admin_get_quota_list(self):
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/quota'
+        )
+        self.assert_200(response)
+
+    def test_anonymous_cannot_see_user_quota(self):
         response2 = self.make_request(
             path='/api/v1/quota/%s' % self.known_user_id
         )
