@@ -38,6 +38,21 @@ class GetServer(task.Task):
         nc = get_openstack_nova_client(config)
         return nc.servers.get(server_id)
 
+
+class GetImages(task.Tasks):
+    def execute(self, config):
+        nc = get_openstack_nova_client(config)
+        return nc.images.list()
+
+    def revert(self, *args, **kwargs):
+        pass
+
+
+class GetFlavors(task.Tasks):
+    def execute(self, config):
+        nc = get_openstack_nova_client(config)
+        return nc.flavors.list()
+
     def revert(self, *args, **kwargs):
         pass
 
@@ -524,7 +539,7 @@ class OpenStackService(object):
 
     def upload_key(self, key_name, key_file):
         try:
-            return taskflow.engines.rnu(uploadKeyFlow, engine='parallel', store=dict(
+            return taskflow.engines.run(uploadKeyFlow, engine='parallel', store=dict(
                 config=self._config))
         except Exception as e:
             logging.error(e)

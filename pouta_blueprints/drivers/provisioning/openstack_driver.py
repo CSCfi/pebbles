@@ -1,4 +1,3 @@
-import time
 import json
 
 from pouta_blueprints.services.openstack_service import OpenStackService
@@ -11,9 +10,12 @@ POLL_MAX_WAIT = 180
 
 
 class OpenStackDriver(base_driver.ProvisioningDriverBase):
+    def get_oss(self):
+        return OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
+
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.openstack_driver_config import CONFIG
-        oss = OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
+        oss = self.get_oss()
 
         images = [x.name for x in oss.list_images()]
         flavors = [x.name for x in oss.list_flavors()]
@@ -25,7 +27,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         return config
 
     def do_update_connectivity(self, token, instance_id):
-        oss = OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
+        oss = self.get_oss()
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance_description(instance_id)
         instance_data = instance['instance_data']
@@ -106,6 +108,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
         log_uploader.info("Deprovisioning instance %s\n" % instance_id)
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        oss = self.get_oss()
         instance = pbclient.get_instance_description(instance_id)
         instance_data = instance['instance_data']
         if 'server_id' not in instance_data:
@@ -115,7 +118,6 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         server_id = instance_data['server_id']
 
         oss = OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
-
         log_uploader.info("Destroying server instance . . ")
         oss.deprovision_instance(server_id)
         log_uploader.info("Deprovisioning ready\n")
