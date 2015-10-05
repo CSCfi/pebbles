@@ -36,9 +36,9 @@ def parse_arguments():
     return args
 
 
-def update_user_quota(user, type, value):
+def update_user_quota(user, update_type, value):
     try:
-        fun = quota_update_functions[type]
+        fun = quota_update_functions[update_type]
         user.credits_quota = fun(user, value)
     except:
         raise RuntimeError("No quota update function (type=%s, value=%s)" % (type, value))
