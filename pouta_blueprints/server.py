@@ -72,7 +72,7 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
     @sso.login_handler
     def login(user_info):
         eppn = user_info['eppn']
-        user = User.query.filter_by(email_insensitive=eppn).first()
+        user = User.query.filter_by(email=eppn).first()
         if not user:
             user = create_user(eppn, password=uuid.uuid4().hex)
         if not user.is_active:
