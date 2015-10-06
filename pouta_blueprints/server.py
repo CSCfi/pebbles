@@ -72,7 +72,7 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
     @sso.login_handler
     def login(user_info):
         eppn = user_info['eppn']
-        user = User.query.filter_by(email_insensitive=eppn).first()
+        user = User.query.filter_by(email=eppn).first()
         if not user:
             user = create_user(eppn, password=uuid.uuid4().hex)
         if not user.is_active:
@@ -81,3 +81,15 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
 
         token = user.generate_auth_token(app.config['SECRET_KEY'])
         return render_template('login.html', token=token, username=eppn, userid=user.id)
+
+    @sso.login_error_handler
+    def login_error(user_info):
+        error_title = 'unknown error'
+        error_description = ''
+        if not user_info.get('eppn'):
+            error_title = 'Login not available'
+            error_description = (
+                'Your home organization did not return us your login attributes which prevents '
+                'you from logging in. Waiting a bit might resolve this.')
+
+        return render_template('error.html', error_title=error_title, error_description=error_description)
