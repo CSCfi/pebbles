@@ -270,7 +270,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         log_uploader.info("provisioning done for %s\n" % instance_id)
 
-    @locked('%s/docker_driver_provisioning' % DD_RUNTIME_PATH)
+    @locked('%s/docker_driver_deprovisioning' % DD_RUNTIME_PATH)
     def do_deprovision(self, token, instance_id):
         return self._do_deprovision(token, instance_id)
 
