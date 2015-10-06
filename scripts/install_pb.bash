@@ -87,6 +87,12 @@ END_M2M
         ) | sudo tee /run/shm/pouta_blueprints/creds > /dev/null
         echo "done"
         echo
+
+        if [ -f /etc/redhat-release ]; then
+            echo "Enabling container access to creds file in SELinux"
+            sudo chcon -Rt svirt_sandbox_file_t /run/shm/pouta_blueprints/creds
+        fi
+
     else
         echo "Seems like OpenStack credentials do not work. Make sure you have m2m openrc sourced with correct password"
         echo
@@ -226,6 +232,9 @@ Host proxy
 EOF_SSH
 
     fi
+
+    echo "making ssh config accessible for user only"
+    chmod go-rwx ~/.ssh/config
 
     echo
 }
