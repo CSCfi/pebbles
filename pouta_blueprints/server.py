@@ -80,7 +80,8 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
             db.session.commit()
 
         token = user.generate_auth_token(app.config['SECRET_KEY'])
-        return render_template('login.html', token=token, username=eppn, userid=user.id)
+        return render_template(
+            'login.html', token=token, username=eppn, is_admin=user.is_admin, userid=user.id)
 
     @sso.login_error_handler
     def login_error(user_info):
