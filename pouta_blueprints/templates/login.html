@@ -11,6 +11,9 @@
                         localStorageService) {
                 localStorageService.set('userName', '{{ username }}');
                 localStorageService.set('token', btoa('{{ token }}' + ":"));
+                {% if is_admin %}
+                    localStorageService.set('isAdmin', true);
+                {% endif %}
                 localStorageService.set('userId', '{{ userid }}');
                 window.location.assign("/");
             });
