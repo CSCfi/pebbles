@@ -57,7 +57,8 @@ install_packages()
         sudo aptitude install -y git build-essential python-dev python-setuptools python-openstackclient
     fi
     if [ -f /etc/redhat-release ]; then
-        sudo yum install -y git python-devel python-setuptools centos-release-openstack python-novaclient
+        sudo yum install -y centos-release-openstack
+        sudo yum install -y git python-devel python-setuptools python-novaclient
     fi
 
     sudo -H easy_install pip
