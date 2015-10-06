@@ -31,30 +31,31 @@
     <table class="table table-striped">
         <thead>
         <tr>
+            <td>Access</td>
             <td>Name</td>
             <td>State</td>
             <td>Blueprint</td>
             <td ng-show="isAdmin()">User</td>
-            <td>Access</td>
             <td>Life-time left</td>
             <td>Actions</td>
         </tr>
         </thead>
         <tbody>
         <tr ng-repeat="instance in instances">
-            <td><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></td>
-            <td>{{instance.state}} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>
-            <td>{{instance.blueprint}}</td>
-            <td ng-show="isAdmin()">{{instance.owner}}</td>
             <td>
                 <a ng-show="instance.instance_data['endpoints'][0]['name']=='http'"
-                   href="{{instance.instance_data['endpoints'][0].access}}" target="_blank">
+                   class="btn btn-primary" href="{{instance.instance_data['endpoints'][0].access}}" target="_blank">
                     Open in browser
                 </a>
                 <div ng-show="instance.instance_data['endpoints'][0]['name']=='SSH'">
                     {{ instance.instance_data['endpoints'][0].access }}
                 </div>
             </td>
+            <td><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></td>
+            <td>{{instance.state}} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>
+            <td>{{instance.blueprint}}</td>
+            <td ng-show="isAdmin()">{{instance.owner}}</td>
+           
             <td><lifetime seconds="{{instance.lifetime_left}}"/></td>
             <td>
                 <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger" ng-disabled="instance.state=='deleting'" >Destroy</button>
