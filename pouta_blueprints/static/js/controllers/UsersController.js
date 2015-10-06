@@ -14,6 +14,14 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$modal', '$filt
             var users = Restangular.all('users');
             var quota = Restangular.all('quota');
 
+            quota.getList().then(function (response) {
+                $scope.credits_spent = [];
+                angular.forEach(response, function(value, key) {
+                    $scope.credits_spent[value.id] = value.credits_spent;
+                });
+                $scope.quotas = response;
+            });
+
             users.getList().then(function (response) {
                 $scope.users = response;
             });

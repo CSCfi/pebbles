@@ -36,9 +36,9 @@ def parse_arguments():
     return args
 
 
-def update_user_quota(user, type, value):
+def update_user_quota(user, update_type, value):
     try:
-        fun = quota_update_functions[type]
+        fun = quota_update_functions[update_type]
         user.credits_quota = fun(user, value)
     except:
         raise RuntimeError("No quota update function (type=%s, value=%s)" % (type, value))
@@ -58,6 +58,20 @@ class Quota(restful.Resource):
             results.append({'id': user.id, 'credits_quota': user.credits_quota})
 
         db.session.commit()
+        return results
+
+    @auth.login_required
+    @requires_admin
+    @marshal_with(quota_fields)
+    def get(self):
+        results = []
+        for user in User.query.all():
+            results.append({
+                'id': user.id,
+                'credits_quota': user.credits_quota,
+                'credits_spent': user.calculate_credits_spent()
+            })
+
         return results
 
 
@@ -87,4 +101,4 @@ class UserQuota(restful.Resource):
         if not g.user.is_admin and user_id != g.user.id:
             abort(403)
 
-        return {'id': user.id, 'credits_quota': user.credits_quota, 'credits_spent': user.credits_spent}
+        return {'id': user.id, 'credits_quota': user.credits_quota, 'credits_spent': user.calculate_credits_spent()}

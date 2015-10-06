@@ -93,12 +93,11 @@ class User(db.Model):
         s = Serializer(app_secret, expires_in=expires_in)
         return s.dumps({'id': self.id}).decode('utf-8')
 
-    @hybrid_property
-    def credits_spent(self):
+    def calculate_credits_spent(self):
         return sum(instance.credits_spent() for instance in self.instances.all())
 
     def quota_exceeded(self):
-        return self.credits_spent >= self.credits_quota
+        return self.calculate_credits_spent() >= self.credits_quota
 
     @staticmethod
     def verify_auth_token(token, app_secret):

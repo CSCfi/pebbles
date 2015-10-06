@@ -131,10 +131,6 @@ def deprovision_expired():
         if not instance.get('lifetime_left') and instance.get('maximum_lifetime'):
             logger.info('deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % instance.get('id'))
             deprovision_required = True
-        elif user and user.get('credits_quota') <= user.get('credits_spent'):
-            if instance.get('cost_multiplier', 0) > 0:
-                logger.info('deprovisioning triggered for %s (reason: user out of quota)' % instance.get('id'))
-                deprovision_required = True
 
         if deprovision_required:
             run_deprovisioning.apply_async(
