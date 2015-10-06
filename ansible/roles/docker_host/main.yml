@@ -3,13 +3,15 @@
   hosts: docker_host
   sudo: yes
   tasks:
-    - name: add docker repo key
+    - name: Add docker repo key (Ubuntu)
       apt_key: keyserver=keyserver.ubuntu.com id=36A1D7869245C8950F966E92D8576A8BA88D21E9
+      when: ansible_lsb.id=="Ubuntu"
 
-    - name: add docker repo
+    - name: Add docker repo (Ubuntu)
       apt_repository: repo='deb https://get.docker.com/ubuntu docker main' state=present
+      when: ansible_lsb.id=="Ubuntu"
 
-    - name: Install packages
+    - name: Install packages (Ubuntu)
       apt: name={{ item }} state=present
       with_items:
         - lxc-docker
@@ -19,6 +21,23 @@
         - git
         - build-essential
         - python-dev
+      when: ansible_lsb.id=="Ubuntu"
+
+    - name: Install packages (CentOS)
+      yum: name={{ item }} state=present
+      with_items:
+        - docker
+        - dstat
+        - lsof
+        - bash-completion
+        - time
+        - tmux
+        - git
+        - python-devel
+      when: ansible_lsb.id=="CentOS"
+
+    - name: Enable Docker service
+      service: name=docker state=started enabled=yes
 
     - name: Install docker-py from pip (required by ansible, not available for Trusty as apt package, fixed version due to recent backward incompatible upgrade)
       pip: name=docker-py version=1.1.0
@@ -66,6 +85,15 @@
 
     - name: remove temp image build directory
       file: name={{ mktemp.stdout }} state=absent
+
+      # command: chcon -Rt svirt_sandbox_file_t {{ docker_host_app_root }}
+    - name: Allow access to {{ docker_host_app_root }} (CentOS)
+      file:
+        path={{ docker_host_app_root }}
+        state=directory
+        setype=svirt_sandbox_file_t
+        recurse=yes
+      when: ansible_lsb.id=="CentOS"
 
     - name: Bring up container for www
       docker:

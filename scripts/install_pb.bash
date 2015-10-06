@@ -39,9 +39,11 @@ run_apt_update()
     echo
     echo "Updating apt repository metadata"
     echo
-    metadata_age=$[$(date +%s) - $(stat -c %Z /var/lib/apt/periodic/update-success-stamp)]
-    if [  $metadata_age -gt 3600 ]; then
-        sudo aptitude update
+    if [ -f /var/lib/apt/periodic/update-success-stamp ]; then
+        metadata_age=$[$(date +%s) - $(stat -c %Z /var/lib/apt/periodic/update-success-stamp)]
+        if [  $metadata_age -gt 3600 ]; then
+            sudo aptitude update
+        fi
     fi
 }
 
@@ -51,7 +53,13 @@ install_packages()
     echo
     echo "Installing packages"
     echo
-    sudo aptitude install -y git build-essential python-dev python-setuptools python-openstackclient
+    if [ -f /etc/debian_version ]; then
+        sudo aptitude install -y git build-essential python-dev python-setuptools python-openstackclient
+    fi
+    if [ -f /etc/redhat-release ]; then
+        sudo yum install -y git python-devel python-setuptools centos-release-openstack python-novaclient
+    fi
+
     sudo -H easy_install pip
     sudo -H pip install ansible==1.9.0.1
 }
