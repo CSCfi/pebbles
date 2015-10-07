@@ -141,7 +141,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             f[:-len('.img')].replace('.', '/', 1)
             for f in os.listdir(DD_IMAGE_DIRECTORY)
             if os.path.isfile(os.path.join(DD_IMAGE_DIRECTORY, f)) and f.endswith('.img')
-            ]
+        ]
 
         config['schema']['properties']['docker_image']['enum'] = image_names
 
