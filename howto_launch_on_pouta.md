@@ -38,7 +38,7 @@ using ssh interactive session.
 * Details tab:
   * Instance name: e.g. 'pb_server'
   * Flavor: mini
-  * Instance boot source: boot from image, Image: Ubuntu-14.04
+  * Instance boot source: boot from image, Image: Ubuntu-14.04 or CentOS-7.0
 
 * Access and security tab:
   * Key Pair: your keypair

@@ -39,9 +39,11 @@ run_apt_update()
     echo
     echo "Updating apt repository metadata"
     echo
-    metadata_age=$[$(date +%s) - $(stat -c %Z /var/lib/apt/periodic/update-success-stamp)]
-    if [  $metadata_age -gt 3600 ]; then
-        sudo aptitude update
+    if [ -f /var/lib/apt/periodic/update-success-stamp ]; then
+        metadata_age=$[$(date +%s) - $(stat -c %Z /var/lib/apt/periodic/update-success-stamp)]
+        if [  $metadata_age -gt 3600 ]; then
+            sudo aptitude update
+        fi
     fi
 }
 
@@ -51,7 +53,14 @@ install_packages()
     echo
     echo "Installing packages"
     echo
-    sudo aptitude install -y git build-essential python-dev python-setuptools python-openstackclient
+    if [ -f /etc/debian_version ]; then
+        sudo aptitude install -y git build-essential python-dev python-setuptools python-openstackclient
+    fi
+    if [ -f /etc/redhat-release ]; then
+        sudo yum install -y centos-release-openstack
+        sudo yum install -y git python-devel python-setuptools python-novaclient
+    fi
+
     sudo -H easy_install pip
     sudo -H pip install ansible==1.9.0.1
 }
@@ -79,6 +88,12 @@ END_M2M
         ) | sudo tee /run/shm/pouta_blueprints/creds > /dev/null
         echo "done"
         echo
+
+        if [ -f /etc/redhat-release ]; then
+            echo "Enabling container access to creds file in SELinux"
+            sudo chcon -Rt svirt_sandbox_file_t /run/shm/pouta_blueprints/creds
+        fi
+
     else
         echo "Seems like OpenStack credentials do not work. Make sure you have m2m openrc sourced with correct password"
         echo
@@ -218,6 +233,9 @@ Host proxy
 EOF_SSH
 
     fi
+
+    echo "making ssh config accessible for user only"
+    chmod go-rwx ~/.ssh/config
 
     echo
 }

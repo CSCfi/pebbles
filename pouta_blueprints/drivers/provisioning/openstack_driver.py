@@ -75,9 +75,8 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance_description(instance_id)
 
-        self.logger.debug(instance['user']['id'])
         instance_name = instance['name']
-        instance_user = instance['user']['id']
+        instance_user = instance['user_id']
 
         # fetch config
         blueprint_config = pbclient.get_blueprint_description(instance['blueprint_id'])
