@@ -7,6 +7,9 @@ from pouta_blueprints.tests.base import db, BaseTestCase
 from pouta_blueprints.models import User, Blueprint, Plugin, ActivationToken, Instance, Variable
 from pouta_blueprints.config import BaseConfig
 
+ADMIN_TOKEN = None
+USER_TOKEN = None
+
 
 class FlaskApiTestCase(BaseTestCase):
     def setUp(self):
@@ -20,11 +23,16 @@ class FlaskApiTestCase(BaseTestCase):
         db.create_all()
         u1 = User("admin@example.org", "admin", is_admin=True)
         u2 = User("user@example.org", "user", is_admin=False)
+
+# Fix user IDs to be the same for all tests, in order to reuse the same token
+# for multiple tests
+        u1.id = 'u1'
+        u2.id = 'u2'
         self.known_admin_id = u1.id
         self.known_user_id = u2.id
-
         db.session.add(u1)
         db.session.add(u2)
+
         p1 = Plugin()
         p1.name = "TestPlugin"
         self.known_plugin_id = p1.id
@@ -87,34 +95,51 @@ class FlaskApiTestCase(BaseTestCase):
         header_tuples = [(x, y) for x, y in headers.items()]
         return self.methods[method](path, headers=header_tuples, data=data, content_type='application/json')
 
-    def make_authenticated_request(self, method='GET', path='/', headers=None, data=None, creds=None):
-        assert creds is not None
+    def get_auth_token(self, creds, headers=None):
+        if not headers:
+            headers = {}
+        response = self.make_request('POST', '/api/v1/sessions',
+                                     headers=headers,
+                                     data=json.dumps(creds))
+        token = '%s:' % response.json['token']
+        return base64.b64encode(bytes(token.encode('ascii'))).decode('utf-8')
+
+    def make_authenticated_request(self, method='GET', path='/', headers=None, data=None, creds=None,
+                                   auth_token=None):
+        assert creds is not None or auth_token is not None
 
         assert method in self.methods
 
         if not headers:
             headers = {}
 
-        response = self.make_request('POST', '/api/v1/sessions',
-                                     headers=headers,
-                                     data=json.dumps(creds))
-        token = '%s:' % response.json['token']
-        token_b64 = base64.b64encode(bytes(token.encode('ascii'))).decode('utf-8')
+        if not auth_token:
+            auth_token = self.get_auth_token(headers, creds)
 
         headers.update({
             'Accept': 'application/json',
-            'Authorization': 'Basic %s' % token_b64,
-            'token': token_b64
+            'Authorization': 'Basic %s' % auth_token,
+            'token': auth_token
         })
         return self.methods[method](path, headers=headers, data=data, content_type='application/json')
 
     def make_authenticated_admin_request(self, method='GET', path='/', headers=None, data=None):
+        global ADMIN_TOKEN
+        if not ADMIN_TOKEN:
+            ADMIN_TOKEN = self.get_auth_token({'email': 'admin@example.org', 'password': 'admin'})
+
+        self.admin_token = ADMIN_TOKEN
+
         return self.make_authenticated_request(method, path, headers, data,
-                                               creds={'email': 'admin@example.org', 'password': 'admin'})
+                                               auth_token=self.admin_token)
 
     def make_authenticated_user_request(self, method='GET', path='/', headers=None, data=None):
+        global USER_TOKEN
+        if not USER_TOKEN:
+            USER_TOKEN = self.get_auth_token(creds={'email': 'user@example.org', 'password': 'user'})
+        self.user_token = USER_TOKEN
         return self.make_authenticated_request(method, path, headers, data,
-                                               creds={'email': 'user@example.org', 'password': 'user'})
+                                               auth_token=self.user_token)
 
     def test_first_user(self):
         db.drop_all()
@@ -179,8 +204,10 @@ class FlaskApiTestCase(BaseTestCase):
             headers=headers)
         self.assert_401(response)
 
-    def test_anonymous_delete_user(self):
-        u = User("test@example.org", "testuser", is_admin=False)
+    def test_delete_user(self):
+        email = "test@example.org"
+        u = User(email, "testuser", is_admin=False)
+        # Anonymous
         db.session.add(u)
         db.session.commit()
 
@@ -189,24 +216,13 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/users/%s' % u.id
         )
         self.assert_401(response)
-
-    def test_user_delete_user(self):
-        u = User("test@example.org", "testuser", is_admin=False)
-        db.session.add(u)
-        db.session.commit()
-
+        # Authenticated
         response = self.make_authenticated_user_request(
             method='DELETE',
             path='/api/v1/users/%s' % u.id
         )
         self.assert_403(response)
-
-    def test_admin_delete_user(self):
-        email = "test@example.org"
-        u = User(email, "testuser", is_admin=False)
-        db.session.add(u)
-        db.session.commit()
-
+        # Admin
         response = self.make_authenticated_admin_request(
             method='DELETE',
             path='/api/v1/users/%s' % u.id
@@ -215,74 +231,109 @@ class FlaskApiTestCase(BaseTestCase):
         user = User.query.filter_by(id=u.id).first()
         self.assertTrue(user.email != email)
 
-    def test_anonymous_get_users(self):
+    def test_get_users(self):
+        # Anonymous
         response = self.make_request(path='/api/v1/users')
         self.assert_401(response)
-
-    def test_user_get_users(self):
+        # Authenticated
         response = self.make_authenticated_user_request(path='/api/v1/users')
         self.assertEqual(len(response.json), 1)
         self.assert_200(response)
-
-    def test_admin_get_users(self):
+        # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/users')
         self.assert_200(response)
 
-    def test_anonymous_get_plugins(self):
+    def test_get_plugins(self):
+        # Anonymous
         response = self.make_request(path='/api/v1/plugins')
         self.assert_401(response)
-
-    def test_user_get_plugins(self):
+        # Authenticated
         response = self.make_authenticated_user_request(path='/api/v1/plugins')
         self.assert_403(response)
-
-    def test_admin_get_plugins(self):
+        # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/plugins')
         self.assert_200(response)
 
-    def test_anonymous_get_single_plugin(self):
+    def test_get_single_plugin(self):
+        # Anonymous
         response = self.make_request(path='/api/v1/plugins/%s' % self.known_plugin_id)
         self.assert_401(response)
-
-    def test_authenticated_user_get_single_plugin(self):
+        # Authenticated
         response = self.make_authenticated_user_request(path='/api/v1/plugins/%s' % self.known_plugin_id)
         self.assert_403(response)
-
-    def test_authenticated_admin_get_single_plugin(self):
+        # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/plugins/%s' % self.known_plugin_id)
         self.assert_200(response)
 
-    def test_anonymous_get_blueprints(self):
+        response = self.make_authenticated_admin_request(path='/api/v1/plugins/%s' % 'doesnotexists')
+        self.assert_404(response)
+
+    def test_admin_create_plugin(self):
+        data = {
+            'plugin': 'TestPlugin',
+            'schema': json.dumps({}),
+            'form': json.dumps({}),
+            'model': json.dumps({})
+        }
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/plugins',
+            data=json.dumps(data))
+        self.assert_200(response)
+
+        data = {
+            'plugin': 'TestPluginNew',
+            'schema': json.dumps({}),
+            'form': json.dumps({}),
+            'model': json.dumps({})
+        }
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/plugins',
+            data=json.dumps(data))
+        self.assert_200(response)
+
+        data = {
+            'plugin': 'TestPlugin',
+            'schema': None,
+            'form': json.dumps({}),
+            'model': json.dumps({})
+        }
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/plugins',
+            data=json.dumps(data))
+        self.assertStatus(response, 422)
+
+    def test_get_blueprints(self):
+        # Anonymous
         response = self.make_request(path='/api/v1/blueprints')
         self.assert_401(response)
-
-    def test_user_get_blueprints(self):
+        # Authenticated
         response = self.make_authenticated_user_request(path='/api/v1/blueprints')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
-
-    def test_admin_get_blueprints(self):
+        # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/blueprints')
         self.assert_200(response)
         self.assertEqual(len(response.json), 3)
 
-    def test_anonymous_create_blueprint(self):
+    def test_create_blueprint(self):
+        # Anonymous
         data = {'name': 'test_blueprint_1', 'config': '', 'plugin': 'dummy'}
         response = self.make_request(
             method='POST',
             path='/api/v1/blueprints',
             data=json.dumps(data))
         self.assert_401(response)
-
-    def test_create_blueprint_user(self):
+        # Authenticated
         data = {'name': 'test_blueprint_1', 'config': '', 'plugin': 'dummy'}
         response = self.make_authenticated_user_request(
             method='POST',
             path='/api/v1/blueprints',
             data=json.dumps(data))
         self.assert_403(response)
-
-    def test_create_blueprint_admin(self):
+        # Admin
         data = {'name': 'test_blueprint_1', 'config': 'foo: bar', 'plugin': 'dummy'}
         response = self.make_authenticated_admin_request(
             method='POST',
@@ -434,46 +485,43 @@ class FlaskApiTestCase(BaseTestCase):
                 data=json.dumps(data))
             self.assertStatus(response, 422)
 
-    def test_anonymous_get_instances(self):
+    def test_get_instances(self):
+        # Anonymous
         response = self.make_request(path='/api/v1/instances')
         self.assert_401(response)
-
-    def test_user_get_instances(self):
+        # Authenticated
         response = self.make_authenticated_user_request(path='/api/v1/instances')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
-
-    def test_admin_get_instances(self):
+        # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/instances')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
 
-    def test_anonymous_get_instance(self):
+    def test_get_instance(self):
+        # Anonymous
         response = self.make_request(path='/api/v1/instances/%s' % self.known_instance_id)
         self.assert_401(response)
-
-    def test_user_get_instance(self):
+        # Authenticated
         response = self.make_authenticated_user_request(path='/api/v1/instances/%s' % self.known_instance_id)
         self.assert_200(response)
-
-    def test_admin_get_instance(self):
+        # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/instances/%s' % self.known_instance_id)
         self.assert_200(response)
 
-    def test_anonymous_get_keypairs(self):
+    def test_get_keypairs(self):
+        # Anonymous
         response = self.make_request(path='/api/v1/users/%s/keypairs' % self.known_user_id)
         self.assert_401(response)
         response2 = self.make_request(path='/api/v1/users/%s/keypairs' % '0xBogus')
         self.assert_401(response2)
-
-    def test_user_get_keypairs(self):
+        # Authenticated
         response = self.make_authenticated_user_request(path='/api/v1/users/%s/keypairs' % self.known_user_id)
         self.assert_200(response)
         self.assertEqual(len(response.json), 0)
         response2 = self.make_authenticated_user_request(path='/api/v1/users/%s/keypairs' % '0xBogus')
         self.assert_403(response2)
-
-    def test_admin_get_keypairs(self):
+        # Admin
         response = self.make_authenticated_admin_request(
             path='/api/v1/users/%s/keypairs' % self.known_user_id
         )
@@ -586,6 +634,18 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response)
 
+    def test_parse_invalid_quota_update(self):
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/quota',
+            data=json.dumps({'type': "invalid_type", 'value': 10}))
+        self.assertStatus(response, 422)
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/quota',
+            data=json.dumps({'type': "relative", 'value': "foof"}))
+        self.assertStatus(response, 422)
+
     def test_user_cannot_see_other_users(self):
         response = self.make_authenticated_user_request(
             path='/api/v1/quota/%s' % self.known_admin_id
@@ -600,27 +660,25 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_user_request(path='/api/v1/what_is_my_ip')
         self.assert_200(response)
 
-    def test_anonymous_get_variables(self):
+    def test_get_variables(self):
+        # Anonymous
         response = self.make_request(path='/api/v1/variables')
         self.assert_401(response)
-
-    def test_user_get_variables(self):
+        # Authenticated
         response = self.make_authenticated_user_request(path='/api/v1/variables')
         self.assert_403(response)
-
-    def test_admin_get_variables(self):
+        # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/variables')
         self.assert_200(response)
 
-    def test_anonymous_get_variable(self):
+    def test_get_variable(self):
+        # Anonymous
         response = self.make_request(path='/api/v1/variables/DEBUG')
         self.assert_401(response)
-
-    def test_user_get_variable(self):
+        # Authenticated
         response = self.make_authenticated_user_request(path='/api/v1/variables/DEBUG')
         self.assert_403(response)
-
-    def test_admin_get_variable(self):
+        # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/variables/DEBUG')
         self.assert_200(response)
 

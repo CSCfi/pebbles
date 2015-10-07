@@ -31,7 +31,6 @@ def parse_arguments():
             raise RuntimeError("Invalid arguement type = %s" % args['type'])
     except:
         abort(422)
-        return
 
     return args
 
@@ -41,7 +40,7 @@ def update_user_quota(user, update_type, value):
         fun = quota_update_functions[update_type]
         user.credits_quota = fun(user, value)
     except:
-        raise RuntimeError("No quota update function (type=%s, value=%s)" % (type, value))
+        abort(422)
 
 
 @quota.route('/quota')

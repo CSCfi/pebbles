@@ -42,7 +42,9 @@ def verify_password(userid_or_token, password):
     g.user = User.verify_auth_token(userid_or_token, app.config['SECRET_KEY'])
     if not g.user:
         g.user = User.query.filter_by(email=userid_or_token).first()
-        if not g.user or not g.user.check_password(password):
+        if not g.user:
+            return False
+        if not g.user.check_password(password):
             return False
     return True
 

@@ -117,7 +117,7 @@ class CreateRootVolume(task.Task):
             )
             self.volume_id = volume.id
             retries = 0
-            while nc.volumes.get(volume.id).status not in ('available'):
+            while nc.volumes.get(volume.id).status not in ('available', ):
                 logger.debug("...waiting for volume to be ready")
                 time.sleep(5)
                 retries += 1
@@ -157,7 +157,7 @@ class CreateDataVolume(task.Task):
             )
             self.volume_id = volume.id
             retries = 0
-            while nc.volumes.get(volume.id).status not in ('available'):
+            while nc.volumes.get(volume.id).status not in ('available', ):
                 logger.debug("...waiting for volume to be ready")
                 time.sleep(5)
                 retries += 1
