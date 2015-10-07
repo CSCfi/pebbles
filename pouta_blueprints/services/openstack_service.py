@@ -117,7 +117,7 @@ class CreateRootVolume(task.Task):
             )
             self.volume_id = volume.id
             retries = 0
-            while nc.volumes.get(volume.id).status not in ('available'):
+            while nc.volumes.get(volume.id).status not in ('available', ):
                 logger.debug("...waiting for volume to be ready")
                 time.sleep(5)
                 retries += 1
@@ -157,7 +157,7 @@ class CreateDataVolume(task.Task):
             )
             self.volume_id = volume.id
             retries = 0
-            while nc.volumes.get(volume.id).status not in ('available'):
+            while nc.volumes.get(volume.id).status not in ('available', ):
                 logger.debug("...waiting for volume to be ready")
                 time.sleep(5)
                 retries += 1
@@ -242,7 +242,6 @@ class AllocateIPForInstance(task.Task):
 
         server = nc.servers.get(server_id)
         if allocate_public_ip:
-
             ips = nc.floating_ips.findall(instance_id=None)
             allocated_from_pool = False
             if not ips:
@@ -263,15 +262,14 @@ class AllocateIPForInstance(task.Task):
             address_data = {
                 'public_ip': ip.ip,
                 'allocated_from_pool': allocated_from_pool,
-                'private_ip': server.networks.values()[0][0],
+                'private_ip': list(server.networks.values())[0][0],
             }
         else:
             address_data = {
                 'public_ip': None,
                 'allocated_from_pool': False,
-                'private_ip': server.networks.values()[0][0],
+                'private_ip': list(server.networks.values())[0][0],
             }
-
         return address_data
 
     def revert(self, *args, **kwargs):

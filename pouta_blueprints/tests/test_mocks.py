@@ -1,0 +1,92 @@
+class SecurityGroup(object):
+    def __init__(self):
+        self.id = "secgroup_1"
+
+
+class Image(object):
+    def __init__(self):
+        self.id = "image_1"
+
+
+class Flavor(object):
+    def __init__(self):
+        self.id = "flavor_1"
+
+
+class Instance(object):
+    def __init__(self):
+        self.id = "instance_1"
+        self.status = "READY"
+        self.networks = {'id': ["network_1"]}
+
+    def add_floating_ip(self, ip):
+        self.floating_ip = ip
+
+
+class FloatingIP(object):
+    def __init__(self):
+        self.id = "floating_ip_1"
+        self.ip = "10.0.0.1"
+
+
+class Volume(object):
+    def __init__(self):
+        self.id = "volume_1"
+        self.status = 'available'
+
+
+class NovaClientMock(object):
+    class SecurityGroupManagerMock(object):
+        def create(self, *args, **kwargs):
+            return SecurityGroup()
+
+        def find(self, *args, **kwargs):
+            return SecurityGroup()
+
+        def delete(self, *args, **kwargs):
+            pass
+
+    class SecurityGroupRulesManagerMock(object):
+        def create(self, *args, **kwargs):
+            pass
+
+    class ImageManagerMock(object):
+        def find(self, *args, **kwargs):
+            return Image()
+
+    class FlavorManagerMock(object):
+        def find(self, *args, **kwargs):
+            return Flavor()
+
+    class ServerManagerMock(object):
+        def create(self, *args, **kwargs):
+            return Instance()
+
+        def get(self, *args, **kwargs):
+            return Instance()
+
+    class FloatingIPManager(object):
+        def findall(self, *args, **kwargs):
+            return []
+
+        def create(self, *args, **kwargs):
+            return FloatingIP()
+
+    class VolumeManager(object):
+        def create_server_volume(self, *args, **kwargs):
+            return Volume()
+
+        def create(self, *args, **kwargs):
+            return Volume()
+
+        def get(self, *args, **kwargs):
+            return Volume()
+
+    def __init__(self):
+        self.security_groups = NovaClientMock.SecurityGroupManagerMock()
+        self.security_group_rules = NovaClientMock.SecurityGroupRulesManagerMock()
+        self.images = NovaClientMock.ImageManagerMock()
+        self.flavors = NovaClientMock.FlavorManagerMock()
+        self.servers = NovaClientMock.ServerManagerMock()
+        self.floating_ips = NovaClientMock.FloatingIPManager()
+        self.volumes = NovaClientMock.VolumeManager()
