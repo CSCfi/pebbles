@@ -9,6 +9,9 @@ RUN apt-get install -y openssh-server supervisor
 # tools for admistration
 RUN apt-get install -y tmux tree dstat lsof bash-completion time vim nano
 
+# common packages for containers
+RUN apt-get install -y git python python-pip python-dev python-virtualenv supervisor
+
 RUN mkdir -p /var/run/sshd
 RUN chmod 0755 /var/run/sshd
 
