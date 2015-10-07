@@ -14,7 +14,7 @@
                     errors = [];
                 }
                 errors.push(["{{ error_title }}", "{{ error_description}}"]);
-                localStorageService.put('errors', errors);
+                localStorageService.set('errors', errors);
                 window.location.assign("/");
             });
         </script>
