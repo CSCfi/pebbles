@@ -42,4 +42,4 @@ class OpenStackServiceTestCase(BaseTestCase):
         resp = oss.provision_instance(
             'display_name', 'image_name', 'flavor_name', 'key_name', [],
             master_sg_name='master_sg_name', data_volume_size=10)
-        self.assertEquals(resp['server_id'], 'instance_1')
+        self.assertEquals(resp.get('server_id'), 'instance_1')
