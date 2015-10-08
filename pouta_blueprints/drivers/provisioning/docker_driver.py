@@ -25,6 +25,7 @@ DD_PROVISION_RETRY_SLEEP = 30
 DD_MAX_HOST_ERRORS = 5
 
 DD_RUNTIME_PATH = '/webapps/pouta_blueprints/run'
+DD_IMAGE_DIRECTORY = '/images'
 
 
 class DockerDriverAccessProxy(object):
@@ -130,12 +131,21 @@ class DockerDriverAccessProxy(object):
             queue='proxy_tasks'
         )
 
+    @staticmethod
+    def get_image_names():
+        return (file_name[:-len('.img')].replace('.', '/', 1)
+                for file_name in os.listdir(DD_IMAGE_DIRECTORY)
+                if os.path.isfile(os.path.join(DD_IMAGE_DIRECTORY, file_name)) and file_name.endswith('.img')
+                )
+
 
 class DockerDriver(base_driver.ProvisioningDriverBase):
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.docker_driver_config import CONFIG
 
         config = CONFIG.copy()
+        image_names = self._get_ap().get_image_names()
+        config['schema']['properties']['docker_image']['enum'] = image_names
 
         return config
 
@@ -609,7 +619,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         dconf = self.get_configuration()
 
         for image_name in dconf['schema']['properties']['docker_image']['enum']:
-            filename = '%s/%s.img' % ('/images', image_name.replace('/', '.'))
+            filename = '%s/%s.img' % (DD_IMAGE_DIRECTORY, image_name.replace('/', '.'))
             self.logger.debug("_prepare_host(): uploading image %s from file %s" % (image_name, filename))
             with open(filename, 'r') as img_file:
                 docker_client.load_image(img_file)

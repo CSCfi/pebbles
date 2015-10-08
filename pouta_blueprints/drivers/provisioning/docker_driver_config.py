@@ -16,8 +16,6 @@ CONFIG = {
             'docker_image': {
                 'type': 'string',
                 'enum': [
-                    'rocker/rstudio',
-                    'rocker/ropensci',
                 ]
             },
             'internal_port': {
@@ -71,7 +69,7 @@ CONFIG = {
     'model': {
         'name': 'docker-rstudio',
         'description': 'docker blueprint',
-        'docker_image': 'rocker/rstudio',
+        'docker_image': 'rocker.rstudio.img',
         'internal_port': 8787,
         'memory_limit': '256m',
         'cost_multiplier': 0.0,
