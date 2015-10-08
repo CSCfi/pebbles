@@ -4,7 +4,7 @@
             backup=yes
   when: ansible_lsb.id=="Ubuntu"
 
-- name: Refresh repository metadata install python-apt (Ubuntu)
+- name: Refresh repository metadata (Ubuntu)
   raw: apt-get update
   when: ansible_lsb.id=="Ubuntu"
 

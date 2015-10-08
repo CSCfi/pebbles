@@ -87,6 +87,7 @@ pvc_version: "wip-for_pouta_blueprints"
 # docker host
 docker_host_app_root: "/opt/{{ application_name }}"
 docker_host_m2m_credentials_dir: "/run/shm/{{ application_name }}"
+docker_host_image_dir: "/var/spool/pb_docker_images"
 docker_http_port: 80
 docker_https_port: 443
 public_http_proxy_port: 8000

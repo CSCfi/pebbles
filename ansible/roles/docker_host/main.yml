@@ -57,6 +57,8 @@
     - name: Create application root directory
       file: path={{ docker_host_app_root }} owner=cloud-user state=directory
 
+    - name: Create docker image directory
+      file: path={{ docker_host_image_dir }} owner=cloud-user state=directory
 
 - name: Bring containers up
   hosts: docker_host
@@ -87,12 +89,15 @@
       file: name={{ mktemp.stdout }} state=absent
 
       # command: chcon -Rt svirt_sandbox_file_t {{ docker_host_app_root }}
-    - name: Allow access to {{ docker_host_app_root }} (CentOS)
+    - name: Allow access to mounted host directories (CentOS)
       file:
-        path={{ docker_host_app_root }}
+        path={{ item }}
         state=directory
         setype=svirt_sandbox_file_t
         recurse=yes
+      with_items:
+        - "{{ docker_host_app_root }}"
+        - "{{ docker_host_image_dir }}"
       when: ansible_lsb.id=="CentOS"
 
     - name: Bring up container for www
@@ -169,6 +174,7 @@
         volumes:
           - "{{ docker_host_app_root }}:/shared_folder/source:ro"
           - "{{ docker_host_m2m_credentials_dir }}:{{ application_m2m_credentials_dir }}:ro"
+          - "{{ docker_host_image_dir }}:/images:ro"
 
     - name: add worker to inventory
       add_host:

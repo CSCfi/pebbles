@@ -15,10 +15,10 @@ As cloud-user on the server, pull the images
     docker pull rocker/rstudio
     docker pull rocker/ropensci
 
-Then stream the images to worker:/images/ over ssh
+Then save the images to image directory (/var/spool/pb_docker_images by default)
 
-    docker save rocker/rstudio | ssh worker sudo dd of=/images/rocker.rstudio.img
-    docker save rocker/ropensci | ssh worker sudo dd of=/images/rocker.ropensci.img
+    docker save rocker/rstudio | gzip -c > /var/spool/pb_docker_images/rocker.rstudio.img
+    docker save rocker/ropensci | gzip -c > /var/spool/pb_docker_images/rocker.ropensci.img
 
 ### Configure the driver
 
