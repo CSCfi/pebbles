@@ -134,10 +134,10 @@ class DockerDriverAccessProxy(object):
 
     @staticmethod
     def get_image_names():
-        return (file_name[:-len('.img')].replace('.', '/', 1)
+        return [file_name[:-len('.img')].replace('.', '/', 1)
                 for file_name in os.listdir(DD_IMAGE_DIRECTORY)
                 if os.path.isfile(os.path.join(DD_IMAGE_DIRECTORY, file_name)) and file_name.endswith('.img')
-                )
+                ]
 
 
 class DockerDriver(base_driver.ProvisioningDriverBase):
