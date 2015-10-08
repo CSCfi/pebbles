@@ -47,5 +47,9 @@ server {
         autoindex off;
     }
 
-    location = /favicon.ico { log_not_found off; access_log off; }
+    location = /favicon.ico {
+        log_not_found off;
+        access_log off;
+        alias {{ nginx_static_root }}/favicon.ico;
+    }
 }

@@ -14,6 +14,11 @@ def root():
     return app.send_static_file('index.html')
 
 
+@app.route('/favicon.ico')
+def favicon():
+    return app.send_static_file('favicon.ico')
+
+
 test_run = set(['test', 'covtest']).intersection(set(sys.argv))
 
 if test_run:
