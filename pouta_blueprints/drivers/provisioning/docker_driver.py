@@ -3,6 +3,7 @@ import time
 import uuid
 from docker.errors import APIError
 from docker.tls import TLSConfig
+from docker.utils import parse_bytes
 import os
 from requests import ConnectionError
 from pouta_blueprints.client import PBClient
@@ -222,16 +223,19 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         docker_client = ap.get_docker_client(docker_host['docker_url'])
 
         container_name = instance['name']
-        # password = uuid.uuid4().hex[:16]
+
+        # total_memory is set to 3 times the size of RAM limit
+        host_config = docker_client.create_host_config(
+            mem_limit=blueprint_config['memory_limit'],
+            memswap_limit=parse_bytes(blueprint_config['memory_limit']) * 3,
+            publish_all_ports=True,
+        )
 
         config = {
             'image': blueprint_config['docker_image'],
-            'ports': [blueprint_config['internal_port']],
             'name': container_name,
-            #            'environment': {'PASSWORD': password},
             'labels': {'slots': '%d' % blueprint_config['consumed_slots']},
-            #            'mem_limit': blueprint_config['memory_limit'],
-            #            'host_config': {'Memory': 256 * 1024 * 1024},
+            'host_config': host_config,
         }
 
         log_uploader.info("creating container '%s'\n" % container_name)
@@ -239,7 +243,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         container_id = container['Id']
 
         log_uploader.info("starting container '%s'\n" % container_name)
-        docker_client.start(container_id, publish_all_ports=True)
+        docker_client.start(container_id)
 
         # public_ip = docker_host['public_ip']
 
