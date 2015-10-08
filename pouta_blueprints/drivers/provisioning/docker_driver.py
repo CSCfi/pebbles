@@ -131,18 +131,20 @@ class DockerDriverAccessProxy(object):
             queue='proxy_tasks'
         )
 
+    @staticmethod
+    def get_image_names():
+        return (file_name[:-len('.img')].replace('.', '/', 1)
+                for file_name in os.listdir(DD_IMAGE_DIRECTORY)
+                if os.path.isfile(os.path.join(DD_IMAGE_DIRECTORY, file_name)) and file_name.endswith('.img')
+                )
+
 
 class DockerDriver(base_driver.ProvisioningDriverBase):
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.docker_driver_config import CONFIG
 
         config = CONFIG.copy()
-        image_names = [
-            f[:-len('.img')].replace('.', '/', 1)
-            for f in os.listdir(DD_IMAGE_DIRECTORY)
-            if os.path.isfile(os.path.join(DD_IMAGE_DIRECTORY, f)) and f.endswith('.img')
-        ]
-
+        image_names = self._get_ap().get_image_names()
         config['schema']['properties']['docker_image']['enum'] = image_names
 
         return config

@@ -207,8 +207,8 @@ class DockerDriverAccessMock(object):
         return json.dumps(res)
 
     @staticmethod
-    def open(*args, **kwargs):
-        return ""
+    def get_image_names():
+        return ['test/test1']
 
 
 # noinspection PyProtectedMember
