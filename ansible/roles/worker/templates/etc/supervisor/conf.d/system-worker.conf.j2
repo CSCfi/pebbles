@@ -5,6 +5,7 @@ command = {{ virtualenv_path }}/bin/celery worker
     -Ofair
     --loglevel={{ 'DEBUG' if deploy_mode == 'devel' else 'INFO' }}
     --concurrency=4
+    --maxtasksperchild=10
     -Q system_tasks
 directory = {{ application_path }}
 user = {{ application_user }}
