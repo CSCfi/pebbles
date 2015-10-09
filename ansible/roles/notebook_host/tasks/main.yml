@@ -1,3 +1,5 @@
+- include: setup_system.yml
+
 - include: install_tools.yml
 
 - include: prepare_ephemeral.yml
