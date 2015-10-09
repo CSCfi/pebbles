@@ -15,8 +15,9 @@ command = {{ virtualenv_path }}/bin/celery worker
     -A pouta_blueprints.tasks
     -Ofair
     --loglevel={{ 'DEBUG' if deploy_mode == 'devel' else 'INFO' }}
-    -Q proxy_tasks
     --concurrency=1
+    --maxtasksperchild=10
+    -Q proxy_tasks
 directory = {{ application_path }}
 user = {{ application_user }}
 stdout_logfile = {{ celery_log_file }}
