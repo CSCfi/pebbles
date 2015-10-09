@@ -84,7 +84,7 @@ expose the system to.
 
 - add ssl termination to the proxy
     
-- implement memory limits for containers 
+- implement memory limits for containers *DONE* 
   - pending for docker-py update https://github.com/docker/docker-py/pull/732
   
 - implement error tracking per host *DONE*
@@ -94,7 +94,11 @@ expose the system to.
     - need to modify the command string
     - substitute a base url parameter with the generated route_id 
 
+- isolate containers from accessing each other 
+
 ### Optional features
 - implement session backups
-- implement a service for plugins for storing the state 
-- configure swap on host + allow swapping for containers for fitting even more on a single host?
+
+- implement a service for drivers for storing the state (instead of having write it to a file) 
+
+- configure swap on host + allow swapping for containers for fitting even more on a single host *DONE*
