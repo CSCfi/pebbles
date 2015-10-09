@@ -24,6 +24,7 @@
         - git
         - build-essential
         - python-dev
+        - sysstat
       when: ansible_lsb.id=="Ubuntu"
 
     - name: Install packages (CentOS)
@@ -37,6 +38,7 @@
         - tmux
         - git
         - python-devel
+        - sysstat
       when: ansible_lsb.id=="CentOS"
 
     - name: Enable Docker service
