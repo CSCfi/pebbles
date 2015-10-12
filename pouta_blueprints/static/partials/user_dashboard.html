@@ -17,7 +17,7 @@
                     <table class="table table-hover table-striped goup" ng-show="(instances | filter : blueprint.id).length">
                         <thead>
                             <tr>
-                                <th class="col-md-1"><small>State</small></th>
+                                <th class="col-md-1"><center><small>State</small></center></th>
                                 <th class="col-md-1"><small>Name</small></th>
                                 <th class="col-md-1"><small>Lifetime</small></th>
                                 <th class="col-md-1"><small>Access</small></th>
@@ -26,21 +26,34 @@
                         </thead>
                         <tbody>
                             <tr ng-repeat="instance in instances | filter : blueprint.id">
-                              <td><small> {{ instance.state }} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</small></td>
-                              <td><small><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></small></td>
-                              <td><small><lifetime seconds="{{instance.lifetime_left}}"/></small></td>
-                              <td><small>
-                                  <a ng-show="instance.instance_data['endpoints'][0]['name']=='http'"
-                                     href="{{instance.instance_data['endpoints'][0].access}}" target="_blank">
-                                      Open in browser
-                                  </a>
-                                  <div ng-show="instance.instance_data['endpoints'][0]['name']=='SSH'">
-                                      {{ instance.instance_data['endpoints'][0].access }}
-                                  </div>
-                              </small></td>
-                              <td><button ng-click="deprovision(instance)" type="submit" class="btn btn-xs btn-danger" ng-disabled="instance.state=='deleting'" >Destroy</button></td>
+                                <td>
+                                    <center>
+                                        <small>
+                                            <span ng-show="instance.state == 'running'" class="glyphicon glyphicon-ok"></span>
+                                            <span ng-hide="instance.state == 'running'">
+                                                {{ instance.state }}  {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}
+                                            </span>
+                                        </small>
+                                    </center>
+                                </td>
+                                <td><small><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></small></td>
+                                <td><small><lifetime seconds="{{instance.lifetime_left}}"/></small></td>
+                                <td><small>
+                                    <a ng-show="instance.instance_data['endpoints'][0]['name']=='http'"
+                                       href="{{instance.instance_data['endpoints'][0].access}}" target="_blank">
+                                        Open in browser
+                                    </a>
+                                    <div ng-show="instance.instance_data['endpoints'][0]['name']=='SSH'">
+                                        {{ instance.instance_data['endpoints'][0].access }}
+                                    </div>
+                                </small></td>
+                                <td>
+                                    <button ng-click="deprovision(instance)" type="submit" class="btn btn-xs btn-danger" ng-disabled="instance.state=='deleting'" >
+                                        <span class="glyphicon glyphicon-remove"></span> Destroy
+                                    </button>
+                                </td>
                             </tr>
-                          </tbody>
+                        </tbody>
                       </table>
                 </div>
                 <div class="panel-footer text-center">
