@@ -40,6 +40,7 @@ NAME_ADJECTIVES = (
     'smiley',
 )
 
+
 class CaseInsensitiveComparator(Comparator):
     def __eq__(self, other):
         return func.lower(self.__clause_element__()) == func.lower(other)
@@ -325,9 +326,9 @@ class Variable(db.Model):
         if self.key in self.filtered_variables:
             self.readonly = True
 
-        if type(v) in (int, ):
+        if type(v) in (int,):
             self.t = 'int'
-        elif type(v) in (bool, ):
+        elif type(v) in (bool,):
             self.t = 'bool'
         else:
             self.t = 'str'
