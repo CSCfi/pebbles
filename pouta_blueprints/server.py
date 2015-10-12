@@ -54,7 +54,11 @@ api.add_resource(PublicVariableList, api_root + '/config')
 api.add_resource(WhatIsMyIp, api_root + '/what_is_my_ip', methods=['GET'])
 api.add_resource(Quota, api_root + '/quota')
 api.add_resource(UserQuota, api_root + '/quota/<string:user_id>')
-api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
+api.add_resource(
+    LockView,
+    api_root + '/locks/<string:lock_id>',
+    methods=['PUT', 'DELETE']
+)
 
 app.register_blueprint(blueprints)
 app.register_blueprint(plugins)
