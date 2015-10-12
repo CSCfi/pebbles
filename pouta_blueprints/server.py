@@ -22,6 +22,7 @@ from pouta_blueprints.views.myip import myip, WhatIsMyIp
 from pouta_blueprints.views.quota import quota, Quota, UserQuota
 from pouta_blueprints.views.sessions import sessions, SessionView
 from pouta_blueprints.views.variables import variables, VariableList, VariableView, PublicVariableList
+from pouta_blueprints.views.locks import locks, LockView
 
 api = restful.Api(app)
 api_root = '/api/v1'
@@ -53,7 +54,7 @@ api.add_resource(PublicVariableList, api_root + '/config')
 api.add_resource(WhatIsMyIp, api_root + '/what_is_my_ip', methods=['GET'])
 api.add_resource(Quota, api_root + '/quota')
 api.add_resource(UserQuota, api_root + '/quota/<string:user_id>')
-
+api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
 
 app.register_blueprint(blueprints)
 app.register_blueprint(plugins)
@@ -65,6 +66,7 @@ app.register_blueprint(myip)
 app.register_blueprint(sessions)
 app.register_blueprint(variables)
 app.register_blueprint(quota)
+app.register_blueprint(locks)
 
 if app.config['ENABLE_SHIBBOLETH_LOGIN']:
     sso = SSO(app=app)
