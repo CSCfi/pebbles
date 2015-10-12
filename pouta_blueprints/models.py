@@ -242,7 +242,7 @@ class Instance(db.Model):
         try:
             cost_multiplier = self.blueprint.cost_multiplier
         except:
-            logging.warn("invalid cost_multiplier in blueprint with id %s, defaulting to 1.0" % self.blueprint_id)
+            logging.warn("invalid cost_multiplier for blueprint %s, defaulting to 1.0" % self.blueprint_id)
             cost_multiplier = 1.0
 
         return cost_multiplier * duration / 3600
@@ -270,6 +270,17 @@ class Instance(db.Model):
     @staticmethod
     def generate_name(prefix):
         return '%s%s' % (prefix, names.get_first_name().lower())
+
+
+class Lock(db.Model):
+    __tablename__ = 'locks'
+
+    lock_id = db.Column(db.String(64), primary_key=True, unique=True)
+    acquired_at = db.Column(db.DateTime)
+
+    def __init__(self, lock_id):
+        self.lock_id = lock_id
+        self.acquired_at = datetime.datetime.utcnow()
 
 
 class SystemToken(db.Model):
