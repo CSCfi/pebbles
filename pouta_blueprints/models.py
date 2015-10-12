@@ -1,3 +1,4 @@
+import random
 from flask.ext.bcrypt import generate_password_hash, check_password_hash
 import names
 from flask.ext.sqlalchemy import SQLAlchemy
@@ -23,6 +24,21 @@ if sys.version < '3':
 else:
     unicode_type = str
 
+NAME_ADJECTIVES = (
+    'happy',
+    'sad',
+    'bright',
+    'dark',
+    'blue',
+    'yellow',
+    'red',
+    'green',
+    'white',
+    'black',
+    'clever',
+    'witty',
+    'smiley',
+)
 
 class CaseInsensitiveComparator(Comparator):
     def __eq__(self, other):
@@ -269,7 +285,7 @@ class Instance(db.Model):
 
     @staticmethod
     def generate_name(prefix):
-        return '%s%s' % (prefix, names.get_first_name().lower())
+        return '%s%s-%s' % (prefix, random.choice(NAME_ADJECTIVES), names.get_first_name().lower())
 
 
 class Lock(db.Model):
