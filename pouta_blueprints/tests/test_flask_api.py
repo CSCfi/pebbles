@@ -721,6 +721,34 @@ class FlaskApiTestCase(BaseTestCase):
         new_var_data = self.make_authenticated_admin_request(path='/api/v1/variables/SECRET_KEY').json
         self.assertEquals(new_var_data['value'], var_data['value'])
 
+    def test_admin_acquire_lock(self):
+        unique_id = 'abc123'
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/locks/%s' % unique_id)
+        self.assertStatus(response, 200)
+
+        response2 = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/locks/%s' % unique_id)
+        self.assertStatus(response2, 409)
+
+        response3 = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/locks/%s' % unique_id)
+        self.assertStatus(response3, 200)
+
+        response4 = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/locks/%s' % unique_id)
+        self.assertStatus(response4, 404)
+
+        unique_id = 'abc123'
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/locks/%s' % unique_id)
+        self.assertStatus(response, 200)
+
 
 if __name__ == '__main__':
     unittest.main()
