@@ -34,27 +34,9 @@ def get_openstack_nova_client(config):
 
 class GetServer(task.Task):
     def execute(self, server_id, config):
-        logging.debug("gettin server %s" % server_id)
+        logging.debug("getting server %s" % server_id)
         nc = get_openstack_nova_client(config)
         return nc.servers.get(server_id)
-
-
-class GetImages(task.Tasks):
-    def execute(self, config):
-        nc = get_openstack_nova_client(config)
-        return nc.images.list()
-
-    def revert(self, *args, **kwargs):
-        pass
-
-
-class GetFlavors(task.Tasks):
-    def execute(self, config):
-        nc = get_openstack_nova_client(config)
-        return nc.flavors.list()
-
-    def revert(self, *args, **kwargs):
-        pass
 
 
 class GetImage(task.Task):
@@ -336,7 +318,7 @@ class ListInstanceVolumes(task.Task):
         nc = get_openstack_nova_client(config)
         return nc.volumes.get_server_volumes(server_id)
 
-    def revert(self):
+    def revert(self, *args, **kwargs):
         pass
 
 
@@ -481,6 +463,22 @@ def uploadKeyFlow():
     return lf.Flow('UploadKey').add(
         AddUserPublicKey('upload_key')
     )
+
+deprovisionFlow = lf.Flow('DeprovisionInstance').add(
+    ListInstanceVolumes('list_server_volumes', provides='volumes'),
+    gf.Flow('DeleteAttachments').add(
+        DeprovisionInstance('deprovision_instance')
+    ),
+    DeleteSecurityGroup('delete_security_group')
+)
+
+listImagesFlow = lf.Flow('ListImages').add(
+    ListImages('list_images')
+)
+
+listFlavorsFlow = lf.Flow('ListFlavors').add(
+    ListFlavors('list_flavors')
+)
 
 
 class OpenStackService(object):
