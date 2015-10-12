@@ -170,34 +170,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             log_uploader.info("system is in shutdown mode, cannot provision new instances\n")
             raise RuntimeWarning('Shutdown mode, no provisioning')
 
-        ap = self._get_ap()
-        pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
-
-        retries = 0
-        while True:
-            try:
-                instance = pbclient.get_instance_description(instance_id)
-                if instance['state'] not in ('provisioning', 'queueing'):
-                    log_uploader.info("Provisioning aborted\n")
-                    raise RuntimeError('Instance in wrong state for provisioning')
-
-                self._do_provision_locked(token, instance_id, int(time.time()))
-                break
-            except (RuntimeWarning, ConnectionError) as e:
-                retries += 1
-                if retries > DD_PROVISION_RETRIES:
-                    log_uploader.info("Maximum retries exceeded, giving up\n")
-                    raise e
-                self.logger.warning(
-                    "do_provision failed for %s, sleeping and retrying (%d/%d): %s" % (
-                        instance_id, retries, DD_PROVISION_RETRIES, e
-                    )
-                )
-                time.sleep(DD_PROVISION_RETRY_SLEEP)
-
-    @locked('%s/docker_driver_provisioning' % DD_RUNTIME_PATH)
-    def _do_provision_locked(self, token, instance_id, cur_ts):
-        return self._do_provision(token, instance_id, cur_ts)
+        self._do_provision(token, instance_id, int(time.time()))
 
     def _do_provision(self, token, instance_id, cur_ts):
         ap = self._get_ap()
@@ -213,13 +186,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         blueprint_config = blueprint['config']
 
         log_uploader.info("selecting host...")
-        try:
-            docker_host = self._select_host(blueprint_config['consumed_slots'], cur_ts)
-            log_uploader.info("done\n")
-        except RuntimeWarning as e:
-            log_uploader.info("no free resources, queueing\n")
-            pbclient.do_instance_patch(instance_id, {'state': 'queueing'})
-            raise e
+        docker_host = self._select_host(blueprint_config['consumed_slots'], cur_ts)
+
+        log_uploader.info("done\n")
 
         docker_client = ap.get_docker_client(docker_host['docker_url'])
 
@@ -239,12 +208,22 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'host_config': host_config,
         }
 
+        lock_id = 'dd_host:%s' % docker_host['id']
+        lock_res = pbclient.obtain_lock(lock_id)
+
+        while not lock_res:
+            log_uploader.info("selected host is locked, waiting...\n")
+            time.sleep(5)
+            lock_res = pbclient.obtain_lock(lock_id)
+
         log_uploader.info("creating container '%s'\n" % container_name)
         container = docker_client.create_container(**config)
         container_id = container['Id']
 
         log_uploader.info("starting container '%s'\n" % container_name)
         docker_client.start(container_id)
+
+        pbclient.release_lock(lock_id)
 
         # public_ip = docker_host['public_ip']
 
@@ -269,6 +248,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 },
             ],
             'docker_url': docker_host['docker_url'],
+            'docker_host_id': docker_host['id'],
             'proxy_route': proxy_route,
         }
 
@@ -285,7 +265,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         log_uploader.info("provisioning done for %s\n" % instance_id)
 
-    @locked('%s/docker_driver_provisioning' % DD_RUNTIME_PATH)
     def do_deprovision(self, token, instance_id):
         return self._do_deprovision(token, instance_id)
 
@@ -313,6 +292,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         try:
             docker_url = instance['instance_data']['docker_url']
+            docker_host_id = instance['instance_data']['docker_host_id']
         except KeyError:
             self.logger.info('no docker url for instance %s, assuming provisioning has failed' % instance_id)
             return
@@ -320,6 +300,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         docker_client = ap.get_docker_client(docker_url)
 
         container_name = instance['name']
+
+        lock_id = 'dd_host:%s' % docker_host_id
+        lock_res = pbclient.obtain_lock(lock_id)
+
+        while not lock_res:
+            log_uploader.info("selected host is locked, waiting...\n")
+            time.sleep(5)
+            lock_res = pbclient.obtain_lock(lock_id)
 
         try:
             docker_client.remove_container(container_name, force=True)
@@ -329,6 +317,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 self.logger.info('no container found for instance %s, assuming already deleted' % instance_id)
             else:
                 raise e
+        finally:
+            pbclient.release_lock(lock_id)
 
         self.logger.debug("do_deprovision done for %s" % instance_id)
 
