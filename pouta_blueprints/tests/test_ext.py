@@ -22,7 +22,7 @@ class TestSSO(TestCase):
 
         @sso.login_handler
         def _callback(attr):
-            return '{0}'.format(attr)
+            return six.b('{0}'.format(attr))
 
         @contextmanager
         def request_environ_set(app, data):
