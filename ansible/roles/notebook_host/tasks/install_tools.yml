@@ -7,5 +7,6 @@
     - time
     - tmux
     - lvm2-sysvinit
+    - sysstat
   when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"
 

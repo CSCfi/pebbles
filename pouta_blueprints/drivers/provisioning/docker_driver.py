@@ -6,6 +6,7 @@ from docker.tls import TLSConfig
 from docker.utils import parse_bytes
 import os
 from requests import ConnectionError
+from requests.exceptions import ReadTimeout
 from pouta_blueprints.client import PBClient
 from pouta_blueprints.drivers.provisioning import base_driver
 import docker
@@ -182,7 +183,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
                 self._do_provision_locked(token, instance_id, int(time.time()))
                 break
-            except RuntimeWarning as e:
+            except (RuntimeWarning, ConnectionError) as e:
                 retries += 1
                 if retries > DD_PROVISION_RETRIES:
                     log_uploader.info("Maximum retries exceeded, giving up\n")
@@ -284,7 +285,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         log_uploader.info("provisioning done for %s\n" % instance_id)
 
-    @locked('%s/docker_driver_deprovisioning' % DD_RUNTIME_PATH)
+    @locked('%s/docker_driver_provisioning' % DD_RUNTIME_PATH)
     def do_deprovision(self, token, instance_id):
         return self._do_deprovision(token, instance_id)
 
@@ -474,6 +475,10 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 self.logger.info('do_housekeep(): making host %s inactive' % host['id'])
                 host['state'] = DD_STATE_INACTIVE
                 return True
+            if host.get('error_count') > DD_MAX_HOST_ERRORS:
+                self.logger.info('do_housekeep(): too many errors, making host %s inactive' % host['id'])
+                host['state'] = DD_STATE_INACTIVE
+                return True
 
         return False
 
@@ -553,11 +558,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 if usage and not host.get('lifetime_tick_ts', 0):
                     host['lifetime_tick_ts'] = cur_ts
 
-            except ConnectionError:
+            except (ConnectionError, ReadTimeout):
                 self.logger.warning('_get_hosts(): updating number of instances failed for %s' % host['id'])
+                host['error_count'] = host.get('error_count', 0) + 1
 
         return hosts
 
+    @locked('%s/docker_driver_host_state' % DD_RUNTIME_PATH)
     def _save_host_state(self, hosts, cur_ts):
         ap = self._get_ap()
         data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
@@ -611,6 +618,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'state': DD_STATE_SPAWNED,
             'num_reserved_slots': 0,
             'num_slots': flavor_slots,
+            'error_count': 0,
         }
 
     def _prepare_host(self, host):
