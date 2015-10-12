@@ -275,7 +275,7 @@ class Instance(db.Model):
 class Lock(db.Model):
     __tablename__ = 'locks'
 
-    lock_id = db.Column(db.String(32), primary_key=True, unique=True)
+    lock_id = db.Column(db.String(64), primary_key=True, unique=True)
     acquired_at = db.Column(db.DateTime)
 
     def __init__(self, lock_id):
