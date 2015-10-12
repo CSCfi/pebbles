@@ -286,7 +286,7 @@ class Instance(db.Model):
 
     @staticmethod
     def generate_name(prefix):
-        return '%s%s-%s' % (prefix, random.choice(NAME_ADJECTIVES), names.get_first_name().lower())
+        return '%s%s-the-%s' % (prefix, names.get_first_name().lower(), random.choice(NAME_ADJECTIVES))
 
 
 class Lock(db.Model):
