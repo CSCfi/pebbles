@@ -237,6 +237,23 @@ class Blueprint(db.Model):
 
 
 class Instance(db.Model):
+
+    STATE_QUEUEING = 'queueing'
+    STATE_PROVISIONING = 'provisioning'
+    STATE_RUNNING = 'running'
+    STATE_DELETING = 'deleting'
+    STATE_DELETED = 'deleted'
+    STATE_FAILED = 'failed'
+
+    VALID_STATES = [
+        STATE_QUEUEING,
+        STATE_PROVISIONING,
+        STATE_RUNNING,
+        STATE_DELETING,
+        STATE_DELETED,
+        STATE_FAILED,
+    ]
+
     __tablename__ = 'instances'
     id = db.Column(db.String(32), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
@@ -248,6 +265,7 @@ class Instance(db.Model):
     deprovisioned_at = db.Column(db.DateTime)
     errored = db.Column(db.Boolean, default=False)
     state = db.Column(db.String(32))
+    to_be_deleted = db.Column(db.Boolean, default=False)
     error_msg = db.Column(db.String(256))
     _instance_data = db.Column('instance_data', db.Text)
 
@@ -256,7 +274,7 @@ class Instance(db.Model):
         self.blueprint_id = blueprint.id
         self.blueprint = blueprint
         self.user_id = user.id
-        self.state = 'starting'
+        self.state = Instance.STATE_QUEUEING
 
     def credits_spent(self, duration=None):
         if self.errored:

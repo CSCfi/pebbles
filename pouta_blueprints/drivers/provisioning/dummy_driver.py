@@ -5,6 +5,7 @@ import os
 
 from pouta_blueprints.drivers.provisioning import base_driver
 from pouta_blueprints.client import PBClient
+from pouta_blueprints.models import Instance
 
 
 class DummyDriver(base_driver.ProvisioningDriverBase):
@@ -34,7 +35,7 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         key_data = pbclient.get_user_key_data(instance['user_id']).json()
         user_key_file = '%s/userkey.pub' % instance_dir
         if not key_data:
-            error_body = {'state': 'failed', 'error_msg': 'user\'s public key is missing'}
+            error_body = {'state': Instance.STATE_FAILED, 'error_msg': 'user\'s public key is missing'}
             pbclient.do_instance_patch(instance_id, error_body)
             raise RuntimeError("User's public key missing")
 
@@ -71,11 +72,15 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
 
         self.logger.info('faking deprovisioning')
-        cmd = 'time ping -c 5 localhost'
-        self.run_logged_process(cmd=cmd, cwd=instance_dir, shell=True, log_uploader=uploader)
+        if os.path.isdir(instance_dir):
+            cmd = 'time ping -c 5 localhost'
+            self.run_logged_process(cmd=cmd, cwd=instance_dir, shell=True, log_uploader=uploader)
+        else:
+            self.logger.info('no instance dir found, assuming instance was never provisioned')
 
         # use instance id as a part of the name to make tombstones always unique
-        os.rename(instance_dir, '%s.deleted.%s' % (instance_dir, instance_id))
+        if os.path.isdir(instance_dir):
+            os.rename(instance_dir, '%s.deleted.%s' % (instance_dir, instance_id))
 
     def do_housekeep(self, token):
         pass

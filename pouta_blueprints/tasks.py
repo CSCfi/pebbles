@@ -18,6 +18,8 @@ from pouta_blueprints.app import app as flask_app
 from pouta_blueprints.client import PBClient
 
 # tune requests to give less spam in development environment with self signed certificate
+from pouta_blueprints.models import Instance
+
 requests.packages.urllib3.disable_warnings()
 logging.getLogger("requests").setLevel(logging.WARNING)
 
@@ -123,9 +125,8 @@ def deprovision_expired():
 
     for instance in instances:
         logger.debug('checking instance for expiration %s' % instance)
-        user = instance.get('user')
         deprovision_required = False
-        if not instance.get('state') in ['running']:
+        if not instance.get('state') in [Instance.STATE_RUNNING]:
             continue
 
         if not instance.get('lifetime_left') and instance.get('maximum_lifetime'):
@@ -133,7 +134,8 @@ def deprovision_expired():
             deprovision_required = True
 
         if deprovision_required:
-            run_deprovisioning.apply_async(
+            pbclient.do_instance_patch(instance['id'], {'to_be_deleted': True})
+            run_update.apply_async(
                 args=[token, instance.get('id')],
                 queue='system_tasks',
             )
@@ -195,25 +197,16 @@ def get_provisioning_type(token, instance_id):
     return pbclient.get_plugin_data(plugin_id)['name']
 
 
-def run_provisioning_impl(token, instance_id, method):
-    logger.info('%s triggered for %s' % (method, instance_id))
+@app.task(name="pouta_blueprints.tasks.run_update")
+def run_update(token, instance_id):
+    logger.info('update triggered for %s' % instance_id)
     mgr = get_provisioning_manager()
 
     plugin = get_provisioning_type(token, instance_id)
 
-    mgr.map_method([plugin], method, token, instance_id)
+    mgr.map_method([plugin], 'update', token, instance_id)
 
-    logger.info('%s done, notifying server' % method)
-
-
-@app.task(name="pouta_blueprints.tasks.run_provisioning")
-def run_provisioning(token, instance_id):
-    run_provisioning_impl(token, instance_id, 'provision')
-
-
-@app.task(name="pouta_blueprints.tasks.run_deprovisioning")
-def run_deprovisioning(token, instance_id):
-    run_provisioning_impl(token, instance_id, 'deprovision')
+    logger.info('update done, notifying server')
 
 
 @app.task(name="pouta_blueprints.tasks.publish_plugins")

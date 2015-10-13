@@ -12,7 +12,7 @@ from pouta_blueprints.models import db, Blueprint, Instance, User, SystemToken
 from pouta_blueprints.forms import InstanceForm, UserIPForm
 from pouta_blueprints.server import app, restful
 from pouta_blueprints.utils import requires_admin, memoize
-from pouta_blueprints.tasks import run_provisioning, run_deprovisioning, update_user_connectivity
+from pouta_blueprints.tasks import run_update, update_user_connectivity
 from pouta_blueprints.views.commons import auth
 
 instances = FlaskBlueprint('instances', __name__)
@@ -27,6 +27,7 @@ instance_fields = {
     'maximum_lifetime': fields.Integer,
     'runtime': fields.Float,
     'state': fields.String,
+    'to_be_deleted': fields.Boolean,
     'error_msg': fields.String,
     'username': fields.String,
     'user_id': fields.String,
@@ -56,10 +57,10 @@ class InstanceList(restful.Resource):
     def get(self):
         user = g.user
         if user.is_admin:
-            instances = Instance.query.filter(Instance.state != 'deleted').all()
+            instances = Instance.query.filter(Instance.state != Instance.STATE_DELETED).all()
         else:
             instances = Instance.query.filter_by(user_id=user.id). \
-                filter((Instance.state != 'deleted')).all()
+                filter((Instance.state != Instance.STATE_DELETED)).all()
 
         get_blueprint = memoize(query_blueprint)
         get_user = memoize(query_user)
@@ -133,7 +134,7 @@ class InstanceList(restful.Resource):
         db.session.commit()
 
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-            run_provisioning.delay(token.token, instance.id)
+            run_update.delay(token.token, instance.id)
         return marshal(instance, instance_fields), 200
 
 
@@ -145,6 +146,7 @@ class InstanceView(restful.Resource):
     parser.add_argument('error_msg', type=str)
     parser.add_argument('client_ip', type=str)
     parser.add_argument('instance_data', type=str)
+    parser.add_argument('to_be_deleted', type=bool)
 
     @auth.login_required
     @marshal_with(instance_fields)
@@ -184,13 +186,13 @@ class InstanceView(restful.Resource):
         instance = query.first()
         if not instance:
             abort(404)
-        instance.state = 'deleting'
+        instance.to_be_deleted = True
         instance.deprovisioned_at = datetime.datetime.utcnow()
         token = SystemToken('provisioning')
         db.session.add(token)
         db.session.commit()
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-            run_deprovisioning.delay(token.token, instance.id)
+            run_update.delay(token.token, instance.id)
 
     @auth.login_required
     def put(self, instance_id):
@@ -225,12 +227,16 @@ class InstanceView(restful.Resource):
 
         if args.get('state'):
             instance.state = args['state']
-            if instance.state == 'running':
+            if instance.state == Instance.STATE_RUNNING:
                 if not instance.provisioned_at:
                     instance.provisioned_at = datetime.datetime.utcnow()
-            if args['state'] == 'failed':
+            if args['state'] == Instance.STATE_FAILED:
                 instance.errored = True
 
+            db.session.commit()
+
+        if args.get('to_be_deleted'):
+            instance.to_be_deleted = args['to_be_deleted']
             db.session.commit()
 
         if args.get('error_msg'):

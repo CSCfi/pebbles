@@ -10,6 +10,7 @@ from requests.exceptions import ReadTimeout
 from pouta_blueprints.client import PBClient
 from pouta_blueprints.drivers.provisioning import base_driver
 import docker
+from pouta_blueprints.models import Instance
 from pouta_blueprints.services.openstack_service import OpenStackService
 import pouta_blueprints.tasks
 from lockfile import locked, LockTimeout
@@ -286,7 +287,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         except KeyError:
             self.logger.info("do_deprovision: No proxy route in instance data for %s" % instance_id)
 
-        if instance['state'] == 'deleted':
+        if instance['state'] == Instance.STATE_DELETED:
             self.logger.debug("do_deprovision: instance already deleted %s" % instance_id)
             return
 
