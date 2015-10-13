@@ -18,6 +18,7 @@ Vagrant.configure(2) do |config|
   # if using virtualbox, run on two vcpus
   config.vm.provider "virtualbox" do |v|
     v.cpus = 2
+    v.memory = 1024
   end
 
   # if using docker, use a base image with sshd and remove default box config
