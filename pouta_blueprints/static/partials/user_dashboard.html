@@ -28,12 +28,7 @@
                             <tr ng-repeat="instance in instances | filter : blueprint.id">
                                 <td>
                                     <center>
-                                        <small>
-                                            <span ng-show="instance.state == 'running'" class="glyphicon glyphicon-ok"></span>
-                                            <span ng-hide="instance.state == 'running'">
-                                                {{ instance.state }}  {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}
-                                            </span>
-                                        </small>
+                                        <instance-status></instance-status>
                                     </center>
                                 </td>
                                 <td><small><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></small></td>
@@ -49,7 +44,7 @@
                                 </small></td>
                                 <td>
                                     <button ng-click="deprovision(instance)" type="submit" class="btn btn-xs btn-danger" ng-disabled="instance.state=='deleting'" >
-                                        <span class="glyphicon glyphicon-remove"></span> Destroy
+                                        <span class="fa fa-times"></span> Destroy
                                     </button>
                                 </td>
                             </tr>
@@ -58,7 +53,7 @@
                 </div>
                 <div class="panel-footer text-center">
                     <a ng-click="provision(blueprint)" class="btn btn-block btn-primary" ng-disabled="blueprint.config.needs_ssh_keys && !keypair_exists()">
-                        <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch new
+                        <span class="fa fa-chevron-right" aria-hidden="true"></span> Launch new
                     </a>
                     <span ng-show="blueprint.config.needs_ssh_keys && keypairs && !keypair_exists()">
                         To launch instances, first <a href="/#/account">add SSH keys</a>.

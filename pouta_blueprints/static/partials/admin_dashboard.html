@@ -11,14 +11,14 @@
         </thead>
         <tbody>
             <tr ng-hide="!blueprints || (blueprints | filter : {is_enabled: 'true'}).length">
-                <td colspan="7">No Blueprints</td>
+                <td colspan="4">No Blueprints</td>
             </tr>
             <tr ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }">
                 <td>{{ blueprint.name }}</td>
                 <td><lifetime seconds="{{ blueprint.maximum_lifetime }}" /></td>
                 <td>{{ blueprint.config.description }}</td>
                 <td>
-                <a ng-click="provision(blueprint)" class="btn btn-block btn-primary" ng-disabled="blueprint.config.needs_ssh_keys && !keypair_exists()">
+                    <a ng-click="provision(blueprint)" class="btn btn-primary" ng-hide="blueprint.config.needs_ssh_keys && !keypair_exists()">
                         <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch
                     </a>
                     <span ng-show="blueprint.config.needs_ssh_keys && keypairs && !keypair_exists()">
@@ -36,7 +36,7 @@
             <td>Name</td>
             <td>State</td>
             <td>Blueprint</td>
-            <td ng-show="isAdmin()">User</td>
+            <td>User</td>
             <td>Access</td>
             <td>Life-time left</td>
             <td>Actions</td>
@@ -47,7 +47,7 @@
                 <td><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></td>
                 <td>{{instance.state}} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>
                 <td>{{instance.blueprint}}</td>
-                <td ng-show="isAdmin()">{{instance.username}}</td>
+                <td>{{instance.username}}</td>
                 <td>
                     <a ng-show="instance.instance_data['endpoints'][0]['name']=='http'"
                        href="{{instance.instance_data['endpoints'][0].access}}" target="_blank">

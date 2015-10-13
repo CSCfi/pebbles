@@ -1,31 +1,31 @@
 app.directive('instanceStatus', [function() {
     var UIDetails = {
         running: {
-            iconClass: "glyphicon glyphicon-repeat fa-spin",
+            iconClass: "glyphicon glyphicon-ok",
             description: "instance is ready"
         },
         failed: {
-            iconClass: "fa-exclamation-triangle",
+            iconClass: "glyphicon glyphicon-exclamation-sign",
             description: "instance failed"
         },
         queueing: {
-            iconClass: "fa-spinner fa-spin",
+            iconClass: "glyphicon glyphicon-cog fa-spin",
             description: "hang on tight, instance is waiting to be started"
         },
         provisioning: {
-            iconClass: "fa-spinner fa-spin",
+            iconClass: "glyphicon glyphicon-cog fa-spin",
             description: "almost there, instance is starting"
         },
         deleting: {
-            iconClass: "fa-spinner fa-spin",
+            iconClass: "glyphicon glyphicon-cog fa-spin",
             description: "instance is being deleted"
         },
         deleted: {
-            iconClass: "fa-square-o",
+            iconClass: "glyphicon glyphicon-ban-circle",
             description: "instance deleted"
         },
         unknown: {
-            iconClass: "fa-question",
+            iconClass: "glyphicon glyphicon-exclamation-sign",
             description: "instance state unknown"
         }
     };

@@ -54,34 +54,13 @@
             </div>
         </div>
         <div class="col-md-6">
-            <button type="button" class="btn btn-default" data-toggle="modal" data-target="#massInvite">
+            <button type="button" class="btn btn-default" data-toggle="modal" ng-click="open_invite_users_dialog()">
               Invite multiple...
             </button>
 
             <button type="button" class="btn btn-default" ng-click="open_quota_dialog([])">
               Update quotas...
             </button>
-        </div>
-    </div>
-
-    <div class="modal fade" id="massInvite" tabindex="-1" role="dialog" aria-labelledby="massInviteLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" id="massInviteLabel">Mass invite</h4>
-                </div>
-                <form name="massInvitationForm" class="form-activate" ng-submit="invite_users()">
-                    <div class="modal-body">
-                        <label for="listOfEmails">Emails:</label>
-                        <textarea ng-model="invitedUsers" class="form-control" rows="10" id="listOfEmails"></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Save changes</button>
-                    </div>
-                </form>
-            </div>
         </div>
     </div>
 </div>
