@@ -99,8 +99,8 @@ app.conf.CELERY_QUEUES = (
 # }
 
 app.conf.CELERYBEAT_SCHEDULE = {
-    'deprovision-expired-every-minute': {
-        'task': 'pouta_blueprints.tasks.deprovision_expired',
+    'periodic-update-every-minute': {
+        'task': 'pouta_blueprints.tasks.periodic_update',
         'schedule': crontab(minute='*/1'),
         'options': {'expires': 60, 'queue': 'system_tasks'},
     },
@@ -117,28 +117,30 @@ app.conf.CELERYBEAT_SCHEDULE = {
 }
 
 
-@app.task(name="pouta_blueprints.tasks.deprovision_expired")
-def deprovision_expired():
+@app.task(name="pouta_blueprints.tasks.periodic_update")
+def periodic_update():
     token = get_token()
     pbclient = PBClient(token, flask_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
     instances = pbclient.get_instances()
 
     for instance in instances:
-        logger.debug('checking instance for expiration %s' % instance)
+        logger.debug('checking instance for actions %s' % instance['name'])
         deprovision_required = False
-        if not instance.get('state') in [Instance.STATE_RUNNING]:
-            continue
+        if instance.get('state') in [Instance.STATE_RUNNING]:
+            if not instance.get('lifetime_left') and instance.get('maximum_lifetime'):
+                logger.info('deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % instance.get('id'))
+                deprovision_required = True
 
-        if not instance.get('lifetime_left') and instance.get('maximum_lifetime'):
-            logger.info('deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % instance.get('id'))
-            deprovision_required = True
-
-        if deprovision_required:
-            pbclient.do_instance_patch(instance['id'], {'to_be_deleted': True})
-            run_update.apply_async(
-                args=[token, instance.get('id')],
-                queue='system_tasks',
-            )
+            if deprovision_required:
+                pbclient.do_instance_patch(instance['id'], {'to_be_deleted': True})
+                run_update.apply_async(
+                    args=[token, instance.get('id')],
+                    queue='system_tasks',
+                )
+        elif instance.get('state') not in [Instance.STATE_FAILED]:
+                run_update.apply_async(
+                    args=[token, instance.get('id')]
+                )
 
 
 @app.task(name="pouta_blueprints.tasks.send_mails")
