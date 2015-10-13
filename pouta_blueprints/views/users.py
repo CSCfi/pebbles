@@ -161,10 +161,7 @@ class UploadKeyPair(restful.Resource):
         if 'file' not in args:
             abort(422)
 
-        existing_key = None
-        for keypair in Keypair.query.filter_by(user_id=g.user.id).all():
-            existing_key = keypair.public_key
-            db.session.delete(keypair)
+        db.session.query(Keypair).filter_by(user_id=g.user.id).delete()
         db.session.commit()
 
         key = Keypair()
@@ -175,7 +172,4 @@ class UploadKeyPair(restful.Resource):
             db.session.add(key)
             db.session.commit()
         except:
-            key.public_key = existing_key
-            db.session.add(key)
-            db.session.commit()
             abort(422)
