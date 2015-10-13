@@ -24,7 +24,7 @@ class PBClient(object):
         resp = requests.patch(url, data=payload, headers=headers, verify=self.ssl_verify)
         return resp
 
-    def do_put(self, object_url, payload):
+    def do_put(self, object_url, payload=None):
         headers = {'Content-type': 'application/x-www-form-urlencoded',
                    'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % self.auth}
@@ -89,7 +89,7 @@ class PBClient(object):
         return resp.json()
 
     def obtain_lock(self, lock_id):
-        resp = self.do_put('locks/%s' % lock_id, {})
+        resp = self.do_put('locks/%s' % lock_id)
         if resp.status_code == 200:
             return lock_id
         elif resp.status_code == 409:
@@ -101,7 +101,5 @@ class PBClient(object):
         resp = self.do_delete('locks/%s' % lock_id)
         if resp.status_code == 200:
             return lock_id
-        elif resp.status_code == 409:
-            return None
         else:
             raise RuntimeError('Error deleting lock: %s, %s' % (lock_id, resp.reason))
