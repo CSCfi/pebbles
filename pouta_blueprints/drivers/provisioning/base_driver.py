@@ -89,9 +89,8 @@ class ProvisioningDriverBase(object):
             self.logger.info('could not obtain lock on %s' % lock_id)
             return
 
-        pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_PROVISIONING})
-
         try:
+            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_PROVISIONING})
             self.logger.debug('calling subclass do_provision')
             self.do_provision(token, instance_id)
 
@@ -114,8 +113,8 @@ class ProvisioningDriverBase(object):
             self.logger.info('could not obtain lock on %s' % lock_id)
             return
 
-        pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETING})
         try:
+            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETING})
             self.logger.debug('calling subclass do_deprovision')
             self.do_deprovision(token, instance_id)
 
