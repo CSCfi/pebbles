@@ -1,5 +1,7 @@
-<span class="fa {{ iconClass }}" uib-tooltip="{{ description }}" tooltip-placement="top"></span>
+<span class="{{ iconClass }}" uib-tooltip="{{ description }}" tooltip-placement="top"></span>
 <span>
-   {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}
+    <small>
+        {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}
+    </small>
 </span>
 

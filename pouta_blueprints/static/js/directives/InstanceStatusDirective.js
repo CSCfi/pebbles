@@ -1,7 +1,7 @@
 app.directive('instanceStatus', [function() {
     var UIDetails = {
         running: {
-            iconClass: "fa-check",
+            iconClass: "glyphicon glyphicon-repeat fa-spin",
             description: "instance is ready"
         },
         failed: {
