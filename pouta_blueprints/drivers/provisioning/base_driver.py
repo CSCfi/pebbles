@@ -63,13 +63,12 @@ class ProvisioningDriverBase(object):
                 {'style': 'btn-info', 'title': 'Create', 'type': 'submit'}
             ], 'model': {}}
 
-
     def update(self, token, instance_id):
         self.logger.debug("update('%s')" % instance_id)
 
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance(instance_id)
-        if not instance['to_be_deleted'] and instance['state'] in (Instance.STATE_QUEUEING):
+        if not instance['to_be_deleted'] and instance['state'] in [Instance.STATE_QUEUEING]:
             self.provision(token, instance_id)
         elif instance['to_be_deleted']:
             self.deprovision(token, instance_id)
