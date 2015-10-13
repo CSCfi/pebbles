@@ -171,7 +171,23 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             log_uploader.info("system is in shutdown mode, cannot provision new instances\n")
             raise RuntimeWarning('Shutdown mode, no provisioning')
 
-        self._do_provision(token, instance_id, int(time.time()))
+        ap = self._get_ap()
+        pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        lock_id = 'dd_host:%s' % 'global'
+        try:
+            lock_res = pbclient.obtain_lock(lock_id)
+            while not lock_res:
+                time.sleep(5)
+                lock_res = pbclient.obtain_lock(lock_id)
+
+            try:
+                self._do_provision(token, instance_id, int(time.time()))
+            except (RuntimeWarning, ConnectionError) as e:
+                self.logger.info('_do_provision() failed for %s due to %s' % (instance_id, e))
+                log_uploader.info("provisioning failed, queueing again to retry")
+                pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_QUEUEING})
+        finally:
+            pbclient.release_lock(lock_id)
 
     def _do_provision(self, token, instance_id, cur_ts):
         ap = self._get_ap()
@@ -209,24 +225,12 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'host_config': host_config,
         }
 
-        lock_id = 'dd_host:%s' % docker_host['id']
-        lock_res = pbclient.obtain_lock(lock_id)
-
-        while not lock_res:
-            log_uploader.info("selected host is locked, waiting...\n")
-            time.sleep(5)
-            lock_res = pbclient.obtain_lock(lock_id)
-
         log_uploader.info("creating container '%s'\n" % container_name)
         container = docker_client.create_container(**config)
         container_id = container['Id']
 
         log_uploader.info("starting container '%s'\n" % container_name)
         docker_client.start(container_id)
-
-        pbclient.release_lock(lock_id)
-
-        # public_ip = docker_host['public_ip']
 
         # get the public port
         ports = docker_client.port(container_id, blueprint_config['internal_port'])
@@ -267,7 +271,18 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         log_uploader.info("provisioning done for %s\n" % instance_id)
 
     def do_deprovision(self, token, instance_id):
-        return self._do_deprovision(token, instance_id)
+        ap = self._get_ap()
+        pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        lock_id = 'dd_host:%s' % 'global'
+        try:
+            lock_res = pbclient.obtain_lock(lock_id)
+            while not lock_res:
+                time.sleep(5)
+                lock_res = pbclient.obtain_lock(lock_id)
+
+            return self._do_deprovision(token, instance_id)
+        finally:
+            pbclient.release_lock(lock_id)
 
     def _do_deprovision(self, token, instance_id):
         self.logger.debug("do_deprovision %s" % instance_id)
@@ -302,14 +317,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         container_name = instance['name']
 
-        lock_id = 'dd_host:%s' % docker_host_id
-        lock_res = pbclient.obtain_lock(lock_id)
-
-        while not lock_res:
-            log_uploader.info("selected host is locked, waiting...\n")
-            time.sleep(5)
-            lock_res = pbclient.obtain_lock(lock_id)
-
         try:
             docker_client.remove_container(container_name, force=True)
             log_uploader.info("removed container %s\n" % container_name)
@@ -318,8 +325,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 self.logger.info('no container found for instance %s, assuming already deleted' % instance_id)
             else:
                 raise e
-        finally:
-            pbclient.release_lock(lock_id)
 
         self.logger.debug("do_deprovision done for %s" % instance_id)
 
