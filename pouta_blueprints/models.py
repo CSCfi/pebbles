@@ -237,7 +237,6 @@ class Blueprint(db.Model):
 
 
 class Instance(db.Model):
-
     STATE_QUEUEING = 'queueing'
     STATE_PROVISIONING = 'provisioning'
     STATE_RUNNING = 'running'

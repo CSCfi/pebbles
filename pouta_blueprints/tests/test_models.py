@@ -67,4 +67,3 @@ class ModelsTestCase(BaseTestCase):
                 self.fail('invalid state %s not detected' % state)
             except ValueError:
                 pass
-
