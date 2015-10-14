@@ -187,6 +187,7 @@ class InstanceView(restful.Resource):
         if not instance:
             abort(404)
         instance.to_be_deleted = True
+        instance.state = Instance.STATE_DELETING
         instance.deprovisioned_at = datetime.datetime.utcnow()
         token = SystemToken('provisioning')
         db.session.add(token)

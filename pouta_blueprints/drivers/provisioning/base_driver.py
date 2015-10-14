@@ -70,7 +70,7 @@ class ProvisioningDriverBase(object):
         instance = pbclient.get_instance(instance_id)
         if not instance['to_be_deleted'] and instance['state'] in [Instance.STATE_QUEUEING]:
             self.provision(token, instance_id)
-        elif instance['to_be_deleted']:
+        elif instance['to_be_deleted'] and instance['state'] not in [Instance.STATE_DELETED]:
             self.deprovision(token, instance_id)
         else:
             self.logger.debug("update('%s') - nothing to do for %s" % (instance_id, instance))
