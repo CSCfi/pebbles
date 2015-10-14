@@ -51,3 +51,20 @@ class ModelsTestCase(BaseTestCase):
         i1.deprovisioned_at = datetime.datetime(2015, 1, 1, 12, 5)
         expected_cost = (1.5 * 5 * 60 / 3600)
         assert (expected_cost - 0.01) < i1.credits_spent() < (expected_cost + 0.01)
+
+    def test_instance_states(self):
+        i1 = Instance(self.known_blueprint, self.known_user)
+        for state in Instance.VALID_STATES:
+            i1.state = state
+
+        invalid_states = [x + 'foo' for x in Instance.VALID_STATES]
+        invalid_states.append('')
+        invalid_states.extend([x.upper() for x in Instance.VALID_STATES])
+
+        for state in invalid_states:
+            try:
+                i1.state = state
+                self.fail('invalid state %s not detected' % state)
+            except ValueError:
+                pass
+

@@ -264,7 +264,7 @@ class Instance(db.Model):
     provisioned_at = db.Column(db.DateTime)
     deprovisioned_at = db.Column(db.DateTime)
     errored = db.Column(db.Boolean, default=False)
-    state = db.Column(db.String(32))
+    _state = db.Column('state', db.String(32))
     to_be_deleted = db.Column(db.Boolean, default=False)
     error_msg = db.Column(db.String(256))
     _instance_data = db.Column('instance_data', db.Text)
@@ -274,7 +274,7 @@ class Instance(db.Model):
         self.blueprint_id = blueprint.id
         self.blueprint = blueprint
         self.user_id = user.id
-        self.state = Instance.STATE_QUEUEING
+        self._state = Instance.STATE_QUEUEING
 
     def credits_spent(self, duration=None):
         if self.errored:
@@ -313,6 +313,17 @@ class Instance(db.Model):
     @instance_data.setter
     def instance_data(self, value):
         self._instance_data = json.dumps(value)
+
+    @hybrid_property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        if value in Instance.VALID_STATES:
+            self._state = value
+        else:
+            raise ValueError("'%s' is not a valid state" % value)
 
     @staticmethod
     def generate_name(prefix):
