@@ -3,6 +3,7 @@ from email.mime.text import MIMEText
 import glob
 import json
 import logging
+import random
 from string import Template
 import os
 import smtplib
@@ -122,6 +123,10 @@ def periodic_update():
     token = get_token()
     pbclient = PBClient(token, flask_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
     instances = pbclient.get_instances()
+
+    # do not spam more than 10 updates at one interval
+    if len(instances) > 10:
+        instances = random.sample(instances, 10)
 
     for instance in instances:
         logger.debug('checking instance for actions %s' % instance['name'])
