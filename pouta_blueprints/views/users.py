@@ -171,5 +171,6 @@ class UploadKeyPair(restful.Resource):
             key.public_key = uploaded_key
             db.session.add(key)
             db.session.commit()
-        except:
+        except Exception as e:
+            logging.exception(e)
             abort(422)
