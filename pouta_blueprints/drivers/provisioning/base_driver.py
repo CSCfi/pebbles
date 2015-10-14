@@ -92,10 +92,12 @@ class ProvisioningDriverBase(object):
         try:
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_PROVISIONING})
             self.logger.debug('calling subclass do_provision')
-            self.do_provision(token, instance_id)
 
-            self.logger.debug('finishing provisioning')
-            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_RUNNING})
+            new_state = self.do_provision(token, instance_id)
+            if not new_state:
+                new_state = Instance.STATE_RUNNING
+
+            pbclient.do_instance_patch(instance_id, {'state': new_state})
         except Exception as e:
             self.logger.exception('do_provision raised %s' % e)
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})

@@ -182,10 +182,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
             try:
                 self._do_provision(token, instance_id, int(time.time()))
+                return Instance.STATE_RUNNING
             except (RuntimeWarning, ConnectionError) as e:
                 self.logger.info('_do_provision() failed for %s due to %s' % (instance_id, e))
                 log_uploader.info("provisioning failed, queueing again to retry\n")
-                pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_QUEUEING})
+                return Instance.STATE_QUEUEING
         finally:
             pbclient.release_lock(lock_id)
 
