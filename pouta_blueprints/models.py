@@ -11,6 +11,8 @@ import json
 import datetime
 import sys
 
+from pouta_blueprints.utils import validate_ssh_pubkey
+
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
 MAX_NAME_LENGTH = 128
@@ -137,10 +139,20 @@ class Keypair(db.Model):
 
     id = db.Column(db.String(32), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
-    public_key = db.Column(db.String(450))
+    _public_key = db.Column(db.String(450))
 
     def __init__(self):
         self.id = uuid.uuid4().hex
+
+    @hybrid_property
+    def public_key(self):
+        return self._public_key
+
+    @public_key.setter
+    def public_key(self, value):
+        if not validate_ssh_pubkey(value):
+            raise ValueError("Not a valid SSH public key")
+        self._public_key = value
 
 
 class ActivationToken(db.Model):

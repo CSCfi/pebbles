@@ -10,40 +10,37 @@ html,body {
     height:100%;
 }
 
-.row-flex, .row-flex > div[class*='col-'] {  
-    display: -webkit-box;
-    display: -moz-box;
-    display: -ms-flexbox;
-    display: -webkit-flex;
-    display: flex;
-    flex:1 1 auto;
+body {
+    padding-top: 50px;
+    padding-bottom: 20px;
+
 }
 
-.row-flex-wrap {
-    -webkit-flex-flow: row wrap;
-    align-content: flex-start;
-    flex:0;
+.clickable{
+    cursor: pointer;
 }
 
-.row-flex > div[class*='col-'], .container-flex > div[class*='col-'] {
-     margin:-.2px; /* hack adjust for wrapping */
+.panel-heading span {
+    margin-top: -20px;
+    font-size: 15px;
 }
 
-.container-flex > div[class*='col-'] div,.row-flex > div[class*='col-'] div {
-    width:100%;
+.table > thead > tr > th{
+    border-bottom:0;
 }
 
-
-.flex-col {
-    display: flex;
-    display: -webkit-flex;
-    flex: 1 100%;
-    flex-flow: column nowrap;
-    max-width: 350px;
+.table > thead > tr > th:last-of-type {
+    border-right: 0px;
 }
 
-.flex-grow {
-    display: flex;
-    -webkit-flex: 2;
-    flex: 2;
+.table > tbody > tr > td:last-of-type {
+    border-right: 0px;
+}
+
+.panel-body {
+    padding: 0;
+}
+
+.panel-body > .table{
+    margin-bottom:0px;
 }

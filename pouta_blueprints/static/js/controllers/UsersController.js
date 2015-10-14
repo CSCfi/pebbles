@@ -1,5 +1,5 @@
-app.controller('UsersController', ['$q', '$scope', '$interval', '$modal', '$filter', 'AuthService', 'Restangular',
-                          function ($q,   $scope,   $interval,   $modal,   $filter,   AuthService,   Restangular) {
+app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$filter', 'AuthService', 'Restangular',
+                          function ($q,   $scope,   $interval,   $uibModal,   $filter,   AuthService,   Restangular) {
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
         $scope.include_deleted = false;
         $scope.includeRow = function(value, index) {
@@ -46,17 +46,10 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$modal', '$filt
                 });
             };
 
-            $scope.invite_users = function() {
-                var params = {addresses: $scope.invitedUsers};
-                users.patch(params).then(function(response) {
-                    users.getList().then(function (response) {
-                        $scope.users = response;
-                    });
-                });
-            };
+
 
             $scope.open_quota_dialog = function(users) {
-                var modalQuota = $modal.open({
+                var modalQuota = $uibModal.open({
                     templateUrl: '/partials/modal_quota.html',
                     controller: 'ModalQuotaController',
                     resolve: {
@@ -73,6 +66,23 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$modal', '$filt
                             $scope.users = response;
                         });
                     }
+                });
+            };
+
+            $scope.open_invite_users_dialog = function() {
+                var modalInviteUsers = $uibModal.open({
+                    templateUrl: '/partials/modal_invite.html',
+                    controller: 'ModalInviteUsersController',
+                    resolve: {
+                        users: function() {
+                            return $scope.users;
+                        }
+                    }
+                });
+                modalInviteUsers.result.then(function() {
+                    $scope.users.getList().then(function (response) {
+                        $scope.users = response;
+                    });
                 });
             };
         }
@@ -117,6 +127,17 @@ app.controller('ModalQuotaController', function ($q, $scope, $modalInstance, Res
     $scope.cancel = function() {
         $modalInstance.dismiss('cancel');
     };
-
 });
 
+app.controller('ModalInviteUsersController', function($scope, $modalInstance, users) {
+    $scope.invite_users = function(invitedUsers) {
+        var params = {addresses: invitedUsers};
+        users.patch(params).then(function() {
+            $modalInstance.close(true);
+        });
+    };
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});

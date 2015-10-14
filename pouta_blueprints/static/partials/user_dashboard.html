@@ -1,0 +1,65 @@
+<div>
+    <h1>Blueprints</h1>
+    <div class="row">
+        <div class="alert alert-warning" ng-hide="!blueprints || (blueprints | filter : {is_enabled: 'true'}).length">
+            No blueprints available
+        </div>
+        <div ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }" class="col-md-6">
+           <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">{{ blueprint.name }}</h3>
+                </div>
+                <div class="panel-body specialCollapse sp">
+                    <div style="padding: 15px">
+                        <p><b>Description:</b> {{ blueprint.config.description }}</p>
+                        <p><b>Lifetime:</b> <lifetime seconds="{{ blueprint.maximum_lifetime }}"/> </p>
+                    </div>
+                    <table class="table table-hover table-striped goup" ng-show="(instances | filter : blueprint.id).length">
+                        <thead>
+                            <tr>
+                                <th class="col-md-1"><center><small>State</small></center></th>
+                                <th class="col-md-1"><small>Name</small></th>
+                                <th class="col-md-1"><small>Lifetime</small></th>
+                                <th class="col-md-1"><small>Access</small></th>
+                                <th class="col-md-1"><small>Actions</small></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="instance in instances | filter : blueprint.id">
+                                <td>
+                                    <center>
+                                        <instance-status></instance-status>
+                                    </center>
+                                </td>
+                                <td><small><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></small></td>
+                                <td><small><lifetime seconds="{{instance.lifetime_left}}"/></small></td>
+                                <td><small>
+                                    <a ng-show="instance.instance_data['endpoints'][0]['name']=='http'"
+                                       href="{{instance.instance_data['endpoints'][0].access}}" target="_blank">
+                                        Open in browser
+                                    </a>
+                                    <div ng-show="instance.instance_data['endpoints'][0]['name']=='SSH'">
+                                        {{ instance.instance_data['endpoints'][0].access }}
+                                    </div>
+                                </small></td>
+                                <td>
+                                    <button ng-click="deprovision(instance)" type="submit" class="btn btn-xs btn-danger" ng-disabled="instance.state=='deleting'" >
+                                        <span class="fa fa-times"></span> Destroy
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                      </table>
+                </div>
+                <div class="panel-footer text-center">
+                    <a ng-click="provision(blueprint)" class="btn btn-block btn-primary" ng-disabled="blueprint.config.needs_ssh_keys && !keypair_exists()">
+                        <span class="fa fa-chevron-right" aria-hidden="true"></span> Launch new
+                    </a>
+                    <span ng-show="blueprint.config.needs_ssh_keys && keypairs && !keypair_exists()">
+                        To launch instances, first <a href="/#/account">add SSH keys</a>.
+                    </span>
+                </div>
+            </div>
+        </div>
+   </div>
+</div>

@@ -1,4 +1,4 @@
-from flask.ext.restful import marshal_with, fields
+from flask.ext.restful import marshal_with
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 
