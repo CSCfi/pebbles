@@ -286,9 +286,9 @@ def proxy_add_route(route_key, target, no_rewrite_rules=False):
     )
 
     if no_rewrite_rules:
-        no_rw='#'
+        no_rw = '#'
     else:
-        no_rw=''
+        no_rw = ''
 
     path = '%s/route_key-%s' % (RUNTIME_PATH, route_key)
     with open(path, 'w') as f:
