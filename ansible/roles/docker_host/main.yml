@@ -47,10 +47,8 @@
     - name: Install docker-py from pip (required by ansible, not available for Trusty as apt package, fixed version due to recent backward incompatible upgrade)
       pip: name=docker-py version=1.1.0
 
-    - name: Install packages from pip
-      pip: name={{ item }}
-      with_items:
-        - ansible
+    - name: Install ansible from pip
+      pip: name=ansible version=1.9.0.1
 
     - name: Add cloud-user to docker group and create ssh key
       user:
