@@ -9,6 +9,7 @@ from pouta_blueprints.forms import BlueprintForm
 from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth, blueprint_fields
 from pouta_blueprints.utils import requires_admin
+import re
 
 blueprints = FlaskBlueprint('blueprints', __name__)
 
@@ -53,7 +54,10 @@ class BlueprintList(restful.Resource):
 
         if 'maximum_lifetime' in form.config.data:
             try:
-                blueprint.maximum_lifetime = int(form.config.data['maximum_lifetime'])
+                max_life_str = str(form.config.data['maximum_lifetime'])
+                m = re.match(r'^(\d+)d(\d{1,2})h(\d{1,2})m(\d{1,2})s$', max_life_str)
+                max_life_int = int(m.group(1)) * 86400 + int(m.group(2)) * 3600 + int(m.group(3)) * 60 + int(m.group(4))
+                blueprint.maximum_lifetime = max_life_int
             except:
                 pass
 
@@ -95,7 +99,10 @@ class BlueprintView(restful.Resource):
 
         if 'maximum_lifetime' in blueprint.config:
             try:
-                blueprint.maximum_lifetime = int(blueprint.config['maximum_lifetime'])
+                max_life_str = str(form.config.data['maximum_lifetime'])
+                m = re.match(r'^(\d+)d(\d{1,2})h(\d{1,2})m(\d{1,2})s$', max_life_str)
+                max_life_int = int(m.group(1)) * 86400 + int(m.group(2)) * 3600 + int(m.group(3)) * 60 + int(m.group(4))
+                blueprint.maximum_lifetime = max_life_int
             except:
                 pass
 

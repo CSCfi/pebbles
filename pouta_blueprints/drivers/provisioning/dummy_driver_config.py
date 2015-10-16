@@ -42,9 +42,11 @@ CONFIG = {
                 }
             },
             "maximum_lifetime": {
-                "type": "integer",
-                "title": "Maximum life-time (seconds)",
-                "default": 3600
+                "type": "string",
+                "title": "Maximum life-time (days hours mins secs)",
+                "default": "0d0h0m0s",
+                "pattern": "^\d+d\d{1,2}h\d{1,2}m\d{1,2}s$",
+                "validationMessage": "Value should be in format -d-h-m-s"
             },
             "maximum_instances_per_user": {
                 "type": "integer",
