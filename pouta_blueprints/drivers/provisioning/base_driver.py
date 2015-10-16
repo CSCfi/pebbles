@@ -83,12 +83,6 @@ class ProvisioningDriverBase(object):
         self.logger.debug('starting provisioning')
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
-        lock_id = 'instance:%s' % instance_id
-        lock_res = pbclient.obtain_lock(lock_id)
-        if not lock_res:
-            self.logger.info('could not obtain lock on %s' % lock_id)
-            return
-
         try:
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_PROVISIONING})
             self.logger.debug('calling subclass do_provision')
@@ -102,18 +96,10 @@ class ProvisioningDriverBase(object):
             self.logger.exception('do_provision raised %s' % e)
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})
             raise e
-        finally:
-            pbclient.release_lock(lock_id)
 
     def deprovision(self, token, instance_id):
         self.logger.debug('starting deprovisioning')
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
-
-        lock_id = 'instance:%s' % instance_id
-        lock_res = pbclient.obtain_lock(lock_id)
-        if not lock_res:
-            self.logger.info('could not obtain lock on %s' % lock_id)
-            return
 
         try:
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETING})
@@ -127,8 +113,6 @@ class ProvisioningDriverBase(object):
             self.logger.exception('do_deprovision raised %s' % e)
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})
             raise e
-        finally:
-            pbclient.release_lock(lock_id)
 
     def housekeep(self, token):
         self.logger.debug('housekeep')

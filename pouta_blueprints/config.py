@@ -87,6 +87,8 @@ class BaseConfig(object):
     PUBLIC_HTTP_PROXY_PORT = 8000
     INTERNAL_HTTP_PROXY_PORT = 8000
 
+    PROVISIONING_NUM_WORKERS = 1
+
     # enable access by []
     def __getitem__(self, item):
         return getattr(self, item)

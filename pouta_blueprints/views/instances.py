@@ -12,7 +12,7 @@ from pouta_blueprints.models import db, Blueprint, Instance, User, SystemToken
 from pouta_blueprints.forms import InstanceForm, UserIPForm
 from pouta_blueprints.server import app, restful
 from pouta_blueprints.utils import requires_admin, memoize
-from pouta_blueprints.tasks import run_update, update_user_connectivity
+from pouta_blueprints.tasks import run_update, update_user_connectivity, get_provisioning_queue
 from pouta_blueprints.views.commons import auth
 
 instances = FlaskBlueprint('instances', __name__)
@@ -134,7 +134,11 @@ class InstanceList(restful.Resource):
         db.session.commit()
 
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-            run_update.delay(token.token, instance.id)
+            run_update.apply_async(
+                args=[token.token, instance.id],
+                queue=get_provisioning_queue(instance.id)
+            )
+
         return marshal(instance, instance_fields), 200
 
 
@@ -193,7 +197,10 @@ class InstanceView(restful.Resource):
         db.session.add(token)
         db.session.commit()
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-            run_update.delay(token.token, instance.id)
+            run_update.apply_async(
+                args=[token.token, instance.id],
+                queue=get_provisioning_queue(instance.id)
+            )
 
     @auth.login_required
     def put(self, instance_id):
@@ -208,11 +215,14 @@ class InstanceView(restful.Resource):
             abort(404)
 
         blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
-        if 'allow_update_client_connectivity' in blueprint.config\
+        if 'allow_update_client_connectivity' in blueprint.config \
                 and blueprint.config['allow_update_client_connectivity']:
             instance.client_ip = form.client_ip.data
             if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-                update_user_connectivity.delay(instance.id)
+                update_user_connectivity.apply_async(
+                    args=[instance.id],
+                    queue=get_provisioning_queue(instance.id)
+                )
             db.session.commit()
 
         else:

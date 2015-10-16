@@ -71,6 +71,12 @@ def get_config():
     return dict([(x['key'], x['value']) for x in pbclient.do_get('variables').json()])
 
 
+def get_provisioning_queue(instance_id):
+    queue_num = ((int(instance_id[-2:], 16) % flask_config['PROVISIONING_NUM_WORKERS']) + 1)
+    logger.debug('selected queue %d/%d for %s' % (queue_num, flask_config['PROVISIONING_NUM_WORKERS'], instance_id))
+    return 'provisioning_tasks-%d' % queue_num
+
+
 logger = get_task_logger(__name__)
 if flask_config['DEBUG']:
     logger.setLevel('DEBUG')
@@ -86,18 +92,12 @@ app.conf.CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
 app.conf.CELERYD_PREFETCH_MULTIPLIER = 1
 app.conf.CELERY_TASK_SERIALIZER = 'json'
 
+app.conf.CELERY_CREATE_MISSING_QUEUES = True
 app.conf.CELERY_QUEUES = (
     Queue('celery', routing_key='task.#'),
     Queue('proxy_tasks', routing_key='proxy_task.#'),
     Queue('system_tasks', routing_key='system_task.#'),
 )
-
-# app.conf.CELERY_ROUTES = {
-#         'pouta_blueprints.tasks.proxy_add_route': {
-#             'queue': 'proxy_tasks',
-#             'routing_key': 'proxy_task.proxy_add_route',
-#         },
-# }
 
 app.conf.CELERYBEAT_SCHEDULE = {
     'periodic-update-every-minute': {
@@ -146,14 +146,15 @@ def periodic_update():
         pbclient.do_instance_patch(instance['id'], {'to_be_deleted': True})
         run_update.apply_async(
             args=[token, instance.get('id')],
-            queue='system_tasks',
+            queue=get_provisioning_queue(instance.get('id')),
         )
 
     if len(update_list) > 10:
         update_list = random.sample(update_list, 10)
     for instance in update_list:
         run_update.apply_async(
-            args=[token, instance.get('id')]
+            args=[token, instance.get('id')],
+            queue=get_provisioning_queue(instance.get('id')),
         )
 
 

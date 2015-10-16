@@ -1,12 +1,12 @@
-[program:{{ application_name }}-worker]
+[program:{{ application_name }}-worker-{{ item }}]
 command = {{ virtualenv_path }}/bin/celery worker
-    -n worker
+    -n provisioning-worker-{{ item }}
     -A pouta_blueprints.tasks
     -Ofair
     --loglevel={{ 'DEBUG' if deploy_mode == 'devel' else 'INFO' }}
-    --concurrency=4
+    --concurrency=1
     --maxtasksperchild=50
-    -Q celery
+    -Q provisioning_tasks-{{ item }}
 directory = {{ application_path }}
 user = {{ application_user }}
 stdout_logfile = {{ celery_log_file }}
