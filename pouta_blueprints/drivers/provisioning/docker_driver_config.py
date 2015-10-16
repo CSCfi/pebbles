@@ -23,7 +23,7 @@ CONFIG = {
             },
             'memory_limit': {
                 'type': 'string',
-                'default': '256m',
+                'default': '512m',
             },
             'consumed_slots': {
                 'type': 'integer',
