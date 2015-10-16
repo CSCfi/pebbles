@@ -121,9 +121,9 @@ class DockerDriverAccessProxy(object):
                 raise RuntimeError('run_ansible_on_host(%s) failed' % host['id'])
 
     @staticmethod
-    def proxy_add_route(route_id, target_url):
+    def proxy_add_route(route_id, target_url, proxy_no_rewrite):
         pouta_blueprints.tasks.proxy_add_route.apply_async(
-            args=[route_id, target_url],
+            args=[route_id, target_url, proxy_no_rewrite],
             queue='proxy_tasks'
         )
 
@@ -221,12 +221,19 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             publish_all_ports=True,
         )
 
+        proxy_route = uuid.uuid4().hex
+
         config = {
             'image': blueprint_config['docker_image'],
             'name': container_name,
             'labels': {'slots': '%d' % blueprint_config['consumed_slots']},
             'host_config': host_config,
         }
+        if len(blueprint_config.get('launch_command', '')):
+            launch_command = blueprint_config.get('launch_command').format(
+                proxy_path='/%s' % proxy_route
+            )
+            config['command'] = launch_command
 
         log_uploader.info("creating container '%s'\n" % container_name)
         container = docker_client.create_container(**config)
@@ -241,8 +248,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             public_port = ports[0]['HostPort']
         else:
             raise RuntimeError('Expected exactly one mapped port')
-
-        proxy_route = uuid.uuid4().hex
 
         instance_data = {
             'endpoints': [
@@ -269,7 +274,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         )
 
         log_uploader.info("adding route\n")
-        ap.proxy_add_route(proxy_route, 'http://%s:%s' % (selected_host['private_ip'], public_port))
+        ap.proxy_add_route(
+            proxy_route,
+            'http://%s:%s' % (selected_host['private_ip'], public_port),
+            blueprint_config.get('proxy_no_rewrite')
+        )
 
         log_uploader.info("provisioning done for %s\n" % instance_id)
 
