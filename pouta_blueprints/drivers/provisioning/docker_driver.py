@@ -204,11 +204,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         blueprint_config = blueprint['config']
 
         log_uploader.info("selecting host...")
-        docker_host = self._select_host(blueprint_config['consumed_slots'], cur_ts)
+
+        docker_hosts = self._select_hosts(blueprint_config['consumed_slots'], cur_ts)
+        selected_host = docker_hosts[0]
+
+        docker_client = ap.get_docker_client(selected_host['docker_url'])
 
         log_uploader.info("done\n")
-
-        docker_client = ap.get_docker_client(docker_host['docker_url'])
 
         container_name = instance['name']
 
@@ -253,8 +255,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                     )
                 },
             ],
-            'docker_url': docker_host['docker_url'],
-            'docker_host_id': docker_host['id'],
+            'docker_url': selected_host['docker_url'],
+            'docker_host_id': selected_host['id'],
             'proxy_route': proxy_route,
         }
 
@@ -267,13 +269,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         )
 
         log_uploader.info("adding route\n")
-        ap.proxy_add_route(proxy_route, 'http://%s:%s' % (docker_host['private_ip'], public_port))
+        ap.proxy_add_route(proxy_route, 'http://%s:%s' % (selected_host['private_ip'], public_port))
 
         log_uploader.info("provisioning done for %s\n" % instance_id)
 
     def do_deprovision(self, token, instance_id):
         ap = self._get_ap()
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+
         lock_id = 'dd_host:%s' % 'global'
         try:
             lock_res = pbclient.obtain_lock(lock_id)
@@ -501,33 +504,31 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             host['lifetime_left'] = lifetime
             self.logger.debug('do_housekeep(): host %s has lifetime %d' % (host['id'], lifetime))
 
-    def _select_host(self, slots, cur_ts):
+    def _select_hosts(self, slots, cur_ts):
         hosts = self._get_hosts(cur_ts)
         active_hosts = self.get_active_hosts(hosts)
 
         # first try to use the oldest active host with space and lifetime left
         active_hosts = sorted(active_hosts, key=lambda entry: entry['spawn_ts'])
-        selected_host = None
+        selected_hosts = []
         for host in active_hosts:
             is_fresh = host['lifetime_left'] > DD_HOST_LIFETIME_LOW
             has_enough_slots = host['num_slots'] - host['num_reserved_slots'] >= slots
             if is_fresh and has_enough_slots:
-                selected_host = host
-                break
-        if not selected_host:
+                selected_hosts.append(host)
+        if len(selected_hosts) == 0:
             # try to use any active host with space
             for host in active_hosts:
                 if host['num_slots'] - host['num_reserved_slots'] >= slots:
-                    selected_host = host
-                    break
+                    selected_hosts.append(host)
 
-        if not selected_host:
+        if len(selected_hosts) == 0:
             self.logger.debug('_select_host(): no space left, %d slots requested,'
                               ' active hosts: %s' % (slots, active_hosts))
             raise RuntimeWarning('_select_host(): no space left for requested %d slots' % slots)
 
-        self.logger.debug("_select_host(): %d total active, selected %s" % (len(active_hosts), selected_host))
-        return selected_host
+        self.logger.debug("_select_host(): %d total active, %d available" % (len(active_hosts), len(selected_hosts)))
+        return selected_hosts
 
     def _get_hosts(self, cur_ts):
         ap = self._get_ap()
@@ -563,7 +564,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         return hosts
 
-    @locked('%s/docker_driver_host_state' % DD_RUNTIME_PATH)
     def _save_host_state(self, hosts, cur_ts):
         ap = self._get_ap()
         data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
