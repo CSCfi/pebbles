@@ -55,9 +55,19 @@ class BlueprintList(restful.Resource):
         if 'maximum_lifetime' in form.config.data:
             try:
                 max_life_str = str(form.config.data['maximum_lifetime'])
-                m = re.match(r'^(\d+)d(\d{1,2})h(\d{1,2})m(\d{1,2})s$', max_life_str)
-                max_life_int = int(m.group(1)) * 86400 + int(m.group(2)) * 3600 + int(m.group(3)) * 60 + int(m.group(4))
-                blueprint.maximum_lifetime = max_life_int
+                m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?(\d{1,2}s\s?)?$', max_life_str)
+
+                days = hours = mins = secs = 0
+                if(m.group(1)):
+                    days = int(m.group(1).strip()[:-1])
+                if(m.group(2)):
+                    hours = int(m.group(2).strip()[:-1])
+                if(m.group(3)):
+                    mins = int(m.group(3).strip()[:-1])
+                if(m.group(4)):
+                    secs = int(m.group(4).strip()[:-1])
+
+                blueprint.maximum_lifetime = days * 86400 + hours * 3600 + mins * 60 + secs
             except:
                 pass
 
@@ -100,9 +110,20 @@ class BlueprintView(restful.Resource):
         if 'maximum_lifetime' in blueprint.config:
             try:
                 max_life_str = str(form.config.data['maximum_lifetime'])
-                m = re.match(r'^(\d+)d(\d{1,2})h(\d{1,2})m(\d{1,2})s$', max_life_str)
-                max_life_int = int(m.group(1)) * 86400 + int(m.group(2)) * 3600 + int(m.group(3)) * 60 + int(m.group(4))
-                blueprint.maximum_lifetime = max_life_int
+                m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?(\d{1,2}s\s?)?$', max_life_str)
+
+                days = hours = mins = secs = 0
+                if(m.group(1)):
+                    days = int(m.group(1).strip()[:-1])
+                if(m.group(2)):
+                    hours = int(m.group(2).strip()[:-1])
+                if(m.group(3)):
+                    mins = int(m.group(3).strip()[:-1])
+                if(m.group(4)):
+                    secs = int(m.group(4).strip()[:-1])
+
+                blueprint.maximum_lifetime = days * 86400 + hours * 3600 + mins * 60 + secs
+
             except:
                 pass
 
