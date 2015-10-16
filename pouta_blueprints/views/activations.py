@@ -67,4 +67,4 @@ class ActivationList(restful.Resource):
         db.session.add(token)
         db.session.commit()
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-            send_mails.delay([(user.email, token.token)])
+            send_mails.apply_async(args=[[(user.email, token.token)]], queue='system_tasks')
