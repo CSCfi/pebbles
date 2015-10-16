@@ -346,7 +346,7 @@ class FlaskApiTestCase(BaseTestCase):
             'name': 'test_blueprint_2',
             'config': {
                 "name": "foo",
-                "maximum_lifetime": '1234',
+                "maximum_lifetime": '0d2h30m0s',
                 "cost_multiplier": '0.1',
                 "preallocated_credits": "true",
             },
@@ -359,7 +359,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(put_response)
 
         blueprint = Blueprint.query.filter_by(id=self.known_blueprint_id_2).first()
-        self.assertEqual(blueprint.maximum_lifetime, 1234)
+        self.assertEqual(blueprint.maximum_lifetime, 9000)
         self.assertEqual(blueprint.cost_multiplier, 0.1)
         self.assertEqual(blueprint.preallocated_credits, True)
 
