@@ -122,17 +122,11 @@ class DockerDriverAccessProxy(object):
 
     @staticmethod
     def proxy_add_route(route_id, target_url, proxy_no_rewrite):
-        pouta_blueprints.tasks.proxy_add_route.apply_async(
-            args=[route_id, target_url, proxy_no_rewrite],
-            queue='proxy_tasks'
-        )
+        pouta_blueprints.tasks.proxy_add_route.delay(route_id, target_url, proxy_no_rewrite)
 
     @staticmethod
     def proxy_remove_route(route_id):
-        pouta_blueprints.tasks.proxy_remove_route.apply_async(
-            args=[route_id],
-            queue='proxy_tasks'
-        )
+        pouta_blueprints.tasks.proxy_remove_route.delay(route_id)
 
     @staticmethod
     def get_image_names():

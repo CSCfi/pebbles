@@ -81,6 +81,35 @@ logger = get_task_logger(__name__)
 if flask_config['DEBUG']:
     logger.setLevel('DEBUG')
 
+
+class TaskRouter(object):
+    def route_for_task(self, task, args=None, kwargs=None):
+        if task in (
+                "pouta_blueprints.tasks.send_mails",
+                "pouta_blueprints.tasks.periodic_update",
+                "pouta_blueprints.tasks.send_mails",
+                "pouta_blueprints.tasks.publish_plugins",
+                "pouta_blueprints.tasks.housekeeping",
+        ):
+            return {'queue': 'system_tasks'}
+
+        if task == "pouta_blueprints.tasks.update_user_connectivity":
+            instance_id = args[0]
+            return {'queue': get_provisioning_queue(instance_id)}
+
+        if task == "pouta_blueprints.tasks.run_update":
+            instance_id = args[1]
+            return {'queue': get_provisioning_queue(instance_id)}
+
+        if task in (
+                "pouta_blueprints.tasks.proxy_add_route",
+                "pouta_blueprints.tasks.proxy_remove_route"
+        ):
+            return {'queue': 'proxy_tasks'}
+
+        return {'queue': 'celery'}
+
+
 app = Celery(
     'tasks',
     broker=flask_config['MESSAGE_QUEUE_URI'],
@@ -97,6 +126,9 @@ app.conf.CELERY_QUEUES = (
     Queue('celery', routing_key='task.#'),
     Queue('proxy_tasks', routing_key='proxy_task.#'),
     Queue('system_tasks', routing_key='system_task.#'),
+)
+app.conf.CELERY_ROUTES = (
+    TaskRouter(),
 )
 
 app.conf.CELERYBEAT_SCHEDULE = {
@@ -144,18 +176,12 @@ def periodic_update():
     for instance in deprovision_list:
         logger.info('deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % instance.get('id'))
         pbclient.do_instance_patch(instance['id'], {'to_be_deleted': True})
-        run_update.apply_async(
-            args=[token, instance.get('id')],
-            queue=get_provisioning_queue(instance.get('id')),
-        )
+        run_update.delay(token, instance.get('id'))
 
     if len(update_list) > 10:
         update_list = random.sample(update_list, 10)
     for instance in update_list:
-        run_update.apply_async(
-            args=[token, instance.get('id')],
-            queue=get_provisioning_queue(instance.get('id')),
-        )
+        run_update.delay(token, instance.get('id'))
 
 
 @app.task(name="pouta_blueprints.tasks.send_mails")
