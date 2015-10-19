@@ -244,14 +244,14 @@ class Instance(db.Model):
     STATE_DELETED = 'deleted'
     STATE_FAILED = 'failed'
 
-    VALID_STATES = [
+    VALID_STATES = (
         STATE_QUEUEING,
         STATE_PROVISIONING,
         STATE_RUNNING,
         STATE_DELETING,
         STATE_DELETED,
         STATE_FAILED,
-    ]
+    )
 
     __tablename__ = 'instances'
     id = db.Column(db.String(32), primary_key=True)
