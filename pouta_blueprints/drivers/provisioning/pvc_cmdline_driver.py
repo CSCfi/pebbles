@@ -9,6 +9,7 @@ import stat
 
 from pouta_blueprints.drivers.provisioning import base_driver
 from pouta_blueprints.client import PBClient
+from pouta_blueprints.models import Instance
 
 
 class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
@@ -105,7 +106,7 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         key_data = pbclient.get_user_key_data(instance['user_id']).json()
         user_key_file = '%s/userkey.pub' % instance_dir
         if not key_data:
-            pbclient.do_instance_patch(instance_id, {'state': 'failed'})
+            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})
             raise RuntimeError("User's public key missing")
 
         with open(user_key_file, 'w') as kf:

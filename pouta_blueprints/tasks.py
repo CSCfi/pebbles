@@ -3,6 +3,7 @@ from email.mime.text import MIMEText
 import glob
 import json
 import logging
+import random
 from string import Template
 import os
 import smtplib
@@ -18,6 +19,8 @@ from pouta_blueprints.app import app as flask_app
 from pouta_blueprints.client import PBClient
 
 # tune requests to give less spam in development environment with self signed certificate
+from pouta_blueprints.models import Instance
+
 requests.packages.urllib3.disable_warnings()
 logging.getLogger("requests").setLevel(logging.WARNING)
 
@@ -68,6 +71,12 @@ def get_config():
     return dict([(x['key'], x['value']) for x in pbclient.do_get('variables').json()])
 
 
+def get_provisioning_queue(instance_id):
+    queue_num = ((int(instance_id[-2:], 16) % flask_config['PROVISIONING_NUM_WORKERS']) + 1)
+    logger.debug('selected queue %d/%d for %s' % (queue_num, flask_config['PROVISIONING_NUM_WORKERS'], instance_id))
+    return 'provisioning_tasks-%d' % queue_num
+
+
 logger = get_task_logger(__name__)
 if flask_config['DEBUG']:
     logger.setLevel('DEBUG')
@@ -83,22 +92,16 @@ app.conf.CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
 app.conf.CELERYD_PREFETCH_MULTIPLIER = 1
 app.conf.CELERY_TASK_SERIALIZER = 'json'
 
+app.conf.CELERY_CREATE_MISSING_QUEUES = True
 app.conf.CELERY_QUEUES = (
     Queue('celery', routing_key='task.#'),
     Queue('proxy_tasks', routing_key='proxy_task.#'),
     Queue('system_tasks', routing_key='system_task.#'),
 )
 
-# app.conf.CELERY_ROUTES = {
-#         'pouta_blueprints.tasks.proxy_add_route': {
-#             'queue': 'proxy_tasks',
-#             'routing_key': 'proxy_task.proxy_add_route',
-#         },
-# }
-
 app.conf.CELERYBEAT_SCHEDULE = {
-    'deprovision-expired-every-minute': {
-        'task': 'pouta_blueprints.tasks.deprovision_expired',
+    'periodic-update-every-minute': {
+        'task': 'pouta_blueprints.tasks.periodic_update',
         'schedule': crontab(minute='*/1'),
         'options': {'expires': 60, 'queue': 'system_tasks'},
     },
@@ -115,28 +118,44 @@ app.conf.CELERYBEAT_SCHEDULE = {
 }
 
 
-@app.task(name="pouta_blueprints.tasks.deprovision_expired")
-def deprovision_expired():
+@app.task(name="pouta_blueprints.tasks.periodic_update")
+def periodic_update():
     token = get_token()
     pbclient = PBClient(token, flask_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
     instances = pbclient.get_instances()
 
+    deprovision_list = []
+    update_list = []
     for instance in instances:
-        logger.debug('checking instance for expiration %s' % instance)
-        user = instance.get('user')
+        logger.debug('checking instance for actions %s' % instance['name'])
         deprovision_required = False
-        if not instance.get('state') in ['running']:
-            continue
+        if instance.get('state') in [Instance.STATE_RUNNING]:
+            if not instance.get('lifetime_left') and instance.get('maximum_lifetime'):
+                deprovision_required = True
 
-        if not instance.get('lifetime_left') and instance.get('maximum_lifetime'):
-            logger.info('deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % instance.get('id'))
-            deprovision_required = True
+            if deprovision_required:
+                deprovision_list.append(instance)
 
-        if deprovision_required:
-            run_deprovisioning.apply_async(
-                args=[token, instance.get('id')],
-                queue='system_tasks',
-            )
+        elif instance.get('state') not in [Instance.STATE_FAILED]:
+            update_list.append(instance)
+
+    if len(deprovision_list) > 10:
+        deprovision_list = random.sample(deprovision_list, 10)
+    for instance in deprovision_list:
+        logger.info('deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % instance.get('id'))
+        pbclient.do_instance_patch(instance['id'], {'to_be_deleted': True})
+        run_update.apply_async(
+            args=[token, instance.get('id')],
+            queue=get_provisioning_queue(instance.get('id')),
+        )
+
+    if len(update_list) > 10:
+        update_list = random.sample(update_list, 10)
+    for instance in update_list:
+        run_update.apply_async(
+            args=[token, instance.get('id')],
+            queue=get_provisioning_queue(instance.get('id')),
+        )
 
 
 @app.task(name="pouta_blueprints.tasks.send_mails")
@@ -195,25 +214,16 @@ def get_provisioning_type(token, instance_id):
     return pbclient.get_plugin_data(plugin_id)['name']
 
 
-def run_provisioning_impl(token, instance_id, method):
-    logger.info('%s triggered for %s' % (method, instance_id))
+@app.task(name="pouta_blueprints.tasks.run_update")
+def run_update(token, instance_id):
+    logger.info('update triggered for %s' % instance_id)
     mgr = get_provisioning_manager()
 
     plugin = get_provisioning_type(token, instance_id)
 
-    mgr.map_method([plugin], method, token, instance_id)
+    mgr.map_method([plugin], 'update', token, instance_id)
 
-    logger.info('%s done, notifying server' % method)
-
-
-@app.task(name="pouta_blueprints.tasks.run_provisioning")
-def run_provisioning(token, instance_id):
-    run_provisioning_impl(token, instance_id, 'provision')
-
-
-@app.task(name="pouta_blueprints.tasks.run_deprovisioning")
-def run_deprovisioning(token, instance_id):
-    run_provisioning_impl(token, instance_id, 'deprovision')
+    logger.info('update done, notifying server')
 
 
 @app.task(name="pouta_blueprints.tasks.publish_plugins")

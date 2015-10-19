@@ -12,6 +12,7 @@ import six
 
 from pouta_blueprints.logger import PBInstanceLogHandler
 from pouta_blueprints.client import PBClient
+from pouta_blueprints.models import Instance
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -62,6 +63,18 @@ class ProvisioningDriverBase(object):
                 {'style': 'btn-info', 'title': 'Create', 'type': 'submit'}
             ], 'model': {}}
 
+    def update(self, token, instance_id):
+        self.logger.debug("update('%s')" % instance_id)
+
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        instance = pbclient.get_instance(instance_id)
+        if not instance['to_be_deleted'] and instance['state'] in [Instance.STATE_QUEUEING]:
+            self.provision(token, instance_id)
+        elif instance['to_be_deleted'] and instance['state'] not in [Instance.STATE_DELETED]:
+            self.deprovision(token, instance_id)
+        else:
+            self.logger.debug("update('%s') - nothing to do for %s" % (instance_id, instance))
+
     def update_connectivity(self, token, instance_id):
         self.logger.debug('update connectivity')
         self.do_update_connectivity(token, instance_id)
@@ -69,33 +82,36 @@ class ProvisioningDriverBase(object):
     def provision(self, token, instance_id):
         self.logger.debug('starting provisioning')
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
-        pbclient.do_instance_patch(instance_id, {'state': 'provisioning'})
 
         try:
+            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_PROVISIONING})
             self.logger.debug('calling subclass do_provision')
-            self.do_provision(token, instance_id)
 
-            self.logger.debug('finishing provisioning')
-            pbclient.do_instance_patch(instance_id, {'state': 'running'})
+            new_state = self.do_provision(token, instance_id)
+            if not new_state:
+                new_state = Instance.STATE_RUNNING
+
+            pbclient.do_instance_patch(instance_id, {'state': new_state})
         except Exception as e:
             self.logger.exception('do_provision raised %s' % e)
-            pbclient.do_instance_patch(instance_id, {'state': 'failed'})
+            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})
             raise e
 
     def deprovision(self, token, instance_id):
         self.logger.debug('starting deprovisioning')
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
-        pbclient.do_instance_patch(instance_id, {'state': 'deprovisioning'})
+
         try:
+            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETING})
             self.logger.debug('calling subclass do_deprovision')
             self.do_deprovision(token, instance_id)
 
             self.logger.debug('finishing deprovisioning')
             pbclient.do_instance_patch(instance_id, {'deprovisioned_at': datetime.datetime.utcnow()})
-            pbclient.do_instance_patch(instance_id, {'state': 'deleted'})
+            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETED})
         except Exception as e:
             self.logger.exception('do_deprovision raised %s' % e)
-            pbclient.do_instance_patch(instance_id, {'state': 'failed'})
+            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})
             raise e
 
     def housekeep(self, token):

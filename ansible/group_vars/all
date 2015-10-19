@@ -79,6 +79,9 @@ apache_server_admin_email: "admin@example.org"
 gunicorn_num_workers: "{{ 2 * ansible_processor_vcpus }}"
 gunicorn_max_requests: 50
 
+# provisioning workers
+provisioning_num_workers: "{{ 4 * ansible_processor_vcpus }}"
+
 # pouta-virtualcluster
 pvc_install_dir: "/opt/pvc"
 #pvc_version: HEAD

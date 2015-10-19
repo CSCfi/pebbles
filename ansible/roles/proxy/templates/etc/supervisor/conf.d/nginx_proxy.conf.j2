@@ -16,7 +16,7 @@ command = {{ virtualenv_path }}/bin/celery worker
     -Ofair
     --loglevel={{ 'DEBUG' if deploy_mode == 'devel' else 'INFO' }}
     --concurrency=1
-    --maxtasksperchild=10
+    --maxtasksperchild=50
     -Q proxy_tasks
 directory = {{ application_path }}
 user = {{ application_user }}

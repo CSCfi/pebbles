@@ -1,8 +1,10 @@
 ---
-- name: Create the Supervisor config file for user tasks
-  template: src=etc/supervisor/conf.d/worker.conf.j2
-            dest=/etc/supervisor/conf.d/{{ application_name }}-worker.conf
-            backup=yes
+- name: Create the Supervisor config file for provisioning tasks
+  template:
+      src=etc/supervisor/conf.d/provisioning-worker.conf.j2
+      dest=/etc/supervisor/conf.d/{{ application_name }}-provisioning-worker-{{ item }}.conf
+      backup=yes
+  with_sequence: count={{ provisioning_num_workers }}
 
 - name: Create the Supervisor config file for system tasks
   template: src=etc/supervisor/conf.d/system-worker.conf.j2

@@ -7,6 +7,7 @@ from pouta_blueprints.drivers.provisioning.docker_driver import DD_STATE_ACTIVE,
 
 import mock
 from sys import version_info
+import docker.utils
 
 if version_info.major == 2:
     import __builtin__ as builtins
@@ -81,6 +82,9 @@ class DockerClientMock(object):
 
         return self._containers[:]
 
+    def create_host_config(self, *args, **kwargs):
+        return docker.utils.create_host_config(*args, **kwargs)
+
     def create_container(self, name, **kwargs):
         if self.failure_mode:
             raise RuntimeError('In failure mode')
@@ -133,6 +137,7 @@ class PBClientMock(object):
                     docker_image='csc/test_image',
                     internal_port=8888,
                     consumed_slots=1,
+                    memory_limit='512m',
                 ),
             )
         }
@@ -248,7 +253,7 @@ class DockerDriverTestCase(BaseTestCase):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
 
-        # check that a host gets createdDD_CONTAINERS_PER_HOST
+        # check that a host gets created
         cur_ts = 1000000
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 1)

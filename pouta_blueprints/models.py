@@ -237,6 +237,22 @@ class Blueprint(db.Model):
 
 
 class Instance(db.Model):
+    STATE_QUEUEING = 'queueing'
+    STATE_PROVISIONING = 'provisioning'
+    STATE_RUNNING = 'running'
+    STATE_DELETING = 'deleting'
+    STATE_DELETED = 'deleted'
+    STATE_FAILED = 'failed'
+
+    VALID_STATES = (
+        STATE_QUEUEING,
+        STATE_PROVISIONING,
+        STATE_RUNNING,
+        STATE_DELETING,
+        STATE_DELETED,
+        STATE_FAILED,
+    )
+
     __tablename__ = 'instances'
     id = db.Column(db.String(32), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
@@ -247,7 +263,8 @@ class Instance(db.Model):
     provisioned_at = db.Column(db.DateTime)
     deprovisioned_at = db.Column(db.DateTime)
     errored = db.Column(db.Boolean, default=False)
-    state = db.Column(db.String(32))
+    _state = db.Column('state', db.String(32))
+    to_be_deleted = db.Column(db.Boolean, default=False)
     error_msg = db.Column(db.String(256))
     _instance_data = db.Column('instance_data', db.Text)
 
@@ -256,7 +273,7 @@ class Instance(db.Model):
         self.blueprint_id = blueprint.id
         self.blueprint = blueprint
         self.user_id = user.id
-        self.state = 'starting'
+        self._state = Instance.STATE_QUEUEING
 
     def credits_spent(self, duration=None):
         if self.errored:
@@ -295,6 +312,17 @@ class Instance(db.Model):
     @instance_data.setter
     def instance_data(self, value):
         self._instance_data = json.dumps(value)
+
+    @hybrid_property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        if value in Instance.VALID_STATES:
+            self._state = value
+        else:
+            raise ValueError("'%s' is not a valid state" % value)
 
     @staticmethod
     def generate_name(prefix):
@@ -399,7 +427,7 @@ class Variable(db.Model):
 
     filtered_variables = (
         'SECRET_KEY', 'INTERNAL_API_BASE_URL', 'SQLALCHEMY_DATABASE_URI', 'WTF_CSRF_ENABLED',
-        'MESSAGE_QUEUE_URI', 'SSL_VERIFY', 'ENABLE_SHIBBOLETH_LOGIN')
+        'MESSAGE_QUEUE_URI', 'SSL_VERIFY', 'ENABLE_SHIBBOLETH_LOGIN', 'PROVISIONING_NUM_WORKERS')
 
     id = db.Column(db.String(32), primary_key=True)
     key = db.Column(db.String(MAX_VARIABLE_KEY_LENGTH), unique=True)

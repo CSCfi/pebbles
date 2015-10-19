@@ -6,6 +6,7 @@ import novaclient
 
 from pouta_blueprints.drivers.provisioning import base_driver
 from pouta_blueprints.client import PBClient
+from pouta_blueprints.models import Instance
 
 SLEEP_BETWEEN_POLLS = 3
 POLL_MAX_WAIT = 180
@@ -89,7 +90,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         key_data = pbclient.get_user_key_data(instance_user).json()
         if not key_data:
             error = 'user\'s public key is missing'
-            error_body = {'state': 'failed', 'error_msg': error}
+            error_body = {'state': Instance.STATE_FAILED, 'error_msg': error}
             pbclient.do_instance_patch(instance_id, error_body)
             self.logger.debug(error)
             raise RuntimeError(error)
