@@ -318,7 +318,15 @@ class ListInstanceVolumes(task.Task):
         nc = get_openstack_nova_client(config)
         return nc.volumes.get_server_volumes(server_id)
 
-    def revert(self, *args, **kwargs):
+    def revert(self):
+        pass
+
+
+class GetInstancePublicIP(task.Task):
+    def execute(self, server_id):
+        pass
+
+    def revert(self):
         pass
 
 
@@ -463,14 +471,6 @@ def uploadKeyFlow():
     return lf.Flow('UploadKey').add(
         AddUserPublicKey('upload_key')
     )
-
-deprovisionFlow = lf.Flow('DeprovisionInstance').add(
-    ListInstanceVolumes('list_server_volumes', provides='volumes'),
-    gf.Flow('DeleteAttachments').add(
-        DeprovisionInstance('deprovision_instance')
-    ),
-    DeleteSecurityGroup('delete_security_group')
-)
 
 listImagesFlow = lf.Flow('ListImages').add(
     ListImages('list_images')
