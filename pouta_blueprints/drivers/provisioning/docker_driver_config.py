@@ -21,6 +21,9 @@ CONFIG = {
             'internal_port': {
                 'type': 'integer'
             },
+            'launch_command': {
+                'type': 'string',
+            },
             'memory_limit': {
                 'type': 'string',
                 'default': '512m',
@@ -46,7 +49,12 @@ CONFIG = {
             },
             'needs_ssh_keys': {
                 'type': 'boolean',
-                'title': "Needs ssh-keys to access",
+                'title': 'Needs ssh-keys to access',
+                'default': False,
+            },
+            'proxy_no_rewrite': {
+                'type': 'boolean',
+                'title': 'Skip rewriting and redirecting the proxy url',
                 'default': False,
             },
         }
@@ -60,20 +68,23 @@ CONFIG = {
         'description',
         'docker_image',
         'internal_port',
+        'launch_command',
         'memory_limit',
         'consumed_slots',
         'maximum_instances_per_user',
         'maximum_lifetime',
         'cost_multiplier',
+        'proxy_no_rewrite',
     ],
     'model': {
         'name': 'docker-rstudio',
         'description': 'docker blueprint',
         'docker_image': 'rocker.rstudio.img',
         'internal_port': 8787,
-        'memory_limit': '256m',
+        'memory_limit': '512m',
         'cost_multiplier': 0.0,
         'consumed_slots': 1,
         'needs_ssh_keys': False,
+        'proxy_no_rewrite': False,
     }
 }
