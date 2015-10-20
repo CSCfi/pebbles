@@ -589,21 +589,16 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             flavor_name = self.config['DD_HOST_FLAVOR_NAME_SMALL']
             flavor_slots = self.config['DD_HOST_FLAVOR_SLOTS_SMALL']
 
-        key_name = 'pb_dockerdriver'
-
         oss = self._get_ap().get_openstack_service({
             'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']
         })
-
-        # make sure the our key is in openstack
-        oss.upload_key(key_name, key_file='/home/pouta_blueprints/.ssh/id_rsa.pub')
 
         # run actual provisioning
         res = oss.provision_instance(
             display_name=instance_name,
             image_name=image_name,
             flavor_name=flavor_name,
-            key_name=key_name,
+            public_key=open('/home/pouta_blueprints/.ssh/id_rsa.pub').read(),
             master_sg_name=self.config['DD_HOST_MASTER_SG'],
             extra_sec_groups=[x.strip() for x in self.config['DD_HOST_EXTRA_SGS'].split()],
             allocate_public_ip=False,
@@ -612,9 +607,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         )
 
         self.logger.debug("_spawn_host_os_service: spawned %s" % res)
-
-        # remove the key from OpenStack
-        oss.delete_key(key_name)
 
         return {
             'id': instance_name,

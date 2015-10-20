@@ -51,8 +51,6 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
     def do_provision(self, token, instance_id):
         self.logger.debug("do_provision %s" % instance_id)
 
-        prefix = self.config['INSTANCE_NAME_PREFIX']
-
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance_description(instance_id)
 
@@ -77,23 +75,23 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
 
         oss = OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
 
-        key_name = '%s%s' % (prefix, instance_user)
-
-        security_group_name = instance_name
-
         result = oss.provision_instance(
             instance_name,
             config['image'],
             config['flavor'],
-            key_name=key_name,
-            security_groups=[security_group_name],
+            public_key=key_data,
             userdata=config.get('userdata'))
 
-        ip = result['ip'].ip
+        if 'error' in result:
+            log_uploader.warn('Provisioning failed %s' % result['error'])
+            return
+
+        ip = result['address_data']['public_ip']
         instance_data = {
-            'server_id': result['server'].id,
+            'server_id': result['server_id'],
             'floating_ip': ip,
-            'allocated_from_pool': result['ip'].allocated_from_pool,
+            'allocated_from_pool': result['address_data']['allocated_from_pool'],
+            'security_group_id': result['security_group'],
             'endpoints': [
                 {'name': 'SSH', 'access': 'ssh cloud-user@%s' % ip},
             ]
@@ -110,45 +108,16 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance_description(instance_id)
         instance_data = instance['instance_data']
+        if 'server_id' not in instance_data:
+            log_uploader.info("Skipping, no server id in instance data")
+            return
+
         server_id = instance_data['server_id']
-        nc = self.get_openstack_nova_client()
+
+        oss = OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
 
         log_uploader.info("Destroying server instance . . ")
-        try:
-            nc.servers.delete(server_id)
-        except:
-            log_uploader.info("Unable to delete server\n")
-
-        delete_ts = time.time()
-        while True:
-            try:
-                nc.servers.get(server_id)
-                log_uploader.info(" . ")
-                time.sleep(SLEEP_BETWEEN_POLLS)
-            except:
-                log_uploader.info("Server instance deleted\n")
-                break
-
-            if time.time() - delete_ts > POLL_MAX_WAIT:
-                log_uploader.info("Server instance still running, giving up\n")
-                break
-
-        if instance_data.get('allocated_from_pool'):
-            log_uploader.info("Releasing public IP\n")
-            try:
-                nc.floating_ips.delete(nc.floating_ips.find(ip=instance_data['floating_ip']).id)
-            except:
-                log_uploader.info("Unable to release public IP\n")
-        else:
-            log_uploader.info("Not releasing public IP\n")
-
-        log_uploader.info("Removing security group\n")
-        try:
-            sg = nc.security_groups.get(server_id)
-            nc.security_groups.delete(sg.id)
-        except:
-            log_uploader.info("Unable to delete security group\n")
-
+        oss.deprovision_instance(server_id)
         log_uploader.info("Deprovisioning ready\n")
 
     def do_housekeep(self, token):
