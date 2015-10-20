@@ -359,7 +359,7 @@ class AddUserPublicKey(task.Task):
 
     def revert(self, display_name, public_key, config, **kwargs):
         nc = get_openstack_nova_client(config)
-        nc.keypairs.find(display_name).delete()
+        nc.keypairs.find(name=display_name).delete()
 
 
 class RemoveUserPublicKey(task.Task):
