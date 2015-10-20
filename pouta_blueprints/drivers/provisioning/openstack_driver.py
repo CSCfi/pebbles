@@ -81,7 +81,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
             instance_name,
             config['image'],
             config['flavor'],
-            public_key=key_data,
+            public_key=key_data[0]['public_key'],
             userdata=config.get('userdata'))
 
         if 'error' in result:

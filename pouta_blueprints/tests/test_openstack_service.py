@@ -5,8 +5,6 @@ from pouta_blueprints.services import openstack_service
 from pouta_blueprints.tests.test_mocks import NovaClientMock
 from sys import version_info
 
-openstack_service.logger.disabled = True
-
 mock_nc_config = (
     '{"OS_PASSWORD": "password", "OS_AUTH_URL": "https://example.org",'
     '"OS_USERNAME": "username", "OS_TENANT_NAME": "tenant"}')
@@ -40,6 +38,6 @@ class OpenStackServiceTestCase(BaseTestCase):
     def test_provision(self):
         oss = openstack_service.OpenStackService()
         resp = oss.provision_instance(
-            'display_name', 'image_name', 'flavor_name', 'key_name', [],
+            'display_name', 'image_name', 'flavor_name', '', [],
             master_sg_name='master_sg_name', data_volume_size=10)
         self.assertEquals(resp.get('server_id'), 'instance_1')

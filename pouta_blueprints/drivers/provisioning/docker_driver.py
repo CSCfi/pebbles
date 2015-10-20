@@ -27,7 +27,7 @@ DD_PROVISION_RETRIES = 10
 DD_PROVISION_RETRY_SLEEP = 30
 DD_MAX_HOST_ERRORS = 5
 
-DD_RUNTIME_PATH = '/webapps/pouta_blueprints/run'
+DD_RUNTIME_PATH = '/tmp'
 DD_IMAGE_DIRECTORY = '/images'
 
 

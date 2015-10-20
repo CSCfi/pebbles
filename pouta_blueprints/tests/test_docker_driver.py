@@ -37,9 +37,11 @@ class OpenStackServiceMock(object):
         self.spawn_count = 0
         self.servers = []
 
-    def provision_instance(self, display_name, image_name, flavor_name, key_name, extra_sec_groups,
+    def provision_instance(self, display_name, image_name, flavor_name,
+                           public_key, extra_sec_groups=None,
                            master_sg_name=None, allocate_public_ip=True,
-                           root_volume_size=0, data_volume_size=0):
+                           root_volume_size=0, data_volume_size=0, userdata=None
+                           ):
         self.spawn_count += 1
         res = dict(
             server_id='%s' % self.spawn_count

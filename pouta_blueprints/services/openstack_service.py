@@ -185,7 +185,7 @@ class CreateDataVolume(task.Task):
             return volume.id
         else:
             logging.debug("no root volume defined")
-            return ""
+            return None
 
     def revert(self, config, **kwargs):
         logging.debug("revert: delete root volume")
@@ -213,8 +213,6 @@ class ProvisionInstance(task.Task):
                 bdm = {'vda': '%s:::1' % (root_volume_id)}
             else:
                 bdm = None
-            logging.warn("using key %s " % display_name)
-            nc.keypairs.find(name=display_name)
             instance = nc.servers.create(
                 display_name,
                 image.id,
@@ -246,8 +244,8 @@ class ProvisionInstance(task.Task):
 
 class DeprovisionInstance(task.Task):
     def execute(self, server_id, config):
+        logging.debug("deprovisioning instance %s" % server_id)
         nc = get_openstack_nova_client(config)
-        logging.warn("DeprovisionInstance")
         try:
             server = nc.servers.get(server_id)
             server.delete()
@@ -259,7 +257,7 @@ class DeprovisionInstance(task.Task):
             logging.warn("Unable to deprovision server %s" % e)
 
     def revert(self, *args, **kwargs):
-        logging.warn("revert DeprovisionInstance")
+        logging.debug("revert: deprovisioning instance failed")
 
 
 class AllocateIPForInstance(task.Task):
@@ -322,14 +320,6 @@ class ListInstanceVolumes(task.Task):
         pass
 
 
-class GetInstancePublicIP(task.Task):
-    def execute(self, server_id):
-        pass
-
-    def revert(self):
-        pass
-
-
 class AttachDataVolume(task.Task):
     def execute(self, server_id, data_volume_id, config):
         logging.debug("Attach data volume for server %s" % server_id)
@@ -353,17 +343,19 @@ class AttachDataVolume(task.Task):
 
 class AddUserPublicKey(task.Task):
     def execute(self, display_name, public_key, config):
+        logging.debug("adding user public key")
         nc = get_openstack_nova_client(config)
-        key_data = public_key[0]['public_key']
-        nc.keypairs.create(display_name, key_data)
+        nc.keypairs.create(display_name, public_key)
 
     def revert(self, display_name, public_key, config, **kwargs):
+        logging.debug("revert: remove user public key")
         nc = get_openstack_nova_client(config)
         nc.keypairs.find(name=display_name).delete()
 
 
 class RemoveUserPublicKey(task.Task):
     def execute(self, display_name, config):
+        logging.debug("removing user public key")
         nc = get_openstack_nova_client(config)
         try:
             nc.keypairs.find(name=display_name).delete()
@@ -376,8 +368,8 @@ class RemoveUserPublicKey(task.Task):
 
 class DeleteSecurityGroup(task.Task):
     def execute(self, server, config):
+        logging.debug("delete security group")
         nc = get_openstack_nova_client(config)
-        logging.info('DeleteSecurityGroup')
         security_groups = nc.security_groups.findall(name="oss_test_harri")
         for security_group in security_groups:
             try:
@@ -455,30 +447,10 @@ def getDeprovisionFlow():
             {'pre': preFlow, 'main': mainFlow, 'post': postFlow})
 
 
-def getListImagesFlow():
-    return lf.Flow('ListImages').add(
-        ListImages('list_images', provides="images")
-    )
-
-
-def getListFlavorsFlow():
-    return lf.Flow('ListFlavors').add(
-        ListFlavors('list_flavors', provides="flavors")
-    )
-
-
-def uploadKeyFlow():
+def getUploadKeyFlow():
     return lf.Flow('UploadKey').add(
         AddUserPublicKey('upload_key')
     )
-
-listImagesFlow = lf.Flow('ListImages').add(
-    ListImages('list_images')
-)
-
-listFlavorsFlow = lf.Flow('ListFlavors').add(
-    ListFlavors('list_flavors')
-)
 
 
 class OpenStackService(object):
@@ -537,7 +509,7 @@ class OpenStackService(object):
 
     def upload_key(self, key_name, key_file):
         try:
-            return taskflow.engines.run(uploadKeyFlow, engine='parallel', store=dict(
+            return taskflow.engines.run(getUploadKeyFlow(), engine='parallel', store=dict(
                 config=self._config))
         except Exception as e:
             logging.error(e)
