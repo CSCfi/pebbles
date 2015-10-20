@@ -28,13 +28,16 @@ def get_openstack_nova_client(config):
     else:
         logger.debug("no config, trying environment vars")
         source_config = os.environ
-
     os_username = source_config['OS_USERNAME']
     os_password = source_config['OS_PASSWORD']
     os_tenant_name = source_config['OS_TENANT_NAME']
     os_auth_url = source_config['OS_AUTH_URL']
-
     return client.Client(os_username, os_password, os_tenant_name, os_auth_url, service_type="compute")
+
+class GetImages(task.Tasks):
+    def execute(self, config):
+        nc = get_openstack_nova_client(config)
+        return nc.images.find.
 
 
 class GetImage(task.Task):
@@ -382,7 +385,10 @@ class OpenStackService(object):
                     (vol.id, vol.display_name, '%s-data' % name)
                 )
 
-    def upload_key(self, key_name, key_file):
+    def upload_key(self, key_name, key_file=None, key_data=None):
+        if not key_file and not key_data:
+            raise RuntimeError("no key_file or key_data given")
+
         nc = get_openstack_nova_client(self._config)
         try:
             nc.keypairs.find(name=key_name)
@@ -405,3 +411,27 @@ class OpenStackService(object):
             key.delete()
         except:
             logger.warning('Key not found: %s' % key_name)
+
+    def clear_security_group_rules(self, group_id):
+        nc = get_openstack_nova_client(self._config)
+        for rule in sg.rules:
+            nc.security_group_rules.delete(rule["id"])
+
+    def create_security_group_rule(self, security_group_id, from_port, to_port, cidr, ip_protocol='tcp')
+        nc = get_openstack_nova_client(self._config)
+        nc.security_group_rules.create(
+            security_group_id,
+            ip_protocol=ip_protocol,
+            from_port=from_port,
+            to_port=to_port,
+            cidr=cidr,
+            group_id=None
+        )
+
+    def list_images(self):
+        nc = get_openstack_nova_client(self._config)
+        return nc.images.list()
+
+    def list_flavors(self):
+        nc = get_openstack_nova_client(self._config)
+        return nc.flavors.list()

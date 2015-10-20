@@ -596,7 +596,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         })
 
         # make sure the our key is in openstack
-        oss.upload_key(key_name, '/home/pouta_blueprints/.ssh/id_rsa.pub')
+        oss.upload_key(key_name, key_file='/home/pouta_blueprints/.ssh/id_rsa.pub')
 
         # run actual provisioning
         res = oss.provision_instance(
