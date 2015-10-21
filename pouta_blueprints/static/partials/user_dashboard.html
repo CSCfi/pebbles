@@ -44,7 +44,7 @@
                                 </small></td>
                                 <td>
                                     <button ng-click="deprovision(instance)" type="submit" class="btn btn-xs btn-danger" ng-disabled="instance.state=='deleting'" >
-                                        <span class="fa fa-times"></span> Destroy
+                                        <span class="glyphicon glyphicon-times"></span> Destroy
                                     </button>
                                 </td>
                             </tr>
@@ -53,7 +53,7 @@
                 </div>
                 <div class="panel-footer text-center">
                     <a ng-click="provision(blueprint)" class="btn btn-block btn-primary" ng-disabled="blueprint.config.needs_ssh_keys && !keypair_exists()">
-                        <span class="fa fa-chevron-right" aria-hidden="true"></span> Launch new
+                        <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch new
                     </a>
                     <span ng-show="blueprint.config.needs_ssh_keys && keypairs && !keypair_exists()">
                         To launch instances, first <a href="/#/account">add SSH keys</a>.
