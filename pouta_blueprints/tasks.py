@@ -294,7 +294,7 @@ def update_user_connectivity(instance_id):
 
 
 @app.task(name="pouta_blueprints.tasks.proxy_add_route")
-def proxy_add_route(route_key, target, no_rewrite_rules=False):
+def proxy_add_route(route_key, target):
     logger.info('proxy_add_route(%s, %s)' % (route_key, target))
 
     # generate a location snippet for nginx proxy config
@@ -302,19 +302,12 @@ def proxy_add_route(route_key, target, no_rewrite_rules=False):
     template = Template(
         """
         location /${route_key}/ {
-          ${no_rw}rewrite ^/${route_key}/(.*)$$ /$$1 break;
+          rewrite ^/${route_key}/(.*)$$ /$$1 break;
           proxy_pass ${target};
-          ${no_rw}proxy_redirect ${target} $$scheme://$$host:${public_http_proxy_port}/${route_key};
-          proxy_set_header Upgrade $$http_upgrade;
-          proxy_set_header Connection "upgrade";
+          proxy_redirect ${target} $$scheme://$$host:${public_http_proxy_port}/${route_key};
         }
         """
     )
-
-    if no_rewrite_rules:
-        no_rw = '#'
-    else:
-        no_rw = ''
 
     path = '%s/route_key-%s' % (RUNTIME_PATH, route_key)
     with open(path, 'w') as f:
@@ -322,8 +315,7 @@ def proxy_add_route(route_key, target, no_rewrite_rules=False):
             template.substitute(
                 route_key=route_key,
                 target=target,
-                public_http_proxy_port=get_config()['PUBLIC_HTTP_PROXY_PORT'],
-                no_rw=no_rw
+                public_http_proxy_port=get_config()['PUBLIC_HTTP_PROXY_PORT']
             )
         )
 
