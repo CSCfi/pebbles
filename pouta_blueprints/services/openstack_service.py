@@ -404,7 +404,7 @@ class DeleteVolumes(task.Task):
         pass
 
 
-def getProvisionFlow():
+def get_provision_flow():
     """
     Provisioning flow consisting of three graph flows, each consisting of set of
     tasks that can execute in parallel.
@@ -412,39 +412,39 @@ def getProvisionFlow():
     Returns tuple consisting of the whole flow and a dictionary including
     references to three graph flows for pre-execution customisations.
     """
-    preFlow = gf.Flow('PreBootInstance').add(
+    pre_flow = gf.Flow('PreBootInstance').add(
         AddUserPublicKey('add_user_public_key'),
         GetImage('get_image', provides='image'),
         GetFlavor('get_flavor', provides='flavor'),
         CreateRootVolume('create_root_volume', provides='root_volume_id')
     )
-    mainFlow = gf.Flow('BootInstance').add(
+    main_flow = gf.Flow('BootInstance').add(
         CreateSecurityGroup('create_security_group', provides='security_group'),
         CreateDataVolume('create_data_volume', provides='data_volume_id'),
         ProvisionInstance('provision_instance', provides='server_id')
     )
-    postFlow = gf.Flow('PostBootInstance').add(
+    post_flow = gf.Flow('PostBootInstance').add(
         AllocateIPForInstance('allocate_ip_for_instance', provides='address_data'),
         AttachDataVolume('attach_data_volume'),
         RemoveUserPublicKey('remove_user_public_key')
     )
-    return (lf.Flow('ProvisionInstance').add(preFlow, mainFlow, postFlow),
-            {'pre': preFlow, 'main': mainFlow, 'post': postFlow})
+    return (lf.Flow('ProvisionInstance').add(pre_flow, main_flow, post_flow),
+            {'pre': pre_flow, 'main': main_flow, 'post': post_flow})
 
 
-def getDeprovisionFlow():
-    preFlow = gf.Flow('PreDestroyInstance').add(
+def get_deprovision_flow():
+    pre_flow = gf.Flow('PreDestroyInstance').add(
         GetServer('get_server', provides="server")
     )
-    mainFlow = gf.Flow('DestroyInstance').add(
+    main_flow = gf.Flow('DestroyInstance').add(
         DeprovisionInstance('deprovision_instance')
     )
-    postFlow = gf.Flow('PostDestroyInstance').add(
+    post_flow = gf.Flow('PostDestroyInstance').add(
         DeleteSecurityGroup('delete_security_group')
     )
 
-    return (lf.Flow('DeprovisionInstance').add(preFlow, mainFlow, postFlow),
-            {'pre': preFlow, 'main': mainFlow, 'post': postFlow})
+    return (lf.Flow('DeprovisionInstance').add(pre_flow, main_flow, post_flow),
+            {'pre': pre_flow, 'main': main_flow, 'post': post_flow})
 
 
 def getUploadKeyFlow():
@@ -461,7 +461,7 @@ class OpenStackService(object):
                            master_sg_name=None, allocate_public_ip=True, root_volume_size=0,
                            data_volume_size=0, userdata=None):
         try:
-            flow, _ = getProvisionFlow()
+            flow, _ = get_provision_flow()
             return taskflow.engines.run(flow, engine='parallel', store=dict(
                 image_name=image_name,
                 flavor_name=flavor_name,
@@ -479,7 +479,7 @@ class OpenStackService(object):
             return {'error': 'flow failed'}
 
     def deprovision_instance(self, server_id, display_name=None, delete_attached_volumes=False):
-        flow, subflows = getDeprovisionFlow()
+        flow, subflows = get_deprovision_flow()
         if delete_attached_volumes:
             subflows['main'].add(DeleteVolumes())
 
