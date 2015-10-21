@@ -370,7 +370,7 @@ class DeleteSecurityGroup(task.Task):
     def execute(self, server, config):
         logging.debug("delete security group")
         nc = get_openstack_nova_client(config)
-        security_groups = nc.security_groups.findall(name="oss_test_harri")
+        security_groups = nc.security_groups.findall(name=server.name)
         for security_group in security_groups:
             try:
                 security_group.delete()
