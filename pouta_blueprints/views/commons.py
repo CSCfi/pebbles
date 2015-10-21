@@ -27,7 +27,6 @@ blueprint_fields = {
     'form': fields.Raw
 }
 
-
 auth = HTTPBasicAuth()
 auth.authenticate_header = lambda: "Authentication Required"
 
@@ -79,7 +78,7 @@ def invite_user(email, password=None, is_admin=False):
     db.session.commit()
 
     if not app.dynamic_config['SKIP_TASK_QUEUE'] and not app.dynamic_config['MAIL_SUPPRESS_SEND']:
-        send_mails.apply_async(args=[[(user.email, token.token)]], queue='system_tasks')
+        send_mails.delay([(user.email, token.token)])
     else:
         logging.warn(
             "email sending suppressed in config: SKIP_TASK_QUEUE:%s MAIL_SUPPRESS_SEND:%s" %

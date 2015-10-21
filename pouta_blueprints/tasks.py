@@ -81,6 +81,35 @@ logger = get_task_logger(__name__)
 if flask_config['DEBUG']:
     logger.setLevel('DEBUG')
 
+
+class TaskRouter(object):
+    def route_for_task(self, task, args=None, kwargs=None):
+        if task in (
+                "pouta_blueprints.tasks.send_mails",
+                "pouta_blueprints.tasks.periodic_update",
+                "pouta_blueprints.tasks.send_mails",
+                "pouta_blueprints.tasks.publish_plugins",
+                "pouta_blueprints.tasks.housekeeping",
+        ):
+            return {'queue': 'system_tasks'}
+
+        if task == "pouta_blueprints.tasks.update_user_connectivity":
+            instance_id = args[0]
+            return {'queue': get_provisioning_queue(instance_id)}
+
+        if task == "pouta_blueprints.tasks.run_update":
+            instance_id = args[1]
+            return {'queue': get_provisioning_queue(instance_id)}
+
+        if task in (
+                "pouta_blueprints.tasks.proxy_add_route",
+                "pouta_blueprints.tasks.proxy_remove_route"
+        ):
+            return {'queue': 'proxy_tasks'}
+
+        return {'queue': 'celery'}
+
+
 app = Celery(
     'tasks',
     broker=flask_config['MESSAGE_QUEUE_URI'],
@@ -97,6 +126,9 @@ app.conf.CELERY_QUEUES = (
     Queue('celery', routing_key='task.#'),
     Queue('proxy_tasks', routing_key='proxy_task.#'),
     Queue('system_tasks', routing_key='system_task.#'),
+)
+app.conf.CELERY_ROUTES = (
+    TaskRouter(),
 )
 
 app.conf.CELERYBEAT_SCHEDULE = {
@@ -144,18 +176,12 @@ def periodic_update():
     for instance in deprovision_list:
         logger.info('deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % instance.get('id'))
         pbclient.do_instance_patch(instance['id'], {'to_be_deleted': True})
-        run_update.apply_async(
-            args=[token, instance.get('id')],
-            queue=get_provisioning_queue(instance.get('id')),
-        )
+        run_update.delay(token, instance.get('id'))
 
     if len(update_list) > 10:
         update_list = random.sample(update_list, 10)
     for instance in update_list:
-        run_update.apply_async(
-            args=[token, instance.get('id')],
-            queue=get_provisioning_queue(instance.get('id')),
-        )
+        run_update.delay(token, instance.get('id'))
 
 
 @app.task(name="pouta_blueprints.tasks.send_mails")
@@ -268,7 +294,7 @@ def update_user_connectivity(instance_id):
 
 
 @app.task(name="pouta_blueprints.tasks.proxy_add_route")
-def proxy_add_route(route_key, target, no_rewrite_rules=False):
+def proxy_add_route(route_key, target):
     logger.info('proxy_add_route(%s, %s)' % (route_key, target))
 
     # generate a location snippet for nginx proxy config
@@ -276,19 +302,12 @@ def proxy_add_route(route_key, target, no_rewrite_rules=False):
     template = Template(
         """
         location /${route_key}/ {
-          ${no_rw}rewrite ^/${route_key}/(.*)$$ /$$1 break;
+          rewrite ^/${route_key}/(.*)$$ /$$1 break;
           proxy_pass ${target};
-          ${no_rw}proxy_redirect ${target} $$scheme://$$host:${public_http_proxy_port}/${route_key};
-          proxy_set_header Upgrade $$http_upgrade;
-          proxy_set_header Connection "upgrade";
+          proxy_redirect ${target} $$scheme://$$host:${public_http_proxy_port}/${route_key};
         }
         """
     )
-
-    if no_rewrite_rules:
-        no_rw = '#'
-    else:
-        no_rw = ''
 
     path = '%s/route_key-%s' % (RUNTIME_PATH, route_key)
     with open(path, 'w') as f:
@@ -296,8 +315,7 @@ def proxy_add_route(route_key, target, no_rewrite_rules=False):
             template.substitute(
                 route_key=route_key,
                 target=target,
-                public_http_proxy_port=get_config()['PUBLIC_HTTP_PROXY_PORT'],
-                no_rw=no_rw
+                public_http_proxy_port=get_config()['PUBLIC_HTTP_PROXY_PORT']
             )
         )
 
