@@ -27,7 +27,7 @@ DD_PROVISION_RETRIES = 10
 DD_PROVISION_RETRY_SLEEP = 30
 DD_MAX_HOST_ERRORS = 5
 
-DD_RUNTIME_PATH = '/tmp'
+DD_RUNTIME_PATH = '/webapps/pouta_blueprints/run'
 DD_IMAGE_DIRECTORY = '/images'
 
 
@@ -536,7 +536,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                               ' active hosts: %s' % (slots, active_hosts))
             raise RuntimeWarning('_select_host(): no space left for requested %d slots' % slots)
 
-        self.logger.debug("_select_host(): %d total active, %d available" % (len(active_hosts), len(selected_hosts)))
+        self.logger.debug("_select_host(): %d total active, %d available" % (len(active_hosts),
+                                                                             len(selected_hosts)))
         return selected_hosts
 
     def _get_hosts(self, cur_ts):
@@ -607,13 +608,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         )
 
         self.logger.debug("_spawn_host_os_service: spawned %s" % res)
-
+        private_ip = res['address_data']['private_ip']
+        public_ip = res['address_data']['public_ip']
         return {
             'id': instance_name,
             'provider_id': res['server_id'],
-            'docker_url': 'https://%s:2376' % res['ip']['private_ip'],
-            'public_ip': res['ip']['public_ip'],
-            'private_ip': res['ip']['private_ip'],
+            'docker_url': 'https://%s:2376' % private_ip,
+            'public_ip': public_ip,
+            'private_ip': private_ip,
             'spawn_ts': cur_ts,
             'state': DD_STATE_SPAWNED,
             'num_reserved_slots': 0,
