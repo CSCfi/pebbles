@@ -70,7 +70,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
             self.logger.debug(error)
             raise RuntimeError(error)
 
-        oss = OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
+        oss = self.get_oss()
 
         result = oss.provision_instance(
             instance_name,
@@ -112,7 +112,6 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
 
         server_id = instance_data['server_id']
 
-        oss = OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
         log_uploader.info("Destroying server instance . . ")
         oss.deprovision_instance(server_id)
         log_uploader.info("Deprovisioning ready\n")
