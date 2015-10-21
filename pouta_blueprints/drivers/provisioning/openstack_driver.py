@@ -31,22 +31,17 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance_description(instance_id)
         instance_data = instance['instance_data']
-        server_id = instance_data['server_id']
         security_group_id = instance_data['security_group_id']
-
-        nc = self.get_openstack_nova_client()
-        nc.servers.get(server_id)
-        sg = nc.security_groups.get(security_group_id)
 
         # As currently only single firewall rule can be added by the user,
         # first delete all existing rules and add the new one
-        oss.clear_security_group_rules(sg.id)
+        oss.clear_security_group_rules(security_group_id)
         oss.create_security_group_rule(
-            sg.id,
-            ip_protocol='tcp',
+            security_group_id,
             from_port=22,
             to_port=22,
             cidr="%s/32" % instance['client_ip'],
+            ip_protocol='tcp',
             group_id=None
         )
 
