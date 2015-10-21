@@ -4,6 +4,7 @@ from pouta_blueprints.client import PBClient
 from pouta_blueprints.tasks.celery_app import get_token, get_config, do_post, flask_config, logger
 from pouta_blueprints.tasks.celery_app import celery_app
 
+
 def get_provisioning_manager():
     from stevedore import dispatch
 
