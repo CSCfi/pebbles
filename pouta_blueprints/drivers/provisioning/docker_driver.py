@@ -643,4 +643,4 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         oss = self._get_ap().get_openstack_service({
             'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']
         })
-        oss.deprovision_instance(host['provider_id'], host['id'])
+        oss.deprovision_instance(host['provider_id'])

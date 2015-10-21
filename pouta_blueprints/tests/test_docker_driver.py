@@ -46,12 +46,12 @@ class OpenStackServiceMock(object):
         res = dict(
             server_id='%s' % self.spawn_count
         )
-        res['ip'] = dict(
+        res['address_data'] = dict(
             private_ip='192.168.1.%d' % self.spawn_count,
             public_ip=None,
         )
         if allocate_public_ip:
-            res['public_ip'] = '172.16.0.%d' % self.spawn_count
+            res['address_data']['public_ip'] = '172.16.0.%d' % self.spawn_count
 
         self.servers.append(res)
 

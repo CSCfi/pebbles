@@ -478,7 +478,7 @@ class OpenStackService(object):
             logging.error(e)
             return {'error': 'flow failed'}
 
-    def deprovision_instance(self, server_id, delete_attached_volumes=False):
+    def deprovision_instance(self, server_id, display_name=None, delete_attached_volumes=False):
         flow, subflows = getDeprovisionFlow()
         if delete_attached_volumes:
             subflows['main'].add(DeleteVolumes())
