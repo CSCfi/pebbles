@@ -507,10 +507,17 @@ class OpenStackService(object):
         nc = get_openstack_nova_client(self._config)
         return nc.flavors.list()
 
-    def upload_key(self, key_name, key_file):
+    def upload_key(self, key_name, public_key):
         try:
-            return taskflow.engines.run(get_upload_key_flow(), engine='parallel', store=dict(
-                config=self._config))
+            return taskflow.engines.run(
+                get_upload_key_flow(),
+                engine='parallel',
+                store=dict(
+                    config=self._config,
+                    display_name=key_name,
+                    public_key=public_key
+                )
+            )
         except Exception as e:
             logging.error(e)
             return {'error': 'flow failed'}
