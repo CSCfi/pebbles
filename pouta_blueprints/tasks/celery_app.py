@@ -6,6 +6,7 @@ from celery import Celery
 from kombu import Queue
 from celery.schedules import crontab
 import requests
+
 from celery.utils.log import get_task_logger
 
 from pouta_blueprints.app import app as _flask_app
