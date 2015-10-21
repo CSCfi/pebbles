@@ -57,10 +57,10 @@ class OpenStackServiceMock(object):
 
         return res
 
-    def deprovision_instance(self, instance_id, name=None, error_if_not_exists=False):
+    def deprovision_instance(self, instance_id, name=None, delete_attached_volumes=False):
         self.servers = [x for x in self.servers if str(x['server_id']) != str(instance_id)]
 
-    def upload_key(self, key_name, key_file):
+    def upload_key(self, key_name, public_key):
         pass
 
     def delete_key(self, key_name):
