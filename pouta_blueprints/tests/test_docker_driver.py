@@ -199,7 +199,7 @@ class DockerDriverAccessMock(object):
             raise RuntimeError
 
     @staticmethod
-    def proxy_add_route(route_id, target_url):
+    def proxy_add_route(route_id, target_url, no_rewrite_rules=False):
         pass
 
     @staticmethod
