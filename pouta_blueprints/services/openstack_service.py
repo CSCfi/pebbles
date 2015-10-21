@@ -447,7 +447,7 @@ def get_deprovision_flow():
             {'pre': pre_flow, 'main': main_flow, 'post': post_flow})
 
 
-def getUploadKeyFlow():
+def get_upload_key_flow():
     return lf.Flow('UploadKey').add(
         AddUserPublicKey('upload_key')
     )
@@ -509,7 +509,7 @@ class OpenStackService(object):
 
     def upload_key(self, key_name, key_file):
         try:
-            return taskflow.engines.run(getUploadKeyFlow(), engine='parallel', store=dict(
+            return taskflow.engines.run(get_upload_key_flow(), engine='parallel', store=dict(
                 config=self._config))
         except Exception as e:
             logging.error(e)
