@@ -244,6 +244,8 @@ class DockerDriverTestCase(BaseTestCase):
             DD_HOST_FLAVOR_SLOTS_LARGE=4,
             DD_HOST_MASTER_SG='pb_server',
             DD_HOST_EXTRA_SGS='',
+            DD_HOST_ROOT_VOLUME_SIZE=0,
+            DD_HOST_DATA_VOLUME_FACTOR=4,
         )
         dd = docker_driver.DockerDriver(logger, config)
         dd._ap = DockerDriverAccessMock(config)
