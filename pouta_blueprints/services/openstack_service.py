@@ -345,12 +345,15 @@ class AddUserPublicKey(task.Task):
     def execute(self, display_name, public_key, config):
         logging.debug("adding user public key")
         nc = get_openstack_nova_client(config)
+        self.keypair_added=False
         nc.keypairs.create(display_name, public_key)
+        self.keypair_added=True
 
     def revert(self, display_name, public_key, config, **kwargs):
         logging.debug("revert: remove user public key")
-        nc = get_openstack_nova_client(config)
-        nc.keypairs.find(name=display_name).delete()
+        if self.keypair_added:
+            nc = get_openstack_nova_client(config)
+            nc.keypairs.find(name=display_name).delete()
 
 
 class RemoveUserPublicKey(task.Task):
