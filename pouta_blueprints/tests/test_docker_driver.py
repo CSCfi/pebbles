@@ -85,7 +85,7 @@ class DockerClientMock(object):
         return self._containers[:]
 
     def create_host_config(self, *args, **kwargs):
-        return docker.utils.create_host_config(*args, **kwargs)
+        return {}
 
     def create_container(self, name, **kwargs):
         if self.failure_mode:
