@@ -1,6 +1,7 @@
 from unittest import TestCase
 from flask import Flask
 import six
+from collections import OrderedDict
 from contextlib import contextmanager
 from flask import request_started, request
 from flask_sso import SSO
@@ -22,7 +23,10 @@ class TestSSO(TestCase):
 
         @sso.login_handler
         def _callback(attr):
-            return six.b('{0}'.format(attr))
+            od = OrderedDict()
+            for k, v in sorted(attr.items()):
+                od[k] = v
+            return six.b('{0}'.format(od))
 
         @contextmanager
         def request_environ_set(app, data):
@@ -39,8 +43,11 @@ class TestSSO(TestCase):
             with request_environ_set(self.app, data):
                 with self.app.test_client() as c:
                     resp = c.get(self.app.config['SSO_LOGIN_URL'])
+                    od = OrderedDict()
+                    for k, v in sorted(expected_data.items()):
+                        od[k] = v
                     self.assertEqual(resp.data,
-                                     six.b('{0}'.format(expected_data)))
+                                     six.b('{0}'.format(od)))
 
         conf = {'HTTP_AJP_SHIB_EPPN': (True, 'eppn'), 'HTTP_AJP_SHIB_MAIL': (False, 'mail')}
         data = {'HTTP_AJP_SHIB_EPPN': 'user@example.org'}
@@ -58,6 +65,9 @@ class TestSSO(TestCase):
 
         @sso.login_error_handler
         def _callback_error(attr):
-            return '{0}'.format(attr)
+            od = OrderedDict()
+            for k, v in sorted(attr.items()):
+                od[k] = v
+            return '{0}'.format(od)
 
         run(conf, data, expected_data)
