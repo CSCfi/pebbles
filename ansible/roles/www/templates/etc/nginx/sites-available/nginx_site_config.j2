@@ -6,6 +6,14 @@ upstream wsgi_server {
   server {{ proxy_bind_endpoint }} fail_timeout=0;
 }
 
+upstream wsgi_worker_server {
+  # fail_timeout=0 means we always retry an upstream even if it failed
+  # to return a good HTTP response (in case the Unicorn master nukes a
+  # single worker for timing out).
+
+  server {{ proxy_bind_endpoint_worker }} fail_timeout=0;
+}
+
 server {
     listen 80;
     server_name {{ domain }};
@@ -76,7 +84,7 @@ server {
 
         # Unicorns are not dealing with static files
         if (!-f $request_filename) {
-            proxy_pass http://wsgi_server;
+            proxy_pass http://wsgi_worker_server;
             break;
         }
     }

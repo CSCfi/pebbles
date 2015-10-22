@@ -4,11 +4,11 @@
 
     DocumentRoot {{ apache_static_root }}
 
-    ProxyPass /api http://localhost:8888/api
-    ProxyPassReverse /api http://localhost:8888/api
+    ProxyPass /api http://{{ proxy_bind_endpoint }}/api
+    ProxyPassReverse /api http://{{ proxy_bind_endpoint }}/api
 
-    ProxyPass /login http://localhost:8888/login
-    ProxyPassReverse /login http://localhost:8888/login
+    ProxyPass /login http://{{ proxy_bind_endpoint }}/login
+    ProxyPassReverse /login http://{{ proxy_bind_endpoint }}/login
     <Directory {{ apache_static_root }}>
         Options Indexes FollowSymLinks MultiViews
         AllowOverride None
@@ -50,5 +50,37 @@
             downgrade-1.0 force-response-1.0
     BrowserMatch "MSIE [17-9]" ssl-unclean-shutdown
 </VirtualHost>
+
+<VirtualHost _default_:1443>
+    ServerAdmin {{ apache_server_admin_email }}
+    ServerName {{ domain }}
+
+    DocumentRoot {{ apache_static_root }}
+
+    ProxyPass /api http://{{ proxy_bind_endpoint_worker }}/api
+    ProxyPassReverse /api http://{{ proxy_bind_endpoint_worker }}/api
+
+    ErrorLog {{ apache_worker_error_log_file }}
+    CustomLog {{ apache_worker_access_log_file }} combined
+
+    SSLEngine on
+
+    SSLCertificateFile  {{ apache_ssl_crt }}
+    SSLCertificateKeyFile {{ apache_ssl_key }}
+    SSLCertificateChainFile {{ apache_ssl_chain }}
+
+    <FilesMatch "\.(cgi|shtml|phtml|php)$">
+            SSLOptions +StdEnvVars
+    </FilesMatch>
+    <Directory /usr/lib/cgi-bin>
+            SSLOptions +StdEnvVars
+    </Directory>
+
+    BrowserMatch "MSIE [2-6]" \
+            nokeepalive ssl-unclean-shutdown \
+            downgrade-1.0 force-response-1.0
+    BrowserMatch "MSIE [17-9]" ssl-unclean-shutdown
+</VirtualHost>
+
 
 # vim: syntax=apache ts=4 sw=4 sts=4 sr noet
