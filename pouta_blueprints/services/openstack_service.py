@@ -137,7 +137,7 @@ class CreateRootVolume(task.Task):
             )
             self.volume_id = volume.id
             retries = 0
-            while nc.volumes.get(volume.id).status not in ('available', ):
+            while nc.volumes.get(volume.id).status not in ('available',):
                 logging.debug("...waiting for volume to be ready")
                 time.sleep(5)
                 retries += 1
@@ -175,7 +175,7 @@ class CreateDataVolume(task.Task):
             )
             self.volume_id = volume.id
             retries = 0
-            while nc.volumes.get(volume.id).status not in ('available', ):
+            while nc.volumes.get(volume.id).status not in ('available',):
                 logging.debug("...waiting for volume to be ready")
                 time.sleep(5)
                 retries += 1
@@ -345,9 +345,9 @@ class AddUserPublicKey(task.Task):
     def execute(self, display_name, public_key, config):
         logging.debug("adding user public key")
         nc = get_openstack_nova_client(config)
-        self.keypair_added=False
+        self.keypair_added = False
         nc.keypairs.create(display_name, public_key)
-        self.keypair_added=True
+        self.keypair_added = True
 
     def revert(self, display_name, public_key, config, **kwargs):
         logging.debug("revert: remove user public key")
