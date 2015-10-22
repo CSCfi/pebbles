@@ -37,28 +37,30 @@ class OpenStackServiceMock(object):
         self.spawn_count = 0
         self.servers = []
 
-    def provision_instance(self, display_name, image_name, flavor_name, key_name, extra_sec_groups,
+    def provision_instance(self, display_name, image_name, flavor_name,
+                           public_key, extra_sec_groups=None,
                            master_sg_name=None, allocate_public_ip=True,
-                           root_volume_size=0, data_volume_size=0):
+                           root_volume_size=0, data_volume_size=0, userdata=None
+                           ):
         self.spawn_count += 1
         res = dict(
             server_id='%s' % self.spawn_count
         )
-        res['ip'] = dict(
+        res['address_data'] = dict(
             private_ip='192.168.1.%d' % self.spawn_count,
             public_ip=None,
         )
         if allocate_public_ip:
-            res['public_ip'] = '172.16.0.%d' % self.spawn_count
+            res['address_data']['public_ip'] = '172.16.0.%d' % self.spawn_count
 
         self.servers.append(res)
 
         return res
 
-    def deprovision_instance(self, instance_id, name=None, error_if_not_exists=False):
+    def deprovision_instance(self, instance_id, name=None, delete_attached_volumes=False):
         self.servers = [x for x in self.servers if str(x['server_id']) != str(instance_id)]
 
-    def upload_key(self, key_name, key_file):
+    def upload_key(self, key_name, public_key):
         pass
 
     def delete_key(self, key_name):
@@ -197,7 +199,7 @@ class DockerDriverAccessMock(object):
             raise RuntimeError
 
     @staticmethod
-    def proxy_add_route(route_id, target_url):
+    def proxy_add_route(route_id, target_url, no_rewrite_rules=False):
         pass
 
     @staticmethod

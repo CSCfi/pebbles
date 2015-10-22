@@ -12,36 +12,48 @@ import os
 import json
 import time
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
 
 def get_openstack_nova_client(config):
     if config:
         if config.get('M2M_CREDENTIAL_STORE'):
-            logger.debug("loading credentials from %s" % config.get('M2M_CREDENTIAL_STORE'))
+            logging.debug("loading credentials from %s" % config.get('M2M_CREDENTIAL_STORE'))
             m2m_config = json.load(open(config.get('M2M_CREDENTIAL_STORE')))
             source_config = m2m_config
         else:
-            logger.debug("using config as provided")
+            logging.debug("using config as provided")
             source_config = config
     else:
-        logger.debug("no config, trying environment vars")
+        logging.debug("no config, trying environment vars")
         source_config = os.environ
-
     os_username = source_config['OS_USERNAME']
     os_password = source_config['OS_PASSWORD']
     os_tenant_name = source_config['OS_TENANT_NAME']
     os_auth_url = source_config['OS_AUTH_URL']
-
     return client.Client(os_username, os_password, os_tenant_name, os_auth_url, service_type="compute")
+
+
+class GetServer(task.Task):
+    def execute(self, server_id, config):
+        logging.debug("getting server %s" % server_id)
+        nc = get_openstack_nova_client(config)
+        return nc.servers.get(server_id)
 
 
 class GetImage(task.Task):
     def execute(self, image_name, config):
-        logger.debug("getting image %s" % image_name)
+        logging.debug("getting image %s" % image_name)
         nc = get_openstack_nova_client(config)
-        return nc.images.find(name=image_name).id
+        return nc.images.find(name=image_name)
+
+    def revert(self, *args, **kwargs):
+        pass
+
+
+class ListImages(task.Task):
+    def execute(self, image_name, config):
+        logging.debug("getting images")
+        nc = get_openstack_nova_client(config)
+        return nc.images.list()
 
     def revert(self, *args, **kwargs):
         pass
@@ -49,9 +61,19 @@ class GetImage(task.Task):
 
 class GetFlavor(task.Task):
     def execute(self, flavor_name, config):
-        logger.debug("getting flavor %s" % flavor_name)
+        logging.debug("getting flavor %s" % flavor_name)
         nc = get_openstack_nova_client(config)
-        return nc.flavors.find(name=flavor_name).id
+        return nc.flavors.find(name=flavor_name)
+
+    def revert(self, *args, **kwargs):
+        pass
+
+
+class ListFlavors(task.Task):
+    def execute(self, flavor_name, config):
+        logging.debug("getting flavors")
+        nc = get_openstack_nova_client(config)
+        return nc.flavors.list()
 
     def revert(self, *args, **kwargs):
         pass
@@ -59,7 +81,7 @@ class GetFlavor(task.Task):
 
 class CreateSecurityGroup(task.Task):
     def execute(self, display_name, master_sg_name, config):
-        logger.debug("create security group %s" % display_name)
+        logging.debug("create security group %s" % display_name)
         security_group_name = display_name
         nc = get_openstack_nova_client(config)
 
@@ -91,34 +113,32 @@ class CreateSecurityGroup(task.Task):
                 group_id=master_sg.id
             )
 
-        logger.info("Created security group %s" % self.secgroup.id)
+        logging.info("Created security group %s" % self.secgroup.id)
 
         return self.secgroup.id
 
     def revert(self, config, **kwargs):
-        logger.debug("revert: delete security group")
+        logging.debug("revert: delete security group")
         nc = get_openstack_nova_client(config)
         nc.security_groups.delete(self.secgroup.id)
 
 
-# noinspection PyDeprecation
 class CreateRootVolume(task.Task):
     def execute(self, display_name, image, root_volume_size, config):
         if root_volume_size:
-            logger.debug("creating a root volume for instance %s from image %s" %
-                         (display_name, image))
+            logging.debug("creating a root volume for instance %s from image %s" % (display_name, image))
             nc = get_openstack_nova_client(config)
             volume_name = '%s-root' % display_name
 
             volume = nc.volumes.create(
                 size=root_volume_size,
-                imageRef=image,
+                imageRef=image.id,
                 display_name=volume_name
             )
             self.volume_id = volume.id
             retries = 0
-            while nc.volumes.get(volume.id).status not in ('available', ):
-                logger.debug("...waiting for volume to be ready")
+            while nc.volumes.get(volume.id).status not in ('available',):
+                logging.debug("...waiting for volume to be ready")
                 time.sleep(5)
                 retries += 1
                 if retries > 30:
@@ -126,28 +146,26 @@ class CreateRootVolume(task.Task):
 
             return volume.id
         else:
-            logger.debug("no root volume defined")
+            logging.debug("no root volume defined")
             return ""
 
     def revert(self, config, **kwargs):
-        logger.debug("revert: delete root volume")
+        logging.debug("revert: delete root volume")
 
         try:
             if getattr(self, 'volume_id', None):
                 nc = get_openstack_nova_client(config)
                 nc.volumes.delete(self.volume_id)
             else:
-                logger.debug("revert: no volume_id stored, unable to revert")
+                logging.debug("revert: no volume_id stored, unable to revert")
         except Exception as e:
-            logger.error('revert: deleting volume failed: %s' % e)
+            logging.error('revert: deleting volume failed: %s' % e)
 
 
-# noinspection PyDeprecation
 class CreateDataVolume(task.Task):
     def execute(self, display_name, data_volume_size, config):
         if data_volume_size:
-            logger.debug("creating a data volume for instance %s, size %d" %
-                         (display_name, data_volume_size))
+            logging.debug("creating a data volume for instance %s, %d" % (display_name, data_volume_size))
             nc = get_openstack_nova_client(config)
             volume_name = '%s-data' % display_name
 
@@ -157,8 +175,8 @@ class CreateDataVolume(task.Task):
             )
             self.volume_id = volume.id
             retries = 0
-            while nc.volumes.get(volume.id).status not in ('available', ):
-                logger.debug("...waiting for volume to be ready")
+            while nc.volumes.get(volume.id).status not in ('available',):
+                logging.debug("...waiting for volume to be ready")
                 time.sleep(5)
                 retries += 1
                 if retries > 30:
@@ -166,29 +184,27 @@ class CreateDataVolume(task.Task):
 
             return volume.id
         else:
-            logger.debug("no root volume defined")
-            return ""
+            logging.debug("no root volume defined")
+            return None
 
     def revert(self, config, **kwargs):
-        logger.debug("revert: delete root volume")
+        logging.debug("revert: delete root volume")
 
         try:
             if getattr(self, 'volume_id', None):
                 nc = get_openstack_nova_client(config)
                 nc.volumes.delete(self.volume_id)
             else:
-                logger.debug("revert: no volume_id stored, unable to revert")
+                logging.debug("revert: no volume_id stored, unable to revert")
         except Exception as e:
-            logger.error('revert: deleting volume failed: %s' % e)
+            logging.error('revert: deleting volume failed: %s' % e)
 
 
 class ProvisionInstance(task.Task):
-    def execute(self, display_name, image, flavor, key_name, security_group, extra_sec_groups,
-                root_volume_id, config):
-        logger.debug("provisioning instance %s" % display_name)
-        logger.debug("image=%s, flavor=%s, key=%s, secgroup=%s" % (image, flavor, key_name, security_group))
+    def execute(self, display_name, image, flavor, security_group, extra_sec_groups,
+                root_volume_id, userdata, config):
+        logging.debug("provisioning instance %s" % display_name)
         nc = get_openstack_nova_client(config)
-
         sgs = [security_group]
         if extra_sec_groups:
             sgs.extend(extra_sec_groups)
@@ -197,44 +213,61 @@ class ProvisionInstance(task.Task):
                 bdm = {'vda': '%s:::1' % (root_volume_id)}
             else:
                 bdm = None
-
             instance = nc.servers.create(
                 display_name,
-                image,
-                flavor,
-                key_name=key_name,
+                image.id,
+                flavor.id,
+                key_name=display_name,
                 security_groups=sgs,
-                block_device_mapping=bdm)
+                block_device_mapping=bdm,
+                userdata=userdata)
 
         except Exception as e:
-            logger.error("error provisioning instance: %s" % e)
+            logging.error("error provisioning instance: %s" % e)
             raise e
 
         self.instance_id = instance.id
-        logger.debug("instance provisioning successful")
+        logging.debug("instance provisioning successful")
         return instance.id
 
     def revert(self, config, **kwargs):
-        logger.debug("revert: deleting instance %s", kwargs)
+        logging.debug("revert: deleting instance %s", kwargs)
         try:
             if getattr(self, 'instance_id', None):
                 nc = get_openstack_nova_client(config)
                 nc.servers.delete(self.instance_id)
             else:
-                logger.debug("revert: no instance_id stored, unable to revert")
+                logging.debug("revert: no instance_id stored, unable to revert")
         except Exception as e:
-            logger.error('revert: deleting instance failed: %s' % e)
+            logging.error('revert: deleting instance failed: %s' % e)
 
 
-# noinspection PyDeprecation
+class DeprovisionInstance(task.Task):
+    def execute(self, server_id, config):
+        logging.debug("deprovisioning instance %s" % server_id)
+        nc = get_openstack_nova_client(config)
+        try:
+            server = nc.servers.get(server_id)
+            server.delete()
+            return server.name
+
+        except NotFound:
+            logging.warn("Server %s not found" % server_id)
+        except Exception as e:
+            logging.warn("Unable to deprovision server %s" % e)
+
+    def revert(self, *args, **kwargs):
+        logging.debug("revert: deprovisioning instance failed")
+
+
 class AllocateIPForInstance(task.Task):
     def execute(self, server_id, allocate_public_ip, config):
-        logger.debug("Allocate IP for server %s" % server_id)
+        logging.debug("Allocate IP for server %s" % server_id)
 
         nc = get_openstack_nova_client(config)
         retries = 0
         while nc.servers.get(server_id).status is "BUILDING" or not nc.servers.get(server_id).networks:
-            logger.debug("...waiting for server to be ready")
+            logging.debug("...waiting for server to be ready")
             time.sleep(5)
             retries += 1
             if retries > 30:
@@ -242,22 +275,23 @@ class AllocateIPForInstance(task.Task):
 
         server = nc.servers.get(server_id)
         if allocate_public_ip:
+
             ips = nc.floating_ips.findall(instance_id=None)
             allocated_from_pool = False
             if not ips:
-                logger.debug("No allocated free IPs left, trying to allocate one")
+                logging.debug("No allocated free IPs left, trying to allocate one")
                 try:
                     ip = nc.floating_ips.create(pool="public")
                     allocated_from_pool = True
                 except novaclient.exceptions.ClientException as e:
-                    logger.warning("Cannot allocate IP, quota exceeded?")
+                    logging.warning("Cannot allocate IP, quota exceeded?")
                     raise e
             else:
                 ip = ips[0]
             try:
                 server.add_floating_ip(ip)
             except Exception as e:
-                logger.error(e)
+                logging.error(e)
 
             address_data = {
                 'public_ip': ip.ip,
@@ -270,22 +304,32 @@ class AllocateIPForInstance(task.Task):
                 'allocated_from_pool': False,
                 'private_ip': list(server.networks.values())[0][0],
             }
+
         return address_data
 
     def revert(self, *args, **kwargs):
         pass
 
 
+class ListInstanceVolumes(task.Task):
+    def execute(self, server_id, config):
+        nc = get_openstack_nova_client(config)
+        return nc.volumes.get_server_volumes(server_id)
+
+    def revert(self):
+        pass
+
+
 class AttachDataVolume(task.Task):
     def execute(self, server_id, data_volume_id, config):
-        logger.debug("Attach data volume for server %s" % server_id)
+        logging.debug("Attach data volume for server %s" % server_id)
 
         if data_volume_id:
             nc = get_openstack_nova_client(config)
             retries = 0
 
             while nc.servers.get(server_id).status is "BUILDING" or not nc.servers.get(server_id).networks:
-                logger.debug("...waiting for server to be ready")
+                logging.debug("...waiting for server to be ready")
                 time.sleep(5)
                 retries += 1
                 if retries > 30:
@@ -297,111 +341,219 @@ class AttachDataVolume(task.Task):
         pass
 
 
-flow = lf.Flow('ProvisionInstance').add(
-    gf.Flow('BootInstance').add(
+class AddUserPublicKey(task.Task):
+    def execute(self, display_name, public_key, config):
+        logging.debug("adding user public key")
+        nc = get_openstack_nova_client(config)
+        self.keypair_added = False
+        nc.keypairs.create(display_name, public_key)
+        self.keypair_added = True
+
+    def revert(self, display_name, public_key, config, **kwargs):
+        logging.debug("revert: remove user public key")
+        if self.keypair_added:
+            nc = get_openstack_nova_client(config)
+            nc.keypairs.find(name=display_name).delete()
+
+
+class RemoveUserPublicKey(task.Task):
+    def execute(self, display_name, config):
+        logging.debug("removing user public key")
+        nc = get_openstack_nova_client(config)
+        try:
+            nc.keypairs.find(name=display_name).delete()
+        except:
+            pass
+
+    def revert(self, *args, **kwargs):
+        pass
+
+
+class DeleteSecurityGroup(task.Task):
+    def execute(self, server, config):
+        logging.debug("delete security group")
+        nc = get_openstack_nova_client(config)
+        security_groups = nc.security_groups.findall(name=server.name)
+        for security_group in security_groups:
+            try:
+                security_group.delete()
+            except NotFound:
+                logging.info('Security group already deleted')
+            except Exception as e:
+                logging.warn("Could not delete security group: %s" % e)
+
+    def revert(self, *args, **kwargs):
+        pass
+
+
+class DeleteVolumes(task.Task):
+    def execute(self, server, config):
+        nc = get_openstack_nova_client(config)
+        for volume in nc.volumes.get_server_volumes(server.id):
+            retries = 0
+            while nc.volumes.get(volume.id).status not in ('available', 'error'):
+                logging.debug("...waiting for volume to be ready")
+                time.sleep(5)
+                retries += 1
+                if retries > 30:
+                    raise RuntimeError('Volume %s is stuck' % volume.id)
+
+            try:
+                volume.delete()
+            except NotFound:
+                pass
+
+    def revert(self, *args, **kwargs):
+        pass
+
+
+def get_provision_flow():
+    """
+    Provisioning flow consisting of three graph flows, each consisting of set of
+    tasks that can execute in parallel.
+
+    Returns tuple consisting of the whole flow and a dictionary including
+    references to three graph flows for pre-execution customisations.
+    """
+    pre_flow = gf.Flow('PreBootInstance').add(
+        AddUserPublicKey('add_user_public_key'),
         GetImage('get_image', provides='image'),
         GetFlavor('get_flavor', provides='flavor'),
+        CreateRootVolume('create_root_volume', provides='root_volume_id')
+    )
+    main_flow = gf.Flow('BootInstance').add(
         CreateSecurityGroup('create_security_group', provides='security_group'),
-        CreateRootVolume('create_root_volume', provides='root_volume_id'),
         CreateDataVolume('create_data_volume', provides='data_volume_id'),
         ProvisionInstance('provision_instance', provides='server_id')
-    ),
-    AllocateIPForInstance('allocate_ip_for_instance', provides='ip'),
-    AttachDataVolume('attach_data_volume'),
-)
+    )
+    post_flow = gf.Flow('PostBootInstance').add(
+        AllocateIPForInstance('allocate_ip_for_instance', provides='address_data'),
+        AttachDataVolume('attach_data_volume'),
+        RemoveUserPublicKey('remove_user_public_key')
+    )
+    return (lf.Flow('ProvisionInstance').add(pre_flow, main_flow, post_flow),
+            {'pre': pre_flow, 'main': main_flow, 'post': post_flow})
+
+
+def get_deprovision_flow():
+    pre_flow = gf.Flow('PreDestroyInstance').add(
+        GetServer('get_server', provides="server")
+    )
+    main_flow = gf.Flow('DestroyInstance').add(
+        DeprovisionInstance('deprovision_instance')
+    )
+    post_flow = gf.Flow('PostDestroyInstance').add(
+        DeleteSecurityGroup('delete_security_group')
+    )
+
+    return (lf.Flow('DeprovisionInstance').add(pre_flow, main_flow, post_flow),
+            {'pre': pre_flow, 'main': main_flow, 'post': post_flow})
+
+
+def get_upload_key_flow():
+    return lf.Flow('UploadKey').add(
+        AddUserPublicKey('upload_key')
+    )
 
 
 class OpenStackService(object):
     def __init__(self, config=None):
-        if config:
-            self._config = config
-        else:
-            self._config = None
+        self._config = config
 
-    def provision_instance(self, display_name, image_name, flavor_name, key_name,
-                           extra_sec_groups=None, master_sg_name=None, allocate_public_ip=True,
-                           root_volume_size=0, data_volume_size=0):
+    def provision_instance(self, display_name, image_name, flavor_name, public_key, extra_sec_groups=None,
+                           master_sg_name=None, allocate_public_ip=True, root_volume_size=0,
+                           data_volume_size=0, userdata=None):
         try:
+            flow, _ = get_provision_flow()
             return taskflow.engines.run(flow, engine='parallel', store=dict(
                 image_name=image_name,
                 flavor_name=flavor_name,
                 display_name=display_name,
-                key_name=key_name,
                 master_sg_name=master_sg_name,
+                public_key=public_key,
                 extra_sec_groups=extra_sec_groups,
                 allocate_public_ip=allocate_public_ip,
                 root_volume_size=root_volume_size,
                 data_volume_size=data_volume_size,
+                userdata=userdata,
                 config=self._config))
         except Exception as e:
-            logger.error("Flow failed")
-            logger.error(e)
+            logging.error(e)
             return {'error': 'flow failed'}
 
-    def deprovision_instance(self, instance_id, name=None, error_if_not_exists=False):
+    def deprovision_instance(self, server_id, display_name=None, delete_attached_volumes=False):
+        flow, subflows = get_deprovision_flow()
+        if delete_attached_volumes:
+            subflows['main'].add(DeleteVolumes())
+
+        try:
+            return taskflow.engines.run(flow, engine='parallel', store=dict(
+                server_id=server_id,
+                config=self._config))
+        except Exception as e:
+            logging.error(e)
+            return {'error': 'flow failed'}
+
+    def get_instance_state(self, instance_id):
         nc = get_openstack_nova_client(self._config)
+        return nc.servers.get(instance_id).status
 
-        if not name:
-            server = nc.servers.get(instance_id)
-            name = server.name
+    def get_instance_networks(self, instance_id):
+        nc = get_openstack_nova_client(self._config)
+        return nc.servers.get(instance_id).networks
 
-        logger.info('Deleting instance %s' % instance_id)
+    def list_images(self):
+        nc = get_openstack_nova_client(self._config)
+        return nc.images.list()
 
-        # before we delete it, we list attached volumes
-        volumes = nc.volumes.get_server_volumes(instance_id)
+    def list_flavors(self):
+        nc = get_openstack_nova_client(self._config)
+        return nc.flavors.list()
 
+    def upload_key(self, key_name, public_key):
         try:
-            nc.servers.delete(instance_id)
-        except NotFound as e:
-            if error_if_not_exists:
-                raise e
-            else:
-                logger.info('Instance already deleted')
-
-        time.sleep(5)
-
-        logger.info('Deleting security group %s' % name)
-        try:
-            sg = nc.security_groups.find(name=name)
-            nc.security_groups.delete(sg.id)
-        except NotFound as e:
-            if error_if_not_exists:
-                raise e
-            else:
-                logger.info('Security group already deleted')
-
-        for vol in volumes:
-            # load details
-            vol.get()
-            if vol.display_name == '%s-data' % name:
-                logger.info('Deleting server data volume %s' % vol.id)
-                nc.volumes.delete(vol.id)
-            else:
-                logger.debug(
-                    'Skipping server data volume %s, name %s does not match %s' %
-                    (vol.id, vol.display_name, '%s-data' % name)
+            return taskflow.engines.run(
+                get_upload_key_flow(),
+                engine='parallel',
+                store=dict(
+                    config=self._config,
+                    display_name=key_name,
+                    public_key=public_key
                 )
-
-    def upload_key(self, key_name, key_file):
-        nc = get_openstack_nova_client(self._config)
-        try:
-            nc.keypairs.find(name=key_name)
-            logger.debug('Key already exists: %s' % key_name)
-            return
-        except:
-            pass
-
-        with open(key_file, "r") as pkfile:
-            public_key = pkfile.read().replace('\n', '')
-
-        nc.keypairs.create(key_name, public_key)
-        logger.info('created key %s' % key_name)
+            )
+        except Exception as e:
+            logging.error(e)
+            return {'error': 'flow failed'}
 
     def delete_key(self, key_name):
-        logger.debug('Deleting key: %s' % key_name)
+        logging.debug('Deleting key: %s' % key_name)
         nc = get_openstack_nova_client(self._config)
         try:
             key = nc.keypairs.find(name=key_name)
             key.delete()
         except:
-            logger.warning('Key not found: %s' % key_name)
+            logging.warning('Key not found: %s' % key_name)
+
+    def clear_security_group_rules(self, group_id):
+        nc = get_openstack_nova_client(self._config)
+        sg = nc.security_groups.get(group_id)
+        for rule in sg.rules:
+            nc.security_group_rules.delete(rule["id"])
+
+    def create_security_group(self, security_group_name, security_group_description):
+        nc = get_openstack_nova_client(self._config)
+        nc.security_groups.create(
+            security_group_name,
+            "Security group generated by Pouta Blueprints")
+
+    def create_security_group_rule(self, security_group_id, from_port, to_port, cidr, ip_protocol='tcp',
+                                   group_id=None):
+        nc = get_openstack_nova_client(self._config)
+        nc.security_group_rules.create(
+            security_group_id,
+            ip_protocol=ip_protocol,
+            from_port=from_port,
+            to_port=to_port,
+            cidr=cidr,
+            group_id=group_id
+        )

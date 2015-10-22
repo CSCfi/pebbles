@@ -536,7 +536,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                               ' active hosts: %s' % (slots, active_hosts))
             raise RuntimeWarning('_select_host(): no space left for requested %d slots' % slots)
 
-        self.logger.debug("_select_host(): %d total active, %d available" % (len(active_hosts), len(selected_hosts)))
+        self.logger.debug("_select_host(): %d total active, %d available" % (len(active_hosts),
+                                                                             len(selected_hosts)))
         return selected_hosts
 
     def _get_hosts(self, cur_ts):
@@ -589,21 +590,16 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             flavor_name = self.config['DD_HOST_FLAVOR_NAME_SMALL']
             flavor_slots = self.config['DD_HOST_FLAVOR_SLOTS_SMALL']
 
-        key_name = 'pb_dockerdriver'
-
         oss = self._get_ap().get_openstack_service({
             'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']
         })
-
-        # make sure the our key is in openstack
-        oss.upload_key(key_name, '/home/pouta_blueprints/.ssh/id_rsa.pub')
 
         # run actual provisioning
         res = oss.provision_instance(
             display_name=instance_name,
             image_name=image_name,
             flavor_name=flavor_name,
-            key_name=key_name,
+            public_key=open('/home/pouta_blueprints/.ssh/id_rsa.pub').read(),
             master_sg_name=self.config['DD_HOST_MASTER_SG'],
             extra_sec_groups=[x.strip() for x in self.config['DD_HOST_EXTRA_SGS'].split()],
             allocate_public_ip=False,
@@ -612,16 +608,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         )
 
         self.logger.debug("_spawn_host_os_service: spawned %s" % res)
-
-        # remove the key from OpenStack
-        oss.delete_key(key_name)
-
+        private_ip = res['address_data']['private_ip']
+        public_ip = res['address_data']['public_ip']
         return {
             'id': instance_name,
             'provider_id': res['server_id'],
-            'docker_url': 'https://%s:2376' % res['ip']['private_ip'],
-            'public_ip': res['ip']['public_ip'],
-            'private_ip': res['ip']['private_ip'],
+            'docker_url': 'https://%s:2376' % private_ip,
+            'public_ip': public_ip,
+            'private_ip': private_ip,
             'spawn_ts': cur_ts,
             'state': DD_STATE_SPAWNED,
             'num_reserved_slots': 0,
@@ -649,4 +643,4 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         oss = self._get_ap().get_openstack_service({
             'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']
         })
-        oss.deprovision_instance(host['provider_id'], host['id'])
+        oss.deprovision_instance(host['provider_id'], delete_attached_volumes=True)

@@ -35,6 +35,14 @@ class Volume(object):
         self.status = 'available'
 
 
+class Keypair(object):
+    def __init__(self):
+        self.id = "keypair_1"
+
+    def delete(self):
+        pass
+
+
 class NovaClientMock(object):
     class SecurityGroupManagerMock(object):
         def create(self, *args, **kwargs):
@@ -82,6 +90,13 @@ class NovaClientMock(object):
         def get(self, *args, **kwargs):
             return Volume()
 
+    class KeypairManager(object):
+        def create(self, *args, **kwargs):
+            return Keypair()
+
+        def find(self, *args, **kwargs):
+            return Keypair()
+
     def __init__(self):
         self.security_groups = NovaClientMock.SecurityGroupManagerMock()
         self.security_group_rules = NovaClientMock.SecurityGroupRulesManagerMock()
@@ -90,3 +105,4 @@ class NovaClientMock(object):
         self.servers = NovaClientMock.ServerManagerMock()
         self.floating_ips = NovaClientMock.FloatingIPManager()
         self.volumes = NovaClientMock.VolumeManager()
+        self.keypairs = NovaClientMock.KeypairManager()
