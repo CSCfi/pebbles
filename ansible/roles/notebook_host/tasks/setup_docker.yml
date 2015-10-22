@@ -23,11 +23,27 @@
     mode=0400
   notify: restart docker
 
+- name: Install iptables service
+  yum: name=iptables-services state=present
+  when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"
+
+- name: Iptables rules to block access to the host from containers
+  template:
+    src=etc/sysconfig/iptables.j2
+    dest=/etc/sysconfig/iptables
+    backup=True
+  notify:
+    - restart iptables
+  when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"
+
 - name: Upload custom docker configuration
   template:
-    src=etc/sysconfig/docker.j2
-    dest=/etc/sysconfig/docker
+    src=etc/sysconfig/{{ item }}.j2
+    dest=/etc/sysconfig/{{ item }}
     backup=True
+  with_items:
+    - docker
+    - docker-network
   notify: restart docker
   when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"
 
