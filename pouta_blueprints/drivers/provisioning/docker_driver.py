@@ -121,8 +121,8 @@ class DockerDriverAccessProxy(object):
                 raise RuntimeError('run_ansible_on_host(%s) failed' % host['id'])
 
     @staticmethod
-    def proxy_add_route(route_id, target_url, proxy_no_rewrite):
-        pouta_blueprints.tasks.proxy_add_route.delay(route_id, target_url, proxy_no_rewrite)
+    def proxy_add_route(route_id, target_url, no_rewrite_rules):
+        pouta_blueprints.tasks.proxy_add_route.delay(route_id, target_url, no_rewrite_rules)
 
     @staticmethod
     def proxy_remove_route(route_id):
