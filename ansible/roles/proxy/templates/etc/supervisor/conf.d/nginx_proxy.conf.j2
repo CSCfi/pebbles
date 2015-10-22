@@ -12,7 +12,7 @@ autorestart = true
 
 [program:{{ application_name }}-proxy_worker]
 command = {{ virtualenv_path }}/bin/celery worker
-    -A pouta_blueprints.tasks
+    -A pouta_blueprints.tasks.celery_app
     -Ofair
     --loglevel={{ 'DEBUG' if deploy_mode == 'devel' else 'INFO' }}
     --concurrency=1
