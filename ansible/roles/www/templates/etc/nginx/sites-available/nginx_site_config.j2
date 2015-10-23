@@ -6,6 +6,14 @@ upstream wsgi_server {
   server {{ proxy_bind_endpoint }} fail_timeout=0;
 }
 
+upstream wsgi_worker_server {
+  # fail_timeout=0 means we always retry an upstream even if it failed
+  # to return a good HTTP response (in case the Unicorn master nukes a
+  # single worker for timing out).
+
+  server {{ proxy_bind_endpoint_worker }} fail_timeout=0;
+}
+
 server {
     listen 80;
     server_name {{ domain }};
@@ -51,5 +59,33 @@ server {
         log_not_found off;
         access_log off;
         alias {{ nginx_static_root }}/favicon.ico;
+    }
+}
+
+server {
+    listen 1443 ssl;
+
+    access_log {{ nginx_worker_access_log_file }};
+    error_log  {{ nginx_worker_error_log_file }};
+
+    server_name {{ domain }};
+
+    charset utf-8;
+
+    ssl on;
+    ssl_certificate           {{ nginx_ssl_crt }};
+    ssl_certificate_key       {{ nginx_ssl_key }};
+
+    location /api {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Host $http_host;
+        proxy_redirect off;
+
+        # Unicorns are not dealing with static files
+        if (!-f $request_filename) {
+            proxy_pass http://wsgi_worker_server;
+            break;
+        }
     }
 }

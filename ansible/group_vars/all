@@ -27,6 +27,7 @@ runtime_path: "/webapps/{{ application_name }}/run"
 application_path: "/webapps/{{ application_name }}/source"
 application_log_dir: "/webapps/{{ application_name }}/logs"
 application_log_file: "{{ application_log_dir }}/gunicorn.log"
+application_worker_endpoint_log_file: "{{ application_log_dir }}/gunicorn_worker_endpoint.log"
 celery_log_file: "{{ application_log_dir }}/celery.log"
 celery_system_log_file: "{{ application_log_dir }}/celery-system.log"
 celerybeat_log_file: "{{ application_log_dir }}/celerybeat.log"
@@ -45,7 +46,9 @@ shared_folder_path: "/shared_folder"
 instance_data_dir: /var/spool/pb_instances
 proxy_bind_address: "127.0.0.1"
 proxy_bind_port: 8888
+proxy_bind_port_worker: 8889
 proxy_bind_endpoint: "{{ proxy_bind_address }}:{{ proxy_bind_port }}"
+proxy_bind_endpoint_worker: "{{ proxy_bind_address }}:{{ proxy_bind_port_worker }}"
 public_ipv4: "{{ ansible_eth0[\"ipv4\"][\"address\"] }}"
 provisioning_log_file_root: "/webapps/{{ application_name }}/provisioning_logs"
 
@@ -54,6 +57,8 @@ provisioning_log_file_root: "/webapps/{{ application_name }}/provisioning_logs"
 nginx_static_root: "/webapps/{{ application_name }}/static"
 nginx_access_log_file: "{{application_log_dir}}/nginx_access.log"
 nginx_error_log_file: "{{application_log_dir}}/nginx_error.log"
+nginx_worker_access_log_file: "{{application_log_dir}}/nginx_worker_access.log"
+nginx_worker_error_log_file: "{{application_log_dir}}/nginx_worker_error.log"
 nginx_ssl_crt: "/etc/nginx/ssl/server.crt"
 nginx_ssl_key: "/etc/nginx/ssl/server.key"
 
@@ -93,5 +98,6 @@ docker_host_m2m_credentials_dir: "/run/shm/{{ application_name }}"
 docker_host_image_dir: "/var/spool/pb_docker_images"
 docker_http_port: 80
 docker_https_port: 443
+docker_https_port_worker: 1443
 public_http_proxy_port: 8000
 internal_http_proxy_port: 8000

@@ -1,0 +1,24 @@
+#!/bin/bash
+
+NAME="{{ application_name }}"
+PROXY_BIND_ENDPOINT="{{ proxy_bind_endpoint_worker }}"
+NUM_WORKERS={{ gunicorn_num_workers }}
+MAX_REQUESTS={{ gunicorn_max_requests }}
+USER={{ application_user }}
+GROUP={{ application_group }}
+
+echo "Starting $NAME (worker endpoint) as `whoami`"
+
+cd {{ application_path }}
+source {{ virtualenv_path }}/bin/activate
+export PYTHONPATH={{ application_path }}:$PYTHONPATH
+
+exec gunicorn 'pouta_blueprints.server:app' \
+        --workers $NUM_WORKERS \
+        --name $NAME \
+        --max-requests $MAX_REQUESTS \
+        --user=$USER --group=$GROUP \
+        --bind=$PROXY_BIND_ENDPOINT \
+        --log-level=info \
+        --access-logfile={{application_log_dir}}/gunicorn_access_worker.log \
+        --error-logfile={{application_log_dir}}/gunicorn_error_worker.log
