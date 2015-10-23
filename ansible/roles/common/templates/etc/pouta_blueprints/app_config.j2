@@ -11,6 +11,7 @@ BASE_URL: 'https://{{ public_ipv4 }}/'
 {% endif %}
 {% endif %}
 PUBLIC_HTTP_PROXY_PORT: {{ public_http_proxy_port }}
+INTERNAL_API_BASE_URL: 'https://www:{{ docker_https_port_worker }}/api/v1'
 INTERNAL_HTTP_PROXY_PORT: {{ internal_http_proxy_port }}
 {% if enable_shibboleth %}
 ENABLE_SHIBBOLETH_LOGIN: True
