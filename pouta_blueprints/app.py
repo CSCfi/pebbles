@@ -2,7 +2,7 @@ import sys
 
 from flask import Flask
 
-from pouta_blueprints.models import db, Variable
+from pouta_blueprints.models import db, bcrypt, Variable
 from pouta_blueprints.config import BaseConfig, TestConfig
 
 app = Flask(__name__, static_url_path='')
@@ -37,6 +37,7 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
     app.config.setdefault('SSO_LOGIN_URL', '/login')
     app.config.setdefault('PREFERRED_URL_SCHEME', 'https')
 
+bcrypt.init_app(app)
 db.init_app(app)
 with app.app_context():
     db.create_all()
