@@ -1,5 +1,5 @@
 import random
-from flask.ext.bcrypt import generate_password_hash, check_password_hash
+from flask.ext.bcrypt import Bcrypt
 import names
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import func
@@ -20,6 +20,8 @@ MAX_VARIABLE_KEY_LENGTH = 512
 MAX_VARIABLE_VALUE_LENGTH = 512
 
 db = SQLAlchemy()
+
+bcrypt = Bcrypt()
 
 if sys.version < '3':
     unicode_type = unicode
@@ -101,12 +103,12 @@ class User(db.Model):
         self.is_active = False
 
     def set_password(self, password):
-        self.password = generate_password_hash(password)
+        self.password = bcrypt.generate_password_hash(password)
 
     def check_password(self, password):
         if self.is_deleted:
             return None
-        return check_password_hash(self.password, password)
+        return bcrypt.check_password_hash(self.password, password)
 
     def generate_auth_token(self, app_secret, expires_in=3600):
         s = Serializer(app_secret, expires_in=expires_in)

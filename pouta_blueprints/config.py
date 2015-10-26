@@ -105,5 +105,6 @@ class TestConfig(BaseConfig):
     MAIL_SUPPRESS_SEND = True
     FAKE_PROVISIONING = True
     SKIP_TASK_QUEUE = True
+    BCRYPT_LOG_ROUNDS = 1
     WRITE_PROVISIONING_LOGS = False
     TEST_MODE = True
