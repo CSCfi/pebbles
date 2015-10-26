@@ -139,7 +139,7 @@ class BlueprintView(restful.Resource):
                     else:
                         return timeformat_error, 422
                 else:
-                    blueprint.maximum_lifetime = 3600 # Default value
+                    blueprint.maximum_lifetime = 3600  # Default value
             except:
                 return timeformat_error, 422
 
