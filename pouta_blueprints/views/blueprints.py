@@ -53,23 +53,32 @@ class BlueprintList(restful.Resource):
                 pass
 
         if 'maximum_lifetime' in form.config.data:
+
+            timeformat_error = {"timeformat error": "pattern should be -d-h-m-s"}
             try:
                 max_life_str = str(form.config.data['maximum_lifetime'])
-                m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?(\d{1,2}s\s?)?$', max_life_str)
+                if(max_life_str):
+                    m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?(\d{1,2}s\s?)?$', max_life_str)
 
-                days = hours = mins = secs = 0
-                if(m.group(1)):
-                    days = int(m.group(1).strip()[:-1])
-                if(m.group(2)):
-                    hours = int(m.group(2).strip()[:-1])
-                if(m.group(3)):
-                    mins = int(m.group(3).strip()[:-1])
-                if(m.group(4)):
-                    secs = int(m.group(4).strip()[:-1])
+                    if(m):
+                        days = hours = mins = secs = 0
+                        if(m.group(1)):
+                            days = int(m.group(1).strip()[:-1])
+                        if(m.group(2)):
+                            hours = int(m.group(2).strip()[:-1])
+                        if(m.group(3)):
+                            mins = int(m.group(3).strip()[:-1])
+                        if(m.group(4)):
+                            secs = int(m.group(4).strip()[:-1])
 
-                blueprint.maximum_lifetime = days * 86400 + hours * 3600 + mins * 60 + secs
+                        blueprint.maximum_lifetime = days * 86400 + hours * 3600 + mins * 60 + secs
+
+                    else:
+                        return timeformat_error, 422
+                else:
+                    blueprint.maximum_lifetime = 3600  # Default value if not provided anything by user
             except:
-                pass
+                return timeformat_error, 422
 
         if 'cost_multiplier' in form.config.data:
             try:
@@ -108,24 +117,31 @@ class BlueprintView(restful.Resource):
                 pass
 
         if 'maximum_lifetime' in blueprint.config:
+
+            timeformat_error = {"timeformat error": "pattern should be -d-h-m-s"}
             try:
                 max_life_str = str(form.config.data['maximum_lifetime'])
-                m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?(\d{1,2}s\s?)?$', max_life_str)
+                if(max_life_str):
+                    m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?(\d{1,2}s\s?)?$', max_life_str)
 
-                days = hours = mins = secs = 0
-                if(m.group(1)):
-                    days = int(m.group(1).strip()[:-1])
-                if(m.group(2)):
-                    hours = int(m.group(2).strip()[:-1])
-                if(m.group(3)):
-                    mins = int(m.group(3).strip()[:-1])
-                if(m.group(4)):
-                    secs = int(m.group(4).strip()[:-1])
+                    if(m):
+                        days = hours = mins = secs = 0
+                        if(m.group(1)):
+                            days = int(m.group(1).strip()[:-1])
+                        if(m.group(2)):
+                            hours = int(m.group(2).strip()[:-1])
+                        if(m.group(3)):
+                            mins = int(m.group(3).strip()[:-1])
+                        if(m.group(4)):
+                            secs = int(m.group(4).strip()[:-1])
 
-                blueprint.maximum_lifetime = days * 86400 + hours * 3600 + mins * 60 + secs
-
+                        blueprint.maximum_lifetime = days * 86400 + hours * 3600 + mins * 60 + secs
+                    else:
+                        return timeformat_error, 422
+                else:
+                    blueprint.maximum_lifetime = 3600 # Default value
             except:
-                pass
+                return timeformat_error, 422
 
         if 'cost_multiplier' in blueprint.config:
             try:
