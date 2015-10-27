@@ -38,9 +38,11 @@ CONFIG = {
                 'default': 1,
             },
             'maximum_lifetime': {
-                'type': 'integer',
-                'title': 'Maximum life-time (seconds)',
-                'default': 3600,
+                'type': 'string',
+                'title': 'Maximum life-time (days hours mins secs)',
+                'default': '0d0h0m0s',
+                'pattern': '^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?(\d{1,2}s\s?)?$',
+                'validationMessage': 'Value should be in format -d-h-m-s'
             },
             'cost_multiplier': {
                 'type': 'number',

@@ -341,12 +341,47 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(data))
         self.assert_200(response)
 
+    def test_create_modify_blueprint_timeformat(self):
+
+        form_data = [
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d 1h 40m 0s'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '30m'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10s'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '5h30m'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d12h'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d 10m'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1h 30s'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '0d2h 30m'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": ''}, 'plugin': 'dummy'}
+        ]
+        expected_lifetimes = [92400, 86400, 36000, 1800, 10, 19800, 129600, 87000, 3630, 9000, 3600]
+
+        self.assertEquals(len(form_data), len(expected_lifetimes))
+
+        for data, expected_lifetime in zip(form_data, expected_lifetimes):
+            response = self.make_authenticated_admin_request(
+                method='POST',
+                path='/api/v1/blueprints',
+                data=json.dumps(data))
+            self.assert_200(response)
+
+            put_response = self.make_authenticated_admin_request(
+                method='PUT',
+                path='/api/v1/blueprints/%s' % self.known_blueprint_id_2,
+                data=json.dumps(data))
+            self.assert_200(put_response)
+
+            blueprint = Blueprint.query.filter_by(id=self.known_blueprint_id_2).first()
+            self.assertEqual(blueprint.maximum_lifetime, expected_lifetime)
+
     def test_modify_blueprint_config_magic_vars_admin(self):
         data = {
             'name': 'test_blueprint_2',
             'config': {
                 "name": "foo",
-                "maximum_lifetime": '1234',
+                "maximum_lifetime": '0d2h30m0s',
                 "cost_multiplier": '0.1',
                 "preallocated_credits": "true",
             },
@@ -359,7 +394,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(put_response)
 
         blueprint = Blueprint.query.filter_by(id=self.known_blueprint_id_2).first()
-        self.assertEqual(blueprint.maximum_lifetime, 1234)
+        self.assertEqual(blueprint.maximum_lifetime, 9000)
         self.assertEqual(blueprint.cost_multiplier, 0.1)
         self.assertEqual(blueprint.preallocated_credits, True)
 
@@ -368,6 +403,13 @@ class FlaskApiTestCase(BaseTestCase):
             {'name': '', 'config': 'foo: bar', 'plugin': 'dummy'},
             {'name': 'test_blueprint_2', 'config': '', 'plugin': 'dummy'},
             {'name': 'test_blueprint_2', 'config': 'foo: bar', 'plugin': ''},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": ' '}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10 100'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1hh'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '-1m'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '-10h'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '2d -10h'}, 'plugin': 'dummy'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '5m-30s'}, 'plugin': 'dummy'},
         ]
         for data in invalid_form_data:
             response = self.make_authenticated_admin_request(
