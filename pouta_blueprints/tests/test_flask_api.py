@@ -356,11 +356,11 @@ class FlaskApiTestCase(BaseTestCase):
             {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '0d2h 30m'}, 'plugin': 'dummy'},
             {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": ''}, 'plugin': 'dummy'}
         ]
+        expected_lifetimes = [92400, 86400, 36000, 1800, 10, 19800, 129600, 87000, 3630, 9000, 3600]
 
-        time_in_seconds = [92400, 86400, 36000, 1800, 10, 19800, 129600, 87000, 3630, 9000, 3600]
-        form_data_index = 0
+        self.assertEquals(len(form_data), len(expected_lifetimes))
 
-        for data in form_data:
+        for data, expected_lifetime in zip(form_data, expected_lifetimes):
             response = self.make_authenticated_admin_request(
                 method='POST',
                 path='/api/v1/blueprints',
@@ -374,8 +374,7 @@ class FlaskApiTestCase(BaseTestCase):
             self.assert_200(put_response)
 
             blueprint = Blueprint.query.filter_by(id=self.known_blueprint_id_2).first()
-            self.assertEqual(blueprint.maximum_lifetime, time_in_seconds[form_data_index])
-            form_data_index = form_data_index + 1
+            self.assertEqual(blueprint.maximum_lifetime, expected_lifetime)
 
     def test_modify_blueprint_config_magic_vars_admin(self):
         data = {
