@@ -29,7 +29,7 @@ windows:
       layout: even-vertical
       panes:
         - ssh www tail -F /webapps/pouta_blueprints/logs/gunicorn*.log
-        - ssh www sudo tail -F /var/log/nginx/{access,error}.log
+        - ssh www sudo tail -F /var/log/apache2/{access,error}.log
 
   - worker:
       layout: even-vertical

@@ -53,7 +53,7 @@ if [ "$?" -eq 1 ]; then
   tmux select-layout -t status:1 even-vertical
   
   tmux send-keys -t status:1.1 '' C-m
-  tmux send-keys -t status:1.1 ssh\ www\ sudo\ tail\ -F\ /var/log/nginx/\{access,error\}.log C-m
+  tmux send-keys -t status:1.1 ssh\ www\ sudo\ tail\ -F\ /var/log/apache2/\{access,error\}.log C-m
 
   tmux select-layout -t status:1 even-vertical
 
