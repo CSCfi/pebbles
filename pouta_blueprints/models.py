@@ -9,7 +9,7 @@ import logging
 import uuid
 import json
 import datetime
-import sys
+import six
 
 from pouta_blueprints.utils import validate_ssh_pubkey
 
@@ -22,11 +22,6 @@ MAX_VARIABLE_VALUE_LENGTH = 512
 db = SQLAlchemy()
 
 bcrypt = Bcrypt()
-
-if sys.version < '3':
-    unicode_type = unicode
-else:
-    unicode_type = str
 
 NAME_ADJECTIVES = (
     'happy',
@@ -411,7 +406,7 @@ class Variable(db.Model):
     def value(self, v):
         if self.t == 'bool':
             try:
-                if type(v) in (str, unicode_type):
+                if type(v) in (six.text_type, ):
                     self._value = (v.lower() in ('true', u'true'))
                 else:
                     self._value = bool(v)

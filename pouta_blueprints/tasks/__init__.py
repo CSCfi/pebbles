@@ -3,6 +3,8 @@ from . import provisioning_tasks
 from . import proxy_tasks
 from . import misc_tasks
 
+celery_app = celery_app
+
 run_update = provisioning_tasks.run_update
 
 update_user_connectivity = provisioning_tasks.update_user_connectivity
