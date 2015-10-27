@@ -8,12 +8,12 @@ sudo: false
 
 install:
 - pip install -r requirements.txt
-- pip install pep8 --use-mirrors
+- pip install flake8 --use-mirrors
 - pip install .
 - npm install -g protractor@2.4.0
 
 before_script:
-- pep8 --ignore=E501,E402 pouta_blueprints
+- flake8 --ignore=E501,E402 pouta_blueprints
 - python manage.py runserver -h localhost -p 8888 &
 script:
 - protractor protractor/conf.js
