@@ -10,13 +10,8 @@
   apt: pkg=libapache2-mod-shib2 state=present
   when: enable_shibboleth == "True"
 
-- name: install nginx
-  apt: pkg=nginx state=present
-  when: web_server_type == "nginx"
-
 - name: install apache
   apt: pkg=apache2 state=present
-  when: web_server_type == "apache"
 
 - name: Set redis to listen to all interfaces
   lineinfile:
@@ -31,10 +26,7 @@
   service: name=redis-server enabled=false state=stopped
 
 - include: setup_runtime_directories.yml
-- include: setup_nginx.yml
-  when: web_server_type == "nginx"
 - include: setup_apache.yml
-  when: web_server_type == "apache"
 - include: setup_supervisor_config.yml
 - include: setup_shibboleth.yml
   when: enable_shibboleth == "True"

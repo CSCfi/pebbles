@@ -3,7 +3,7 @@
 FROM    ubuntu:14.04
 MAINTAINER Olli Tourunen "olli.tourunen@csc.fi"
 
-RUN apt-get update
+# RUN apt-get update
 
 RUN apt-get install -y openssh-server
 
@@ -26,7 +26,7 @@ RUN echo -n 'vagrant:vagrant' | chpasswd
 RUN echo 'vagrant ALL=NOPASSWD: ALL' > /etc/sudoers.d/vagrant
 
 # faster deployment with packages pre-installed in the base image
-RUN apt-get install -y git python python-pip python-dev python-virtualenv nginx supervisor redis-server \
+RUN apt-get install -y git python python-pip python-dev python-virtualenv supervisor redis-server \
                        libffi-dev libssl-dev python-yaml libffi-dev libssl-dev ansible
 
 # tools for admistration
