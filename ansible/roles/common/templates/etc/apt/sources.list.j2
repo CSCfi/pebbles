@@ -4,11 +4,11 @@
 
 
 ###### Ubuntu Main Repos
-deb http://fi.archive.ubuntu.com/ubuntu/ trusty main restricted universe multiverse
+deb {{ apt_repository_url }} trusty main restricted universe multiverse
 
 ###### Ubuntu Update Repos
-deb http://fi.archive.ubuntu.com/ubuntu/ trusty-security main restricted universe multiverse
-deb http://fi.archive.ubuntu.com/ubuntu/ trusty-updates main restricted universe multiverse
+deb {{ apt_repository_url }} trusty-security main restricted universe multiverse
+deb {{ apt_repository_url }} trusty-updates main restricted universe multiverse
 
 ###### Ubuntu Extras Repo
 # deb http://extras.ubuntu.com/ubuntu trusty main
