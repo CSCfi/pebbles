@@ -26,7 +26,7 @@ CONFIG = {
                 ]
             },
             'maximum_lifetime': {
-                'type": "string',
+                'type': 'string',
                 'title': 'Maximum life-time (days hours mins secs)',
                 'default': '0d0h0m0s',
                 'pattern': '^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?(\d{1,2}s\s?)?$',
