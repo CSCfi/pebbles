@@ -7,13 +7,15 @@
     ProxyPass /api http://{{ proxy_bind_endpoint }}/api
     ProxyPassReverse /api http://{{ proxy_bind_endpoint }}/api
 
-    ProxyPass /login http://{{ proxy_bind_endpoint }}/login
-    ProxyPassReverse /login http://{{ proxy_bind_endpoint }}/login
     <Directory {{ apache_static_root }}>
         Options Indexes FollowSymLinks MultiViews
         AllowOverride None
         Require all granted
     </Directory>
+
+{% if enable_shibboleth %}
+    ProxyPass /login http://{{ proxy_bind_endpoint }}/login
+    ProxyPassReverse /login http://{{ proxy_bind_endpoint }}/login
 
     <Location /login>
         AuthType shibboleth
@@ -21,6 +23,7 @@
         ShibUseHeaders On
         require shib-session
     </Location>
+{% endif %}
 
     Alias /provisioning_logs {{ provisioning_log_file_root }}
     <Directory {{ provisioning_log_file_root }}>
