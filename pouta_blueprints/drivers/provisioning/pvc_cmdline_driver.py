@@ -78,8 +78,6 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
         instance = pbclient.get_instance_description(instance_id)
         cluster_name = instance['name']
 
-        prefix = self.config['INSTANCE_NAME_PREFIX']
-
         instance_dir = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], cluster_name)
 
         # will fail if there is already a directory for this instance
@@ -164,8 +162,6 @@ class PvcCmdLineDriver(base_driver.ProvisioningDriverBase):
 
         instance = pbclient.get_instance_description(instance_id)
         cluster_name = instance['name']
-
-        prefix = self.config['INSTANCE_NAME_PREFIX']
 
         instance_dir = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], cluster_name)
 
@@ -289,4 +285,3 @@ if __name__ == '__main__':
         ],
     }
     cluster_config = PvcCmdLineDriver.create_cluster_config(blueprint_config, 'test_name')
-    print cluster_config

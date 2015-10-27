@@ -1,4 +1,4 @@
-from . import celery_app
+from . import celery_app  # NOQA
 from . import provisioning_tasks
 from . import proxy_tasks
 from . import misc_tasks
