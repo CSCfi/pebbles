@@ -72,13 +72,16 @@ shibboleth_support_contact: "admin@example.org"
 
 # apache
 apache_static_root: "/webapps/{{ application_name }}/static"
-apache_access_log_file: "{{application_log_dir}}/apache_access.log"
-apache_error_log_file: "{{application_log_dir}}/apache_error.log"
+apache_access_log_file: "{{ application_log_dir }}/apache_access.log"
+apache_error_log_file: "{{ application_log_dir }}/apache_error.log"
 apache_ssl_cert_dir: "/etc/apache2/ssl"
 apache_ssl_crt: "{{ apache_ssl_cert_dir }}/server.crt"
 apache_ssl_key: "{{ apache_ssl_cert_dir }}/server.key"
 apache_ssl_chain: "{{ apache_ssl_cert_dir }}/chain.crt"
 apache_server_admin_email: "admin@example.org"
+apache_worker_access_log_file: "{{ application_log_dir }}/apache_worker_access.log"
+apache_worker_error_log_file: "{{ application_log_dir }}/apache_worker_error.log"
+
 
 # gunicorn
 gunicorn_num_workers: "{{ 2 * ansible_processor_vcpus }}"

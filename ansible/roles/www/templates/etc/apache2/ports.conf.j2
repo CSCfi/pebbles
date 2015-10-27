@@ -1,0 +1,12 @@
+Listen {{ docker_http_port }}
+
+<IfModule ssl_module>
+    Listen {{ docker_https_port }}
+    Listen {{ docker_https_port_worker }}
+</IfModule>
+
+<IfModule mod_gnutls.c>
+    Listen {{ docker_https_port }}
+    Listen {{ docker_https_port_worker }}
+</IfModule>
+
