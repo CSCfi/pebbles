@@ -12,6 +12,12 @@
             backup=yes
   notify: restart apache
 
+- name: Expose ports to listen in Apache ports.conf
+  template: src=etc/apache2/ports.conf.j2
+            dest=/etc/apache2/ports.conf
+            backup=yes
+  notify: restart apache
+
 - name: Ensure that the default site is disabled
   command: rm /etc/apache2/sites-enabled/000-default.conf
            removes=/etc/apache2/sites-enabled/000-default.conf
