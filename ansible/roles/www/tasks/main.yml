@@ -1,17 +1,29 @@
 ---
 
 - name: install dependencies
-  apt: pkg={{item}} state=present
+  apt: pkg={{ item }} state=present
   with_items:
     - redis-server
     - sqlite3
 
 - name: install Shibboleth module for Apache
-  apt: pkg=libapache2-mod-shib2 state=present
+  apt:
+    pkg=libapache2-mod-shib2
+    state=present
   when: enable_shibboleth == "True"
 
 - name: install apache
-  apt: pkg=apache2 state=present
+  apt:
+    pkg=apache2
+    state=present
+
+- name: add apache runtime directories
+  file:
+    path={{ item }}
+    state=directory
+  with_items:
+    - /var/run/apache2
+    - /var/lock/apache2
 
 - name: Set redis to listen to all interfaces
   lineinfile:
