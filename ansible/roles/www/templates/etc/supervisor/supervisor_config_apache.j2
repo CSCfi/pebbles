@@ -1,5 +1,6 @@
 [program:apache2]
-command=apachectl -DFOREGROUND
+command=/bin/bash -c "source /etc/apache2/envvars && exec /usr/sbin/apache2 -DFOREGROUND"
+redirect_stderr=true
 autostart=true
 autorestart=true
 startretries=1

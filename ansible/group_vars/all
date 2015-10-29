@@ -10,11 +10,6 @@ deploy_mode: "devel"
 #   prod: Gunicorn HTTP server
 server_type: "devel"
 
-# web server type:
-#   nginx: default
-#   apache: required if Shibboleth is enabled
-web_server_type: "nginx"
-
 git_repository: "https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git"
 git_version: "master"
 
@@ -52,16 +47,6 @@ proxy_bind_endpoint_worker: "{{ proxy_bind_address }}:{{ proxy_bind_port_worker 
 public_ipv4: "{{ ansible_eth0[\"ipv4\"][\"address\"] }}"
 provisioning_log_file_root: "/webapps/{{ application_name }}/provisioning_logs"
 
-
-# nginx
-nginx_static_root: "/webapps/{{ application_name }}/static"
-nginx_access_log_file: "{{application_log_dir}}/nginx_access.log"
-nginx_error_log_file: "{{application_log_dir}}/nginx_error.log"
-nginx_worker_access_log_file: "{{application_log_dir}}/nginx_worker_access.log"
-nginx_worker_error_log_file: "{{application_log_dir}}/nginx_worker_error.log"
-nginx_ssl_crt: "/etc/nginx/ssl/server.crt"
-nginx_ssl_key: "/etc/nginx/ssl/server.key"
-
 # shibboleth; requires apache instead of nginx
 enable_shibboleth: False
 shibboleth_entity_id: "https://myserviceid.example.org"
@@ -81,7 +66,6 @@ apache_ssl_chain: "{{ apache_ssl_cert_dir }}/chain.crt"
 apache_server_admin_email: "admin@example.org"
 apache_worker_access_log_file: "{{ application_log_dir }}/apache_worker_access.log"
 apache_worker_error_log_file: "{{ application_log_dir }}/apache_worker_error.log"
-
 
 # gunicorn
 gunicorn_num_workers: "{{ 2 * ansible_processor_vcpus }}"
