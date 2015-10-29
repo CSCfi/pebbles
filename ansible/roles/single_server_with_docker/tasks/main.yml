@@ -1,0 +1,127 @@
+- name: make temporary directory for image build
+  command: mktemp -d
+  register: mktemp
+
+- name: prepare docker image source (templates)
+  template:
+    src=docker/{{ item }}.j2
+    dest={{mktemp.stdout}}/{{ item }}
+  with_items:
+    - ansible-sudo
+    - Dockerfile
+    - supervisord.conf
+
+- name: prepare docker image source (public key)
+  copy: src=~/.ssh/id_rsa.pub dest={{ mktemp.stdout }}/id_rsa.pub
+
+- name: check or build image
+  docker_image: path={{ mktemp.stdout }} name={{ image_name }} state=present
+
+- name: remove temp image build directory
+  file: name={{ mktemp.stdout }} state=absent
+
+  # command: chcon -Rt svirt_sandbox_file_t {{ docker_host_app_root }}
+- name: Allow access to mounted host directories (CentOS)
+  file:
+    path={{ item }}
+    state=directory
+    setype=svirt_sandbox_file_t
+    recurse=yes
+  with_items:
+    - "{{ docker_host_app_root }}"
+    - "{{ docker_host_image_dir }}"
+  when: ansible_lsb.id=="CentOS"
+
+- name: Bring up container for www
+  docker:
+    hostname: www
+    image: "{{ image_name }}"
+    state: running
+    restart_policy: always
+    name: www
+    expose:
+      - 22
+      - 80
+      - 443
+      - 1443
+      - 6379
+    ports:
+      - "2222:22"
+      - "{{ docker_http_port }}:80"
+      - "{{ docker_https_port }}:443"
+      - "{{ docker_https_port_worker}}:1443"
+    volumes:
+      - "{{ docker_host_app_root }}:/shared_folder/source:ro"
+
+- name: add www to inventory
+  add_host:
+    name=www
+    groups=docker,www
+    ansible_ssh_host=localhost
+    ansible_ssh_port=2222
+    ansible_ssh_user=ansible
+  ## see https://github.com/ansible/ansible-modules-core/issues/1005
+  # when: item.Config.Hostname == "www" and item.State.Running == True
+  # with_items: docker_containers
+
+- name: Bring up container for proxy
+  docker:
+    hostname: proxy
+    image: "{{ image_name }}"
+    state: running
+    restart_policy: always
+    name: proxy
+    expose:
+      - 22
+      - "{{ internal_http_proxy_port }}"
+    ports:
+      - "2224:22"
+      - "{{ public_http_proxy_port }}:{{ internal_http_proxy_port }}"
+    links:
+      - "www:www"
+    volumes:
+      - "{{ docker_host_app_root }}:/shared_folder/source:ro"
+
+- name: add proxy to inventory
+  add_host:
+    name=proxy
+    groups=docker,proxy
+    ansible_ssh_host=localhost
+    ansible_ssh_port=2224
+    ansible_ssh_user=ansible
+
+
+- name: Bring up container for worker
+  docker:
+    hostname: worker
+    image: "{{ image_name }}"
+    state: running
+    restart_policy: always
+    name: worker
+    expose:
+      - 22
+    ports:
+      - "2223:22"
+    links:
+      - "www:www"
+      - "proxy:proxy"
+    volumes:
+      - "{{ docker_host_app_root }}:/shared_folder/source:ro"
+      - "{{ docker_host_m2m_credentials_dir }}:{{ application_m2m_credentials_dir }}:ro"
+      - "{{ docker_host_image_dir }}:/images:ro"
+
+- name: add worker to inventory
+  add_host:
+    name=worker
+    groups=docker,worker
+    ansible_ssh_host=localhost
+    ansible_ssh_port=2223
+    ansible_ssh_user=ansible
+  ## see https://github.com/ansible/ansible-modules-core/issues/1005
+  # when: item.config.hostname == "worker" and item.state.running == True
+  # with_items: docker_containers
+
+- name: "Wait a bit for sshd to come up"
+  pause: seconds=5
+
+

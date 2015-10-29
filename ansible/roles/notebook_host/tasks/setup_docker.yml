@@ -27,6 +27,10 @@
   yum: name=iptables-services state=present
   when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"
 
+- name: Enable iptables service
+  service: name=iptables state=started enabled=yes
+  when: ansible_lsb.id=="CentOS"
+
 - name: Iptables rules to block access to the host from containers
   template:
     src=etc/sysconfig/iptables.j2
