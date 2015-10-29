@@ -1,7 +1,9 @@
 ---
 
 - name: install dependencies
-  apt: pkg={{ item }} state=present
+  apt:
+    pkg={{ item }}
+    state=present
   with_items:
     - redis-server
     - sqlite3
