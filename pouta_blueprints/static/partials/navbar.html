@@ -1,4 +1,4 @@
-<div id="navbar" ng-controller="NavbarController" class="navbar-collapse collapse">
+<div uib-collapse="navCollapsed" ng-controller="NavbarController" class="navbar-collapse collapse">
   <ul class="nav navbar-nav">
     <li ng-class="{ active: isActive('/dashboard')}"><a ng-show="isLoggedIn()" href="#/dashboard">Dashboard</a></li>
     <li ng-class="{ active: isActive('/users')}"><a ng-show="isAdmin()" href="#/users">Users</a></li>
