@@ -183,6 +183,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 return Instance.STATE_QUEUEING
         finally:
             pbclient.release_lock(lock_id)
+            # give proxy and container some time to initialize
+            time.sleep(2)
 
     def _do_provision(self, token, instance_id, cur_ts):
         ap = self._get_ap()
