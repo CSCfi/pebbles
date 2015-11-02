@@ -87,5 +87,5 @@ docker_host_cert_dir: "/var/lib/pb/certs"
 docker_http_port: 80
 docker_https_port: 443
 docker_https_port_worker: 1443
-public_http_proxy_port: 8000
-internal_http_proxy_port: 8000
+public_https_proxy_port: 8443
+internal_https_proxy_port: 8443

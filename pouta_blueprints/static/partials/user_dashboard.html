@@ -34,7 +34,7 @@
                                 <td><small><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></small></td>
                                 <td><small><lifetime seconds="{{instance.lifetime_left}}"/></small></td>
                                 <td><small>
-                                    <a ng-show="instance.instance_data['endpoints'][0]['name']=='http' && instance.state=='running'"
+                                    <a ng-show="['http', 'https'].indexOf(instance.instance_data['endpoints'][0]['name']) >= 0 && instance.state=='running'"
                                        href="{{instance.instance_data['endpoints'][0].access}}" target="_blank">
                                         Open in browser
                                     </a>
