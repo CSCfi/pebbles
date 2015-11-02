@@ -64,6 +64,7 @@ class User(db.Model):
     is_deleted = db.Column(db.Boolean, default=False)
     credits_quota = db.Column(db.Float, default=1.0)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
+    activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
 
     def __init__(self, email, password=None, is_admin=False):
         self.id = uuid.uuid4().hex
@@ -94,6 +95,7 @@ class User(db.Model):
         if self.is_deleted:
             return
         self.email = self.email + datetime.datetime.utcnow().strftime("-%s")
+        self.activation_tokens.delete()
         self.is_deleted = True
         self.is_active = False
 
