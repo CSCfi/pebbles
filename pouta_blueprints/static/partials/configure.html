@@ -52,7 +52,8 @@
         </thead>
         <tbody>
             <tr ng-repeat="variable in variables | filter : { readonly: false}">
-            <td> {{ variable.key }}
+            <td>
+                {{ variable.key }}
             </td>
             <td>
             <editablefield
