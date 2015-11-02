@@ -30,7 +30,7 @@ app.directive('brandImage', ['ConfigurationService', function(ConfigurationServi
         link: function(scope, element, attrs) {
             ConfigurationService.getValue().then(function (data) {
                 if (data[attrs.key]) {
-                    element.html('<img style="max-height: 40px; margin-top: -10px;" src="'+data[attrs.key]+'">');
+                    element.html('<img style="margin-top: -10px;" src="'+data[attrs.key]+'">');
                 } else {
                     element.text(attrs.alt);
                 }
