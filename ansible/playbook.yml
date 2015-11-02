@@ -1,12 +1,12 @@
 ---
 - hosts:
-    - localhost
+    - docker_host
   sudo: True
   roles:
     - docker_host
 
 - hosts:
-    - localhost
+    - docker_host
   sudo: True
   roles:
     - single_server_with_docker
