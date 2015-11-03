@@ -23,3 +23,18 @@ app.directive('configurableShow', ['ConfigurationService', function(Configuratio
         }
     };
 }]);
+
+app.directive('brandImage', ['ConfigurationService', function(ConfigurationService) {
+    return {
+        restrict: 'A',
+        link: function(scope, element, attrs) {
+            ConfigurationService.getValue().then(function (data) {
+                if (data[attrs.key]) {
+                    element.html('<img style="margin-top: -10px;" src="'+data[attrs.key]+'">');
+                } else {
+                    element.text(attrs.alt);
+                }
+            }); 
+        }
+    };
+}]);
