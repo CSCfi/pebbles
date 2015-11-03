@@ -435,7 +435,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_403(response)
 
     def test_admin_invite_user(self):
-        data = {'email': 'test@example.org', 'password': 'test', 'is_admin': True}
+        data = {'email': 'test@example.org', 'is_admin': True}
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/users',
@@ -443,7 +443,38 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
         user = User.query.filter_by(email='test@example.org').first()
         self.assertIsNotNone(user)
+        self.assertFalse(user.is_active)
         self.assertTrue(user.is_admin)
+
+        data = {'email': 'test2@example.org', 'is_admin': False}
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(data))
+        self.assert_200(response)
+        user = User.query.filter_by(email='test2@example.org').first()
+        self.assertIsNotNone(user)
+        self.assertFalse(user.is_active)
+        self.assertFalse(user.is_admin)
+
+    def test_admin_delete_invited_user_deletes_activation_tokens(self):
+        data = {'email': 'test@example.org'}
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(data))
+        self.assert_200(response)
+        user = User.query.filter_by(email='test@example.org').first()
+        self.assertIsNotNone(user)
+        self.assertFalse(user.is_admin)
+        self.assertFalse(user.is_active)
+        self.assertEqual(ActivationToken.query.filter_by(user_id=user.id).count(), 1)
+        response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/users/%s' % user.id
+        )
+        self.assert_200(response)
+        self.assertEqual(ActivationToken.query.filter_by(user_id=user.id).count(), 0)
 
     def test_accept_invite(self):
         user = User.query.filter_by(email='test@example.org').first()
