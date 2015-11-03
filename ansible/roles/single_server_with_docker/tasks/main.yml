@@ -1,11 +1,34 @@
+- name: Create ssl dir
+  file:
+    dest: "{{ docker_host_cert_dir }}"
+    owner: root
+    group: root
+    mode: 0600
+    state: directory
+
+- name: Create self-signed SSL cert
+  command: >
+    openssl req -new -nodes -x509
+    -subj "/C=FI/ST=SouthernFinland/L=Helsinki/O=IT/CN={{ domain }}"
+    -days 3650
+    -extensions v3_ca
+    -keyout {{ docker_host_cert_dir }}/server.key
+    -out {{ docker_host_cert_dir }}/server.crt
+    creates={{ docker_host_cert_dir }}/server.crt
+  register: self_signed_cert
+
+- name: Use self-signed SSL cert as a dummy file for chain
+  command: cp {{ docker_host_cert_dir }}/server.crt {{ docker_host_cert_dir }}/chain.crt
+  when: self_signed_cert | changed
+
 - name: make temporary directory for image build
   command: mktemp -d
   register: mktemp
 
 - name: prepare docker image source (templates)
   template:
-    src=docker/{{ item }}.j2
-    dest={{mktemp.stdout}}/{{ item }}
+    src: "docker/{{ item }}.j2"
+    dest: "{{mktemp.stdout}}/{{ item }}"
   with_items:
     - ansible-sudo
     - Dockerfile
@@ -23,13 +46,14 @@
   # command: chcon -Rt svirt_sandbox_file_t {{ docker_host_app_root }}
 - name: Allow access to mounted host directories (CentOS)
   file:
-    path={{ item }}
-    state=directory
-    setype=svirt_sandbox_file_t
-    recurse=yes
+    path: "{{ item }}"
+    state: directory
+    setype: svirt_sandbox_file_t
+    recurse: yes
   with_items:
     - "{{ docker_host_app_root }}"
     - "{{ docker_host_image_dir }}"
+    - "{{ docker_host_cert_dir }}"
   when: ansible_lsb.id=="CentOS"
 
 - name: Bring up container for www
@@ -52,14 +76,15 @@
       - "{{ docker_https_port_worker}}:1443"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
+      - "{{ docker_host_cert_dir }}:/etc/apache2/ssl:ro"
 
 - name: add www to inventory
   add_host:
-    name=www
-    groups=docker,www
-    ansible_ssh_host=localhost
-    ansible_ssh_port=2222
-    ansible_ssh_user=ansible
+    name: www
+    groups: docker,www
+    ansible_ssh_host: localhost
+    ansible_ssh_port: 2222
+    ansible_ssh_user: ansible
   ## see https://github.com/ansible/ansible-modules-core/issues/1005
   # when: item.Config.Hostname == "www" and item.State.Running == True
   # with_items: docker_containers
@@ -73,22 +98,23 @@
     name: proxy
     expose:
       - 22
-      - "{{ internal_http_proxy_port }}"
+      - "{{ internal_https_proxy_port }}"
     ports:
       - "2224:22"
-      - "{{ public_http_proxy_port }}:{{ internal_http_proxy_port }}"
+      - "{{ public_https_proxy_port }}:{{ internal_https_proxy_port }}"
     links:
       - "www:www"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
+      - "{{ docker_host_cert_dir }}:/etc/nginx/ssl:ro"
 
 - name: add proxy to inventory
   add_host:
-    name=proxy
-    groups=docker,proxy
-    ansible_ssh_host=localhost
-    ansible_ssh_port=2224
-    ansible_ssh_user=ansible
+    name: proxy
+    groups: docker,proxy
+    ansible_ssh_host: localhost
+    ansible_ssh_port: 2224
+    ansible_ssh_user: ansible
 
 
 - name: Bring up container for worker
@@ -112,16 +138,14 @@
 
 - name: add worker to inventory
   add_host:
-    name=worker
-    groups=docker,worker
-    ansible_ssh_host=localhost
-    ansible_ssh_port=2223
-    ansible_ssh_user=ansible
+    name: worker
+    groups: docker,worker
+    ansible_ssh_host: localhost
+    ansible_ssh_port: 2223
+    ansible_ssh_user: ansible
   ## see https://github.com/ansible/ansible-modules-core/issues/1005
   # when: item.config.hostname == "worker" and item.state.running == True
   # with_items: docker_containers
 
 - name: "Wait a bit for sshd to come up"
   pause: seconds=5
-
-

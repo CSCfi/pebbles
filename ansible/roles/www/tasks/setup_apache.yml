@@ -61,25 +61,6 @@
     owner={{ application_user }}
     group={{ application_group }}
 
-- name: Create ssl dir
-  file:
-    dest={{ apache_ssl_cert_dir }}
-    owner=root
-    group=root
-    mode=0600
-    state=directory
-
-- name: Create self-signed SSL cert
-  command: 
-    openssl req -new -nodes -x509 -subj "/C=FI/ST=SouthernFinland/L=Helsinki/O=IT/CN={{ domain }}" -days 3650 -keyout {{ apache_ssl_key }} -out {{ apache_ssl_crt }} -extensions v3_ca
-    creates={{ apache_ssl_crt }}
-  notify: restart apache
-
-- name: Use self-signed SSL cert as a dummy file for chain
-  command: cp {{ apache_ssl_crt }} {{ apache_ssl_chain }}
-  notify: restart apache
-
 - name: Ensure Apache service is stopped and disabled on boot - supervisord takes care of running it
   service: name=apache2 state=stopped enabled=no
-
 

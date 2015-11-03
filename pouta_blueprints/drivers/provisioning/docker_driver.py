@@ -248,10 +248,10 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         instance_data = {
             'endpoints': [
                 {
-                    'name': 'http',
-                    'access': 'http://%s:%s/%s' % (
+                    'name': 'https',
+                    'access': 'https://%s:%s/%s' % (
                         self.config['PUBLIC_IPV4'],
-                        self.config['PUBLIC_HTTP_PROXY_PORT'],
+                        self.config['PUBLIC_HTTPS_PROXY_PORT'],
                         proxy_route
                     )
                 },

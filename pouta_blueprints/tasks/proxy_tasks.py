@@ -21,7 +21,7 @@ def proxy_add_route(route_key, target, no_rewrite_rules=False):
         location /${route_key}/ {
           ${no_rw}rewrite ^/${route_key}/(.*)$$ /$$1 break;
           proxy_pass ${target};
-          ${no_rw}proxy_redirect ${target} $$scheme://$$host:${public_http_proxy_port}/${route_key};
+          ${no_rw}proxy_redirect ${target} $$scheme://$$host:${public_https_proxy_port}/${route_key};
           proxy_set_header Upgrade $$http_upgrade;
           proxy_set_header Connection "upgrade";
         }
@@ -39,7 +39,7 @@ def proxy_add_route(route_key, target, no_rewrite_rules=False):
             template.substitute(
                 route_key=route_key,
                 target=target,
-                public_http_proxy_port=get_config()['PUBLIC_HTTP_PROXY_PORT'],
+                public_https_proxy_port=get_config()['PUBLIC_HTTPS_PROXY_PORT'],
                 no_rw=no_rw
             )
         )
@@ -61,7 +61,13 @@ def proxy_remove_route(route_key):
 
 
 def refresh_nginx_config():
-    config = ['server {', 'listen %s;' % get_config()['INTERNAL_HTTP_PROXY_PORT']]
+    config = [
+        'server {',
+        '   listen %s;' % get_config()['INTERNAL_HTTPS_PROXY_PORT'],
+        '   ssl on;',
+        '   ssl_certificate /etc/nginx/ssl/server.crt;',
+        '   ssl_certificate_key /etc/nginx/ssl/server.key;',
+    ]
 
     nroutes = 0
     pattern = '%s/route_key-*' % RUNTIME_PATH

@@ -1,7 +1,7 @@
 - name: Install Nginx and inotify-tools
   apt:
-    name={{ item }}
-    state=present
+    name: "{{ item }}"
+    state: present
   with_items:
     - nginx
     - inotify-tools
@@ -15,35 +15,35 @@
 
 - name: Disable Nginx running as daemon
   lineinfile:
-    dest=/etc/nginx/nginx.conf
-    state=present
-    line='daemon off;'
+    dest: /etc/nginx/nginx.conf
+    state: present
+    line: 'daemon off;'
 
 - name: Make sure Nginx proxy config in runtime directory exists
   file:
-    name={{ runtime_path }}/proxy.conf
-    state=touch
-    owner={{ application_user }}
+    name: "{{ runtime_path }}/proxy.conf"
+    state: touch
+    owner: "{{ application_user }}"
 
 - name: Link Nginx proxy config from runtime directory
   file:
-    src={{ runtime_path }}/proxy.conf
-    dest=/etc/nginx/sites-enabled/proxy.conf
-    state=link
-    force=yes
+    src: "{{ runtime_path }}/proxy.conf"
+    dest: /etc/nginx/sites-enabled/proxy.conf
+    state: link
+    force: yes
 
 - name: Copy nginx reloading script into place
   template:
-    src=usr/local/sbin/wait_and_reload_nginx.sh
-    dest=/usr/local/sbin/wait_and_reload_nginx.sh
-    backup=yes
-    mode=0755
+    src: usr/local/sbin/wait_and_reload_nginx.sh
+    dest: /usr/local/sbin/wait_and_reload_nginx.sh
+    backup: yes
+    mode: "0755"
 
 - name: Create the Supervisor config file
   template:
-    src=etc/supervisor/conf.d/nginx_proxy.conf.j2
-    dest=/etc/supervisor/conf.d/nginx_proxy.conf
-    backup=yes
+    src: etc/supervisor/conf.d/nginx_proxy.conf.j2
+    dest: /etc/supervisor/conf.d/nginx_proxy.conf
+    backup: yes
 
 - name: Re-read the Supervisor config files
   command: supervisorctl reread
