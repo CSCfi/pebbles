@@ -33,7 +33,7 @@
     </Directory>
 
     ErrorLog {{ apache_error_log_file }}
-    CustomLog {{ apache_access_log_file }} combined
+    CustomLog {{ apache_access_log_file }} combined
 
     SSLEngine on
 
@@ -64,7 +64,7 @@
     ProxyPassReverse /api http://{{ proxy_bind_endpoint_worker }}/api
 
     ErrorLog {{ apache_worker_error_log_file }}
-    CustomLog {{ apache_worker_access_log_file }} combined
+    CustomLog {{ apache_worker_access_log_file }} combined
 
     SSLEngine on
 
