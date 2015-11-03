@@ -1,15 +1,24 @@
 ---
 
-- name: Create the Apache configuration file
+- name: Create the Apache configuration file (ssl)
   template: src=etc/apache2/sites-available/pouta-blueprints-ssl.j2
             dest=/etc/apache2/sites-available/{{ application_name }}-ssl.conf
             backup=yes
+  when: apache_enable_ssl
   notify: restart apache
 
 - name: Create the Apache configuration file for HTTP redirect
-  template: src=etc/apache2/sites-available/pouta-blueprints.j2
-            dest=/etc/apache2/sites-available/{{ application_name }}.conf
+  template: src=etc/apache2/sites-available/pouta-blueprints-redirect.j2
+            dest=/etc/apache2/sites-available/{{ application_name }}-redirect.conf
             backup=yes
+  when: apache_enable_ssl
+  notify: restart apache
+
+- name: Create the Apache configuration file (plain http)
+  template: src=etc/apache2/sites-available/pouta-blueprints-plain.j2
+            dest=/etc/apache2/sites-available/{{ application_name }}-plain.conf
+            backup=yes
+  when: not apache_enable_ssl
   notify: restart apache
 
 - name: Expose ports to listen in Apache ports.conf
@@ -21,18 +30,30 @@
 - name: Ensure that the default site is disabled
   command: rm /etc/apache2/sites-enabled/000-default.conf
            removes=/etc/apache2/sites-enabled/000-default.conf
+  notify: restart apache
 
 - name: Enable application site with SSL
   command: a2ensite {{ application_name }}-ssl
            creates=/etc/apache2/sites-enabled/{{ application_name }}-ssl.conf
+  when: apache_enable_ssl
+  notify: restart apache
 
 - name: Enable redirect from non-SSL to SSL
   command: a2ensite {{ application_name }}
-           creates=/etc/apache2/sites-enabled/{{ application_name }}.conf
+           creates=/etc/apache2/sites-enabled/{{ application_name }}-redirect.conf
+  when: apache_enable_ssl
+  notify: restart apache
+
+- name: Enable application site with plain http
+  command: a2ensite {{ application_name }}-plain
+           creates=/etc/apache2/sites-enabled/{{ application_name }}-plain.conf
+  when: not apache_enable_ssl
+  notify: restart apache
 
 - name: Install shib2 module for Apache
   apt: pkg=libapache2-mod-shib2 state=present
   when: enable_shibboleth == "True"
+  notify: restart apache
 
 - name: Enable required Apache modules
   apache2_module: state=present name={{ item }}
@@ -40,10 +61,12 @@
       - proxy
       - proxy_http
       - ssl
+  notify: restart apache
 
 - name: Enable Apache Shibboleth module
   apache2_module: state=present name=shib2
   when: enable_shibboleth == "True"
+  notify: restart apache
 
 - name: Link static root for Apache
   file:
@@ -53,6 +76,7 @@
     # mode=775
     # owner={{ application_user }}
     # group={{ application_group }}
+  notify: restart apache
 
 - name: Create provisioning log file root directory
   file:

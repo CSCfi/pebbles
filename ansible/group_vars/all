@@ -66,6 +66,7 @@ apache_ssl_chain: "{{ apache_ssl_cert_dir }}/chain.crt"
 apache_server_admin_email: "admin@example.org"
 apache_worker_access_log_file: "{{ application_log_dir }}/apache_worker_access.log"
 apache_worker_error_log_file: "{{ application_log_dir }}/apache_worker_error.log"
+apache_enable_ssl: yes
 
 # gunicorn
 gunicorn_num_workers: "{{ 2 * ansible_processor_vcpus }}"
@@ -86,6 +87,7 @@ docker_host_image_dir: "/var/lib/pb/docker_images"
 docker_host_cert_dir: "/var/lib/pb/certs"
 docker_http_port: 80
 docker_https_port: 443
+docker_http_port_worker: 1080
 docker_https_port_worker: 1443
 public_https_proxy_port: 8443
 internal_https_proxy_port: 8443
