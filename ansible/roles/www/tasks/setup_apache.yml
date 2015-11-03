@@ -39,7 +39,7 @@
   notify: restart apache
 
 - name: Enable redirect from non-SSL to SSL
-  command: a2ensite {{ application_name }}
+  command: a2ensite {{ application_name }}-redirect
            creates=/etc/apache2/sites-enabled/{{ application_name }}-redirect.conf
   when: apache_enable_ssl
   notify: restart apache
