@@ -224,6 +224,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'name': container_name,
             'labels': {'slots': '%d' % blueprint_config['consumed_slots']},
             'host_config': host_config,
+            'environment': blueprint_config['environment_vars'].split(),
         }
         if len(blueprint_config.get('launch_command', '')):
             launch_command = blueprint_config.get('launch_command').format(
