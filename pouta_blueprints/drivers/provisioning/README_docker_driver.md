@@ -20,6 +20,11 @@ Then save the images to image directory (/var/lib/pb/docker_images by default)
     docker save rocker/rstudio | gzip -c > /var/lib/pb/docker_images/rocker.rstudio.img
     docker save rocker/ropensci | gzip -c > /var/lib/pb/docker_images/rocker.ropensci.img
 
+NOTE: Images from the image directory are pushed to notebook hosts only when they are being
+      prepared. This limitation will be removed in the future, see
+      https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/issues/358
+       
+
 ### Configure the driver
 
 Change the following configuration variables in the web configuration page visible for admins.
