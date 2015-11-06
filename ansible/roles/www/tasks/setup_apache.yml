@@ -61,6 +61,7 @@
       - proxy
       - proxy_http
       - ssl
+      - headers
   notify: restart apache
 
 - name: Enable Apache Shibboleth module

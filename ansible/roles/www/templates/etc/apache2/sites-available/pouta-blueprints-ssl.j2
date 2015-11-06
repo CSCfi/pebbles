@@ -4,8 +4,12 @@
 
     DocumentRoot {{ apache_static_root }}
 
-    ProxyPass /api http://{{ proxy_bind_endpoint }}/api
-    ProxyPassReverse /api http://{{ proxy_bind_endpoint }}/api
+	<Location /api>
+		# Thou shall not cache API calls
+		Header set Cache-Control no-cache
+		ProxyPass http://{{ proxy_bind_endpoint }}/api
+		ProxyPassReverse http://{{ proxy_bind_endpoint }}/api
+	</Location>
 
     <Directory {{ apache_static_root }}>
         Options Indexes FollowSymLinks MultiViews
@@ -14,14 +18,14 @@
     </Directory>
 
 {% if enable_shibboleth %}
-    ProxyPass /login http://{{ proxy_bind_endpoint }}/login
-    ProxyPassReverse /login http://{{ proxy_bind_endpoint }}/login
-
     <Location /login>
         AuthType shibboleth
         ShibRequestSetting requireSession 1
         ShibUseHeaders On
         require shib-session
+
+	    ProxyPass http://{{ proxy_bind_endpoint }}/login
+		ProxyPassReverse http://{{ proxy_bind_endpoint }}/login
     </Location>
 {% endif %}
 
