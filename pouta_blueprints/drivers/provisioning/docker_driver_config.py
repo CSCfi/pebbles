@@ -59,6 +59,11 @@ CONFIG = {
                 'title': 'Skip rewriting and redirecting the proxy url',
                 'default': False,
             },
+            'environment_vars': {
+                'type': 'string',
+                'title': 'environment variables for docker, separated by space',
+                'default': '',
+            },
         }
     },
     'form': [
@@ -71,6 +76,7 @@ CONFIG = {
         'docker_image',
         'internal_port',
         'launch_command',
+        'environment_vars',
         'memory_limit',
         'consumed_slots',
         'maximum_instances_per_user',
