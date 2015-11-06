@@ -5,8 +5,12 @@
 
     DocumentRoot {{ apache_static_root }}
 
-    ProxyPass /api http://{{ proxy_bind_endpoint }}/api
-    ProxyPassReverse /api http://{{ proxy_bind_endpoint }}/api
+    <Location /api>
+        # Thou shall not cache API calls
+        Header set Cache-Control no-cache
+        ProxyPass http://{{ proxy_bind_endpoint }}/api
+        ProxyPassReverse http://{{ proxy_bind_endpoint }}/api
+    </Location>
 
     <Directory {{ apache_static_root }}>
         Options Indexes FollowSymLinks MultiViews
