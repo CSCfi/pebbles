@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 #
-# docker run --rm -i -t docker.io/jupyter/minimal-notebook /usr/bin/env python -c "from notebook.auth import passwd; print(passwd('mysecret'))"
-
+# Script to set up a standalone notebook server based on 'notebook_host' ansible role
+#
 
 set -e
 
@@ -60,13 +60,27 @@ build_image()
 
 print_usage()
 {
-    echo "Usage: $0 [options]"
-    echo
-    echo " where options are:"
-    echo "  -c : just create containers, skip installation step"
-    echo "  -i : image to run"
-    echo "  -b : build image"
-    echo
+    cat << EOF_USAGE
+Script to set up a standalone Jupyter notebook server, based on 'notebook_host' ansible role.
+Will set up one container per notebook and one nginx proxy container in front of them, listening to port 80
+and forwarding urls like http://your.ip.here/notebook-1-name/ to the notebook containers.
+
+Prerequisites
+- CentOS-7.0 host with a volume attached as /dev/vdc
+- file called 'config.txt', each line containing <notebook name> <password-hash>
+
+Password hashes can be generated with:
+$ docker run --rm -i -t docker.io/jupyter/minimal-notebook /usr/bin/env python -c "from notebook.auth import passwd; print(passwd('mysecret'))"
+
+Usage: $0 [options]
+
+where options are:
+  -c : just create containers, skip installation step
+  -i : image to run
+  -b : build image"
+
+EOF_USAGE
+
     exit 0
 }
 
