@@ -2,23 +2,18 @@
 
 # Modify these options if you want to change the way the docker daemon runs
 
-# the default
-# OPTIONS='--selinux-enabled'
-
-# tcp socket, no ssl
-# OPTIONS='--selinux-enabled -H tcp://0.0.0.0:2375'
-
-# tls, no verify
-# OPTIONS='--selinux-enabled -H tcp://0.0.0.0:2376 --tls'
-
+{% if enable_docker_ssl | bool %}
 # tls, verify clients
 OPTIONS='--selinux-enabled -H tcp://0.0.0.0:2376 --tlsverify \
 --tlscacert=/etc/docker/ca_cert.pem --tlscert=/etc/docker/server_cert.pem --tlskey=/etc/docker/server_key.pem'
+DOCKER_CERT_PATH=/etc/docker
+{% else %}
+# the default
+OPTIONS='--selinux-enabled --group=docker'
+{% endif %}
 
 # turn on debugging
 # OPTIONS="--debug=true $OPTIONS"
-
-DOCKER_CERT_PATH=/etc/docker
 
 # If you want to add your own registry to be used for docker search and docker
 # pull use the ADD_REGISTRY option to list a set of registries, each prepended
