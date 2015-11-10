@@ -67,6 +67,7 @@ def refresh_nginx_config():
         '   ssl on;',
         '   ssl_certificate /etc/nginx/ssl/server.crt;',
         '   ssl_certificate_key /etc/nginx/ssl/server.key;',
+        '   client_max_body_size 20M;',
     ]
 
     nroutes = 0
@@ -77,6 +78,7 @@ def refresh_nginx_config():
             config.extend(x.rstrip() for x in f.readlines())
 
     config.append('}')
+    config.append('')
 
     logger.debug('refresh_nginx_config(): added %d routes' % nroutes)
 
