@@ -4,9 +4,14 @@ app.directive('lifetime', function () {
 
             // Here we have to use a attribute change listener. The first time 'link' is fired
             // we might not have the data loaded to scope yet.
-            attributes.$observe('seconds', function (newValue) {
-                    var nSecs = parseInt(newValue, 10);
+            attributes.$observe('value', function (newValue) {
 
+                var nSecs = parseInt(newValue, 10);
+                // see if we are dealing with infinite lifetime
+                if (nSecs == 0 && typeof(attributes.maximumLifetime) != 'undefined' && attributes.maximumLifetime == 0) {
+                    element.text('infinite');
+                }
+                else {
                     var days = Math.floor(nSecs / (3600 * 24));
                     var secsLeft = nSecs - days * 3600 * 24;
 
@@ -33,7 +38,7 @@ app.directive('lifetime', function () {
                     }
                     element.text(timeStr);
                 }
-            );
+            });
         }
 
         return {

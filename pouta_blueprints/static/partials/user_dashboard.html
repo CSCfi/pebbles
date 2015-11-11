@@ -12,7 +12,7 @@
                 <div class="panel-body specialCollapse sp">
                     <div style="padding: 15px">
                         <p><b>Description:</b> {{ blueprint.config.description }}</p>
-                        <p><b>Lifetime:</b> <lifetime seconds="{{ blueprint.maximum_lifetime }}"/> </p>
+                        <p><b>Lifetime:</b> <lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{blueprint.maximum_lifetime}}"/> </p>
                     </div>
                     <table class="table table-hover table-striped goup" ng-show="(instances | filter : blueprint.id).length">
                         <thead>
@@ -32,7 +32,7 @@
                                     </center>
                                 </td>
                                 <td><small><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></small></td>
-                                <td><small><lifetime seconds="{{instance.lifetime_left}}"/></small></td>
+                                <td><small><lifetime value="{{instance.lifetime_left}}" maximum-lifetime="{{instance.maximum_lifetime}}"/></small></td>
                                 <td><small>
                                     <a ng-show="['http', 'https'].indexOf(instance.instance_data['endpoints'][0]['name']) >= 0 && instance.state=='running'"
                                        href="{{instance.instance_data['endpoints'][0].access}}" target="_blank">
