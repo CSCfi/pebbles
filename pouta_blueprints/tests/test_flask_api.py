@@ -583,7 +583,6 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
         self.assertEqual(len(response.json), 0)
 
-
     def test_get_instance(self):
         # Anonymous
         response = self.make_request(path='/api/v1/instances/%s' % self.known_instance_id)
