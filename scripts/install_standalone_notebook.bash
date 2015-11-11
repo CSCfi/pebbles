@@ -126,6 +126,7 @@ generate_nginx_config()
     cat > /tmp/nginx_sites-enabled_proxy.conf << EOF_CONFIG
 server {
     listen 80;
+    client_max_body_size 20M;
 
 EOF_CONFIG
     for snippet in /tmp/nginx_snippet_*; do
