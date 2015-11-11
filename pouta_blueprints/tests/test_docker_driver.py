@@ -140,6 +140,7 @@ class PBClientMock(object):
                     internal_port=8888,
                     consumed_slots=1,
                     memory_limit='512m',
+                    environment_vars=''
                 ),
             )
         }
