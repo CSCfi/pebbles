@@ -98,9 +98,9 @@ CONFIG = {
             'maximum_lifetime': {
                 'type': 'string',
                 'title': 'Maximum life-time (days hours mins secs)',
-                'default': '0d0h0m0s',
-                'pattern': '^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?(\d{1,2}s\s?)?$',
-                'validationMessage': 'Value should be in format -d-h-m-s'
+                'default': '1h 0m',
+                'pattern': '^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?$',
+                'validationMessage': 'Value should be in format [days]d [hours]h [minutes]m'
             },
             'maximum_instances_per_user': {
                 'type': 'integer',
