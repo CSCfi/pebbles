@@ -54,24 +54,22 @@ class BlueprintList(restful.Resource):
 
         if 'maximum_lifetime' in form.config.data:
 
-            timeformat_error = {"timeformat error": "pattern should be -d-h-m-s"}
+            timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
             try:
                 max_life_str = str(form.config.data['maximum_lifetime'])
                 if(max_life_str):
-                    m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?(\d{1,2}s\s?)?$', max_life_str)
+                    m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)??$', max_life_str)
 
                     if(m):
-                        days = hours = mins = secs = 0
+                        days = hours = mins = 0
                         if(m.group(1)):
                             days = int(m.group(1).strip()[:-1])
                         if(m.group(2)):
                             hours = int(m.group(2).strip()[:-1])
                         if(m.group(3)):
                             mins = int(m.group(3).strip()[:-1])
-                        if(m.group(4)):
-                            secs = int(m.group(4).strip()[:-1])
 
-                        blueprint.maximum_lifetime = days * 86400 + hours * 3600 + mins * 60 + secs
+                        blueprint.maximum_lifetime = days * 86400 + hours * 3600 + mins * 60
 
                     else:
                         return timeformat_error, 422
