@@ -78,7 +78,8 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
             templateUrl: partialsDir + '/user_dashboard.html',
             resolve: {
                 redirectIfNotAuthenticated: notAuthenticatedP,
-                redirectIfAdmin: isAdminP
+                redirectIfAdmin: isAdminP,
+                isUserDashboard: function() {return false;},
             }
         })
         .when('/user-dashboard', {
@@ -86,13 +87,15 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider) {
             templateUrl: partialsDir + '/user_dashboard.html',
             resolve: {
                 redirectIfNotAuthenticated: notAuthenticatedP,
+                isUserDashboard: function() {return true},
             }
         })
         .when('/admin-dashboard', {
             controller: 'DashboardController',
             templateUrl: partialsDir + '/admin_dashboard.html',
             resolve: {
-                redirectIfNotAuthenticated: notAuthenticatedP
+                redirectIfNotAuthenticated: notAuthenticatedP,
+                isUserDashboard: function() {return false},
             }
         })
         .when('/instance_details/:instance_id', {

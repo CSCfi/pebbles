@@ -11,7 +11,7 @@
         </thead>
         <tbody>
             <tr ng-hide="!blueprints || (blueprints | filter : {is_enabled: 'true'}).length">
-                <td colspan="4">No Blueprints</td>
+                <td colspan="4">No blueprints</td>
             </tr>
             <tr ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }">
                 <td>{{ blueprint.name }}</td>
@@ -30,6 +30,23 @@
     </table>
 
     <h1>Instances</h1>
+    <form>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-addon"><span class="glyphicon glyphicon-filter"></span></div>
+                        <input id="query" class="form-control" ng-model="query" placeholder="Filter instances"/>
+                        <span class="input-group-addon">
+                            Include deleted
+                            <input type="checkbox" ng-click="updateInstanceList()" ng-model="include_deleted">
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
     <table class="table table-striped">
         <thead>
         <tr>
@@ -43,7 +60,10 @@
         </tr>
         </thead>
         <tbody>
-            <tr ng-repeat="instance in instances">
+            <tr ng-hide="!instances || instances.length">
+                <td colspan="7">No instances</td>
+            </tr>
+            <tr ng-repeat="instance in instances | filter:query">
                 <td><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></td>
                 <td>{{instance.state}} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>
                 <td>{{instance.blueprint}}</td>
