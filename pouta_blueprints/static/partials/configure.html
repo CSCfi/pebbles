@@ -32,7 +32,7 @@
         <tbody>
         <tr ng-repeat="blueprint in blueprints">
             <td>{{blueprint.name}}</td>
-            <td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{blueprint.maximum_lifetime}}"/></td>
+            <td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
             <td>
                 <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)" class="btn btn-primary">Activate</button>
                 <button ng-show="blueprint.is_enabled" ng-click="deactivate(blueprint)" class="btn btn-default">Deactivate</button>
