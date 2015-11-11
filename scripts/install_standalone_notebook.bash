@@ -123,20 +123,20 @@ EOF_CONFIG
 
 generate_nginx_config()
 {
-    cat > /tmp/nginx_sites-enabled_proxy.conf << EOF_CONFIG
+    cat > /tmp/proxy.conf.new << EOF_CONFIG
 server {
     listen 80;
     client_max_body_size 20M;
 
 EOF_CONFIG
     for snippet in /tmp/nginx_snippet_*; do
-        cat $snippet >> /tmp/nginx_sites-enabled_proxy.conf
+        cat $snippet >> /tmp/proxy.conf.new
         rm -f $snippet
     done
 
-    echo "}" >> /tmp/nginx_sites-enabled_proxy.conf
+    echo "}" >> /tmp/proxy.conf.new
 
-    cp -vf /tmp/nginx_sites-enabled_proxy.conf /tmp/proxy.conf
+    cp -vf /tmp/proxy.conf.new /tmp/proxy.conf
     sudo chcon -Rt svirt_sandbox_file_t /tmp/proxy.conf
 }
 
