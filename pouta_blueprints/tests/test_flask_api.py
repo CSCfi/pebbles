@@ -71,6 +71,11 @@ class FlaskApiTestCase(BaseTestCase):
             User.query.filter_by(email="user@example.org").first())
         db.session.add(i2)
         self.known_instance_id_2 = i2.id
+        i3 = Instance(
+            Blueprint.query.filter_by(id=b3.id).first(),
+            User.query.filter_by(email="user@example.org").first())
+        db.session.add(i3)
+        i3.state = Instance.STATE_DELETED
 
         db.session.commit()
 
@@ -566,10 +571,18 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_user_request(path='/api/v1/instances')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
+        response = self.make_authenticated_user_request(path='/api/v1/instances?show_deleted=true')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 3)
+
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/instances')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
+        response = self.make_authenticated_admin_request(path='/api/v1/instances?show_only_mine=1')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 0)
+
 
     def test_get_instance(self):
         # Anonymous
