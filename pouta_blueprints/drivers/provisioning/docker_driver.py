@@ -108,7 +108,10 @@ class DockerDriverAccessProxy(object):
             runner_callbacks=runner_cb,
             inventory=a_inventory,
             remote_user='cloud-user',
-            extra_vars={'notebook_host_block_dev_path': '/dev/vdc'},
+            extra_vars={
+                'notebook_host_block_dev_path': '/dev/vdc',
+                'enable_docker_ssl': True,
+            },
         )
 
         pb_res = pb.run()
