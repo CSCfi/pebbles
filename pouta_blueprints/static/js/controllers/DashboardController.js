@@ -38,22 +38,18 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
 
         $scope.provision = function (blueprint) {
             instances.post({blueprint: blueprint.id}).then(function (response) {
-                    instances.getList(queryParams).then(function (response) {
-                            $scope.instances = response;
-                        }
-                    );
-                }, function(response) {
-                    if (response.status != 409) {
-                        $.notify({title: 'HTTP ' + response.status, message: 'unknown error'}, {type: 'danger'});
+                $scope.updateInstanceList();
+            }, function(response) {
+                if (response.status != 409) {
+                    $.notify({title: 'HTTP ' + response.status, message: 'unknown error'}, {type: 'danger'});
+                } else {
+                    if (response.data.error == 'USER_OVER_QUOTA') {
+                        $.notify({title: 'HTTP ' + response.status, message: 'User quota exceeded, contact your administrator in order to get more'}, {type: 'danger'});
                     } else {
-                        if (response.data.error == 'USER_OVER_QUOTA') {
-                            $.notify({title: 'HTTP ' + response.status, message: 'User quota exceeded, contact your administrator in order to get more'}, {type: 'danger'});
-                        } else {
-                            $.notify({title: 'HTTP ' + response.status, message: 'Maximum number of running instances for the selected blueprint reached.'}, {type: 'danger'});
-                        }
+                        $.notify({title: 'HTTP ' + response.status, message: 'Maximum number of running instances for the selected blueprint reached.'}, {type: 'danger'});
                     }
                 }
-            );
+            });
         };
 
         $scope.deprovision = function (instance) {
@@ -73,7 +69,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             }
             stop = $interval(function () {
                 if (AuthService.isAuthenticated()) {
-                    updateInstanceList();
+                    $scope.updateInstanceList();
                 } else {
                     $interval.cancel(stop);
                 }
