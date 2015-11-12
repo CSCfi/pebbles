@@ -1,5 +1,5 @@
 from flask.ext.restful import marshal, marshal_with, fields, reqparse
-from flask import abort, g
+from flask import abort, g, request
 from flask import Blueprint as FlaskBlueprint
 
 import datetime
@@ -56,11 +56,12 @@ class InstanceList(restful.Resource):
     @marshal_with(instance_fields)
     def get(self):
         user = g.user
-        if user.is_admin:
-            instances = Instance.query.filter(Instance.state != Instance.STATE_DELETED).all()
-        else:
-            instances = Instance.query.filter_by(user_id=user.id). \
-                filter((Instance.state != Instance.STATE_DELETED)).all()
+        q = Instance.query
+        if not user.is_admin or request.args.get('show_only_mine'):
+            q = q.filter_by(user_id=user.id)
+        if not request.args.get('show_deleted'):
+            q = q.filter(Instance.state != Instance.STATE_DELETED)
+        instances = q.all()
 
         get_blueprint = memoize(query_blueprint)
         get_user = memoize(query_user)

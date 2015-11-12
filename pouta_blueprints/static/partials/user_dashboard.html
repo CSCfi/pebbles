@@ -1,7 +1,7 @@
 <div>
     <h1>Blueprints</h1>
     <div class="row">
-        <div class="alert alert-warning" ng-hide="!blueprints || (blueprints | filter : {is_enabled: 'true'}).length">
+        <div class="alert alert-warning" ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
             No blueprints available
         </div>
         <div ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }" class="col-md-6">
