@@ -19,7 +19,7 @@ if (process.env.TRAVIS) {
     };
     config.params.baseURL = 'http://localhost:8888/#/';
 } else {
-    config.params.baseURL = 'https://localhost:8888/#/';
+    config.params.baseURL = 'http://localhost:8888/#/';
     config.seleniumAddress = 'http://localhost:4444/wd/hub';
 }
 
