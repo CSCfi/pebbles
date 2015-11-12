@@ -103,9 +103,8 @@ class User(db.Model):
         self.password = bcrypt.generate_password_hash(password)
 
     def check_password(self, password):
-        if self.is_deleted:
-            return None
-        return bcrypt.check_password_hash(self.password, password)
+        if self.can_login():
+            return bcrypt.check_password_hash(self.password, password)
 
     def generate_auth_token(self, app_secret, expires_in=3600):
         s = Serializer(app_secret, expires_in=expires_in)
@@ -117,6 +116,9 @@ class User(db.Model):
     def quota_exceeded(self):
         return self.calculate_credits_spent() >= self.credits_quota
 
+    def can_login(self):
+        return not self.is_deleted and self.is_active
+
     @staticmethod
     def verify_auth_token(token, app_secret):
         s = Serializer(app_secret)
@@ -125,9 +127,8 @@ class User(db.Model):
         except:
             return None
         user = User.query.get(data['id'])
-        if user and user.is_deleted:
-            return None
-        return user
+        if user and user.can_login():
+            return user
 
     def __repr__(self):
         return self.email
