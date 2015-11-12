@@ -15,7 +15,7 @@
             </tr>
             <tr ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }">
                 <td>{{ blueprint.name }}</td>
-                <td><lifetime seconds="{{ blueprint.maximum_lifetime }}" /></td>
+                <td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
                 <td>{{ blueprint.config.description }}</td>
                 <td>
                     <a ng-click="provision(blueprint)" class="btn btn-primary" ng-hide="blueprint.config.needs_ssh_keys && !keypair_exists()">
@@ -57,7 +57,7 @@
                         {{ instance.instance_data['endpoints'][0].access }}
                     </div>
                 </td>
-                <td><lifetime seconds="{{instance.lifetime_left}}"/></td>
+                <td><lifetime value="{{ instance.lifetime_left }}" maximum-lifetime="{{ instance.maximum_lifetime }}"/></td>
                 <td>
                     <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger" ng-disabled="instance.state=='deleting'" >Destroy</button>
                 </td>
