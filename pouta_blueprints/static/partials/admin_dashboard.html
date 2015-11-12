@@ -10,7 +10,7 @@
             </tr>
         </thead>
         <tbody>
-            <tr ng-hide="!blueprints || (blueprints | filter : {is_enabled: 'true'}).length">
+            <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
                 <td colspan="4">No blueprints</td>
             </tr>
             <tr ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }">
@@ -60,7 +60,7 @@
         </tr>
         </thead>
         <tbody>
-            <tr ng-hide="!instances || instances.length">
+            <tr ng-hide="instances != undefined && instances.length">
                 <td colspan="7">No instances</td>
             </tr>
             <tr ng-repeat="instance in instances | filter:query">
