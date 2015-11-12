@@ -13,6 +13,8 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             $scope.keypairs = response;
         });
 
+        var instances = Restangular.all('instances');
+
         $scope.updateInstanceList = function() {
             var queryParams = {};
             if ($scope.include_deleted) {
@@ -21,7 +23,6 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             if (AuthService.isAdmin() && isUserDashboard) {
                 queryParams.show_only_mine = true;
             }
-            var instances = Restangular.all('instances');
             instances.getList(queryParams).then(function (response) {
                 $scope.instances = response;
             });
