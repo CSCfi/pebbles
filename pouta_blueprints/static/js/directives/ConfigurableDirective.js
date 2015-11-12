@@ -1,6 +1,6 @@
 app.directive('configurableValue', ['ConfigurationService', function(ConfigurationService) {
     return {
-        restrict: 'E',
+        restrict: 'EA',
         link: function(scope, element, attrs) {
             ConfigurationService.getValue().then(function (data) {
                 element.text(data[attrs.key]);
