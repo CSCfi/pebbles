@@ -347,7 +347,6 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/blueprints/%s' % uuid.uuid4().hex)
         self.assert_404(response)
 
-
     def test_create_blueprint(self):
         # Anonymous
         data = {'name': 'test_blueprint_1', 'config': '', 'plugin': 'dummy'}
