@@ -1,5 +1,5 @@
 from flask.ext.restful import marshal, marshal_with, fields, reqparse
-from flask import abort, g, request
+from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 
 import datetime
@@ -50,16 +50,38 @@ def query_user(user_id):
     return User.query.filter_by(id=user_id).first()
 
 
+def positive_integer(input_value):
+    """Return email_str if valid, raise an exception in other case."""
+    try:
+        input_int = int(input_value)
+    except:
+        raise ValueError('{} is not a valid integer'.format(input_value))
+    if input_int >= 0:
+        return input_int
+    else:
+        raise ValueError('{} is not a postive integer'.format(input_value))
+
+
 class InstanceList(restful.Resource):
     @auth.login_required
     @marshal_with(instance_fields)
     def get(self):
         user = g.user
+        parser = reqparse.RequestParser()
+        parser.add_argument('show_deleted', type=bool, help='Include deleted instances')
+        parser.add_argument('show_only_mine', type=bool, help='Show only own instances')
+        parser.add_argument('offset', type=positive_integer, help='offset is the number of instances to skip')
+        parser.add_argument('limit', type=positive_integer, default=100, help='limit is the number of instances to return')
+        args = parser.parse_args()
         q = Instance.query
-        if not user.is_admin or request.args.get('show_only_mine'):
+        if not user.is_admin or args.get('show_only_mine'):
             q = q.filter_by(user_id=user.id)
-        if not request.args.get('show_deleted'):
+        if not args.get('show_deleted'):
             q = q.filter(Instance.state != Instance.STATE_DELETED)
+        if args.get('offset'):
+            q = q.offset(args.get('offset'))
+        if args.get('limit'):
+            q = q.limit(args.get('limit'))
         instances = q.all()
 
         get_blueprint = memoize(query_blueprint)

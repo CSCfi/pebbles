@@ -20,12 +20,24 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             if ($scope.include_deleted) {
                 queryParams.show_deleted = true;
             }
+            if ($scope.limit) {
+                queryParams.limit = $scope.limit;
+            }
+            if ($scope.offset) {
+                queryParams.offset = $scope.offset;
+            }
             if (AuthService.isAdmin() && isUserDashboard) {
                 queryParams.show_only_mine = true;
             }
             instances.getList(queryParams).then(function (response) {
                 $scope.instances = response;
             });
+        };
+
+        $scope.resetFilters = function() {
+            $scope.include_deleted = false;
+            $scope.limit = $scope.offset = undefined;
+            $scope.updateInstanceList();
         };
 
         $scope.updateInstanceList();
