@@ -2,6 +2,8 @@ import unittest
 import datetime
 import base64
 import json
+import uuid
+
 from pouta_blueprints.tests.base import db, BaseTestCase
 from pouta_blueprints.models import User, Blueprint, Plugin, ActivationToken, Instance, Variable
 from pouta_blueprints.config import BaseConfig
@@ -321,6 +323,30 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/blueprints')
         self.assert_200(response)
         self.assertEqual(len(response.json), 3)
+
+    def test_get_blueprint(self):
+        # Existing blueprint
+        # Anonymous
+        response = self.make_request(path='/api/v1/blueprints/%s' % self.known_blueprint_id)
+        self.assert_401(response)
+        # Authenticated
+        response = self.make_authenticated_user_request(path='/api/v1/blueprints/%s' % self.known_blueprint_id)
+        self.assert_200(response)
+        # Admin
+        response = self.make_authenticated_admin_request(path='/api/v1/blueprints/%s' % self.known_blueprint_id)
+        self.assert_200(response)
+
+        # non-existing blueprint
+        # Anonymous
+        response = self.make_request(path='/api/v1/blueprints/%s' % uuid.uuid4().hex)
+        self.assert_401(response)
+        # Authenticated
+        response = self.make_authenticated_user_request(path='/api/v1/blueprints/%s' % uuid.uuid4().hex)
+        self.assert_404(response)
+        # Admin
+        response = self.make_authenticated_admin_request(path='/api/v1/blueprints/%s' % uuid.uuid4().hex)
+        self.assert_404(response)
+
 
     def test_create_blueprint(self):
         # Anonymous
