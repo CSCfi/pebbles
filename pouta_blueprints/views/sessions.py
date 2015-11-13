@@ -16,7 +16,6 @@ token_fields = {
 }
 
 
-@sessions.route('/')
 class SessionView(restful.Resource):
     def post(self):
         form = SessionCreateForm()

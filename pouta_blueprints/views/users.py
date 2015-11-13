@@ -16,7 +16,6 @@ from pouta_blueprints.views.commons import user_fields, auth, invite_user
 users = FlaskBlueprint('users', __name__)
 
 
-@users.route('/')
 class UserList(restful.Resource):
     @staticmethod
     def address_list(value):
@@ -61,7 +60,6 @@ class UserList(restful.Resource):
         return User.query.all()
 
 
-@users.route('/<string:user_id>')
 class UserView(restful.Resource):
     @auth.login_required
     @marshal_with(user_fields)
@@ -103,7 +101,6 @@ public_key_fields = {
 }
 
 
-@users.route('/<string:user_id>/keypairs')
 class KeypairList(restful.Resource):
     @auth.login_required
     @marshal_with(public_key_fields)
@@ -126,7 +123,6 @@ private_key_fields = {
 }
 
 
-@users.route('/<string:user_id>/keypairs/create')
 class CreateKeyPair(restful.Resource):
     @auth.login_required
     @marshal_with(private_key_fields)
@@ -148,7 +144,6 @@ class CreateKeyPair(restful.Resource):
         return {'private_key': priv}
 
 
-@users.route('/<string:user_id>/upload')
 class UploadKeyPair(restful.Resource):
     @auth.login_required
     def post(self, user_id):

@@ -16,7 +16,6 @@ lock_fields = {
 }
 
 
-@locks.route('/<string:lock_id>')
 class LockView(restful.Resource):
     @auth.login_required
     @requires_admin

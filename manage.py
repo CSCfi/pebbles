@@ -1,3 +1,4 @@
+from flask import url_for
 from flask.ext.script import Manager, Server, Shell
 from werkzeug.contrib.profiler import ProfilerMiddleware
 import getpass
@@ -77,6 +78,32 @@ def syncconf():
     """Synchronizes configuration from filesystem to database"""
     Variable.sync_local_config_to_db(BaseConfig, BaseConfig(), force_sync=True)
 
+
+@manager.command
+def list_routes():
+
+    try:
+        from urllib.parse import unquote
+    except ImportError:
+        from urllib import unquote
+
+    from terminaltables import AsciiTable
+
+    route_data = [
+        ['endpoint','methods','url']
+    ]
+    for rule in app.url_map.iter_rules():
+
+        options = {}
+        for arg in rule.arguments:
+            options[arg] = "[{0}]".format(arg)
+
+        methods = ','.join(rule.methods)
+        url = url_for(rule.endpoint, **options)
+        line = [unquote(x) for x in (rule.endpoint, methods, url)]
+        route_data.append(line)
+
+    print(AsciiTable(route_data).table)
 
 if __name__ == '__main__':
     manager.run()
