@@ -90,7 +90,7 @@ def list_routes():
     from terminaltables import AsciiTable
 
     route_data = [
-        ['endpoint','methods','url']
+        ['endpoint', 'methods', 'url']
     ]
     for rule in app.url_map.iter_rules():
 
