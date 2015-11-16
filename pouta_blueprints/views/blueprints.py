@@ -91,7 +91,10 @@ class BlueprintView(restful.Resource):
     @auth.login_required
     @marshal_with(blueprint_fields)
     def get(self, blueprint_id):
-        return Blueprint.query.filter_by(id=blueprint_id).first()
+        blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
+        if not blueprint:
+            abort(404)
+        return blueprint
 
     @auth.login_required
     @requires_admin
