@@ -63,16 +63,17 @@ def positive_integer(input_value):
 
 
 class InstanceList(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('show_deleted', type=bool, default=False, location='args')
+    parser.add_argument('show_only_mine', type=bool, default=False, location='args')
+    parser.add_argument('offset', type=positive_integer, default=0, location='args')
+    parser.add_argument('limit', type=positive_integer, default=100, location='args')
+
     @auth.login_required
     @marshal_with(instance_fields)
     def get(self):
         user = g.user
-        parser = reqparse.RequestParser()
-        parser.add_argument('show_deleted', type=bool, help='Include deleted instances')
-        parser.add_argument('show_only_mine', type=bool, help='Show only own instances')
-        parser.add_argument('offset', type=positive_integer, help='offset is the number of instances to skip')
-        parser.add_argument('limit', type=positive_integer, default=100, help='limit is the number of instances to return')
-        args = parser.parse_args()
+        args = self.parser.parse_args()
         q = Instance.query
         if not user.is_admin or args.get('show_only_mine'):
             q = q.filter_by(user_id=user.id)
