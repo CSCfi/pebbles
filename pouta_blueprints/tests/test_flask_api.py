@@ -7,6 +7,7 @@ import uuid
 from pouta_blueprints.tests.base import db, BaseTestCase
 from pouta_blueprints.models import User, Blueprint, Plugin, ActivationToken, Instance, Variable
 from pouta_blueprints.config import BaseConfig
+from pouta_blueprints.views import activations
 
 ADMIN_TOKEN = None
 USER_TOKEN = None
@@ -529,6 +530,40 @@ class FlaskApiTestCase(BaseTestCase):
         user = User.query.filter_by(email='test@example.org').first()
         self.assertIsNotNone(user)
         self.assertTrue(user.is_active)
+
+    def test_send_recovery_link(self):
+        # positive test for existing user
+        user = User.query.filter_by(id=self.known_user_id).first()
+        self.assertIsNotNone(user)
+        data = {'email': user.email}
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/activations',
+            data=json.dumps(data))
+        self.assert_200(response)
+
+        # negative test for existing user with too many tokens
+        for i in range(1, activations.MAX_ACTIVATION_TOKENS_PER_USER):
+            response = self.make_request(
+                method='POST',
+                path='/api/v1/activations',
+                data=json.dumps(data))
+            self.assert_200(response)
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/activations',
+            data=json.dumps(data))
+        self.assert_403(response)
+
+        # negative test for non-existing user
+        user = User.query.filter_by(email='not.here@example.org').first()
+        self.assertIsNone(user)
+        data = {'email': 'not.here@example.org'}
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/activations',
+            data=json.dumps(data))
+        self.assert_404(response)
 
     def test_anonymous_create_instance(self):
         data = {'blueprint_id': self.known_blueprint_id}
