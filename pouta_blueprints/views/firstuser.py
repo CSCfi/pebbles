@@ -12,7 +12,6 @@ from pouta_blueprints.views.commons import user_fields, create_user, create_work
 firstuser = FlaskBlueprint('firstuser', __name__)
 
 
-@firstuser.route('/')
 class FirstUserView(restful.Resource):
     @marshal_with(user_fields)
     def post(self):

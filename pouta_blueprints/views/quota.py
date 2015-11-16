@@ -43,7 +43,6 @@ def update_user_quota(user, update_type, value):
         abort(422)
 
 
-@quota.route('/quota')
 class Quota(restful.Resource):
     @auth.login_required
     @requires_admin
@@ -74,7 +73,6 @@ class Quota(restful.Resource):
         return results
 
 
-@quota.route('/quota/<string:user_id>')
 class UserQuota(restful.Resource):
     @auth.login_required
     @requires_admin

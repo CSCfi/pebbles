@@ -6,7 +6,6 @@ from pouta_blueprints.views.commons import auth
 myip = FlaskBlueprint('myip', __name__)
 
 
-@myip.route('/')
 class WhatIsMyIp(restful.Resource):
     @auth.login_required
     def get(self):

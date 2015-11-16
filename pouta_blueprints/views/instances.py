@@ -50,7 +50,6 @@ def query_user(user_id):
     return User.query.filter_by(id=user_id).first()
 
 
-@instances.route('/')
 class InstanceList(restful.Resource):
     @auth.login_required
     @marshal_with(instance_fields)
@@ -140,7 +139,6 @@ class InstanceList(restful.Resource):
         return marshal(instance, instance_fields), 200
 
 
-@instances.route('/<instance_id>', methods=['GET', 'DELETE', 'PATCH'])
 class InstanceView(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('state', type=str)
@@ -258,7 +256,6 @@ class InstanceView(restful.Resource):
             db.session.commit()
 
 
-@instances.route('/<instance_is>/logs', methods=['GET', 'PATCH'])
 class InstanceLogs(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('type', type=str)

@@ -16,7 +16,6 @@ blueprints = FlaskBlueprint('blueprints', __name__)
 MAX_ACTIVATION_TOKENS_PER_USER = 3
 
 
-@blueprints.route('/')
 class BlueprintList(restful.Resource):
     @auth.login_required
     @marshal_with(blueprint_fields)
@@ -88,7 +87,6 @@ class BlueprintList(restful.Resource):
         db.session.commit()
 
 
-@blueprints.route('/<string:blueprint_id>')
 class BlueprintView(restful.Resource):
     @auth.login_required
     @marshal_with(blueprint_fields)

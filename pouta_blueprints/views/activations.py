@@ -14,7 +14,6 @@ activations = Blueprint('activations', __name__)
 MAX_ACTIVATION_TOKENS_PER_USER = 3
 
 
-@activations.route('/activations')
 class ActivationView(restful.Resource):
     @marshal_with(user_fields)
     def post(self, token_id):
@@ -42,7 +41,6 @@ class ActivationView(restful.Resource):
         return user
 
 
-@activations.route('/activations/<string:token_id>')
 class ActivationList(restful.Resource):
     def post(self):
         form = PasswordResetRequestForm()
