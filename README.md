@@ -5,18 +5,18 @@
 **Pouta Blueprints** is a frontend to manage cloud resources and lightweight user
 accounts.
 Currently supported resource types are 
- - [OpenStack driver](https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/blob/master/pouta_blueprints/drivers/provisioning/openstack_driver.py),
+ - [OpenStack driver](pouta_blueprints/drivers/provisioning/openstack_driver.py),
     which can be used to launch instances on OpenStack cloud.
- - [Docker driver] (https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/blob/master/pouta_blueprints/drivers/provisioning/README_docker_driver.md),
+ - [Docker driver] (pouta_blueprints/drivers/provisioning/README_docker_driver.md),
     for running web notebook instances in Docker containers on a pool of virtual machines. 
  - [Pouta Virtualcluster](https://github.com/CSC-IT-Center-for-Science/pouta-virtualcluster),
     which can be used to launch clusters on [cPouta](https://research.csc.fi/pouta-iaas-cloud).
     
-Additional resources can be added by implementing the driver interface [/pouta_blueprints/drivers/provisioning/base_driver.py](https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/blob/master/pouta_blueprints/drivers/provisioning/base_driver.py)
+Additional resources can be added by implementing the driver interface [/pouta_blueprints/drivers/provisioning/base_driver.py](pouta_blueprints/drivers/provisioning/base_driver.py)
 
 ## Installation on cPouta ##
 
-To install Pouta Blueprints in your project on cPouta, see [doc/how_to_install_on_cpouta.md]
+To install Pouta Blueprints in your project on cPouta, see [how_to_install_on_cpouta.md](doc/how_to_install_on_cpouta.md)
 
 ## Installation of development environment ##
 
