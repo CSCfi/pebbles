@@ -16,7 +16,7 @@ Additional resources can be added by implementing the driver interface [/pouta_b
 
 ## Installation on cPouta ##
 
-To install Pouta Blueprints in your project on cPouta, see [https://github.com/CSC-IT-Center-for-Science/pouta-virtualcluster/blob/master/doc/how_to_install_on_cPouta.md]
+To install Pouta Blueprints in your project on cPouta, see [doc/how_to_install_on_cpouta.md]
 
 ## Installation of development environment ##
 
