@@ -240,10 +240,10 @@ Tmux is terminal multiplexer like screen. Here is a quick survival guide:
 
 Action              | Command
 --------------------|--------------------
-navigate the views  | CTRL-b + n
-change active pane  | CTRL-b + arrow keys
-exit/detach         | CTRL-b + d
-new window          | CTRL-b + c
+navigate the views  | CTRL-b n
+change active pane  | CTRL-b arrow keys
+exit/detach         | CTRL-b d
+new window          | CTRL-b c
 attach              | $ tmux attach (or att)
 list sessions       | $ tmux list-sessions
 kill a session      | $ tmux kill-session -t status
