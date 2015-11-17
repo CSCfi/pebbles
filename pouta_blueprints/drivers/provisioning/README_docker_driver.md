@@ -27,8 +27,8 @@ NOTE: Images from the image directory are pushed to notebook hosts only when the
 
 Change the following configuration variables in the web configuration page visible for admins.
 
-    PLUGIN_WHITELIST DockerDriver
-    DD_SHUTDOWN_MODE False
+    PLUGIN_WHITELIST: DockerDriver
+    DD_SHUTDOWN_MODE: False
 
 Once you enable the driver, you can take a look at the tmux status window mentioned in how_to_install_on_cpouta.md, 
 window number 2 (CTRL-b 2) how the provisioning of notebook hosts in the pool is coming along.
@@ -52,3 +52,12 @@ Settings:
 
 Save and activate, go to 'Dashboard' and launch an instance. Once the instance is running, click 'Open in Browser'
 
+## Shutting down the server
+
+Because DockerDriver maintains a pool of VMs to host the containers, you will have to shut it down in an orderly
+fashion for all the allocated resources to be deleted/released. Before shutting down the main server, simply set
+ 
+    DD_SHUTDOWN_MODE: True
+    
+and the driver will delete the resources in the pool. In case there is an runaway container and the hosts are not
+empty, you will have to manually delete the VM, security group and volume from OpenStack.
