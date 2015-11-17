@@ -5,20 +5,18 @@
 After following the standard install instructions the following additional steps
 are required to activate docker driver:
 
-### Pull the docker images
+### Pull a docker image
 
 At the time of writing, docker driver will try to upload two images to new notebook hosts. The images
-will need to be downloaded from dockerhub and placed in worker's /images -directory:
+will need to be downloaded from dockerhub and placed in server's /var/lib/pb/docker_images -directory:
 
 As cloud-user on the server, pull the images
     
     docker pull rocker/rstudio
-    docker pull rocker/ropensci
 
-Then save the images to image directory (/var/lib/pb/docker_images by default)
+Then save the image to image directory (/var/lib/pb/docker_images by default)
 
     docker save rocker/rstudio | gzip -c > /var/lib/pb/docker_images/rocker.rstudio.img
-    docker save rocker/ropensci | gzip -c > /var/lib/pb/docker_images/rocker.ropensci.img
 
 NOTE: Images from the image directory are pushed to notebook hosts only when they are being
       prepared. This limitation will be removed in the future, see
