@@ -36,8 +36,16 @@
                 <div class="form-group">
                     <div class="input-group">
                         <div class="input-group-addon"><span class="glyphicon glyphicon-filter"></span></div>
-                        <input id="query" class="form-control" ng-model="query" placeholder="Filter instances"/>
-
+                        <input id="query" class="form-control" ng-model="query" placeholder="Filter instance list"/>
+                        <span class="input-group-btn">
+                            <button class="btn btn-primary" ng-click="showAdvancedOptions = !showAdvancedOptions" type="button">{{ showAdvancedOptions ? "Hide" : "Show" }}  advanced options</button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div ng-show="showAdvancedOptions" class="col-md-12">
+                <div class="form-group">
+                    <div class="input-group">
                         <div class="input-group-addon">Offset</div>
                         <input type="number" class="form-control" ng-model="offset">
                         <div class="input-group-addon">Limit</div>
@@ -47,7 +55,7 @@
                             <input type="checkbox" ng-click="updateInstanceList()" ng-model="include_deleted">
                         </span>
                         <span class="input-group-btn">
-                            <button class="btn btn-primary" ng-click="updateInstanceList()" type="button">Refresh</button>
+                            <button class="btn btn-primary" ng-click="applyFilters()" type="button">Refresh</button>
                             <button class="btn btn-default" ng-click="resetFilters()" type="button">Reset filters</button>
                         </span>
                     </div>
