@@ -41,6 +41,13 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             });
         };
 
+        $scope.toggleAdvancedOptions = function() {
+            $scope.showAdvancedOptions = ! $scope.showAdvancedOptions;
+            if (! $scope.showAdvancedOptions) {
+                $scope.resetFilters();
+            }
+        };
+
         $scope.applyFilters = function() {
             include_deleted = $scope.include_deleted;
             limit = $scope.limit;
