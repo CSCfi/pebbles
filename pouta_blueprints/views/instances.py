@@ -51,7 +51,7 @@ def query_user(user_id):
 
 
 def positive_integer(input_value):
-    """Return email_str if valid, raise an exception in other case."""
+    """Return input_value if valid, raise an exception in other case."""
     try:
         input_int = int(input_value)
     except:
