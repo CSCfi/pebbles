@@ -36,10 +36,27 @@
                 <div class="form-group">
                     <div class="input-group">
                         <div class="input-group-addon"><span class="glyphicon glyphicon-filter"></span></div>
-                        <input id="query" class="form-control" ng-model="query" placeholder="Filter instances"/>
+                        <input id="query" class="form-control" ng-model="query" placeholder="Filter instance list"/>
+                        <span class="input-group-btn">
+                            <button class="btn btn-primary" ng-click="toggleAdvancedOptions()" type="button">{{ showAdvancedOptions ? "Hide" : "Show" }}  advanced options</button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div ng-show="showAdvancedOptions" class="col-md-12">
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-addon">Offset</div>
+                        <input type="number" class="form-control" ng-model="offset">
+                        <div class="input-group-addon">Limit</div>
+                        <input type="number" class="form-control" ng-model="limit">
                         <span class="input-group-addon">
                             Include deleted
                             <input type="checkbox" ng-click="updateInstanceList()" ng-model="include_deleted">
+                        </span>
+                        <span class="input-group-btn">
+                            <button class="btn btn-primary" ng-click="applyFilters()" type="button">Refresh</button>
+                            <button class="btn btn-default" ng-click="resetFilters()" type="button">Reset filters</button>
                         </span>
                     </div>
                 </div>
@@ -60,7 +77,7 @@
         </tr>
         </thead>
         <tbody>
-            <tr ng-hide="instances != undefined && instances.length">
+            <tr ng-hide="instances != undefined && (instances | filter:query).length">
                 <td colspan="7">No instances</td>
             </tr>
             <tr ng-repeat="instance in instances | filter:query">

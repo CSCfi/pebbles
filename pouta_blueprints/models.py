@@ -233,7 +233,7 @@ class Blueprint(db.Model):
         return self.cost_multiplier * duration / 3600
 
     def __repr__(self):
-        return self.name
+        return self.name or "Unnamed blueprint"
 
 
 class Instance(db.Model):
