@@ -248,13 +248,22 @@ class DeprovisionInstance(task.Task):
         nc = get_openstack_nova_client(config)
         try:
             server = nc.servers.get(server_id)
-            server.delete()
-            return server.name
-
         except NotFound:
             logging.warn("Server %s not found" % server_id)
+            return
+
+        for sg in server.security_groups:
+            try:
+                server.remove_security_group(sg['name'])
+            except:
+                logging.warn("Unable to remove security group from server (%s)" % sg)
+
+        try:
+            server.delete()
         except Exception as e:
             logging.warn("Unable to deprovision server %s" % e)
+
+        return server.name
 
     def revert(self, *args, **kwargs):
         logging.debug("revert: deprovisioning instance failed")
