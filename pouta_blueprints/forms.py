@@ -5,7 +5,8 @@ from wtforms.validators import DataRequired, Email, Length, IPAddress
 
 from pouta_blueprints.models import (
     MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH,
-    MAX_VARIABLE_KEY_LENGTH, MAX_VARIABLE_VALUE_LENGTH
+    MAX_VARIABLE_KEY_LENGTH, MAX_VARIABLE_VALUE_LENGTH,
+    MAX_NOTIFICATION_SUBJECT_LENGTH
 )
 
 from pouta_blueprints.models import db
@@ -23,6 +24,11 @@ class UserForm(ModelForm):
     email = StringField('email', validators=[DataRequired(), Email(), Length(max=MAX_EMAIL_LENGTH)])
     password = StringField('password', default=None)
     is_admin = BooleanField('is_admin', default=False, false_values=['false', False, ''])
+
+
+class NotificationForm(ModelForm):
+    subject = StringField('subject', validators=[DataRequired(), Length(max=MAX_NOTIFICATION_SUBJECT_LENGTH)])
+    message = StringField('message', validators=[DataRequired()])
 
 
 class BlueprintForm(ModelForm):
