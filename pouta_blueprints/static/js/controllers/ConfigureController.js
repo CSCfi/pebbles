@@ -20,6 +20,11 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             $scope.variables = response;
         });
 
+        var notifications = Restangular.all('notifications');
+        notifications.getList().then(function (response){
+            $scope.notifications = response;
+        });
+
         $scope.open_create_blueprint_dialog = function(plugin) {
             var modalCreateBlueprint = $uibModal.open({
                 templateUrl: '/partials/modal_create_blueprint.html',

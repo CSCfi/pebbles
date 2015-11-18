@@ -50,6 +50,30 @@
         </tbody>
     </table>
 
+    <h2>Notifications</h2>
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <td>Subject</td>
+            <td>Broadcasted</td>
+            <td>Message</td>
+        </tr>
+        </thead>
+        <tbody>
+            <tr ng-hide="notifications != undefined && notifications.length">
+                <td colspan="3">No notifications</td>
+            </tr>
+
+            <tr ng-repeat="notification in notifications">
+                <td>{{ notification.subject }}</td>
+                <td>{{ notification.broadcasted | date:'medium' }}</td>
+                <td>{{ notification.message }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+
+
     <h2>Global variables</h2>
 
     <table class="table table-striped">
