@@ -18,8 +18,8 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
 
         var limit = undefined, offset = undefined, include_deleted = undefined;
 
-        $scope.limit = 100;
-        $scope.offset = 0;
+        $scope.limit = LIMIT_DEFAULT;
+        $scope.offset = OFFSET_DEFAULT;
 
 
         $scope.updateInstanceList = function() {
@@ -52,6 +52,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             $scope.include_deleted = false;
             $scope.limit = LIMIT_DEFAULT;
             $scope.offset = OFFSET_DEFAULT;
+            $scope.query = undefined;
             limit = offset = include_deleted = undefined;
             $scope.updateInstanceList();
         };

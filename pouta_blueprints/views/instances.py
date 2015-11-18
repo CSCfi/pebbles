@@ -59,15 +59,15 @@ def positive_integer(input_value):
     if input_int >= 0:
         return input_int
     else:
-        raise ValueError('{} is not a postive integer'.format(input_value))
+        raise ValueError('{} is not a positive integer'.format(input_value))
 
 
 class InstanceList(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('show_deleted', type=bool, default=False, location='args')
     parser.add_argument('show_only_mine', type=bool, default=False, location='args')
-    parser.add_argument('offset', type=positive_integer, default=0, location='args')
-    parser.add_argument('limit', type=positive_integer, default=100, location='args')
+    parser.add_argument('offset', type=positive_integer, location='args')
+    parser.add_argument('limit', type=positive_integer, location='args')
 
     @auth.login_required
     @marshal_with(instance_fields)
