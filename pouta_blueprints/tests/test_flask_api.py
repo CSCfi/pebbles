@@ -5,7 +5,9 @@ import json
 import uuid
 
 from pouta_blueprints.tests.base import db, BaseTestCase
-from pouta_blueprints.models import User, Blueprint, Plugin, ActivationToken, Instance, Variable
+from pouta_blueprints.models import (
+    User, Blueprint, Plugin, ActivationToken,
+    Notification, Instance, Variable)
 from pouta_blueprints.config import BaseConfig
 from pouta_blueprints.views import activations
 
@@ -60,6 +62,18 @@ class FlaskApiTestCase(BaseTestCase):
         b3.config = {'allow_update_client_connectivity': True}
         db.session.add(b3)
         self.known_blueprint_id_2 = b3.id
+
+        n1 = Notification()
+        n1.subject = "First notification"
+        n1.message = "First notification message"
+        self.known_notification_id = n1.id
+        db.session.add(n1)
+
+        n2 = Notification()
+        n2.subject = "Second notification"
+        n2.message = "Second notification message"
+        self.known_notification2_id = n2.id
+        db.session.add(n2)
 
         db.session.commit()
 
@@ -893,6 +907,79 @@ class FlaskApiTestCase(BaseTestCase):
             method='PUT',
             path='/api/v1/locks/%s' % unique_id)
         self.assertStatus(response, 200)
+
+    def test_anonymous_get_notifications(self):
+        response = self.make_request(
+            path='/api/v1/notifications'
+        )
+        self.assert_401(response)
+
+    def test_anonymous_get_notifications(self):
+        response = self.make_request(
+            path='/api/v1/notifications'
+        )
+        self.assert_401(response)
+
+    def test_user_get_notifications(self):
+        response = self.make_authenticated_user_request(
+            path='/api/v1/notifications'
+        )
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 2)
+
+    def test_anonymous_post_notification(self):
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/notifications',
+            data=json.dumps({'subject': 'test subject', 'message': 'test message'})
+        )
+        self.assert_401(response)
+
+    def test_user_post_notification(self):
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/notifications',
+            data=json.dumps({'subject': 'test subject', 'message': 'test message'})
+        )
+        self.assert_403(response)
+
+    def test_admin_post_notification(self):
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/notifications',
+            data=json.dumps({'subject': 'test subject', 'message': 'test message'})
+        )
+        self.assert_200(response)
+        response = self.make_authenticated_user_request(
+            path='/api/v1/notifications'
+        )
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 3)
+
+    def test_user_mark_notification_as_seen(self):
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/notifications/%s' % self.known_notification_id,
+        )
+        self.assert_200(response)
+
+        response = self.make_authenticated_user_request(
+            path='/api/v1/notifications'
+        )
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 1)
+
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/notifications/%s' % self.known_notification2_id,
+        )
+        self.assert_200(response)
+
+        response = self.make_authenticated_user_request(
+            path='/api/v1/notifications'
+        )
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 0)
 
 
 if __name__ == '__main__':
