@@ -64,7 +64,7 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
     credits_quota = db.Column(db.Float, default=1.0)
-    latest_notification_id = db.Column(db.String(32), db.ForeignKey('notifications.id'))
+    latest_seen_notification_ts = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
 
@@ -122,15 +122,9 @@ class User(db.Model):
         return not self.is_deleted and self.is_active
 
     def unseen_notifications(self):
-        latest_seen_ts = None
-        if self.latest_notification_id:
-            latest_notification = Notification.query.filter_by(id=self.latest_notification_id).first()
-            if latest_notification:
-                latest_seen_ts = latest_notification.broadcasted
-
         q = Notification.query
-        if latest_seen_ts:
-            q = q.filter(Notification.broadcasted > latest_seen_ts)
+        if self.latest_seen_notification_ts:
+            q = q.filter(Notification.broadcasted > self.latest_seen_notification_ts)
         return q.all()
 
     @staticmethod
