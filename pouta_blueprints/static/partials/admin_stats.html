@@ -1,0 +1,26 @@
+<div>
+    <h1>Instance Usage Statistics</h1>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <td>Blueprint Name</td>
+                <td>Launched Instances</td>
+                <td>Running Instances</td>
+                <td>Unique Users</td>
+            </tr>
+        </thead>
+        <tbody>
+           <!-- <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
+                <td colspan="4">No blueprints</td>
+            </tr> -->
+            <tr ng-repeat="blueprint in stats.blueprints">
+                <td>{{ blueprint.name }}</td>
+                <td>{{ blueprint.total_instances }}</td>
+                <td>{{ blueprint.running_instances }}</td>
+                <td>{{ blueprint.users }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+     <span ng-show="stats.total_running_instances != undefined"> Total Number of Running Instances: {{ stats.total_running_instances }} </span>
+</div>
