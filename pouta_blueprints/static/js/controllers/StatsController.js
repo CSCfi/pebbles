@@ -7,15 +7,4 @@ app.controller('StatsController', ['$q', '$scope', '$http', '$interval', '$uibMo
         stats.getList().then(function (response) {
             $scope.stats = response[0];
         });
-/*
-        $scope.selectBlueprint = function(blueprint) {
-            $scope.selectedBlueprint = blueprint;
-            $scope.$broadcast('schemaFormRedraw');
-        };
-
-        $scope.activate = function (blueprint) {
-            blueprint.is_enabled = true;
-            blueprint.put();
-        };
-*/
     }]);
