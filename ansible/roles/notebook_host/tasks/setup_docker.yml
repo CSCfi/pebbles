@@ -8,6 +8,7 @@
     dest=/etc/docker/server_key.pem
     mode=0400
   notify: restart docker
+  when: enable_docker_ssl
 
 - name: Copy the server cert to the host
   copy:
@@ -15,6 +16,7 @@
     dest=/etc/docker/server_cert.pem
     mode=0400
   notify: restart docker
+  when: enable_docker_ssl
 
 - name: Copy the CA certificate to the host
   copy:
@@ -22,6 +24,7 @@
     dest=/etc/docker/ca_cert.pem
     mode=0400
   notify: restart docker
+  when: enable_docker_ssl
 
 - name: Install iptables service
   yum: name=iptables-services state=present
