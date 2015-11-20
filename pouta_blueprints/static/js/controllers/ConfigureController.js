@@ -95,6 +95,23 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                 });
             });
         };
+
+        $scope.openCreateNotification= function() {
+            var modalCreateNotification = $uibModal.open({
+                templateUrl: '/partials/modal_create_notification.html',
+                controller: 'ModalCreateNotificationController',
+                size: 'sm',
+                resolve: {
+                    notifications: function() {
+                        return notifications;
+                    }
+                },
+            }).result.then(function() {
+                notifications.getList().then(function (response) {
+                    $scope.notifications = response;
+                });
+            });
+        };
     }]);
 
 app.controller('ModalCreateBlueprintController', function($scope, $modalInstance, plugin, blueprints) {
@@ -131,3 +148,19 @@ app.controller('ModalReconfigureBlueprintController', function($scope, $modalIns
         $modalInstance.dismiss('cancel');
     };
 });
+
+app.controller('ModalCreateNotificationController', function($scope, $modalInstance, notifications) {
+    $scope.createNotification = function(notification) {
+        notifications.post({ subject: notification.subject, message: notification.message }).then(function () {
+            $modalInstance.close(true);
+        }, function() {
+            $.notify({title: 'HTTP ' + response.status, message: 'unable to create notification'}, {type: 'danger'});
+        });
+    };
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});
+
+

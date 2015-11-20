@@ -57,21 +57,31 @@
             <td>Subject</td>
             <td>Broadcasted</td>
             <td>Message</td>
+            <td></td>
         </tr>
         </thead>
         <tbody>
             <tr ng-hide="notifications != undefined && notifications.length">
-                <td colspan="3">No notifications</td>
+                <td colspan="4">No notifications</td>
             </tr>
 
             <tr ng-repeat="notification in notifications">
                 <td>{{ notification.subject }}</td>
                 <td>{{ notification.broadcasted | date:'medium' }}</td>
                 <td>{{ notification.message }}</td>
+                <td>
+                    <button class="btn btn-primary btn-xs" type="button">
+                        <span class="glyphicon glyphicon-edit"></span>
+                    </button>
+
+                    <button class="btn btn-danger btn-xs" type="button">
+                        <span class="glyphicon glyphicon-remove"></span>
+                    </button>
+                </td>
             </tr>
         </tbody>
     </table>
-
+    <button class="btn btn-primary" ng-click="openCreateNotification()">Add notification</button>
 
 
     <h2>Global variables</h2>
