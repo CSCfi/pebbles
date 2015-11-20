@@ -3,10 +3,11 @@
             dest=/etc/apt/sources.list
             backup=yes
   when: ansible_lsb.id=="Ubuntu"
+  register: update_apt_repos
 
 - name: Refresh repository metadata (Ubuntu)
   raw: apt-get update
-  when: ansible_lsb.id=="Ubuntu"
+  when: ansible_lsb.id=="Ubuntu" and update_apt_repos.changed
 
 - name: install python-apt (Ubuntu)
   raw: apt-get install python-apt -y -q
