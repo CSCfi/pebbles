@@ -1,8 +1,7 @@
 from email.mime.text import MIMEText
 import random
 import smtplib
-
-from flask import render_template
+import jinja2
 
 from pouta_blueprints.client import PBClient
 from pouta_blueprints.models import Instance
@@ -48,10 +47,11 @@ def periodic_update():
 @celery_app.task(name="pouta_blueprints.tasks.send_mails")
 def send_mails(users):
     config = get_config()
+    j2_env = jinja2.Environment(loader=jinja2.PackageLoader('pouta_blueprints', 'templates'))
+    base_url = config['BASE_URL'].strip('/')
     for email, token in users:
-        base_url = config['BASE_URL'].strip('/')
         activation_url = '%s/#/activate/%s' % (base_url, token)
-        msg = MIMEText(render_template('invitation.txt', activation_link=activation_url))
+        msg = MIMEText(j2_env.get_template('invitation.txt.j2').render(activation_link=activation_url))
         msg['Subject'] = 'Pouta Blueprints account activation'
         msg['To'] = email
         msg['From'] = config['SENDER_EMAIL']
