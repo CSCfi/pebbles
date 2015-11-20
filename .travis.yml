@@ -16,7 +16,6 @@ before_script:
 - flake8 --ignore=E501,E402 pouta_blueprints
 - python manage.py runserver -h localhost -p 8888 &
 script:
-- protractor protractor/conf.js
 - nosetests
 notifications:
   flowdock:
