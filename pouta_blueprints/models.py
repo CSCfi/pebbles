@@ -360,6 +360,12 @@ class SystemToken(db.Model):
 class Variable(db.Model):
     __tablename__ = 'variables'
 
+    id = db.Column(db.String(32), primary_key=True)
+    key = db.Column(db.String(MAX_VARIABLE_KEY_LENGTH), unique=True)
+    _value = db.Column('value', db.String(MAX_VARIABLE_VALUE_LENGTH))
+    readonly = db.Column(db.Boolean, default=False)
+    t = db.Column(db.String(16))
+
     def __init__(self, k, v):
         self.id = uuid.uuid4().hex
         self.key = k
@@ -396,12 +402,18 @@ class Variable(db.Model):
                     variable.value = config[k]
         db.session.commit()
 
+    @classmethod
+    def string_to_bool(cls, v):
+        if not v:
+            return False
+        return (v.lower() in ('true', u'true', '1'))
+
     @hybrid_property
     def value(self):
         if self.t == "str":
             return self._value
         elif self.t == 'bool':
-            return bool(int(self._value))
+            return Variable.string_to_bool(self._value)
         elif self.t == 'int':
             return int(self._value)
 
@@ -410,7 +422,7 @@ class Variable(db.Model):
         if self.t == 'bool':
             try:
                 if type(v) in (six.text_type, ):
-                    self._value = (v.lower() in ('true', u'true'))
+                    self._value = Variable.string_to_bool(v)
                 else:
                     self._value = bool(v)
             except Exception:
@@ -428,9 +440,3 @@ class Variable(db.Model):
     filtered_variables = (
         'SECRET_KEY', 'INTERNAL_API_BASE_URL', 'SQLALCHEMY_DATABASE_URI', 'WTF_CSRF_ENABLED',
         'MESSAGE_QUEUE_URI', 'SSL_VERIFY', 'ENABLE_SHIBBOLETH_LOGIN', 'PROVISIONING_NUM_WORKERS')
-
-    id = db.Column(db.String(32), primary_key=True)
-    key = db.Column(db.String(MAX_VARIABLE_KEY_LENGTH), unique=True)
-    _value = db.Column('value', db.String(MAX_VARIABLE_VALUE_LENGTH))
-    readonly = db.Column(db.Boolean, default=False)
-    t = db.Column(db.String(16))
