@@ -5,6 +5,6 @@ app.controller('StatsController', ['$q', '$scope', '$http', '$interval', '$uibMo
         var stats = Restangular.all('stats');
 
         stats.getList().then(function (response) {
-            $scope.stats = response[0];
+            $scope.stats = response;
         });
     }]);

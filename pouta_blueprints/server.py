@@ -24,7 +24,7 @@ from pouta_blueprints.views.quota import quota, Quota, UserQuota
 from pouta_blueprints.views.sessions import sessions, SessionView
 from pouta_blueprints.views.variables import variables, VariableList, VariableView, PublicVariableList
 from pouta_blueprints.views.locks import locks, LockView
-from pouta_blueprints.views.stats import stats, StatsList, StatsBlueprintView, StatsInstanceList
+from pouta_blueprints.views.stats import stats, StatsList
 
 api = restful.Api(app)
 api_root = '/api/v1'
@@ -60,8 +60,6 @@ api.add_resource(Quota, api_root + '/quota')
 api.add_resource(UserQuota, api_root + '/quota/<string:user_id>')
 api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
 api.add_resource(StatsList, api_root + '/stats')
-api.add_resource(StatsBlueprintView, api_root + '/stats/blueprint/<string:blueprint_id>')
-api.add_resource(StatsInstanceList, api_root + '/stats/instances')
 
 app.register_blueprint(blueprints)
 app.register_blueprint(plugins)
