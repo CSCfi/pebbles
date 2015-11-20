@@ -16,7 +16,7 @@
             <tr ng-repeat="plugin in plugins">
                 <td>{{plugin.name}}</td>
                 <td>
-                    <button ng-click="open_create_blueprint_dialog(plugin)" class="btn btn-default">
+                    <button ng-click="openCreateBlueprintDialog(plugin)" class="btn btn-default">
                       Create Blueprint
                     </button>
                 </td>
@@ -44,7 +44,7 @@
                 <td>
                     <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)" class="btn btn-primary">Activate</button>
                     <button ng-show="blueprint.is_enabled" ng-click="deactivate(blueprint)" class="btn btn-default">Deactivate</button>
-                    <button ng-click="open_reconfigure_blueprint_dialog(blueprint)" class="btn btn-default">Reconfigure</button>
+                    <button ng-click="openReconfigureBlueprintDialog(blueprint)" class="btn btn-default">Reconfigure</button>
                 </td>
             </tr>
         </tbody>
@@ -70,11 +70,11 @@
                 <td>{{ notification.broadcasted | date:'medium' }}</td>
                 <td>{{ notification.message }}</td>
                 <td>
-                    <button class="btn btn-primary btn-xs" type="button">
+                    <button ng-click="openEditNotification(notification)" class="btn btn-primary btn-xs" type="button">
                         <span class="glyphicon glyphicon-edit"></span>
                     </button>
 
-                    <button class="btn btn-danger btn-xs" type="button">
+                    <button ng-click="deleteNotification(notification)" class="btn btn-danger btn-xs" type="button">
                         <span class="glyphicon glyphicon-remove"></span>
                     </button>
                 </td>

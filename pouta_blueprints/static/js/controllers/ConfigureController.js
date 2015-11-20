@@ -21,11 +21,14 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         });
 
         var notifications = Restangular.all('notifications');
-        notifications.getList().then(function (response){
-            $scope.notifications = response;
-        });
+        var updateNotificationList = function() {
+            notifications.getList().then(function (response){
+                $scope.notifications = response;
+            });
+        };
+        updateNotificationList();
 
-        $scope.open_create_blueprint_dialog = function(plugin) {
+        $scope.openCreateBlueprintDialog = function(plugin) {
             var modalCreateBlueprint = $uibModal.open({
                 templateUrl: '/partials/modal_create_blueprint.html',
                 controller: 'ModalCreateBlueprintController',
@@ -44,7 +47,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             });
         };
 
-        $scope.open_reconfigure_blueprint_dialog = function(blueprint) {
+        $scope.openReconfigureBlueprintDialog = function(blueprint) {
             var modalReconfigureBlueprint = $uibModal.open({
                 templateUrl: '/partials/modal_reconfigure_blueprint.html',
                 controller: 'ModalReconfigureBlueprintController',
@@ -57,6 +60,13 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                 blueprints.getList().then(function (response) {
                     $scope.blueprints = response;
                 });
+            });
+        };
+
+
+        $scope.deleteNotification = function(notification) {
+            notification.remove().then(function() {
+                updateNotificationList();
             });
         };
 
@@ -112,6 +122,22 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                 });
             });
         };
+
+        $scope.openEditNotification = function(notification) {
+            var modalEditNotification = $uibModal.open({
+                templateUrl: '/partials/modal_edit_notification.html',
+                controller: 'ModalEditNotificationController',
+                size: 'sm',
+                resolve: {
+                    notification: function() {
+                        return notification;
+                    }
+                }
+            }).result.then(function() {
+                updateNotificationList();
+            });
+        };
+
     }]);
 
 app.controller('ModalCreateBlueprintController', function($scope, $modalInstance, plugin, blueprints) {
@@ -163,4 +189,23 @@ app.controller('ModalCreateNotificationController', function($scope, $modalInsta
     };
 });
 
+app.controller('ModalEditNotificationController', function($scope, $modalInstance, Restangular, notification) {
+    $scope.notification = Restangular.copy(notification);
+    $scope.notification.subject = notification.subject;
+    $scope.notification.message = notification.message;
 
+    $scope.editNotification = function(notification) {
+        notification.subject = $scope.notification.subject;
+        notification.message = $scope.notification.message;
+
+        notification.put().then(function() {
+            $modalInstance.close(true);
+        }, function() {
+            $.notify({title: 'HTTP ' + response.status, message: 'unable to edit notification'}, {type: 'danger'});
+        });
+    };
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});
