@@ -51,7 +51,7 @@ def send_mails(users):
     base_url = config['BASE_URL'].strip('/')
     for email, token in users:
         activation_url = '%s/#/activate/%s' % (base_url, token)
-        msg = MIMEText(j2_env.get_template('invitation.txt.j2').render(activation_link=activation_url))
+        msg = MIMEText(j2_env.get_template('invitation.txt').render(activation_link=activation_url))
         msg['Subject'] = 'Pouta Blueprints account activation'
         msg['To'] = email
         msg['From'] = config['SENDER_EMAIL']
