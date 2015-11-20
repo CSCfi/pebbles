@@ -25,7 +25,7 @@
   apt:
     pkg=libapache2-mod-shib2
     state=present
-  when: enable_shibboleth == "True"
+  when: "{{ enable_shibboleth | bool }}"
 
 - name: install apache
   apt:
@@ -44,4 +44,4 @@
 - include: setup_apache.yml
 - include: setup_supervisor_config.yml
 - include: setup_shibboleth.yml
-  when: enable_shibboleth == "True"
+  when: "{{ enable_shibboleth | bool }}"
