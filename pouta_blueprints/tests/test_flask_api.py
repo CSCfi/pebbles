@@ -914,12 +914,6 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_401(response)
 
-    def test_anonymous_get_notifications(self):
-        response = self.make_request(
-            path='/api/v1/notifications'
-        )
-        self.assert_401(response)
-
     def test_user_get_notifications(self):
         response = self.make_authenticated_user_request(
             path='/api/v1/notifications'
@@ -958,7 +952,7 @@ class FlaskApiTestCase(BaseTestCase):
 
     def test_user_mark_notification_as_seen(self):
         response = self.make_authenticated_user_request(
-            method='PUT',
+            method='PATCH',
             path='/api/v1/notifications/%s' % self.known_notification_id,
         )
         self.assert_200(response)
@@ -970,7 +964,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertEqual(len(response.json), 1)
 
         response = self.make_authenticated_user_request(
-            method='PUT',
+            method='PATCH',
             path='/api/v1/notifications/%s' % self.known_notification2_id,
         )
         self.assert_200(response)
