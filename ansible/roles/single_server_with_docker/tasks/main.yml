@@ -63,7 +63,8 @@
     state: running
     restart_policy: always
     env:
-      POSTGRES_PASSWD: "{{ application_secret_key }}"
+      POSTGRES_USER: "{{ application_database_user }}"
+      POSTGRES_PASSWORD: "{{ application_database_password }}"
 
 - name: Bring up container for redis
   docker:
