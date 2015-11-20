@@ -61,12 +61,29 @@ class NotificationList(restful.Resource):
 
 class NotificationView(restful.Resource):
     @auth.login_required
-    def put(self, notification_id):
+    def patch(self, notification_id):
         user = get_current_user()
         notification = Notification.query.filter_by(id=notification_id).first()
         if not notification:
             abort(404)
         user.latest_seen_notification_ts = notification.broadcasted
+        db.session.commit()
+
+    @auth.login_required
+    @requires_admin
+    def put(self, notification_id):
+        notification = Notification.query.filter_by(id=notification_id).first()
+        if not notification:
+            abort(404)
+
+        form = NotificationForm()
+        if not form.validate_on_submit():
+            logging.warn("validation error on update notification")
+            return form.errors, 422
+
+        notification.subject = form.subject.data
+        notification.message = form.message.data
+
         db.session.commit()
 
     @auth.login_required
