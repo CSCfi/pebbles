@@ -975,6 +975,18 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
         self.assertEqual(len(response.json), 0)
 
+    def test_admin_update_notification(self):
+        subject_topic = 'NotificationABC'
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/notifications/%s' % self.known_notification_id,
+            data=json.dumps({'subject': subject_topic, 'message': 'XXX'}))
+        self.assert_200(response)
+
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/notifications/%s' % self.known_notification_id)
+        self.assert_200(response)
+        self.assertEqual(response.json['subject'], subject_topic)
 
 if __name__ == '__main__':
     unittest.main()
