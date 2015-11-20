@@ -22,7 +22,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 
         var notifications = Restangular.all('notifications');
         var updateNotificationList = function() {
-            notifications.getList().then(function (response){
+            notifications.getList({show_all: true}).then(function (response){
                 $scope.notifications = response;
             });
         };
@@ -117,9 +117,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                     }
                 },
             }).result.then(function() {
-                notifications.getList().then(function (response) {
-                    $scope.notifications = response;
-                });
+                updateNotificationList()
             });
         };
 
