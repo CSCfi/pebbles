@@ -31,7 +31,7 @@ def get_current_user():
 
 class NotificationList(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('show_all', type=bool, default=False)
+    parser.add_argument('show_all', type=bool, default=False, location='args')
 
     @auth.login_required
     @marshal_with(notification_fields)
@@ -60,6 +60,14 @@ class NotificationList(restful.Resource):
 
 
 class NotificationView(restful.Resource):
+    @auth.login_required
+    @marshal_with(notification_fields)
+    def get(self, notification_id):
+        notification = Notification.query.filter_by(id=notification_id).first()
+        if not notification:
+            abort(404)
+        return notification
+
     @auth.login_required
     def patch(self, notification_id):
         user = get_current_user()
