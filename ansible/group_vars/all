@@ -30,7 +30,7 @@ domain: "localhost"
 application_name: "pouta_blueprints"
 application_user: "{{ application_name }}"
 application_group: "webapps"
-application_debug_logging: "True"
+application_debug_logging: True
 application_secret_key: "change me"
 application_config_dir: "/etc/{{ application_name }}"
 application_config: "{{ application_config_dir }}/config.yaml"
