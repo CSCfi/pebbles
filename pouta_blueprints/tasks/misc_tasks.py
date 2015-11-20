@@ -6,7 +6,7 @@ from flask import render_template
 
 from pouta_blueprints.client import PBClient
 from pouta_blueprints.models import Instance
-from pouta_blueprints.tasks.celery_app import flask_config, flask_app, logger, get_token, get_config
+from pouta_blueprints.tasks.celery_app import local_config, logger, get_token, get_config
 from pouta_blueprints.tasks.provisioning_tasks import run_update
 from pouta_blueprints.tasks.celery_app import celery_app
 
@@ -14,7 +14,7 @@ from pouta_blueprints.tasks.celery_app import celery_app
 @celery_app.task(name="pouta_blueprints.tasks.periodic_update")
 def periodic_update():
     token = get_token()
-    pbclient = PBClient(token, flask_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+    pbclient = PBClient(token, local_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
     instances = pbclient.get_instances()
 
     deprovision_list = []
@@ -47,22 +47,21 @@ def periodic_update():
 
 @celery_app.task(name="pouta_blueprints.tasks.send_mails")
 def send_mails(users):
-    with flask_app.test_request_context():
-        config = get_config()
-        for email, token in users:
-            base_url = config['BASE_URL'].strip('/')
-            activation_url = '%s/#/activate/%s' % (base_url, token)
-            msg = MIMEText(render_template('invitation.txt', activation_link=activation_url))
-            msg['Subject'] = 'Pouta Blueprints account activation'
-            msg['To'] = email
-            msg['From'] = config['SENDER_EMAIL']
-            logger.info(msg)
+    config = get_config()
+    for email, token in users:
+        base_url = config['BASE_URL'].strip('/')
+        activation_url = '%s/#/activate/%s' % (base_url, token)
+        msg = MIMEText(render_template('invitation.txt', activation_link=activation_url))
+        msg['Subject'] = 'Pouta Blueprints account activation'
+        msg['To'] = email
+        msg['From'] = config['SENDER_EMAIL']
+        logger.info(msg)
 
-            if not config['MAIL_SUPPRESS_SEND']:
-                s = smtplib.SMTP(config['MAIL_SERVER'])
-                if config['MAIL_USE_TLS']:
-                    s.starttls()
-                s.sendmail(msg['From'], [msg['To']], msg.as_string())
-                s.quit()
-            else:
-                logger.info('Mail sending suppressed in config')
+        if not config['MAIL_SUPPRESS_SEND']:
+            s = smtplib.SMTP(config['MAIL_SERVER'])
+            if config['MAIL_USE_TLS']:
+                s.starttls()
+            s.sendmail(msg['From'], [msg['To']], msg.as_string())
+            s.quit()
+        else:
+            logger.info('Mail sending suppressed in config')
