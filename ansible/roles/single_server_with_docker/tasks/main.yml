@@ -56,6 +56,22 @@
     - "{{ docker_host_cert_dir }}"
   when: ansible_lsb.id=="CentOS"
 
+- name: Bring up container for db
+  docker:
+    name: db
+    image: postgres:9.3
+    state: running
+    restart_policy: always
+    env:
+      POSTGRES_PASSWD: "{{ application_secret_key }}"
+
+- name: Bring up container for redis
+  docker:
+    name: redis
+    image: redis:2.8
+    state: running
+    restart_policy: always
+
 - name: Bring up container for www
   docker:
     hostname: www
@@ -74,6 +90,9 @@
       - "{{ docker_http_port }}:80"
       - "{{ docker_https_port }}:443"
       - "{{ docker_https_port_worker}}:1443"
+    links:
+      - "db:db"
+      - "redis:redis"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
       - "{{ docker_host_cert_dir }}:/etc/apache2/ssl:ro"
@@ -104,6 +123,7 @@
       - "{{ public_https_proxy_port }}:{{ internal_https_proxy_port }}"
     links:
       - "www:www"
+      - "redis:redis"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
       - "{{ docker_host_cert_dir }}:/etc/nginx/ssl:ro"
@@ -131,6 +151,7 @@
     links:
       - "www:www"
       - "proxy:proxy"
+      - "redis:redis"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
       - "{{ docker_host_m2m_credentials_dir }}:{{ application_m2m_credentials_dir }}:ro"
