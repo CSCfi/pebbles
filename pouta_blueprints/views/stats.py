@@ -1,10 +1,9 @@
 from flask.ext.restful import marshal_with, fields
-from flask import g
 from flask import Blueprint as FlaskBlueprint
 
 import logging
 
-from pouta_blueprints.models import Blueprint, Instance, User
+from pouta_blueprints.models import Blueprint, Instance
 from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth
 from pouta_blueprints.utils import requires_admin, memoize
@@ -18,9 +17,6 @@ stats = FlaskBlueprint('stats', __name__)
 def query_blueprint(blueprint_id):
     return Blueprint.query.filter_by(id=blueprint_id).first()
 
-
-def query_user(user_id):
-    return User.query.filter_by(id=user_id).first()
 
 blueprint_result_fields = {
 
@@ -39,21 +35,16 @@ class StatsList(restful.Resource):
     @requires_admin
     @marshal_with(blueprint_result_fields)
     def get(self):
-        user = g.user
-        if user.is_admin:
-            instances = Instance.query.all()
-            overall_running_instances = Instance.query.filter(Instance.state != Instance.STATE_DELETED).count()
+        instances = Instance.query.all()
+        overall_running_instances = Instance.query.filter(Instance.state != Instance.STATE_DELETED).count()
 
         get_blueprint = memoize(query_blueprint)
-        get_user = memoize(query_user)
         per_blueprint_results = defaultdict(lambda: {'users': 0, 'launched_instances': 0, 'running_instances': 0})
         unique_users = defaultdict(set)
 
         for instance in instances:
 
-            user = get_user(instance.user_id)
-            if user:
-                instance.username = user.email
+            user_id = instance.user_id
 
             blueprint = get_blueprint(instance.blueprint_id)
             if not blueprint:
@@ -63,8 +54,8 @@ class StatsList(restful.Resource):
             if 'name' not in per_blueprint_results[blueprint.id]:
                 per_blueprint_results[blueprint.id]['name'] = blueprint.name
 
-            if user.id not in unique_users[blueprint.id]:
-                unique_users[blueprint.id].add(user.id)
+            if user_id not in unique_users[blueprint.id]:
+                unique_users[blueprint.id].add(user_id)
                 per_blueprint_results[blueprint.id]['users'] += 1
 
             if(instance.state != Instance.STATE_DELETED):
