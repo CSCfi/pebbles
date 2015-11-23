@@ -2,7 +2,7 @@ app.directive('pbNotifications', ['Restangular', 'AuthService', 'config', functi
     return {
         restrict: 'E',
         templateUrl: config.partialsDir + '/broadcast_block.html',
-        link: function(scope, element, attrs) {
+        link: function(scope) {
             var notifications = Restangular.all('notifications');
             var updateNotifications = function() {
                 notifications.getList().then(function(response) {
@@ -17,8 +17,12 @@ app.directive('pbNotifications', ['Restangular', 'AuthService', 'config', functi
                 notification.patch().then(updateNotifications);
             };
 
-            scope.$on('userLoggedIn', function(event) {
+            scope.$on('userLoggedIn', function() {
                 updateNotifications();
+            });
+
+            scope.$on('userLoggedOut', function() {
+                scope.selectedNotification = undefined;
             });
 
             if (AuthService.isAuthenticated()) {
