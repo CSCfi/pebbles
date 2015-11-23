@@ -45,6 +45,7 @@ app.controller('NavbarController', ['$scope', '$rootScope', '$location', 'AuthSe
         AuthService.logout();
         $scope.email = "";
         $scope.password = "";
+        $rootScope.$broadcast('userLoggedOut');
         $location.path("/");
     };
 }]);
