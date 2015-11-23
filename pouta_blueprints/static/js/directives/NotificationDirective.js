@@ -13,11 +13,13 @@ app.directive('pbNotifications', ['Restangular', 'AuthService', 'config', functi
                     }
                 });
             };
-            updateNotifications();
-
             scope.markAsSeen = function(notification) {
                 notification.patch().then(updateNotifications);
             };
+
+            if (AuthService.isAuthenticated()) {
+               updateNotifications();
+            }
         }
     };
 }]);
