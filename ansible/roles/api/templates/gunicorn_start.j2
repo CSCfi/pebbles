@@ -1,7 +1,7 @@
 #!/bin/bash
 
 NAME="{{ application_name }}"
-PROXY_BIND_ENDPOINT="{{ proxy_bind_endpoint }}"
+GUNICORN_BIND_ENDPOINT="{{ gunicorn_bind_endpoint }}"
 NUM_WORKERS={{ gunicorn_num_workers }}
 MAX_REQUESTS={{ gunicorn_max_requests }}
 USER={{ application_user }}
@@ -18,7 +18,7 @@ exec gunicorn 'pouta_blueprints.server:app' \
         --name $NAME \
         --max-requests $MAX_REQUESTS \
         --user=$USER --group=$GROUP \
-        --bind=$PROXY_BIND_ENDPOINT \
+        --bind=$GUNICORN_BIND_ENDPOINT \
         --log-level=info \
         --access-logfile={{application_log_dir}}/gunicorn_access.log \
         --error-logfile={{application_log_dir}}/gunicorn_error.log

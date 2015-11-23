@@ -8,4 +8,4 @@ cd {{ application_path }}
 source {{ virtualenv_path }}/bin/activate
 export PYTHONPATH={{ application_path }}:$PYTHONPATH
 
-exec python manage.py runserver -h {{ proxy_bind_address }} -p {{ proxy_bind_port_worker }}
+exec python manage.py runserver -h {{ gunicorn_bind_address }} -p {{ gunicorn_bind_port_worker }}
