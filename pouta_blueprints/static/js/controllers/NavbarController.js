@@ -1,4 +1,4 @@
-app.controller('NavbarController', ['$scope', '$location', 'AuthService', function($scope, $location, AuthService) {
+app.controller('NavbarController', ['$scope', '$rootScope', '$location', 'AuthService', function($scope, $rootScope, $location, AuthService) {
     var _invalidLogin = false;
 
     $scope.isLoggedIn = function() {
@@ -16,6 +16,7 @@ app.controller('NavbarController', ['$scope', '$location', 'AuthService', functi
     $scope.login = function() {
         AuthService.login($scope.email, $scope.password).then(function() {
             _invalidLogin = false;
+            $rootScope.$broadcast('userLoggedIn');
             $location.path("/dashboard");
         }, function() {
             _invalidLogin = true;
@@ -44,6 +45,7 @@ app.controller('NavbarController', ['$scope', '$location', 'AuthService', functi
         AuthService.logout();
         $scope.email = "";
         $scope.password = "";
+        $rootScope.$broadcast('userLoggedOut');
         $location.path("/");
     };
 }]);

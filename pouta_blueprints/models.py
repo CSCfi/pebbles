@@ -18,6 +18,7 @@ MAX_EMAIL_LENGTH = 128
 MAX_NAME_LENGTH = 128
 MAX_VARIABLE_KEY_LENGTH = 512
 MAX_VARIABLE_VALUE_LENGTH = 512
+MAX_NOTIFICATION_SUBJECT_LENGTH = 255
 
 db = SQLAlchemy()
 
@@ -63,6 +64,7 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
     credits_quota = db.Column(db.Float, default=1.0)
+    latest_seen_notification_ts = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
 
@@ -119,6 +121,12 @@ class User(db.Model):
     def can_login(self):
         return not self.is_deleted and self.is_active
 
+    def unseen_notifications(self):
+        q = Notification.query
+        if self.latest_seen_notification_ts:
+            q = q.filter(Notification.broadcasted > self.latest_seen_notification_ts)
+        return q.all()
+
     @staticmethod
     def verify_auth_token(token, app_secret):
         s = Serializer(app_secret)
@@ -132,6 +140,19 @@ class User(db.Model):
 
     def __repr__(self):
         return self.email
+
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+
+    id = db.Column(db.String(32), primary_key=True)
+    broadcasted = db.Column(db.DateTime)
+    subject = db.Column(db.String(MAX_NOTIFICATION_SUBJECT_LENGTH))
+    message = db.Column(db.Text)
+
+    def __init__(self):
+        self.id = uuid.uuid4().hex
+        self.broadcasted = datetime.datetime.utcnow()
 
 
 class Keypair(db.Model):

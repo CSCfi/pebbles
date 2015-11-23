@@ -15,6 +15,7 @@ from pouta_blueprints.views.commons import create_user
 from pouta_blueprints.views.blueprints import blueprints, BlueprintList, BlueprintView
 from pouta_blueprints.views.plugins import plugins, PluginList, PluginView
 from pouta_blueprints.views.users import users, UserList, UserView, KeypairList, CreateKeyPair, UploadKeyPair
+from pouta_blueprints.views.notifications import NotificationList, NotificationView
 from pouta_blueprints.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pouta_blueprints.views.activations import activations, ActivationList, ActivationView
 from pouta_blueprints.views.firstuser import firstuser, FirstUserView
@@ -32,6 +33,8 @@ api.add_resource(UserView, api_root + '/users/<string:user_id>')
 api.add_resource(KeypairList, api_root + '/users/<string:user_id>/keypairs')
 api.add_resource(CreateKeyPair, api_root + '/users/<string:user_id>/keypairs/create')
 api.add_resource(UploadKeyPair, api_root + '/users/<string:user_id>/keypairs/upload')
+api.add_resource(NotificationList, api_root + '/notifications')
+api.add_resource(NotificationView, api_root + '/notifications/<string:notification_id>')
 api.add_resource(SessionView, api_root + '/sessions')
 api.add_resource(ActivationList, api_root + '/activations')
 api.add_resource(ActivationView, api_root + '/activations/<string:token_id>')

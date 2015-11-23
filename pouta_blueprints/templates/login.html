@@ -10,7 +10,7 @@
             .controller('HakaController', function($location,
                         localStorageService) {
                 localStorageService.set('userName', '{{ username }}');
-                localStorageService.set('token', btoa('{{ token }}' + ":"));
+                localStorageService.set('token', btoa('{{ token }}' + ":"));
                 {% if is_admin %}
                     localStorageService.set('isAdmin', true);
                 {% endif %}

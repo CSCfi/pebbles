@@ -44,9 +44,13 @@ app.run(function($location, Restangular, AuthService) {
     });
 });
 
-app.config(function($routeProvider, $compileProvider, RestangularProvider) {
+app.constant('config', {
+    partialsDir: '../partials'
+});
+
+app.config(function($routeProvider, $compileProvider, RestangularProvider, config) {
     RestangularProvider.setBaseUrl('/api/v1');
-    var partialsDir = '../partials';
+    var partialsDir = config.partialsDir;
 
     $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|blob):/);
 

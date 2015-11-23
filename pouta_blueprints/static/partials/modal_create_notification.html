@@ -1,0 +1,21 @@
+<div class="modal-header">
+    <button ng-click="cancel()" type="button" class="close"><span aria-hidden="true">&times;</span></button>
+    <h4 class="modal-title">Create notification</h4>
+</div>
+<div class="modal-body">
+    <form>
+        <div class="input-group">
+            <label for="notificationSubject">Subject</label>
+            <input ng-model="notification.subject" type="text" class="form-control" id="notificationSubject" placeholder="Notification subject">
+        </div>
+
+        <div class="input-group">
+            <label for="notificationMessage">Message</label>
+            <textarea ng-model="notification.message" type="text" class="form-control" id="notificationMessage" placeholder="Notification message" rows="3"></textarea>
+        </div>
+    </form>
+</div>
+<div class="modal-footer">
+    <button ng-click="createNotification(notification)" class="btn btn-primary">Create</button>
+    <button ng-click="cancel()" class="btn btn-default" >Close</button>
+</div>
