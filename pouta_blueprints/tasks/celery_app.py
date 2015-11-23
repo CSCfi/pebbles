@@ -1,35 +1,23 @@
 import base64
 import json
 import logging
-
 from celery import Celery
 from kombu import Queue
 from celery.schedules import crontab
 import requests
-
 from celery.utils.log import get_task_logger
-
-from pouta_blueprints.app import app as _flask_app
 from pouta_blueprints.client import PBClient
+from pouta_blueprints.config import BaseConfig
 
-flask_app = _flask_app
-flask_config = flask_app.dynamic_config
-
-# tune requests to give less spam in development environment with self signed certificate
-requests.packages.urllib3.disable_warnings()
-logging.getLogger("requests").setLevel(logging.WARNING)
-
-logger = get_task_logger(__name__)
-if flask_config['DEBUG']:
-    logger.setLevel('DEBUG')
+local_config = BaseConfig()
 
 
 def get_token():
-    auth_url = '%s/sessions' % flask_config['INTERNAL_API_BASE_URL']
+    auth_url = '%s/sessions' % local_config['INTERNAL_API_BASE_URL']
     auth_credentials = {'email': 'worker@pouta_blueprints',
-                        'password': flask_config['SECRET_KEY']}
+                        'password': local_config['SECRET_KEY']}
     try:
-        r = requests.post(auth_url, auth_credentials, verify=flask_config['SSL_VERIFY'])
+        r = requests.post(auth_url, auth_credentials, verify=local_config['SSL_VERIFY'])
         return json.loads(r.text).get('token')
     except:
         return None
@@ -39,8 +27,8 @@ def do_get(token, object_url):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
-    url = '%s/%s' % (flask_config['INTERNAL_API_BASE_URL'], object_url)
-    resp = requests.get(url, headers=headers, verify=flask_config['SSL_VERIFY'])
+    url = '%s/%s' % (local_config['INTERNAL_API_BASE_URL'], object_url)
+    resp = requests.get(url, headers=headers, verify=local_config['SSL_VERIFY'])
     return resp
 
 
@@ -48,8 +36,8 @@ def do_post(token, api_path, data):
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
-    url = '%s/%s' % (flask_config['INTERNAL_API_BASE_URL'], api_path)
-    resp = requests.post(url, data, headers=headers, verify=flask_config['SSL_VERIFY'])
+    url = '%s/%s' % (local_config['INTERNAL_API_BASE_URL'], api_path)
+    resp = requests.post(url, data, headers=headers, verify=local_config['SSL_VERIFY'])
     return resp
 
 
@@ -61,15 +49,23 @@ def get_config():
     cannot be modified during the runtime.
     """
     token = get_token()
-    pbclient = PBClient(token, flask_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+    pbclient = PBClient(token, local_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
     return dict([(x['key'], x['value']) for x in pbclient.do_get('variables').json()])
 
 
+# tune requests to give less spam in development environment with self signed certificate
+requests.packages.urllib3.disable_warnings()
+logging.getLogger("requests").setLevel(logging.WARNING)
+
+logger = get_task_logger(__name__)
+if local_config['DEBUG']:
+    logger.setLevel('DEBUG')
+
 celery_app = Celery(
     'tasks',
-    broker=flask_config['MESSAGE_QUEUE_URI'],
-    backend=flask_config['MESSAGE_QUEUE_URI']
+    broker=local_config['MESSAGE_QUEUE_URI'],
+    backend=local_config['MESSAGE_QUEUE_URI']
 )
 
 celery_app.conf.CELERY_TIMEZONE = 'UTC'
@@ -109,8 +105,8 @@ celery_app.conf.CELERYBEAT_SCHEDULE = {
 class TaskRouter(object):
     @staticmethod
     def get_provisioning_queue(instance_id):
-        queue_num = ((int(instance_id[-2:], 16) % flask_config['PROVISIONING_NUM_WORKERS']) + 1)
-        logger.debug('selected queue %d/%d for %s' % (queue_num, flask_config['PROVISIONING_NUM_WORKERS'], instance_id))
+        queue_num = ((int(instance_id[-2:], 16) % local_config['PROVISIONING_NUM_WORKERS']) + 1)
+        logger.debug('selected queue %d/%d for %s' % (queue_num, local_config['PROVISIONING_NUM_WORKERS'], instance_id))
         return 'provisioning_tasks-%d' % queue_num
 
     def route_for_task(self, task, args=None, kwargs=None):

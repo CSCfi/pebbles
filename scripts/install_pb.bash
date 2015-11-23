@@ -24,7 +24,7 @@ add_docker_group()
 
 patch_sources_list()
 {
-    if grep -q "nova.clouds" /etc/apt/sources.list; then
+    if [ -f /etc/apt/sources.list ] && grep -q "nova.clouds" /etc/apt/sources.list; then
         echo "-------------------------------------------------------------------------------"
         echo
         echo "Patching /etc/apt/sources.list to point to a Finnish mirror"
@@ -35,11 +35,11 @@ patch_sources_list()
 
 run_apt_update()
 {
-    echo "-------------------------------------------------------------------------------"
-    echo
-    echo "Updating apt repository metadata"
-    echo
     if [ -f /var/lib/apt/periodic/update-success-stamp ]; then
+        echo "-------------------------------------------------------------------------------"
+        echo
+        echo "Updating apt repository metadata"
+        echo
         metadata_age=$[$(date +%s) - $(stat -c %Z /var/lib/apt/periodic/update-success-stamp)]
         if [  $metadata_age -gt 3600 ]; then
             sudo aptitude update
@@ -141,7 +141,7 @@ create_shared_secret()
 {
     echo "-------------------------------------------------------------------------------"
     echo
-    echo "Creating shared secret for both containers"
+    echo "Creating shared secret for all containers"
     if [ ! -e .pb_application_secret_key ]; then
         echo "no existing key found, creating a new one"
         openssl rand -base64 32 > .pb_application_secret_key
@@ -175,64 +175,67 @@ run_ansible()
 {
     export ANSIBLE_HOST_KEY_CHECKING=0
     export PYTHONUNBUFFERED=1
-
-    if [ $use_shibboleth ]; then
-        use_shibboleth_extra_args="-e web_server_type=apache -e enable_shibboleth=True"
-    else
-        use_shibboleth_extra_args=""
+    extra_args="$extra_env"
+    if [ $use_shibboleth == true ]; then
+        extra_args="-e enable_shibboleth=True $extra_args"
     fi
+
+    # figure out the roles to deploy
+    [[ $deploy_roles =~ "www,"    ]] && deploy_www=True    || deploy_www=False
+    [[ $deploy_roles =~ "worker," ]] && deploy_worker=True || deploy_worker=False
+    [[ $deploy_roles =~ "proxy,"  ]] && deploy_proxy=True  || deploy_proxy=False
+    [[ $deploy_roles =~ "db,"     ]] && deploy_db=True     || deploy_db=False
+    [[ $deploy_roles =~ "redis,"  ]] && deploy_redis=True  || deploy_redis=False
+    extra_args="$extra_args -e deploy_www=$deploy_www"
+    extra_args="$extra_args -e deploy_worker=$deploy_worker"
+    extra_args="$extra_args -e deploy_proxy=$deploy_proxy"
+    extra_args="$extra_args -e deploy_db=$deploy_db"
+    extra_args="$extra_args -e deploy_redis=$deploy_redis"
 
     echo "-------------------------------------------------------------------------------"
     echo
     echo "Running ansible to create containers and install software"
+    echo "Extra arguments: $extra_args"
     echo
+    sleep 2
+
     cd pouta-blueprints
     ansible-playbook -i $HOME/pb_ansible_inventory ansible/playbook.yml\
      -e deploy_mode=docker \
      -e server_type=prod \
+     -e application_debug_logging=False \
      -e application_secret_key=$application_secret_key \
      -e public_ipv4=$public_ipv4 \
      -e docker_host_app_root=$PWD \
-     $use_shibboleth_extra_args
+     $extra_args
+}
+
+create_ssh_alias()
+{
+    p_name=$1
+    p_port=$2
+
+    if ! grep -q "Host $p_name" ~/.ssh/config; then
+        echo "adding entry for $p_name"
+        cat >> ~/.ssh/config << EOF_SSH
+Host $p_name
+        StrictHostKeyChecking no
+        HostName localhost
+        Port $p_port
+EOF_SSH
+
+    fi
 }
 
 create_ssh_aliases()
 {
     echo "-------------------------------------------------------------------------------"
     echo
-    echo "Creating aliases for www and worker in ssh config"
-    if ! grep -q "Host www" ~/.ssh/config; then
-        echo "adding entry for www"
-        cat >> ~/.ssh/config << EOF_SSH
-Host www
-        StrictHostKeyChecking no
-        HostName localhost
-        Port 2222
-EOF_SSH
+    echo "Creating aliases in ssh config"
 
-    fi
-
-    if ! grep -q "Host worker" ~/.ssh/config; then
-        echo "adding entry for worker"
-        cat >> ~/.ssh/config << EOF_SSH
-Host worker
-        StrictHostKeyChecking no
-        HostName localhost
-        Port 2223
-EOF_SSH
-
-    fi
-
-    if ! grep -q "Host proxy" ~/.ssh/config; then
-        echo "adding entry for proxy"
-        cat >> ~/.ssh/config << EOF_SSH
-Host proxy
-        StrictHostKeyChecking no
-        HostName localhost
-        Port 2224
-EOF_SSH
-
-    fi
+    [[ $deploy_roles =~ "www," ]] && create_ssh_alias www 2222
+    [[ $deploy_roles =~ "worker," ]] && create_ssh_alias worker 2223
+    [[ $deploy_roles =~ "proxy," ]] && create_ssh_alias proxy 2224
 
     echo "making ssh config accessible for user only"
     chmod go-rwx ~/.ssh/config
@@ -240,38 +243,55 @@ EOF_SSH
     echo
 }
 
-if [ "xxx$1" != "xxx" ]; then
+print_usage()
+{
+    echo "Usage: $0 [options]"
+    echo
+    echo " where options are:"
+    echo "  -c : just copy OpenStack credentials and exit"
+    echo "  -s : enable shibboleth installation"
+    echo "  -r : comma separated list of roles to deploy on this host"
+    echo "       full list of roles: $deploy_roles"
+    echo "  -e : environment var for ansible, can be specified more than once"
+    echo
+    echo "By default, a full install/configuration run is performed"
+    echo
+    exit 0
+}
 
-    # parameters given
-    case $1 in
-    creds)
-        create_creds_file
+
+# Main starts here. First parse options
+
+deploy_roles="www,worker,proxy,redis,db"
+use_shibboleth=false
+extra_env=""
+
+while getopts "h?csr:e:" opt; do
+    case "$opt" in
+    h|\?)
+        print_usage
         exit 0
-    ;;
-
-    shibboleth|--shibboleth)
+        ;;
+    c)  create_creds_file
+        exit 0
+        ;;
+    s)  use_shibboleth=true
         echo
         echo "Ansible provisioning will enable Shibboleth and Apache"
         echo
-        use_shibboleth=1
-    ;;
-
-    help|-h|--help)
-        echo
-        echo "Usage: $0 [creds] [shibboleth]"
-        echo
-        echo "By default, a full install/configuration run is performed"
-        echo
-        exit 0
-    ;;
-
-    *)
-        echo "Unknown parameter $1"
-        exit 1
-    ;;
+        ;;
+    r)  deploy_roles="$OPTARG"
+        ;;
+    e)  extra_env="$extra_env -e $OPTARG"
+        ;;
     esac
-fi
+done
 
+echo
+echo "Deploying roles $deploy_roles"
+echo
+
+deploy_roles="${deploy_roles},"
 
 # all modules (more granularity added later if necessary)
 
@@ -279,7 +299,9 @@ add_docker_group
 patch_sources_list
 run_apt_update
 install_packages
-create_creds_file
+if [[ $deploy_roles =~ "worker," ]]; then
+    create_creds_file
+fi
 create_ansible_inventory
 clone_git_repo
 create_shared_secret

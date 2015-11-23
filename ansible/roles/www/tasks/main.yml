@@ -1,18 +1,31 @@
 ---
 
-- name: install dependencies
+- name: Install package dependencies
   apt:
     pkg={{ item }}
     state=present
   with_items:
-    - redis-server
-    - sqlite3
+    - postgresql-client-9.3
+    - libpq-dev
+    - python-psycopg2
+
+- name: Create database for application
+  postgresql_db:
+    name: "{{ application_database_name }}"
+    login_host: db
+    login_user: "{{ application_database_user }}"
+    login_password: "{{ application_database_password }}"
+
+- name: Install psycopg from pip to virtualenv
+  pip: name={{ item }} virtualenv={{ virtualenv_path }}
+  with_items:
+      - psycopg2
 
 - name: install Shibboleth module for Apache
   apt:
     pkg=libapache2-mod-shib2
     state=present
-  when: enable_shibboleth == "True"
+  when: "{{ enable_shibboleth | bool }}"
 
 - name: install apache
   apt:
@@ -27,23 +40,8 @@
     - /var/run/apache2
     - /var/lock/apache2
 
-- name: Set redis to listen to all interfaces
-  lineinfile:
-    name=/etc/redis/redis.conf
-    regexp='^bind.*'
-    state=absent
-
-- name: Set redis not to daemonize
-  shell: sed -i 's/^\(daemonize\s*\)yes\s*$/\1no/g' /etc/redis/redis.conf
-
-- name: Disable redis-server on boot and make sure it is stopped - supervisord takes care of this
-  service:
-    name=redis-server
-    enabled=false
-    state=stopped
-
 - include: setup_runtime_directories.yml
 - include: setup_apache.yml
 - include: setup_supervisor_config.yml
 - include: setup_shibboleth.yml
-  when: enable_shibboleth == "True"
+  when: "{{ enable_shibboleth | bool }}"

@@ -1,4 +1,4 @@
-DEBUG: {{ application_debug_logging }}
+DEBUG: {{ application_debug_logging | bool }}
 SECRET_KEY: '{{ application_secret_key }}'
 SQLALCHEMY_DATABASE_URI: '{{ application_database_uri }}'
 M2M_CREDENTIAL_STORE: '{{ application_m2m_credentials_path }}'
@@ -18,7 +18,7 @@ INTERNAL_API_BASE_URL: 'http://www:{{ docker_http_port_worker }}/api/v1'
 {% endif %}
 
 INTERNAL_HTTPS_PROXY_PORT: {{ internal_https_proxy_port }}
-{% if enable_shibboleth %}
+{% if enable_shibboleth | bool %}
 ENABLE_SHIBBOLETH_LOGIN: True
 {% endif %}
 PROVISIONING_NUM_WORKERS: {{ provisioning_num_workers }}

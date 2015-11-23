@@ -1,7 +1,7 @@
 import json
 
 from pouta_blueprints.client import PBClient
-from pouta_blueprints.tasks.celery_app import get_token, get_config, do_post, flask_config, logger
+from pouta_blueprints.tasks.celery_app import get_token, get_config, do_post, local_config, logger
 from pouta_blueprints.tasks.celery_app import celery_app
 
 
@@ -31,7 +31,7 @@ def get_provisioning_manager():
 
 
 def get_provisioning_type(token, instance_id):
-    pbclient = PBClient(token, flask_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+    pbclient = PBClient(token, local_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
     blueprint = pbclient.get_instance_parent_data(instance_id)
     plugin_id = blueprint['plugin']
