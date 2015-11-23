@@ -44,7 +44,7 @@ if [ "$?" -eq 1 ]; then
 
   tmux select-pane -t status:0.0
 
-  # Window "www"
+  # Window "api"
   
   tmux send-keys -t status:1.0 '' C-m
   tmux send-keys -t status:1.0 ssh\ www\ tail\ -F\ /webapps/pouta_blueprints/logs/gunicorn\*.log C-m
@@ -80,7 +80,7 @@ if [ "$?" -eq 1 ]; then
 
   tmux select-pane -t status:2.0
 
-  # Window "proxy"
+  # Window "frontend"
   
   tmux send-keys -t status:3.0 '' C-m
   tmux send-keys -t status:3.0 ssh\ proxy\ tail\ -F\ /webapps/pouta_blueprints/logs/celery\*.log C-m

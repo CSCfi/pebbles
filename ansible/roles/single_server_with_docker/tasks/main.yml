@@ -56,32 +56,47 @@
     - "{{ docker_host_cert_dir }}"
   when: ansible_lsb.id=="CentOS"
 
-- name: Bring up container for www
+- name: Bring up container for db
   docker:
-    hostname: www
+    name: db
+    image: postgres:9.3
+    state: running
+    restart_policy: always
+    env:
+      POSTGRES_USER: "{{ application_database_user }}"
+      POSTGRES_PASSWORD: "{{ application_database_password }}"
+
+- name: Bring up container for redis
+  docker:
+    name: redis
+    image: redis:2.8
+    state: running
+    restart_policy: always
+
+- name: Bring up container for api
+  docker:
+    hostname: api
     image: "{{ image_name }}"
     state: running
     restart_policy: always
-    name: www
+    name: api
     expose:
       - 22
-      - 80
-      - 443
-      - 1443
-      - 6379
+      - "{{ gunicorn_bind_port }}"
+      - "{{ gunicorn_bind_port_worker }}"
     ports:
       - "2222:22"
-      - "{{ docker_http_port }}:80"
-      - "{{ docker_https_port }}:443"
-      - "{{ docker_https_port_worker}}:1443"
+    links:
+      - "db:db"
+      - "redis:redis"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
       - "{{ docker_host_cert_dir }}:/etc/apache2/ssl:ro"
 
-- name: add www to inventory
+- name: add api to inventory
   add_host:
-    name: www
-    groups: docker,www
+    name: api
+    groups: docker,api
     ansible_ssh_host: localhost
     ansible_ssh_port: 2222
     ansible_ssh_user: ansible
@@ -89,29 +104,30 @@
   # when: item.Config.Hostname == "www" and item.State.Running == True
   # with_items: docker_containers
 
-- name: Bring up container for proxy
+- name: Bring up container for frontend
   docker:
-    hostname: proxy
+    hostname: frontend
     image: "{{ image_name }}"
     state: running
     restart_policy: always
-    name: proxy
+    name: frontend
     expose:
       - 22
-      - "{{ internal_https_proxy_port }}"
+      - "{{ application_external_https_port }}"
     ports:
       - "2224:22"
-      - "{{ public_https_proxy_port }}:{{ internal_https_proxy_port }}"
+      - "{{ application_external_https_port }}:{{ application_external_https_port }}"
     links:
-      - "www:www"
+      - "api:api"
+      - "redis:redis"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
       - "{{ docker_host_cert_dir }}:/etc/nginx/ssl:ro"
 
-- name: add proxy to inventory
+- name: add frontend to inventory
   add_host:
-    name: proxy
-    groups: docker,proxy
+    name: frontend
+    groups: docker,frontend
     ansible_ssh_host: localhost
     ansible_ssh_port: 2224
     ansible_ssh_user: ansible
@@ -129,8 +145,8 @@
     ports:
       - "2223:22"
     links:
-      - "www:www"
-      - "proxy:proxy"
+      - "api:api"
+      - "redis:redis"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
       - "{{ docker_host_m2m_credentials_dir }}:{{ application_m2m_credentials_dir }}:ro"

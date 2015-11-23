@@ -8,8 +8,8 @@
     <Location /api>
         # Thou shall not cache API calls
         Header set Cache-Control no-cache
-        ProxyPass http://{{ proxy_bind_endpoint }}/api
-        ProxyPassReverse http://{{ proxy_bind_endpoint }}/api
+        ProxyPass http://{{ gunicorn_bind_endpoint }}/api
+        ProxyPassReverse http://{{ gunicorn_bind_endpoint }}/api
     </Location>
 
     <Directory {{ apache_static_root }}>
@@ -36,8 +36,8 @@
 
     DocumentRoot {{ apache_static_root }}
 
-    ProxyPass /api http://{{ proxy_bind_endpoint_worker }}/api
-    ProxyPassReverse /api http://{{ proxy_bind_endpoint_worker }}/api
+    ProxyPass /api http://{{ gunicorn_bind_endpoint_worker }}/api
+    ProxyPassReverse /api http://{{ gunicorn_bind_endpoint_worker }}/api
 
     ErrorLog {{ apache_worker_error_log_file }}
     CustomLog {{ apache_worker_access_log_file }} combined

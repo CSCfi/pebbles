@@ -1,0 +1,25 @@
+---
+
+- name: Install package dependencies
+  apt:
+    pkg={{ item }}
+    state=present
+  with_items:
+    - postgresql-client-9.3
+    - libpq-dev
+    - python-psycopg2
+
+- name: Create database for application
+  postgresql_db:
+    name: "{{ application_database_name }}"
+    login_host: db
+    login_user: "{{ application_database_user }}"
+    login_password: "{{ application_database_password }}"
+
+- name: Install psycopg from pip to virtualenv
+  pip: name={{ item }} virtualenv={{ virtualenv_path }}
+  with_items:
+      - psycopg2
+
+- include: setup_runtime_directories.yml
+- include: setup_supervisor_config.yml
