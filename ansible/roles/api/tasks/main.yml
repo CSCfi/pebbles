@@ -21,27 +21,5 @@
   with_items:
       - psycopg2
 
-- name: install Shibboleth module for Apache
-  apt:
-    pkg=libapache2-mod-shib2
-    state=present
-  when: "{{ enable_shibboleth | bool }}"
-
-- name: install apache
-  apt:
-    pkg=apache2
-    state=present
-
-- name: add apache runtime directories
-  file:
-    path={{ item }}
-    state=directory
-  with_items:
-    - /var/run/apache2
-    - /var/lock/apache2
-
 - include: setup_runtime_directories.yml
-- include: setup_apache.yml
 - include: setup_supervisor_config.yml
-- include: setup_shibboleth.yml
-  when: "{{ enable_shibboleth | bool }}"

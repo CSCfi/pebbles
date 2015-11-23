@@ -1,0 +1,36 @@
+---
+
+- name: Create the Apache configuration file (plain http)
+  template: src=etc/apache2/sites-available/pouta-blueprints-plain.j2
+            dest=/etc/apache2/sites-available/{{ application_name }}-plain.conf
+            backup=yes
+  notify: restart apache
+
+- name: Ensure that the default site is disabled
+  command: rm /etc/apache2/sites-enabled/000-default.conf
+           removes=/etc/apache2/sites-enabled/000-default.conf
+  notify: restart apache
+
+- name: Enable application site with plain http
+  command: a2ensite {{ application_name }}-plain
+           creates=/etc/apache2/sites-enabled/{{ application_name }}-plain.conf
+  when: not apache_enable_ssl
+  notify: restart apache
+
+- name: Install shib2 module for Apache
+  apt: pkg=libapache2-mod-shib2 state=present
+  notify: restart apache
+
+- name: Enable required Apache modules
+  apache2_module: state=present name={{ item }}
+  with_items:
+      - proxy
+      - proxy_http
+  notify: restart apache
+
+- name: Enable Apache Shibboleth module
+  apache2_module: state=present name=shib2
+  notify: restart apache
+
+- name: Ensure Apache service is stopped and disabled on boot - supervisord takes care of running it
+  service: name=apache2 state=stopped enabled=no
