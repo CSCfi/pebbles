@@ -17,6 +17,10 @@ app.directive('pbNotifications', ['Restangular', 'AuthService', 'config', functi
                 notification.patch().then(updateNotifications);
             };
 
+            scope.$on('userLoggedIn', function(event) {
+                updateNotifications();
+            });
+
             if (AuthService.isAuthenticated()) {
                updateNotifications();
             }
