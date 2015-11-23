@@ -181,14 +181,14 @@ run_ansible()
     fi
 
     # figure out the roles to deploy
-    [[ $deploy_roles =~ "www,"    ]] && deploy_www=True    || deploy_www=False
+    [[ $deploy_roles =~ "api,"    ]] && deploy_api=True    || deploy_api=False
     [[ $deploy_roles =~ "worker," ]] && deploy_worker=True || deploy_worker=False
-    [[ $deploy_roles =~ "proxy,"  ]] && deploy_proxy=True  || deploy_proxy=False
+    [[ $deploy_roles =~ "frontend,"  ]] && deploy_frontend=True  || deploy_frontend=False
     [[ $deploy_roles =~ "db,"     ]] && deploy_db=True     || deploy_db=False
     [[ $deploy_roles =~ "redis,"  ]] && deploy_redis=True  || deploy_redis=False
-    extra_args="$extra_args -e deploy_www=$deploy_www"
+    extra_args="$extra_args -e deploy_api=$deploy_api"
     extra_args="$extra_args -e deploy_worker=$deploy_worker"
-    extra_args="$extra_args -e deploy_proxy=$deploy_proxy"
+    extra_args="$extra_args -e deploy_frontend=$deploy_frontend"
     extra_args="$extra_args -e deploy_db=$deploy_db"
     extra_args="$extra_args -e deploy_redis=$deploy_redis"
 
@@ -233,9 +233,9 @@ create_ssh_aliases()
     echo
     echo "Creating aliases in ssh config"
 
-    [[ $deploy_roles =~ "www," ]] && create_ssh_alias www 2222
+    [[ $deploy_roles =~ "api," ]] && create_ssh_alias api 2222
     [[ $deploy_roles =~ "worker," ]] && create_ssh_alias worker 2223
-    [[ $deploy_roles =~ "proxy," ]] && create_ssh_alias proxy 2224
+    [[ $deploy_roles =~ "frontend," ]] && create_ssh_alias frontend 2224
 
     echo "making ssh config accessible for user only"
     chmod go-rwx ~/.ssh/config
@@ -262,7 +262,7 @@ print_usage()
 
 # Main starts here. First parse options
 
-deploy_roles="www,worker,proxy,redis,db"
+deploy_roles="api,worker,frontend,redis,db"
 use_shibboleth=false
 extra_env=""
 

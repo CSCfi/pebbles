@@ -101,16 +101,6 @@ SSH in again, source your m2m OpenStack credentials (use your m2m password when 
     $ ./pouta-blueprints/scripts/install_pb.bash
 
     
-Running nano/vim in each of the containers:
-
-    ssh www
-    sudo vim /etc/pouta_blueprints/config.yaml.local
-    exit
-    
-    ssh worker
-    sudo vim /etc/pouta_blueprints/config.yaml.local 
-    exit
-
 # Part 3: Quick start using the software
 
 Here is list of tasks for a quick start. 
@@ -138,7 +128,7 @@ to edit the _PLUGIN_WHITELIST_ variable. Change DummyDriver to OpenStackDriver:
     PLUGIN_WHITELIST: OpenStackDriver
 
 The plugin infrastructure running in 'worker' container will periodically check the plugin whitelist
-and upload driver configurations to the API/www server running in 'www' container. In the case of OpenStackDriver,
+and upload driver configurations to the API server running in 'api' container. In the case of OpenStackDriver,
 the configuration will dynamically include VM images and flavors that are available for the cPouta project. 
 Refresh the page after a minute or two, and the *Plugins* list on top of the page should include OpenStackDriver
 
@@ -212,7 +202,7 @@ isolation between http server and provisioning processes holding the credentials
 more than necessary to achieve this, so you can think of the containers as mini virtual machines. In the future we are 
 planning to make the containerization much more fine grained.
 
-There are three containers, www, worker and proxy. You can list the status with:
+There are *TODO* containers: api, worker and frontend. You can list the status with:
 
     $ docker ps
     $ docker ps -a
