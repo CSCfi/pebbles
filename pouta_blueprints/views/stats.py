@@ -18,22 +18,26 @@ def query_blueprint(blueprint_id):
     return Blueprint.query.filter_by(id=blueprint_id).first()
 
 
-blueprint_result_fields = {
+blueprint_fields = {
 
-    'blueprint': {
-        'name': fields.String,
-        'users': fields.Integer,
-        'launched_instances': fields.Integer,
-        'running_instances': fields.Integer,
-    },
+    'name': fields.String,
+    'users': fields.Integer,
+    'launched_instances': fields.Integer,
+    'running_instances': fields.Integer,
+}
+
+result_fields = {
+
+    'blueprints': fields.List(fields.Nested(blueprint_fields)),
     'overall_running_instances': fields.Integer
+
 }
 
 
 class StatsList(restful.Resource):
     @auth.login_required
     @requires_admin
-    @marshal_with(blueprint_result_fields)
+    @marshal_with(result_fields)
     def get(self):
         instances = Instance.query.all()
         overall_running_instances = Instance.query.filter(Instance.state != Instance.STATE_DELETED).count()
@@ -62,10 +66,12 @@ class StatsList(restful.Resource):
                 per_blueprint_results[blueprint.id]['running_instances'] += 1
 
             per_blueprint_results[blueprint.id]['launched_instances'] += 1
-            per_blueprint_results[blueprint.id]['overall_running_instances'] = overall_running_instances
+            # per_blueprint_results[blueprint.id]['overall_running_instances'] = overall_running_instances
 
         results = []
         for blueprint_id in per_blueprint_results:
             results.append(per_blueprint_results[blueprint_id])
 
-        return results
+        final = {"blueprints": results, "overall_running_instances": overall_running_instances}
+
+        return final

@@ -2,9 +2,9 @@ app.controller('StatsController', ['$q', '$scope', '$http', '$interval', '$uibMo
                               function ($q,   $scope,   $http,   $interval,   $uibModal,   AuthService,   Restangular) {
 
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
-        var stats = Restangular.all('stats');
+        var stats = Restangular.oneUrl('stats');
 
-        stats.getList().then(function (response) {
+        stats.get().then(function (response) {
             $scope.stats = response;
         });
     }]);

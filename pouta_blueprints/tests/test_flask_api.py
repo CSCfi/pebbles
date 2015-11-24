@@ -94,6 +94,11 @@ class FlaskApiTestCase(BaseTestCase):
         db.session.add(i3)
         i3.state = Instance.STATE_DELETED
 
+        i4 = Instance(
+            Blueprint.query.filter_by(id=b3.id).first(),
+            User.query.filter_by(email="admin@example.org").first())
+        db.session.add(i4)
+
         db.session.commit()
 
         conf = BaseConfig()
@@ -988,5 +993,31 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
         self.assertEqual(response.json['subject'], subject_topic)
 
+    def test_admin_fetch_instance_usage_stats(self):
+        response = self.make_authenticated_admin_request(
+            method='GET',
+            path='/api/v1/stats')
+        self.assertStatus(response, 200)
+
+        self.assertEqual(len(response.json['blueprints']), 2)  # 2 items as the instances are running across two blueprints
+        for blueprint in response.json['blueprints']:
+            # Tests for blueprint b2 EnabledTestBlueprint'
+            if blueprint['name'] == 'EnabledTestBlueprint':
+                self.assertEqual(blueprint['users'], 1)
+                self.assertEqual(blueprint['launched_instances'], 1)
+                self.assertEqual(blueprint['running_instances'], 1)
+            # Tests for blueprint b3 EnabledTestBlueprintClientIp
+            else:
+                self.assertEqual(blueprint['users'], 2)
+                self.assertEqual(blueprint['launched_instances'], 3)
+                self.assertEqual(blueprint['running_instances'], 2)
+
+        self.assertEqual(response.json['overall_running_instances'], 3)
+
+    def test_user_fetch_instance_usage_stats(self):
+        response = self.make_authenticated_user_request(
+            method='GET',
+            path='/api/v1/stats')
+        self.assertStatus(response, 403)
 if __name__ == '__main__':
     unittest.main()

@@ -10,17 +10,17 @@
             </tr>
         </thead>
         <tbody>
-           <tr ng-hide="stats != undefined && stats.length">
-                <td colspan="4">No Blueprints / Instances to Show</td>
+           <tr ng-hide="stats != undefined && stats.blueprints.length">
+                <td colspan="4">No Instances to Show</td>
             </tr>
-            <tr ng-repeat="stats_item in stats">
-                <td>{{ stats_item.blueprint.name }}</td>
-                <td>{{ stats_item.blueprint.launched_instances }}</td>
-                <td>{{ stats_item.blueprint.running_instances }}</td>
-                <td>{{ stats_item.blueprint.users }}</td>
+            <tr ng-repeat="stats_item in stats.blueprints">
+                <td>{{ stats_item.name }}</td>
+                <td>{{ stats_item.launched_instances }}</td>
+                <td>{{ stats_item.running_instances }}</td>
+                <td>{{ stats_item.users }}</td>
             </tr>
         </tbody>
     </table>
 
-     <span ng-show="stats != undefined && stats.length"> Total Number of Running Instances: {{ stats[0].overall_running_instances }} </span>
+     <span ng-show="stats != undefined && stats.blueprints.length"> Total Number of Running Instances: {{ stats.overall_running_instances }} </span>
 </div>
