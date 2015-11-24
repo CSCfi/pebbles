@@ -19,18 +19,11 @@
     state: present
     line: 'daemon off;'
 
-- name: Make sure Nginx proxy config in runtime directory exists
+- name: Make sure Nginx proxy config directory exists
   file:
-    name: "{{ runtime_path }}/proxy.conf"
-    state: touch
+    name: "{{ frontend_proxy_config_dir }}"
+    state: directory
     owner: "{{ application_user }}"
-
-- name: Link Nginx proxy config from runtime directory
-  file:
-    src: "{{ runtime_path }}/proxy.conf"
-    dest: /etc/nginx/sites-enabled/proxy.conf
-    state: link
-    force: yes
 
 - name: Copy nginx reloading script into place
   template:
