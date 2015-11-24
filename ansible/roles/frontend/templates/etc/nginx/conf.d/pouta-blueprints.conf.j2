@@ -1,10 +1,12 @@
 upstream gunicorn_api_server {
-  server {{ gunicorn_bind_endpoint }} fail_timeout=0;
+  server api:8888 fail_timeout=0;
 }
 
+{% if enable_shibboleth | bool %}
 upstream apache_login_server {
-  server {{ apache_login_endpoint }};
+  server apache_shibboleth fail_timeout=0;
 }
+{% endif %}
 
 server {
     listen 80;
@@ -42,19 +44,6 @@ server {
         }
     }
 
-{% if enable_shibboleth | bool %}
-    location ~* /(login|Shibboleth.sso).* {
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header Host $http_host;
-        proxy_pass_request_headers on;
-        proxy_redirect off;
-
-        proxy_pass https://{{ apache_login_endpoint }};
-    }
-{% endif %}
-
-
     location / {
         alias {{ nginx_static_root }}/;
         autoindex off;
@@ -71,8 +60,19 @@ server {
         alias {{ nginx_static_root }}/favicon.ico;
     }
 
-    location = /noteboooks {
-       include conf.d/proxy.conf
+{% if enable_shibboleth | bool %}
+    location = /login {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Host $http_host;
+        proxy_redirect off;
+
+        proxy_pass https://{{ apache_login_endpoint }};
+    }
+{% endif %}
+
+    location = /notebooks {
+       include {{ frontend_proxy_config_dir }}/proxy.conf;
     }
 
 }
