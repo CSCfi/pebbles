@@ -97,3 +97,6 @@ docker_host_m2m_credentials_dir: "/run/shm/{{ application_name }}"
 docker_host_image_dir: "/var/lib/pb/docker_images"
 docker_host_cert_dir: "/var/lib/pb/certs"
 
+# docker images
+docker_image_redis: "redis:2.8"
+docker_image_postgres: "postgres:9.3"
