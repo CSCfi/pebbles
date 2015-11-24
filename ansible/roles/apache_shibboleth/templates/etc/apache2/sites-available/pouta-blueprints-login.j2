@@ -1,0 +1,19 @@
+<VirtualHost *:443>
+
+    ServerAdmin {{ apache_server_admin_email }}
+    ServerName {{ domain }}
+
+    <Location /login>
+        AuthType shibboleth
+        ShibRequestSetting requireSession 1
+        ShibUseHeaders On
+        require shib-session
+
+        ProxyPass http://{{ gunicorn_bind_endpoint }}/login
+        ProxyPassReverse http://{{ gunicorn_bind_endpoint }}/login
+    </Location>
+
+    ErrorLog {{ apache_error_log_file }}
+    CustomLog {{ apache_access_log_file }} combined
+
+</VirtualHost>

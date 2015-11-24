@@ -49,6 +49,8 @@ application_m2m_credentials_path: "{{ application_m2m_credentials_dir }}/creds"
 shared_folder_path: "/shared_folder"
 instance_data_dir: /var/spool/pb_instances
 
+# frontend
+frontend_proxy_config_dir: "{{ runtime_path }}/proxy_conf.d"
 
 # gunicorn api worker processes
 gunicorn_bind_address: "0.0.0.0"
@@ -79,8 +81,6 @@ apache_ssl_crt: "{{ apache_ssl_cert_dir }}/server.crt"
 apache_ssl_key: "{{ apache_ssl_cert_dir }}/server.key"
 apache_ssl_chain: "{{ apache_ssl_cert_dir }}/chain.crt"
 apache_server_admin_email: "admin@example.org"
-apache_worker_access_log_file: "{{ application_log_dir }}/apache_worker_access.log"
-apache_worker_error_log_file: "{{ application_log_dir }}/apache_worker_error.log"
 apache_enable_ssl: yes
 
 # provisioning workers
