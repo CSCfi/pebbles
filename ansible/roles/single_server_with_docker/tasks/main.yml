@@ -56,10 +56,18 @@
     - "{{ docker_host_cert_dir }}"
   when: ansible_lsb.id=="CentOS"
 
+# Avoid docker 1.8.2 with ansible 1.9.x pull bug
+# see https://github.com/ansible/ansible-modules-core/issues/2043
+- name: Pull images
+  command: docker pull {{ item }}
+  with_items:
+    - "{{ docker_image_redis }}"
+    - "{{ docker_image_postgres }}"
+
 - name: Bring up container for db
   docker:
     name: db
-    image: postgres:9.3
+    image: "{{ docker_image_postgres }}"
     state: running
     restart_policy: always
     env:
@@ -69,7 +77,7 @@
 - name: Bring up container for redis
   docker:
     name: redis
-    image: redis:2.8
+    image: "{{ docker_image_redis }}"
     state: running
     restart_policy: always
 
