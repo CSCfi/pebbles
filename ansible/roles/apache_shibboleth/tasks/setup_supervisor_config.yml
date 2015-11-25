@@ -1,11 +1,11 @@
 ---
 - name: Create the Supervisor config file for Apache
-  template: src=etc/supervisor/supervisor_config_apache.j2
+  template: src=etc/supervisor/conf.d/supervisor_config_apache.j2
             dest=/etc/supervisor/conf.d/{{ application_name }}-apache.conf
             backup=yes
 
 - name: Create the Supervisor config file for Shibboleth
-  template: src=etc/supervisor/supervisor_config_shibboleth.j2
+  template: src=etc/supervisor/conf.d/supervisor_config_shibboleth.j2
             dest=/etc/supervisor/conf.d/{{ application_name }}-shibboleth.conf
             backup=yes
 
