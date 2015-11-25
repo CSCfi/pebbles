@@ -1,5 +1,9 @@
 ---
 
+- name: Install Apache2
+  apt: pkg=apache2 state=present
+  notify: restart apache
+
 - name: Create the Apache configuration file (plain http)
   template: src=etc/apache2/sites-available/pouta-blueprints-login.j2
             dest=/etc/apache2/sites-available/{{ application_name }}-login.conf

@@ -1,0 +1,3 @@
+- include: setup_apache.yml
+- include: setup_shibboleth.yml
+- include: setup_supervisor_config.yml
