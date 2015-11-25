@@ -9,6 +9,7 @@
 - name: Ensure that the default site is disabled
   command: rm /etc/nginx/sites-enabled/default
            removes=/etc/nginx/sites-enabled/default
+  notify: restart nginx
 
 - name: Ensure Nginx service is stopped and disabled on boot - supervisord takes care of running it
   service: name=nginx state=stopped enabled=no
@@ -18,11 +19,26 @@
     dest: /etc/nginx/nginx.conf
     state: present
     line: 'daemon off;'
+  notify: restart nginx
+
+- name: Copy application config
+  template:
+    src: etc/nginx/conf.d/pouta-blueprints.conf.j2
+    dest: /etc/nginx/conf.d/pouta-blueprints.conf
+    backup: yes
+    mode: "0755"
+  notify: restart nginx
 
 - name: Make sure Nginx proxy config directory exists
   file:
     name: "{{ frontend_proxy_config_dir }}"
     state: directory
+    owner: "{{ application_user }}"
+
+- name: Make sure Nginx proxy config file exists
+  file:
+    name: "{{ frontend_proxy_config_dir }}/proxy.conf"
+    state: touch
     owner: "{{ application_user }}"
 
 - name: Copy nginx reloading script into place

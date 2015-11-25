@@ -1,10 +1,12 @@
 upstream gunicorn_api_server {
-  server {{ gunicorn_bind_endpoint }} fail_timeout=0;
+  server api:8888 fail_timeout=0;
 }
 
+{% if enable_shibboleth | bool %}
 upstream apache_login_server {
-  server {{ apache_login_endpoint }};
+  server apache_shibboleth fail_timeout=0;
 }
+{% endif %}
 
 server {
     listen 80;
@@ -69,8 +71,6 @@ server {
     }
 {% endif %}
 
-    location = /noteboooks {
-       include conf.d/proxy.conf
-    }
+    include {{ frontend_proxy_config_dir }}/proxy.conf;
 
 }

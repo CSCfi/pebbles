@@ -8,7 +8,7 @@ import os
 import json
 import uuid
 
-from pouta_blueprints.models import db, Blueprint, Instance, User, SystemToken
+from pouta_blueprints.models import db, Blueprint, Instance, User
 from pouta_blueprints.forms import InstanceForm, UserIPForm
 from pouta_blueprints.server import app, restful
 from pouta_blueprints.utils import requires_admin, memoize
@@ -151,9 +151,7 @@ class InstanceList(restful.Resource):
             if c_name not in existing_names:
                 instance.name = c_name
                 break
-        token = SystemToken('provisioning')
         db.session.add(instance)
-        db.session.add(token)
         db.session.commit()
 
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
@@ -212,8 +210,6 @@ class InstanceView(restful.Resource):
         instance.to_be_deleted = True
         instance.state = Instance.STATE_DELETING
         instance.deprovisioned_at = datetime.datetime.utcnow()
-        token = SystemToken('provisioning')
-        db.session.add(token)
         db.session.commit()
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
             run_update.delay(instance.id)

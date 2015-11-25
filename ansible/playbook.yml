@@ -22,6 +22,11 @@
       - cloud_user_with_sudo
       - common
 
+- hosts: frontend
+  sudo: True
+  roles:
+      - frontend
+
 - hosts: api
   sudo: True
   roles:
@@ -32,7 +37,3 @@
   roles:
       - worker
 
-- hosts: frontend
-  sudo: True
-  roles:
-      - frontend

@@ -72,6 +72,15 @@ shibboleth_cert: "example.crt"
 shibboleth_metadata_url: "https://idp.exmaple.org/metadata.xml"
 shibboleth_support_contact: "admin@example.org"
 
+# nginx
+nginx_static_root: "/webapps/{{ application_name }}/source/{{ application_name }}/static"
+nginx_access_log_file: "{{application_log_dir}}/nginx_access.log"
+nginx_error_log_file: "{{application_log_dir}}/nginx_error.log"
+nginx_worker_access_log_file: "{{application_log_dir}}/nginx_worker_access.log"
+nginx_worker_error_log_file: "{{application_log_dir}}/nginx_worker_error.log"
+nginx_ssl_crt: "/etc/nginx/ssl/server.crt"
+nginx_ssl_key: "/etc/nginx/ssl/server.key"
+
 # apache
 apache_static_root: "/webapps/{{ application_name }}/static"
 apache_access_log_file: "{{ application_log_dir }}/apache_access.log"
