@@ -12,9 +12,9 @@ if [ "$?" -eq 1 ]; then
 
 
   # Create other windows.
-  tmux new-window -c /home/cloud-user -t status:1 -n www
+  tmux new-window -c /home/cloud-user -t status:1 -n api
   tmux new-window -c /home/cloud-user -t status:2 -n worker
-  tmux new-window -c /home/cloud-user -t status:3 -n proxy
+  tmux new-window -c /home/cloud-user -t status:3 -n frontend
 
 
   # Window "server"
@@ -47,13 +47,7 @@ if [ "$?" -eq 1 ]; then
   # Window "api"
   
   tmux send-keys -t status:1.0 '' C-m
-  tmux send-keys -t status:1.0 ssh\ www\ tail\ -F\ /webapps/pouta_blueprints/logs/gunicorn\*.log C-m
-
-  tmux splitw -t status:1
-  tmux select-layout -t status:1 even-vertical
-  
-  tmux send-keys -t status:1.1 '' C-m
-  tmux send-keys -t status:1.1 ssh\ www\ sudo\ tail\ -F\ /var/log/apache2/\{access,error\}.log C-m
+  tmux send-keys -t status:1.0 ssh\ api\ tail\ -F\ /webapps/pouta_blueprints/logs/gunicorn\*.log C-m
 
   tmux select-layout -t status:1 even-vertical
 
@@ -83,15 +77,21 @@ if [ "$?" -eq 1 ]; then
   # Window "frontend"
   
   tmux send-keys -t status:3.0 '' C-m
-  tmux send-keys -t status:3.0 ssh\ proxy\ tail\ -F\ /webapps/pouta_blueprints/logs/celery\*.log C-m
+  tmux send-keys -t status:3.0 ssh\ frontend\ tail\ -F\ /webapps/pouta_blueprints/logs/nginx\*.log C-m
 
   tmux splitw -t status:3
-  tmux select-layout -t status:3 tiled
+  tmux select-layout -t status:3 even-vertical
   
   tmux send-keys -t status:3.1 '' C-m
-  tmux send-keys -t status:3.1 ssh\ proxy\ -t\ watch\ grep\ location\ /etc/nginx/sites-enabled/proxy.conf C-m
+  tmux send-keys -t status:3.1 ssh\ frontend\ tail\ -F\ /webapps/pouta_blueprints/logs/celery\*.log C-m
 
-  tmux select-layout -t status:3 tiled
+  tmux splitw -t status:3
+  tmux select-layout -t status:3 even-vertical
+  
+  tmux send-keys -t status:3.2 '' C-m
+  tmux send-keys -t status:3.2 ssh\ frontend\ -t\ watch\ -d\ \'echo\ \"number\ of\ proxy\ routes\"\;\ grep\ location\ /webapps/pouta_blueprints/run/proxy_conf.d/proxy.conf\ \|\ wc\ -l\' C-m
+
+  tmux select-layout -t status:3 even-vertical
 
   tmux select-pane -t status:3.0
 
