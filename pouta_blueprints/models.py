@@ -340,23 +340,6 @@ class Lock(db.Model):
         self.acquired_at = datetime.datetime.utcnow()
 
 
-class SystemToken(db.Model):
-    __tablename__ = 'system_tokens'
-
-    token = db.Column(db.String(32), primary_key=True)
-    role = db.Column(db.Integer)
-    created_at = db.Column(db.DateTime)
-
-    def __init__(self, role):
-        self.role = role
-        self.token = uuid.uuid4().hex
-        self.created_at = datetime.datetime.utcnow()
-
-    @staticmethod
-    def verify(token):
-        return SystemToken.query.filter_by(token=token).first()
-
-
 class Variable(db.Model):
     __tablename__ = 'variables'
 
