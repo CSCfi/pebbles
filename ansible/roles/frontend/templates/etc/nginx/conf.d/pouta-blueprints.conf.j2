@@ -71,8 +71,6 @@ server {
     }
 {% endif %}
 
-    location = /notebooks {
-       include {{ frontend_proxy_config_dir }}/proxy.conf;
-    }
+    include {{ frontend_proxy_config_dir }}/proxy.conf;
 
 }
