@@ -657,10 +657,10 @@ class FlaskApiTestCase(BaseTestCase):
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/instances')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 2)
+        self.assertEqual(len(response.json), 3)
         response = self.make_authenticated_admin_request(path='/api/v1/instances?show_only_mine=1')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 0)
+        self.assertEqual(len(response.json), 1)
 
     def test_get_instance(self):
         # Anonymous
