@@ -360,7 +360,7 @@ class AddUserPublicKey(task.Task):
 
     def revert(self, display_name, public_key, config, **kwargs):
         logging.debug("revert: remove user public key")
-        if self.keypair_added:
+        if getattr(self, 'keypair_added', None):
             nc = get_openstack_nova_client(config)
             nc.keypairs.find(name=display_name).delete()
 
@@ -488,7 +488,7 @@ class OpenStackService(object):
                 config=self._config))
         except Exception as e:
             logging.error(e)
-            return {'error': 'flow failed'}
+            return {'error': 'flow failed due to: %s' % e}
 
     def deprovision_instance(self, server_id, display_name=None, delete_attached_volumes=False):
         flow, subflows = get_deprovision_flow()
@@ -501,7 +501,7 @@ class OpenStackService(object):
                 config=self._config))
         except Exception as e:
             logging.error(e)
-            return {'error': 'flow failed'}
+            return {'error': 'flow failed due to: %s' % e}
 
     def get_instance_state(self, instance_id):
         nc = get_openstack_nova_client(self._config)
