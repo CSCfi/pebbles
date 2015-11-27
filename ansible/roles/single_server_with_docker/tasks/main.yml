@@ -56,10 +56,18 @@
     - "{{ docker_host_cert_dir }}"
   when: ansible_lsb.id=="CentOS"
 
+# Avoid docker 1.8.2 with ansible 1.9.x pull bug
+# see https://github.com/ansible/ansible-modules-core/issues/2043
+- name: Pull images
+  command: docker pull {{ item }}
+  with_items:
+    - "{{ docker_image_redis }}"
+    - "{{ docker_image_postgres }}"
+
 - name: Bring up container for db
   docker:
     name: db
-    image: postgres:9.3
+    image: "{{ docker_image_postgres }}"
     state: running
     restart_policy: always
     env:
@@ -69,7 +77,7 @@
 - name: Bring up container for redis
   docker:
     name: redis
-    image: redis:2.8
+    image: "{{ docker_image_redis }}"
     state: running
     restart_policy: always
 
@@ -91,7 +99,6 @@
       - "redis:redis"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
-      - "{{ docker_host_cert_dir }}:/etc/apache2/ssl:ro"
 
 - name: add api to inventory
   add_host:
@@ -103,6 +110,43 @@
   ## see https://github.com/ansible/ansible-modules-core/issues/1005
   # when: item.Config.Hostname == "www" and item.State.Running == True
   # with_items: docker_containers
+
+
+- name: Bring up container for apache_shibboleth
+  docker:
+    hostname: apache_shibboleth
+    image: "{{ image_name }}"
+    state: running
+    restart_policy: always
+    name: apache_shibboleth
+    expose:
+      - 80
+    ports:
+      - "2225:22"
+    links:
+      - "api:api"
+    volumes:
+      - "{{ docker_host_app_root }}:/shared_folder/source:ro"
+  when: "{{ enable_shibboleth | bool }}"
+
+- name: add apache_shibboleth to inventory
+  add_host:
+    name: apache_shibboleth
+    groups: docker,apache_shibboleth
+    ansible_ssh_host: localhost
+    ansible_ssh_port: 2225
+    ansible_ssh_user: ansible
+  when: "{{ enable_shibboleth | bool }}"
+
+- name: define frontend links
+  set_fact:
+    frontend_links: "['api:api', 'redis:redis']"
+  when: "{{ not enable_shibboleth | bool }}"
+
+- name: define frontend links (shibboleth enabled)
+  set_fact:
+    frontend_links: "['api:api', 'redis:redis', 'apache_shibboleth:apache_shibboleth']"
+  when: "{{ enable_shibboleth | bool }}"
 
 - name: Bring up container for frontend
   docker:
@@ -117,9 +161,7 @@
     ports:
       - "2224:22"
       - "{{ application_external_https_port }}:{{ application_external_https_port }}"
-    links:
-      - "api:api"
-      - "redis:redis"
+    links: "{{ frontend_links }}"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
       - "{{ docker_host_cert_dir }}:/etc/nginx/ssl:ro"

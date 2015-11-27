@@ -17,10 +17,16 @@
     - api
     - worker
     - frontend
+    - apache_shibboleth
   sudo: True
   roles:
       - cloud_user_with_sudo
       - common
+
+- hosts: frontend
+  sudo: True
+  roles:
+      - frontend
 
 - hosts: api
   sudo: True
@@ -32,7 +38,7 @@
   roles:
       - worker
 
-- hosts: frontend
+- hosts: apache_shibboleth
   sudo: True
   roles:
-      - frontend
+      - apache_shibboleth

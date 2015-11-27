@@ -72,6 +72,15 @@ shibboleth_cert: "example.crt"
 shibboleth_metadata_url: "https://idp.exmaple.org/metadata.xml"
 shibboleth_support_contact: "admin@example.org"
 
+# nginx
+nginx_static_root: "/webapps/{{ application_name }}/source/{{ application_name }}/static"
+nginx_access_log_file: "{{application_log_dir}}/nginx_access.log"
+nginx_error_log_file: "{{application_log_dir}}/nginx_error.log"
+nginx_worker_access_log_file: "{{application_log_dir}}/nginx_worker_access.log"
+nginx_worker_error_log_file: "{{application_log_dir}}/nginx_worker_error.log"
+nginx_ssl_crt: "/etc/nginx/ssl/server.crt"
+nginx_ssl_key: "/etc/nginx/ssl/server.key"
+
 # apache
 apache_static_root: "/webapps/{{ application_name }}/static"
 apache_access_log_file: "{{ application_log_dir }}/apache_access.log"
@@ -97,3 +106,6 @@ docker_host_m2m_credentials_dir: "/run/shm/{{ application_name }}"
 docker_host_image_dir: "/var/lib/pb/docker_images"
 docker_host_cert_dir: "/var/lib/pb/certs"
 
+# docker images
+docker_image_redis: "redis:2.8"
+docker_image_postgres: "postgres:9.3"

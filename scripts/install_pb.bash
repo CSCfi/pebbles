@@ -237,6 +237,8 @@ create_ssh_aliases()
     [[ $deploy_roles =~ "worker," ]] && create_ssh_alias worker 2223
     [[ $deploy_roles =~ "frontend," ]] && create_ssh_alias frontend 2224
 
+    [[ $use_shibboleth == true ]] && create_ssh_alias apache_shibboleth 2225
+
     echo "making ssh config accessible for user only"
     chmod go-rwx ~/.ssh/config
 

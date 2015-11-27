@@ -2,7 +2,7 @@ from flask.ext.restful import fields
 from flask.ext.httpauth import HTTPBasicAuth
 from flask import g, render_template
 import logging
-from pouta_blueprints.models import db, ActivationToken, SystemToken, User
+from pouta_blueprints.models import db, ActivationToken, User
 from pouta_blueprints.server import app
 from pouta_blueprints.tasks import send_mails
 
@@ -33,11 +33,6 @@ auth.authenticate_header = lambda: "Authentication Required"
 
 @auth.verify_password
 def verify_password(userid_or_token, password):
-    # first check for system tokens
-    if SystemToken.verify(userid_or_token):
-        g.user = User('system', is_admin=True)
-        return True
-
     g.user = User.verify_auth_token(userid_or_token, app.config['SECRET_KEY'])
     if not g.user:
         g.user = User.query.filter_by(email=userid_or_token).first()

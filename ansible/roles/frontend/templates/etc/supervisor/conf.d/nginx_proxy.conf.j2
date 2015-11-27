@@ -5,7 +5,7 @@ autostart = true
 autorestart=true
 
 [program:nginx_reload]
-command = /usr/local/sbin/wait_and_reload_nginx.sh /webapps/pouta_blueprints/run/proxy.conf
+command = /usr/local/sbin/wait_and_reload_nginx.sh {{ frontend_proxy_config_dir }}/proxy.conf
 user = root
 autostart = true
 autorestart = true
