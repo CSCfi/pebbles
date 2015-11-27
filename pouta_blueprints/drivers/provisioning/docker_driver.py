@@ -603,6 +603,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             root_volume_size=self.config['DD_HOST_ROOT_VOLUME_SIZE'],
             data_volume_size=flavor_slots * self.config['DD_HOST_DATA_VOLUME_FACTOR'],
         )
+        if 'error' in res.keys():
+            raise RuntimeError('Failed to spawn a new host: %s' % res['error'])
 
         self.logger.debug("_spawn_host_os_service: spawned %s" % res)
         private_ip = res['address_data']['private_ip']
@@ -640,4 +642,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         oss = self._get_ap().get_openstack_service({
             'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']
         })
-        oss.deprovision_instance(host['provider_id'], delete_attached_volumes=True)
+        res = oss.deprovision_instance(host['provider_id'], delete_attached_volumes=True)
+        if 'error' in res.keys():
+            raise RuntimeError('Failed to remove host %s: %s' % (host['id'], res['error']))
