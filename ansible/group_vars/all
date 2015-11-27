@@ -56,7 +56,7 @@ frontend_proxy_config_dir: "{{ runtime_path }}/proxy_conf.d"
 gunicorn_bind_address: "0.0.0.0"
 gunicorn_bind_port: 8888
 gunicorn_bind_port_worker: 8889
-gunicorn_bind_endpoint: "{{ gunicorn_bind_address }}:{{ gunicorn_bind_port }}"
+gunicorn_bind_endpoint: "api:{{ gunicorn_bind_port }}"
 gunicorn_bind_endpoint_worker: "{{ gunicorn_bind_address }}:{{ gunicorn_bind_port_worker }}"
 gunicorn_num_workers: "{{ 2 * ansible_processor_vcpus }}"
 gunicorn_max_requests: 50

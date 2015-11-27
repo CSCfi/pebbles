@@ -42,6 +42,19 @@ server {
         }
     }
 
+{% if enable_shibboleth | bool %}
+    location ~* /(login|Shibboleth.sso).* {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Host $http_host;
+        proxy_pass_request_headers on;
+        proxy_redirect off;
+
+        proxy_pass https://{{ apache_login_endpoint }};
+    }
+{% endif %}
+
+
     location / {
         alias {{ nginx_static_root }}/;
         autoindex off;
@@ -57,17 +70,6 @@ server {
         access_log off;
         alias {{ nginx_static_root }}/favicon.ico;
     }
-
-{% if enable_shibboleth | bool %}
-    location = /login {
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header Host $http_host;
-        proxy_redirect off;
-
-        proxy_pass https://{{ apache_login_endpoint }};
-    }
-{% endif %}
 
     location = /noteboooks {
        include conf.d/proxy.conf
