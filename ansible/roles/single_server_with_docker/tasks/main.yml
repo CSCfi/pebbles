@@ -99,6 +99,7 @@
       - "redis:redis"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
+      - "{{ provisioning_log_file_root }}"
 
 - name: add api to inventory
   add_host:
@@ -163,8 +164,9 @@
       - "{{ application_external_https_port }}:{{ application_external_https_port }}"
     links: "{{ frontend_links }}"
     volumes:
-      - "{{ docker_host_app_root }}:/shared_folder/source:ro"
       - "{{ docker_host_cert_dir }}:/etc/nginx/ssl:ro"
+    volumes_from:
+      - api:ro
 
 - name: add frontend to inventory
   add_host:
