@@ -102,6 +102,13 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider, confi
                 isUserDashboard: function() {return false},
             }
         })
+        .when('/admin-stats', {
+            controller: 'StatsController',
+            templateUrl: partialsDir + '/admin_stats.html',
+            resolve: {
+                redirectIfNotAuthenticated: notAuthenticatedP,
+            }
+        })
         .when('/instance_details/:instance_id', {
             controller: 'InstanceDetailsController',
             templateUrl: partialsDir + '/instance_details.html',
