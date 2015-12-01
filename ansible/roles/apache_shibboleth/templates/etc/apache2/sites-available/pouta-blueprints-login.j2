@@ -1,7 +1,9 @@
 <VirtualHost *:80>
 
     ServerAdmin {{ apache_server_admin_email }}
-    ServerName {{ domain }}
+
+    ServerName https://{{ domain }}:443
+    UseCanonicalName On
 
     <Location /login>
         AuthType shibboleth
@@ -9,8 +11,8 @@
         ShibUseHeaders On
         require shib-session
 
-        ProxyPass http://{{ gunicorn_bind_endpoint }}/login
-        ProxyPassReverse http://{{ gunicorn_bind_endpoint }}/login
+        ProxyPass http://api:{{ gunicorn_bind_port }}/login
+        ProxyPassReverse http://api:{{ gunicorn_bind_port }}/login
     </Location>
 
     ErrorLog {{ apache_error_log_file }}
