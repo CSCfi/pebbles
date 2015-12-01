@@ -52,7 +52,7 @@ server {
         proxy_pass_request_headers on;
         proxy_redirect off;
 
-        proxy_pass https://{{ apache_login_endpoint }};
+        proxy_pass http://apache_login_server;
     }
 {% endif %}
 
