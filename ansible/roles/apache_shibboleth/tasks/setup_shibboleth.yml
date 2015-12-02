@@ -1,8 +1,13 @@
 ---
 
 - name: Create the Shibboleth configuration file
-  template: src=etc/shibboleth/shibboleth2.j2
+  template: src=etc/shibboleth/shibboleth2.xml.j2
             dest=/etc/shibboleth/shibboleth2.xml
+            backup=yes
+
+- name: Create the Shibboleth attribute map
+  template: src=etc/shibboleth/attribute-map.xml.j2
+            dest=/etc/shibboleth/attribute-map.xml.j2
             backup=yes
 
 - name: Create Shibboleth keypair
