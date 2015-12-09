@@ -1,7 +1,7 @@
 DEBUG: {{ application_debug_logging | bool }}
 SECRET_KEY: '{{ application_secret_key }}'
-SQLALCHEMY_DATABASE_URI: '{{ application_database_uri }}'
-MESSAGE_QUEUE_URI: 'redis://redis:6379/0'
+SQLALCHEMY_DATABASE_URI: '{{ application_database_uri_devel }}'
+MESSAGE_QUEUE_URI: 'redis://api:6379/0'
 M2M_CREDENTIAL_STORE: '{{ application_m2m_credentials_path }}'
 {%  if public_ipv4 is defined %}
 PUBLIC_IPV4: '{{ public_ipv4 }}'
