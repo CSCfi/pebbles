@@ -1,0 +1,34 @@
+---
+- name: Create the Gunicorn script file
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ virtualenv_path }}/bin/{{ item }}"
+    owner: "{{ application_user }}"
+    group: "{{ application_group }}"
+    mode: 0755
+    backup: yes
+  with_items:
+    - gunicorn_start
+    - gunicorn_worker_start
+  when: server_type == "prod"
+
+- name: Create the development server script file
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ virtualenv_path }}/bin/{{ item }}"
+    owner: "{{ application_user }}"
+    group: "{{ application_group }}"
+    mode: 0755
+    backup: yes
+  with_items:
+    - devserver_start
+    - devserver_worker_start
+  when: server_type == "devel"
+
+- name: Create provisioning log file root directory
+  file:
+    dest: "{{ provisioning_log_file_root }}"
+    state: directory
+    mode: 0755
+    owner: "{{ application_user }}"
+    group: "{{ application_group }}"

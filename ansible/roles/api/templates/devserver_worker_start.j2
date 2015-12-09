@@ -1,0 +1,11 @@
+#!/bin/bash
+
+NAME="{{ application_name }}"
+
+echo "Starting $NAME (worker) as `whoami`"
+
+cd {{ application_path }}
+source {{ virtualenv_path }}/bin/activate
+export PYTHONPATH={{ application_path }}:$PYTHONPATH
+
+exec python manage.py runserver -h {{ gunicorn_bind_address }} -p {{ gunicorn_bind_port_worker }}

@@ -25,11 +25,10 @@ windows:
         - dstat -tsmcpyf 60
         - dstat -tndrf --socket 60
 
-  - www:
+  - api:
       layout: even-vertical
       panes:
-        - ssh www tail -F /webapps/pouta_blueprints/logs/gunicorn*.log
-        - ssh www sudo tail -F /var/log/apache2/{access,error}.log
+        - ssh api tail -F /webapps/pouta_blueprints/logs/gunicorn*.log
 
   - worker:
       layout: even-vertical
@@ -37,8 +36,10 @@ windows:
         - ssh worker tail -F /webapps/pouta_blueprints/logs/celery.log
         - ssh worker tail -F /webapps/pouta_blueprints/logs/celery-system.log
         - ssh -t worker watch -n 5 '"python -m json.tool /var/spool/pb_instances/docker_driver.json | egrep \"state|docker_url|num|lifetime|error_count\" | xargs -n14"'
-  - proxy:
-      layout: tiled
+
+  - frontend:
+      layout: even-vertical
       panes:
-        - ssh proxy tail -F /webapps/pouta_blueprints/logs/celery*.log
-        - ssh proxy -t watch grep location /etc/nginx/sites-enabled/proxy.conf
+        - ssh frontend tail -F /webapps/pouta_blueprints/logs/nginx*.log
+        - ssh frontend tail -F /webapps/pouta_blueprints/logs/celery*.log
+        - ssh frontend -t watch -d 'echo "number of proxy routes"; grep location /webapps/pouta_blueprints/run/proxy_conf.d/proxy.conf | wc -l'

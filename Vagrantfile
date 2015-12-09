@@ -32,9 +32,10 @@ Vagrant.configure(2) do |config|
   config.vm.provision "ansible" do |ansible|
     ansible.playbook = "ansible/playbook.yml"
     ansible.groups = {
-      "www" => ["www","single"],
+      "api" => ["api","single"],
       "worker" => ["worker","single"],
-      "all_groups:children" => ["www", "worker"]
+      "frontend" => ["frontend", "single"],
+      "all_groups:children" => ["www", "worker", "frontend"]
     }
     ansible.verbose='vv'
   end
@@ -47,7 +48,7 @@ Vagrant.configure(2) do |config|
 
   # mimic multi container deployment. In a single deployment mode www services are accessible on localhost
   config.vm.provision "shell",
-    inline: "echo '127.0.0.1 www' | sudo tee -a /etc/hosts",
+    inline: "echo '127.0.0.1 api' | sudo tee -a /etc/hosts",
     privileged: false
 
 end

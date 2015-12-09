@@ -4,7 +4,6 @@ import docker.errors
 import pouta_blueprints.drivers.provisioning.docker_driver as docker_driver
 from pouta_blueprints.tests.base import BaseTestCase
 from pouta_blueprints.drivers.provisioning.docker_driver import DD_STATE_ACTIVE, DD_STATE_INACTIVE, DD_STATE_SPAWNED
-
 import mock
 from sys import version_info
 import docker.utils
@@ -19,10 +18,21 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+# decorator for overriding open
 def mock_open_context(func):
     def inner(*args, **kwargs):
         with mock.patch.object(builtins, 'open', mock.mock_open(read_data='1234123412341234')):
             return func(*args, **kwargs)
+
+    return inner
+
+
+# decorator for raising RuntimeError if in failure mode
+def raise_on_failure_mode(func):
+    def inner(*args, **kwargs):
+        if args[0].failure_mode:
+            raise RuntimeError('In failure mode')
+        return func(*args, **kwargs)
 
     return inner
 
@@ -36,7 +46,9 @@ class OpenStackServiceMock(object):
     def __init__(self, config):
         self.spawn_count = 0
         self.servers = []
+        self.failure_mode = False
 
+    @raise_on_failure_mode
     def provision_instance(self, display_name, image_name, flavor_name,
                            public_key, extra_sec_groups=None,
                            master_sg_name=None, allocate_public_ip=True,
@@ -57,12 +69,15 @@ class OpenStackServiceMock(object):
 
         return res
 
+    @raise_on_failure_mode
     def deprovision_instance(self, instance_id, name=None, delete_attached_volumes=False):
         self.servers = [x for x in self.servers if str(x['server_id']) != str(instance_id)]
 
+    @raise_on_failure_mode
     def upload_key(self, key_name, public_key):
         pass
 
+    @raise_on_failure_mode
     def delete_key(self, key_name):
         pass
 
@@ -74,23 +89,19 @@ class DockerClientMock(object):
         self.spawn_count = 0
         self.failure_mode = False
 
+    @raise_on_failure_mode
     def pull(self, image):
-        if self.failure_mode:
-            raise RuntimeError('In failure mode')
+        pass
 
+    @raise_on_failure_mode
     def containers(self):
-        if self.failure_mode:
-            raise RuntimeError('In failure mode')
-
         return self._containers[:]
 
     def create_host_config(self, *args, **kwargs):
         return {}
 
+    @raise_on_failure_mode
     def create_container(self, name, **kwargs):
-        if self.failure_mode:
-            raise RuntimeError('In failure mode')
-
         self.spawn_count += 1
         container = dict(
             Id='%s' % self.spawn_count,
@@ -100,14 +111,12 @@ class DockerClientMock(object):
         self._containers.append(container)
         return container
 
+    @raise_on_failure_mode
     def start(self, container_id, **kwargs):
-        if self.failure_mode:
-            raise RuntimeError('In failure mode')
+        pass
 
+    @raise_on_failure_mode
     def remove_container(self, name, **kwargs):
-        if self.failure_mode:
-            raise RuntimeError('In failure mode')
-
         matches = [x for x in self._containers if x['Name'] == name]
         if len(matches) == 1:
             container = matches[0]
@@ -118,10 +127,8 @@ class DockerClientMock(object):
         else:
             raise RuntimeError('More than one container with same name detected')
 
+    @raise_on_failure_mode
     def port(self, *args):
-        if self.failure_mode:
-            raise RuntimeError('In failure mode')
-
         return [{'HostPort': 32768 + self.spawn_count % 32768}]
 
     def load_image(self, *args):
@@ -233,8 +240,7 @@ class DockerDriverTestCase(BaseTestCase):
             INTERNAL_API_BASE_URL='http://bogus/api/v1',
             TEST_MODE=True,
             PUBLIC_IPV4='10.0.0.1',
-            PUBLIC_HTTPS_PROXY_PORT=8443,
-            INTERNAL_HTTPS_PROXY_PORT=8443,
+            EXTERNAL_HTTPS_PORT=443,
             DD_HOST_IMAGE='CentOS-7.0',
             DD_MAX_HOSTS=4,
             DD_SHUTDOWN_MODE=False,
