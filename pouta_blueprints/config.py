@@ -54,7 +54,7 @@ class BaseConfig(object):
     SSL_VERIFY = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
     M2M_CREDENTIAL_STORE = '/var/run/pouta_blueprints_m2m'
-    MESSAGE_QUEUE_URI = 'redis://api:6379/0'
+    MESSAGE_QUEUE_URI = 'redis://redis:6379/0'
     INSTANCE_DATA_DIR = '/var/spool/pb_instances'
     INTERNAL_API_BASE_URL = 'https://api:1443/api/v1'
     PUBLIC_IPV4 = '127.0.0.1'
