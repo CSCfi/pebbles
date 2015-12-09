@@ -4,6 +4,7 @@
   template: src=etc/supervisor/conf.d/supervisor_config_common_services.j2
             dest=/etc/supervisor/conf.d/{{ application_name }}-common_services.conf
             backup=yes
+  when: server_type == "devel"
 
 - name: Create the Supervisor config file for api (devel)
   template: src=etc/supervisor/conf.d/supervisor_config_devserver.j2
