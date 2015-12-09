@@ -1,6 +1,20 @@
 ---
 
-- name: Install package dependencies
+- name: Update ubuntu repo
+  apt: update_cache=yes
+
+- name: Install package dependencies (docker)
+  apt:
+    pkg={{ item }}
+    state=present
+  with_items:
+    - postgresql-client-9.3
+    - libpq-dev
+    - python-psycopg2
+  when: deploy_mode == "docker"
+
+
+- name: Install package dependencies (devel)
   apt:
     pkg={{ item }}
     state=present
@@ -9,15 +23,25 @@
     - libpq-dev
     - python-psycopg2
     - redis-server
+  when: deploy_mode == "devel"
 
+- name: Create database for application (docker)
+  postgresql_db:
+    name: "{{ application_database_name }}"
+    login_host: db
+    login_user: "{{ application_database_user }}"
+    login_password: "{{ application_database_password }}"
+  when: deploy_mode == "docker"
 
-- name: ensure database is created
+- name: ensure database is created (devel)
   sudo_user: postgres
   postgresql_db: name={{application_database_name}}
+  when: deploy_mode == "devel"
 
-- name: ensure user has access to database
+- name: ensure user has access to database (devel)
   sudo_user: postgres
   postgresql_user: db={{application_database_name}} name={{application_database_user}} password={{application_database_password}} priv=ALL
+  when: deploy_mode == "devel"
 
 - name: Install psycopg from pip to virtualenv
   pip: name={{ item }} virtualenv={{ virtualenv_path }}
@@ -29,15 +53,18 @@
     name=/etc/redis/redis.conf
     regexp='^bind.*'
     state=absent
+  when: deploy_mode == "devel"
 
 - name: Set redis not to daemonize
   shell: sed -i 's/^\(daemonize\s*\)yes\s*$/\1no/g' /etc/redis/redis.conf
+  when: deploy_mode == "devel"
 
 - name: Disable redis-server on boot and make sure it is stopped - supervisord takes care of this
   service:
     name=redis-server
     enabled=false
     state=stopped
+  when: deploy_mode == "devel"
 
 - include: setup_runtime_directories.yml
 - include: setup_supervisor_config.yml
