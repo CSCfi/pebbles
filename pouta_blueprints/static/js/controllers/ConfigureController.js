@@ -40,6 +40,10 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             $scope.$apply(function() {
                 $scope.test = reader.result;
 
+               blueprints_json = JSON.parse(reader.result);
+               blueprint1 = blueprints_json[0];
+               blueprints_list = []
+               blueprints_list.push({name: blueprint1.name, config: blueprint1.config, plugin_name: blueprint.plugin_name}); //blueprint1.name is a string and so is blueprint1.config
                 blueprints_json = JSON.parse(reader.result);
                 blueprint1 = blueprints_json[0];
                 blueprints_list = []
