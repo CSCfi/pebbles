@@ -1,6 +1,6 @@
 from flask.ext.wtf import Form
 from wtforms_alchemy import model_form_factory
-from wtforms import BooleanField, StringField
+from wtforms import BooleanField, StringField, FormField, FieldList
 from wtforms.validators import DataRequired, Email, Length, IPAddress
 
 from pouta_blueprints.models import (
@@ -30,6 +30,16 @@ class BlueprintForm(ModelForm):
     config = StringField('config', validators=[DataRequired()])
     plugin = StringField('plugin', validators=[DataRequired()])
     is_enabled = BooleanField('is_enabled', default=False)
+
+
+class BlueprintImportFormField(Form):
+    name = StringField('name', validators=[DataRequired()])
+    config = StringField('config', validators=[DataRequired()])
+    plugin_name = StringField('plugin_name', validators=[DataRequired()])
+
+
+class BlueprintImportForm(Form):
+    blueprints = FieldList(FormField(BlueprintImportFormField), min_entries=1)
 
 
 class ChangePasswordForm(ModelForm):
