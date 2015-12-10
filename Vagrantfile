@@ -35,7 +35,7 @@ Vagrant.configure(2) do |config|
       "api" => ["api","single"],
       "worker" => ["worker","single"],
       "frontend" => ["frontend", "single"],
-      "all_groups:children" => ["www", "worker", "frontend"]
+      "all_groups:children" => ["api", "worker", "frontend"]
     }
     ansible.verbose='vv'
   end

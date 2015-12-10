@@ -5,13 +5,6 @@
   when: ansible_lsb.id=="Ubuntu"
   register: update_apt_repos
 
-- name: Clean repo
-  raw: apt-get clean
-  when: ansible_lsb.id=="Ubuntu" and update_apt_repos.changed
-
-- name: Delete apt lists
-  raw: rm -rf /var/lib/apt/lists/*
-
 - name: Refresh repository metadata (Ubuntu)
   raw: apt-get update
   when: ansible_lsb.id=="Ubuntu" and update_apt_repos.changed
