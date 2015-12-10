@@ -29,6 +29,35 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         updateNotificationList();
 
         $scope.openCreateBlueprintDialog = function(plugin) {
+        var import_export = Restangular.all('import_export')
+
+
+        $scope.uploadFile = function(element) {
+
+            file = element.files[0]
+            var reader = new FileReader();
+            reader.onload = function(e) {
+            $scope.$apply(function() {
+                $scope.test = reader.result;
+
+                blueprints_json = JSON.parse(reader.result);
+                blueprint1 = blueprints_json[0];
+                blueprints_list = []
+                blueprints_list.push({name: blueprint1.name, config: blueprint1.config}); //blueprint1.name is a string and so is blueprint1.config
+
+                import_export.post({blueprints: blueprints_list}).then(function () {
+                  console.log('Then called');
+                  }, function() {
+                       $.notify({title: 'HTTP ' + response.status, message: 'error'}, {type: 'danger'});
+                    });
+
+                });
+            };
+            reader.readAsText(file);
+        };
+
+
+        $scope.open_create_blueprint_dialog = function(plugin) {
             var modalCreateBlueprint = $uibModal.open({
                 templateUrl: '/partials/modal_create_blueprint.html',
                 controller: 'ModalCreateBlueprintController',
