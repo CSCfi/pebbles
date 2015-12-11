@@ -101,6 +101,28 @@ END_M2M
     fi
 }
 
+populate_sso_data()
+{
+    p_sso_data_dir=$1
+
+    echo "-------------------------------------------------------------------------------"
+    echo
+    echo "Populating /var/lib/pb/sso"
+
+    if [ ! -e /var/lib/pb/sso ]; then
+        echo "Creating /var/lib/pb/sso"
+        sudo mkdir -p /var/lib/pb/sso
+    fi
+
+    echo "Copying SSO certificates to /var/lib/pb/sso/"
+    sudo cp -v $p_sso_data_dir/{sp_key,sp_cert,idp_cert}.pem /var/lib/pb/sso/
+
+    if [ -f /etc/redhat-release ]; then
+        echo "Enabling container access to sso_data in SELinux"
+        sudo chcon -Rt svirt_sandbox_file_t /var/lib/pb/sso
+    fi
+}
+
 create_ansible_inventory()
 {
     echo "-------------------------------------------------------------------------------"
@@ -177,7 +199,7 @@ run_ansible()
     export PYTHONUNBUFFERED=1
     extra_args="$extra_env"
     if [ $use_shibboleth == true ]; then
-        extra_args="-e enable_shibboleth=True $extra_args"
+        extra_args="-e enable_shibboleth=True -e @$sso_data_dir/sso_config.yml $extra_args"
     fi
 
     # figure out the roles to deploy
@@ -250,11 +272,11 @@ print_usage()
     echo "Usage: $0 [options]"
     echo
     echo " where options are:"
-    echo "  -c : just copy OpenStack credentials and exit"
-    echo "  -s : enable shibboleth installation"
-    echo "  -r : comma separated list of roles to deploy on this host"
-    echo "       full list of roles: $deploy_roles"
-    echo "  -e : environment var for ansible, can be specified more than once"
+    echo "  -c          : just copy OpenStack credentials and exit"
+    echo "  -s sso_data : enable shibboleth installation, copy data from sso_data"
+    echo "  -r roles    : comma separated list of roles to deploy on this host"
+    echo "                full list of roles: $deploy_roles"
+    echo "  -e var=val  : environment var for ansible, can be specified more than once"
     echo
     echo "By default, a full install/configuration run is performed"
     echo
@@ -266,9 +288,10 @@ print_usage()
 
 deploy_roles="api,worker,frontend,redis,db"
 use_shibboleth=false
+sso_data_dir=""
 extra_env=""
 
-while getopts "h?csr:e:" opt; do
+while getopts "h?cs:r:e:" opt; do
     case "$opt" in
     h|\?)
         print_usage
@@ -278,8 +301,11 @@ while getopts "h?csr:e:" opt; do
         exit 0
         ;;
     s)  use_shibboleth=true
+        sso_data_dir=$(realpath $OPTARG)
         echo
         echo "Ansible provisioning will enable Shibboleth and Apache"
+        echo
+        echo "sso_data will be picked from $sso_data_dir"
         echo
         ;;
     r)  deploy_roles="$OPTARG"
@@ -303,6 +329,9 @@ run_apt_update
 install_packages
 if [[ $deploy_roles =~ "worker," ]]; then
     create_creds_file
+fi
+if [ $use_shibboleth == true ]; then
+    populate_sso_data $sso_data_dir
 fi
 create_ansible_inventory
 clone_git_repo
