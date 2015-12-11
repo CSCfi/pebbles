@@ -127,7 +127,7 @@
     links:
       - "api:api"
     volumes:
-      - "{{ docker_host_app_root }}:/shared_folder/source:ro"
+      - "{{ docker_host_sso_dir }}:/etc/{{ application_name }}/sso:ro"
   when: "{{ enable_shibboleth | bool }}"
 
 - name: add apache_shibboleth to inventory

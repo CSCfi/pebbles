@@ -17,7 +17,6 @@
     - api
     - worker
     - frontend
-    - apache_shibboleth
   sudo: True
   roles:
       - cloud_user_with_sudo
@@ -42,3 +41,4 @@
   sudo: True
   roles:
       - apache_shibboleth
+      - cloud_user_with_sudo
