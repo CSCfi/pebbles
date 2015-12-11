@@ -1,6 +1,6 @@
 <VirtualHost *:80>
 
-    ServerAdmin {{ apache_server_admin_email }}
+    ServerAdmin {{ shibboleth_support_contact }}
 
     ServerName https://{{ domain }}:443
     UseCanonicalName On
@@ -14,8 +14,5 @@
         ProxyPass http://api:{{ gunicorn_bind_port }}/login
         ProxyPassReverse http://api:{{ gunicorn_bind_port }}/login
     </Location>
-
-    ErrorLog {{ apache_error_log_file }}
-    CustomLog {{ apache_access_log_file }} combined
 
 </VirtualHost>
