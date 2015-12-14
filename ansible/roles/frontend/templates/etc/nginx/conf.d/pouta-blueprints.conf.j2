@@ -3,8 +3,8 @@ upstream gunicorn_api_server {
 }
 
 {% if enable_shibboleth | bool %}
-upstream apache_login_server {
-  server apache_shibboleth fail_timeout=0;
+upstream sso_login_server {
+  server sso fail_timeout=0;
 }
 {% endif %}
 
@@ -52,7 +52,7 @@ server {
         proxy_pass_request_headers on;
         proxy_redirect off;
 
-        proxy_pass http://apache_login_server;
+        proxy_pass http://sso_login_server;
     }
 {% endif %}
 
