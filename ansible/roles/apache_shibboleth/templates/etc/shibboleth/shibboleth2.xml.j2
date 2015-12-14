@@ -35,7 +35,7 @@
         security of your site. Stealing sessions via cookie theft is much easier with this disabled.
         -->
         <Sessions lifetime="28800" timeout="3600" relayState="ss:mem"
-                  checkAddress="false" handlerSSL="true" cookieProps="https">
+                  checkAddress="false" handlerSSL="false" cookieProps="https">
 
             <!--
             Configures SSO for a default IdP. To allow for >1 IdP, remove
@@ -48,7 +48,7 @@
         </SSO>
 
 
-	    <md:AssertionConsumerService Location="/api/v1/acs" index="1"                                         
+	    <md:AssertionConsumerService Location="/api/v1/acs" index="1"
 		    Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"                                          
 	    	conf:ignoreNoPassive="true" />
 
@@ -80,7 +80,7 @@
         <MetadataProvider type="XML" uri="{{ shibboleth_metadata_url }}"
                backingFilePath="metadata.xml" reloadInterval="7200">
             <MetadataFilter type="RequireValidUntil" maxValidityInterval="2419200"/>
-            <MetadataFilter type="Signature" certificate="{{ shibboleth_cert }}"/>
+            <MetadataFilter type="Signature" certificate="idp_cert.pem"/>
         </MetadataProvider>
 
         <!-- Map to extract attributes from SAML assertions. -->
@@ -93,7 +93,7 @@
         <AttributeFilter type="XML" validate="true" path="attribute-policy.xml"/>
 
         <!-- Simple file-based resolver for using a single keypair. -->
-	    <CredentialResolver type="File" key="sp-key.pem" certificate="sp-cert.pem"/>
+	    <CredentialResolver type="File" key="sp_key.pem" certificate="sp_cert.pem"/>
 
         <!--
         The default settings can be overridden by creating ApplicationOverride elements (see

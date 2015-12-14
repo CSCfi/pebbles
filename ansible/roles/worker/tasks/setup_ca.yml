@@ -1,6 +1,6 @@
 - name: Generate CA key and certificate
   command:
-    openssl req -new -nodes -x509 -subj "/C=FI/ST=SouthernFinland/L=Helsinki/O=IT/CN={{ domain }}" -days 3650 -keyout {{ runtime_path }}/ca_key.pem -out {{ runtime_path }}/ca_cert.pem
+    openssl req -new -nodes -x509 -subj "/C=FI/ST=SouthernFinland/L=Helsinki/O=IT/CN={{ domain_name }}" -days 3650 -keyout {{ runtime_path }}/ca_key.pem -out {{ runtime_path }}/ca_cert.pem
     creates={{ runtime_path }}/ca_cert.pem
 
 - name: Generate client key and certificate request

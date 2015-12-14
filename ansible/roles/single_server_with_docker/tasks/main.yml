@@ -9,7 +9,7 @@
 - name: Create self-signed SSL cert
   command: >
     openssl req -new -nodes -x509
-    -subj "/C=FI/ST=SouthernFinland/L=Helsinki/O=IT/CN={{ domain }}"
+    -subj "/C=FI/ST=SouthernFinland/L=Helsinki/O=IT/CN={{ domain_name }}"
     -days 3650
     -extensions v3_ca
     -keyout {{ docker_host_cert_dir }}/server.key
@@ -127,7 +127,7 @@
     links:
       - "api:api"
     volumes:
-      - "{{ docker_host_app_root }}:/shared_folder/source:ro"
+      - "{{ docker_host_sso_dir }}:/etc/{{ application_name }}/sso:ro"
   when: "{{ enable_shibboleth | bool }}"
 
 - name: add apache_shibboleth to inventory

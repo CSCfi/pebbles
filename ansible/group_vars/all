@@ -32,7 +32,7 @@ application_worker_endpoint_log_file: "{{ application_log_dir }}/gunicorn_worker
 celery_log_file: "{{ application_log_dir }}/celery.log"
 celery_system_log_file: "{{ application_log_dir }}/celery-system.log"
 celerybeat_log_file: "{{ application_log_dir }}/celerybeat.log"
-domain: "localhost"
+domain_name: "localhost"
 application_name: "pouta_blueprints"
 application_user: "{{ application_name }}"
 application_group: "webapps"
@@ -68,7 +68,6 @@ provisioning_log_file_root: "/webapps/{{ application_name }}/provisioning_logs"
 enable_shibboleth: False
 shibboleth_entity_id: "https://myserviceid.example.org"
 shibboleth_discovery_url: "https://disco.example.org/shibboleth/WAYF"
-shibboleth_cert: "example.crt"
 shibboleth_metadata_url: "https://idp.exmaple.org/metadata.xml"
 shibboleth_support_contact: "admin@example.org"
 
@@ -80,17 +79,6 @@ nginx_worker_access_log_file: "{{application_log_dir}}/nginx_worker_access.log"
 nginx_worker_error_log_file: "{{application_log_dir}}/nginx_worker_error.log"
 nginx_ssl_crt: "/etc/nginx/ssl/server.crt"
 nginx_ssl_key: "/etc/nginx/ssl/server.key"
-
-# apache
-apache_static_root: "/webapps/{{ application_name }}/static"
-apache_access_log_file: "{{ application_log_dir }}/apache_access.log"
-apache_error_log_file: "{{ application_log_dir }}/apache_error.log"
-apache_ssl_cert_dir: "/etc/apache2/ssl"
-apache_ssl_crt: "{{ apache_ssl_cert_dir }}/server.crt"
-apache_ssl_key: "{{ apache_ssl_cert_dir }}/server.key"
-apache_ssl_chain: "{{ apache_ssl_cert_dir }}/chain.crt"
-apache_server_admin_email: "admin@example.org"
-apache_enable_ssl: yes
 
 # provisioning workers
 provisioning_num_workers: "{{ 2 if deploy_mode == 'devel' else 4 * ansible_processor_vcpus }}"
@@ -105,6 +93,7 @@ docker_host_app_root: "/opt/{{ application_name }}"
 docker_host_m2m_credentials_dir: "/run/shm/{{ application_name }}"
 docker_host_image_dir: "/var/lib/pb/docker_images"
 docker_host_cert_dir: "/var/lib/pb/certs"
+docker_host_sso_dir: "/var/lib/pb/sso"
 
 # docker images
 docker_image_redis: "redis:2.8"
