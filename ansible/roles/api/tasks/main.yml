@@ -27,12 +27,17 @@
 
 - name: ensure database is created (devel)
   sudo_user: postgres
-  postgresql_db: name={{application_database_name}}
+  postgresql_db:
+    name: "{{ application_database_name }}"
   when: deploy_mode == "devel"
 
 - name: ensure user has access to database (devel)
   sudo_user: postgres
-  postgresql_user: db={{application_database_name}} name={{application_database_user}} password={{application_database_password}} priv=ALL
+  postgresql_user:
+    db: "{{ application_database_name }}"
+    name: "{{ application_database_user }}"
+    password: "{{ application_database_password }}"
+    priv: "ALL"
   when: deploy_mode == "devel"
 
 - name: Install psycopg from pip to virtualenv
