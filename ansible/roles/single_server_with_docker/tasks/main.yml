@@ -113,13 +113,13 @@
   # with_items: docker_containers
 
 
-- name: Bring up container for apache_shibboleth
+- name: Bring up container for sso
   docker:
-    hostname: apache_shibboleth
+    hostname: sso
     image: "{{ image_name }}"
     state: running
     restart_policy: always
-    name: apache_shibboleth
+    name: sso
     expose:
       - 80
     ports:
@@ -130,10 +130,10 @@
       - "{{ docker_host_sso_dir }}:/etc/{{ application_name }}/sso:ro"
   when: "{{ enable_shibboleth | bool }}"
 
-- name: add apache_shibboleth to inventory
+- name: add sso to inventory
   add_host:
-    name: apache_shibboleth
-    groups: docker,apache_shibboleth
+    name: sso
+    groups: docker,sso
     ansible_ssh_host: localhost
     ansible_ssh_port: 2225
     ansible_ssh_user: ansible
@@ -146,7 +146,7 @@
 
 - name: define frontend links (shibboleth enabled)
   set_fact:
-    frontend_links: "['api:api', 'redis:redis', 'apache_shibboleth:apache_shibboleth']"
+    frontend_links: "['api:api', 'redis:redis', 'sso:sso']"
   when: "{{ enable_shibboleth | bool }}"
 
 - name: Bring up container for frontend
