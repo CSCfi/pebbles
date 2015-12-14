@@ -37,8 +37,8 @@
   roles:
       - worker
 
-- hosts: apache_shibboleth
+- hosts: sso
   sudo: True
   roles:
-      - apache_shibboleth
+      - sso
       - cloud_user_with_sudo
