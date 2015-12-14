@@ -181,14 +181,36 @@ get_public_ip()
 
     public_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
     if [ "xxx$public_ipv4" == "xxx" ]; then
-       echo " NOT FOUND"
+       echo "NOT FOUND"
        echo
        echo "Please assign a public IP to the instance and run me again"
        echo
 
        exit 1
     else
-       echo " $public_ipv4"
+       echo "$public_ipv4"
+       echo
+    fi
+}
+
+get_domain_name()
+{
+    p_ip=$1
+    echo "-------------------------------------------------------------------------------"
+    echo
+    echo -n "Figuring out domain name for ip $p_ip: "
+    # reverse lookup
+    domain_name=$(dig -x $p_ip +short)
+    # dig will output the root dot also, we get rid of that with trailing conditional replace
+    domain_name=${domain_name/%./}
+    if [ "xxx$domain_name" == "xxx" ]; then
+       echo "NOT FOUND"
+       echo
+       echo "There seems to be a problem resolving the public ip to a name"
+       echo
+       exit 1
+    else
+       echo "$domain_name"
        echo
     fi
 }
@@ -228,6 +250,7 @@ run_ansible()
      -e application_debug_logging=False \
      -e application_secret_key=$application_secret_key \
      -e public_ipv4=$public_ipv4 \
+     -e domain_name=$domain_name \
      -e docker_host_app_root=$PWD \
      $extra_args
 }
@@ -337,13 +360,14 @@ create_ansible_inventory
 clone_git_repo
 create_shared_secret
 get_public_ip
+get_domain_name $public_ipv4
 run_ansible
 create_ssh_aliases
 
 echo "-------------------------------------------------------------------------------"
 echo "Setup finished, point your browser to "
 echo
-echo " https://$public_ipv4/#/initialize"
+echo " https://$domain_name/#/initialize"
 echo
 echo " and create an admin user"
 echo "-------------------------------------------------------------------------------"
