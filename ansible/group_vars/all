@@ -32,7 +32,7 @@ application_worker_endpoint_log_file: "{{ application_log_dir }}/gunicorn_worker
 celery_log_file: "{{ application_log_dir }}/celery.log"
 celery_system_log_file: "{{ application_log_dir }}/celery-system.log"
 celerybeat_log_file: "{{ application_log_dir }}/celerybeat.log"
-domain: "localhost"
+domain_name: "localhost"
 application_name: "pouta_blueprints"
 application_user: "{{ application_name }}"
 application_group: "webapps"

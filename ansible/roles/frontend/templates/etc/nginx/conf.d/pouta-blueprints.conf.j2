@@ -10,8 +10,8 @@ upstream apache_login_server {
 
 server {
     listen 80;
-    server_name {{ domain }};
-    return 301 https://{{ domain }}$request_uri;
+    server_name {{ domain_name }};
+    return 301 https://{{ domain_name }}$request_uri;
 }
 
 server {
@@ -20,7 +20,7 @@ server {
     access_log {{ nginx_access_log_file }};
     error_log  {{ nginx_error_log_file }};
 
-    server_name {{ domain }};
+    server_name {{ domain_name }};
 
     charset utf-8;
 
