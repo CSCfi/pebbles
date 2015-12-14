@@ -28,13 +28,28 @@ Vagrant.configure(2) do |config|
     override.vm.box=nil
   end
 
+ # mimic multi container deployment. In a single deployment mode www services are accessible on localhost
+  config.vm.provision "shell",
+    inline: "echo '127.0.0.1 api' | sudo tee -a /etc/hosts",
+    privileged: false
+
+  config.vm.provision "shell",
+    inline: "echo '127.0.0.1 db' | sudo tee -a /etc/hosts",
+    privileged: false
+
+  config.vm.provision "shell",
+    inline: "echo '127.0.0.1 redis' | sudo tee -a /etc/hosts",
+    privileged: false
+
+
   # Enable provisioning with Ansible.
   config.vm.provision "ansible" do |ansible|
     ansible.playbook = "ansible/playbook.yml"
     ansible.groups = {
-      "www" => ["www","single"],
+      "api" => ["api","single"],
       "worker" => ["worker","single"],
-      "all_groups:children" => ["www", "worker"]
+      "frontend" => ["frontend", "single"],
+      "all_groups:children" => ["api", "worker", "frontend"]
     }
     ansible.verbose='vv'
   end
@@ -43,11 +58,6 @@ Vagrant.configure(2) do |config|
   # note on privileged: see https://github.com/mitchellh/vagrant/issues/1673
   config.vm.provision "shell",
     inline: "echo 'sudo tmux -f /shared_folder/tmux.conf att' > /home/vagrant/.bash_history",
-    privileged: false
-
-  # mimic multi container deployment. In a single deployment mode www services are accessible on localhost
-  config.vm.provision "shell",
-    inline: "echo '127.0.0.1 www' | sudo tee -a /etc/hosts",
     privileged: false
 
 end

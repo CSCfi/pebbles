@@ -11,6 +11,22 @@
            removes=/etc/nginx/sites-enabled/default
   notify: restart nginx
 
+- name: Create ssl dir
+  file:
+    dest: /etc/nginx/ssl
+    owner: root
+    group: root
+    mode: 0600
+    state: directory
+  when: server_type == "devel"
+
+- name: Create self-signed SSL cert
+  command: 
+    openssl req -new -nodes -x509 -subj "/C=FI/ST=SouthernFinland/L=Helsinki/O=IT/CN={{ domain }}" -days 3650 -keyout {{ nginx_ssl_key }} -out {{ nginx_ssl_crt }} -extensions v3_ca 
+    creates=/etc/nginx/ssl/server.crt
+  notify: restart nginx
+  when: server_type == "devel"
+
 - name: Ensure Nginx service is stopped and disabled on boot - supervisord takes care of running it
   service: name=nginx state=stopped enabled=no
 

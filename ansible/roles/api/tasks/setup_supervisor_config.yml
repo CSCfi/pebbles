@@ -1,4 +1,11 @@
 ---
+
+- name: Create the Supervisor config file for redis
+  template: src=etc/supervisor/conf.d/supervisor_config_redis.conf.j2
+            dest=/etc/supervisor/conf.d/{{ application_name }}-redis.conf
+            backup=yes
+  when: server_type == "devel"
+
 - name: Create the Supervisor config file for api (devel)
   template: src=etc/supervisor/conf.d/supervisor_config_devserver.j2
             dest=/etc/supervisor/conf.d/{{ application_name }}-application.conf
