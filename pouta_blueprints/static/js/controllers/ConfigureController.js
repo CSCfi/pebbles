@@ -20,6 +20,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             $scope.variables = response;
         });
 
+        var import_export = Restangular.all('import_export');
         var notifications = Restangular.all('notifications');
         var updateNotificationList = function() {
             notifications.getList({show_all: true}).then(function (response){
@@ -31,6 +32,26 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         $scope.openCreateBlueprintDialog = function(plugin) {
         var import_export = Restangular.all('import_export')
 
+        import_export.getList().then(function(response) {
+            $scope.blueprints_export = response;
+        });
+
+
+        $scope.downloadFile = function () {
+
+            json_str = JSON.stringify($scope.blueprints_export, undefined, 2);
+
+            var blob = new Blob([json_str], {type: 'application/json'}),
+            mouse_event = document.createEvent('MouseEvents'),
+            anchor_link = document.createElement('a');
+
+            anchor_link.download = "blueprints.json";
+            anchor_link.href = window.URL.createObjectURL(blob);
+            anchor_link.dataset.downloadurl = ['text/json', anchor_link.download, anchor_link.href].join(':');
+            mouse_event.initMouseEvent('click', true, false, window,
+            0, 0, 0, 0, 0, false, false, false, false, 0, null);
+            anchor_link.dispatchEvent(mouse_event);
+        };
 
         $scope.uploadFile = function(element) {
 

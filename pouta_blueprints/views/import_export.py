@@ -1,5 +1,5 @@
+from flask.ext.restful import fields
 from flask import Blueprint as FlaskBlueprint
-from flask import Response
 import logging
 
 from flask.ext.restful import marshal_with
@@ -7,16 +7,24 @@ from flask import g
 
 from pouta_blueprints.models import db, Blueprint, Plugin
 from pouta_blueprints.server import restful
-from pouta_blueprints.views.commons import auth, blueprint_fields
+from pouta_blueprints.views.commons import auth
 from pouta_blueprints.utils import requires_admin
 from pouta_blueprints.forms import BlueprintImportForm
 
 import_export = FlaskBlueprint('import_export', __name__)
 
+blueprint_export_fields = {
+    'maximum_lifetime': fields.Integer,
+    'name': fields.String,
+    'is_enabled': fields.Boolean,
+    'plugin_name': fields.String,
+    'config': fields.Raw,
+}
+
 
 class ImportExportBlueprints(restful.Resource):
     @auth.login_required
-    @marshal_with(blueprint_fields)
+    @marshal_with(blueprint_export_fields)
     def get(self):
         query = Blueprint.query
         if not g.user.is_admin:
@@ -27,11 +35,10 @@ class ImportExportBlueprints(restful.Resource):
         results = []
         for blueprint in blueprints:
             plugin = Plugin.query.filter_by(id=blueprint.plugin).first()
-            blueprint.schema = plugin.schema
-            blueprint.form = plugin.form
-            results.append(blueprint)
+            obj = {'name': blueprint.name, 'maximum_lifetime': blueprint.maximum_lifetime, 'is_enabled': blueprint.is_enabled, 'config': blueprint.config, 'plugin_name': plugin.name}
+            results.append(obj)
 
-        return Response(results, mimetype='application/json')
+        return results
 
     @auth.login_required
     @requires_admin
