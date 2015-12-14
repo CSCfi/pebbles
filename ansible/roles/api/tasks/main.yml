@@ -1,9 +1,5 @@
 ---
-
-- name: Update ubuntu repo
-  apt: update_cache=yes
-
-- name: Install package dependencies (docker)
+- name: Install package dependencies
   apt:
     pkg={{ item }}
     state=present
@@ -11,8 +7,6 @@
     - postgresql-client-9.3
     - libpq-dev
     - python-psycopg2
-  when: deploy_mode == "docker"
-
 
 - name: Install package dependencies (devel)
   apt:
@@ -20,8 +14,6 @@
     state=present
   with_items:
     - postgresql-9.3
-    - libpq-dev
-    - python-psycopg2
     - redis-server
   when: deploy_mode == "devel"
 
