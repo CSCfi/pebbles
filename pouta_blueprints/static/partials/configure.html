@@ -1,8 +1,6 @@
 <div>
     <h1>Configure Blueprints</h1>
     <h2>Plugins</h2>
-    <button ng-click="downloadFile()">Export</button> 
-    <input type="file" onchange="angular.element(this).scope().uploadFile(this)"/>
 
     <table class="table table-striped">
         <thead>
@@ -44,6 +42,10 @@
         </tr>
         </tbody>
     </table>
+
+    <h2>Export / Import Blueprints</h2>
+    <button class="btn btn-default" ng-click="downloadFile()">Export</button>
+    <button class="btn btn-default" ng-click="open_import_blueprints_dialog()">Import</button>
 
     <h2>Global variables</h2>
 
