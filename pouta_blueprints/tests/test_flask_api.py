@@ -918,6 +918,44 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/notifications'
         )
         self.assert_401(response)
+    def test_export_blueprints(self):
+
+        response = self.make_authenticated_admin_request(path='/api/v1/import_export')
+        self.assertStatus(response, 200)
+        self.assertEquals(len(response.json), 3)  # There were three blueprints initialized during setup
+
+    def test_import_blueprints(self):
+
+        blueprints_data = [{'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'plugin_name': 'TestPlugin'}, {'name': 'foobar', 'config': {'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'}, 'plugin_name': 'TestPlugin'}]
+
+        for blueprint_item in blueprints_data:
+            response = self.make_authenticated_admin_request(
+                method='POST',
+                path='/api/v1/import_export',
+                data=json.dumps(blueprint_item))
+            self.assertEqual(response.status_code, 200)
+
+        blueprint_invalid1 = {'name': 'foo', 'plugin_name': 'TestPlugin'}
+        response1 = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/import_export',
+            data=json.dumps(blueprint_invalid1))
+        self.assertEqual(response1.status_code, 422)
+
+        blueprint_invalid2 = {'name': '', 'plugin_name': 'TestPlugin'}
+        response2 = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/import_export',
+            data=json.dumps(blueprint_invalid2))
+        self.assertEqual(response2.status_code, 422)
+
+        blueprint_invalid3 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'plugin_name': ''}
+        response3 = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/import_export',
+            data=json.dumps(blueprint_invalid3))
+        self.assertEqual(response3.status_code, 422)
+
 
     def test_user_get_notifications(self):
         response = self.make_authenticated_user_request(
