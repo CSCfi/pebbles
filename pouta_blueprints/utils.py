@@ -85,4 +85,4 @@ def parse_maximum_lifetime(max_life_str):
         maximum_lifetime = days * 86400 + hours * 3600 + mins * 60
         return maximum_lifetime
     else:
-        return -1
+        raise ValueError
