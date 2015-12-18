@@ -7,9 +7,8 @@ from flask.ext.restful import marshal_with
 from pouta_blueprints.models import db, Blueprint, Plugin
 from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth
-from pouta_blueprints.utils import requires_admin
+from pouta_blueprints.utils import requires_admin, parse_maximum_lifetime
 from pouta_blueprints.forms import BlueprintImportFormField
-import re
 
 import_export = FlaskBlueprint('import_export', __name__)
 
@@ -34,9 +33,13 @@ class ImportExportBlueprints(restful.Resource):
         results = []
         for blueprint in blueprints:
             plugin = Plugin.query.filter_by(id=blueprint.plugin).first()
-            obj = \
-                {'name': blueprint.name, 'maximum_lifetime': blueprint.maximum_lifetime,
-                 'is_enabled': blueprint.is_enabled, 'config': blueprint.config, 'plugin_name': plugin.name}
+            obj = {
+                'name': blueprint.name,
+                'maximum_lifetime': blueprint.maximum_lifetime,
+                'is_enabled': blueprint.is_enabled,
+                'config': blueprint.config,
+                'plugin_name': plugin.name
+            }
             results.append(obj)
 
         return results
@@ -73,19 +76,9 @@ class ImportExportBlueprints(restful.Resource):
             try:
                 max_life_str = str(form.config.data['maximum_lifetime'])
                 if max_life_str:
-                    m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)??$', max_life_str)
-
-                    if m:
-                        days = hours = mins = 0
-                        if m.group(1):
-                            days = int(m.group(1).strip()[:-1])
-                        if m.group(2):
-                            hours = int(m.group(2).strip()[:-1])
-                        if m.group(3):
-                            mins = int(m.group(3).strip()[:-1])
-
-                        blueprint.maximum_lifetime = days * 86400 + hours * 3600 + mins * 60
-
+                    maximum_lifetime = parse_maximum_lifetime(max_life_str)
+                    if maximum_lifetime != -1:
+                        blueprint.maximum_lifetime = maximum_lifetime
                     else:
                         return timeformat_error, 422
                 else:
