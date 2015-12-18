@@ -920,9 +920,12 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_401(response)
     def test_export_blueprints(self):
 
-        response = self.make_authenticated_admin_request(path='/api/v1/import_export')
-        self.assertStatus(response, 200)
-        self.assertEquals(len(response.json), 3)  # There were three blueprints initialized during setup
+        response1 = self.make_authenticated_admin_request(path='/api/v1/import_export')
+        self.assertStatus(response1, 200)
+        self.assertEquals(len(response1.json), 3)  # There were three blueprints initialized during setup
+
+        response2 = self.make_authenticated_user_request(path='/api/v1/import_export')
+        self.assertStatus(response2, 403)
 
     def test_import_blueprints(self):
 
@@ -934,6 +937,12 @@ class FlaskApiTestCase(BaseTestCase):
                 path='/api/v1/import_export',
                 data=json.dumps(blueprint_item))
             self.assertEqual(response.status_code, 200)
+
+            response_unauth = self.make_authenticated_user_request(
+                method='POST',
+                path='/api/v1/import_export',
+                data=json.dumps(blueprint_item))
+            self.assertEqual(response_unauth.status_code, 403)
 
         blueprint_invalid1 = {'name': 'foo', 'plugin_name': 'TestPlugin'}
         response1 = self.make_authenticated_admin_request(
