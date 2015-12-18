@@ -34,7 +34,9 @@ class ImportExportBlueprints(restful.Resource):
         results = []
         for blueprint in blueprints:
             plugin = Plugin.query.filter_by(id=blueprint.plugin).first()
-            obj = {'name': blueprint.name, 'maximum_lifetime': blueprint.maximum_lifetime, 'is_enabled': blueprint.is_enabled, 'config': blueprint.config, 'plugin_name': plugin.name}
+            obj = \
+                {'name': blueprint.name, 'maximum_lifetime': blueprint.maximum_lifetime,
+                 'is_enabled': blueprint.is_enabled, 'config': blueprint.config, 'plugin_name': plugin.name}
             results.append(obj)
 
         return results
@@ -70,16 +72,16 @@ class ImportExportBlueprints(restful.Resource):
             timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
             try:
                 max_life_str = str(form.config.data['maximum_lifetime'])
-                if(max_life_str):
+                if max_life_str:
                     m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)??$', max_life_str)
 
-                    if(m):
+                    if m:
                         days = hours = mins = 0
-                        if(m.group(1)):
+                        if m.group(1):
                             days = int(m.group(1).strip()[:-1])
-                        if(m.group(2)):
+                        if m.group(2):
                             hours = int(m.group(2).strip()[:-1])
-                        if(m.group(3)):
+                        if m.group(3):
                             mins = int(m.group(3).strip()[:-1])
 
                         blueprint.maximum_lifetime = days * 86400 + hours * 3600 + mins * 60

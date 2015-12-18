@@ -929,7 +929,10 @@ class FlaskApiTestCase(BaseTestCase):
 
     def test_import_blueprints(self):
 
-        blueprints_data = [{'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'plugin_name': 'TestPlugin'}, {'name': 'foobar', 'config': {'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'}, 'plugin_name': 'TestPlugin'}]
+        blueprints_data = \
+            [{'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'plugin_name': 'TestPlugin'},
+             {'name': 'foobar', 'config': {'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'},
+              'plugin_name': 'TestPlugin'}]
 
         for blueprint_item in blueprints_data:
             response = self.make_authenticated_admin_request(
