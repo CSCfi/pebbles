@@ -77,13 +77,10 @@ class ImportExportBlueprints(restful.Resource):
                 max_life_str = str(form.config.data['maximum_lifetime'])
                 if max_life_str:
                     maximum_lifetime = parse_maximum_lifetime(max_life_str)
-                    if maximum_lifetime != -1:
-                        blueprint.maximum_lifetime = maximum_lifetime
-                    else:
-                        return timeformat_error, 422
+                    blueprint.maximum_lifetime = maximum_lifetime
                 else:
                     blueprint.maximum_lifetime = 3600  # Default value if not provided anything by user
-            except:
+            except ValueError:
                 return timeformat_error, 422
 
         if 'cost_multiplier' in form.config.data:

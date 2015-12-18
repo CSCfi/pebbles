@@ -20,11 +20,11 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             $scope.variables = response;
         });
 
-        var import_export = Restangular.all('import_export');
+        var import_export_blueprints = Restangular.all('import_export/blueprints');
 
         $scope.downloadFile = function () {
 
-            import_export.getList().then(function(response) {
+            import_export_blueprints.getList().then(function(response) {
 
                 var json_str = JSON.stringify(response, null, 2); // Pretty print
 
@@ -44,8 +44,8 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                 templateUrl: '/partials/modal_import_blueprints.html',
                 controller: 'ModalImportBlueprintsController',
                 resolve: {
-                    import_export: function() {
-                        return import_export;
+                    import_export_blueprints: function() {
+                        return import_export_blueprints;
                     },
                     blueprints: function() {
                         return blueprints;
@@ -133,7 +133,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 
 
 
-app.controller('ModalImportBlueprintsController', function($scope, $modalInstance, import_export, blueprints)
+app.controller('ModalImportBlueprintsController', function($scope, $modalInstance, import_export_blueprints, blueprints)
 {
 
      $scope.uploadFile = function(element) {
@@ -161,7 +161,7 @@ app.controller('ModalImportBlueprintsController', function($scope, $modalInstanc
                          plugin_name: blueprint_item.plugin_name,
                          index: blueprint_index
                      };  // Send according to forms defined
-                     import_export.post(obj).then(function () {  // Post to the REST API
+                     import_export_blueprints.post(obj).then(function () {  // Post to the REST API
                          requestsCount++;
                          $scope.imported = true;
                          if (requestsCount == total_items) {  // Check if all the requests were OK
