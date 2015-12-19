@@ -20,6 +20,15 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             $scope.variables = response;
         });
 
+        var notifications = Restangular.all('notifications');
+        var updateNotificationList = function() {
+            notifications.getList({show_all: true}).then(function (response){
+                $scope.notifications = response;
+            });
+        };
+        updateNotificationList();
+
+
         var import_export_blueprints = Restangular.all('import_export/blueprints');
 
         $scope.downloadFile = function () {
@@ -94,6 +103,13 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             });
         };
 
+
+        $scope.deleteNotification = function(notification) {
+            notification.remove().then(function() {
+                updateNotificationList();
+            });
+        };
+
         $scope.selectBlueprint = function(blueprint) {
             $scope.selectedBlueprint = blueprint;
             $scope.$broadcast('schemaFormRedraw');
@@ -129,6 +145,37 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                 });
             });
         };
+
+        $scope.openCreateNotification= function() {
+            $uibModal.open({
+                templateUrl: '/partials/modal_create_notification.html',
+                controller: 'ModalCreateNotificationController',
+                size: 'sm',
+                resolve: {
+                    notifications: function() {
+                        return notifications;
+                    }
+                }
+            }).result.then(function() {
+                updateNotificationList()
+            });
+        };
+
+        $scope.openEditNotification = function(notification) {
+            $uibModal.open({
+                templateUrl: '/partials/modal_edit_notification.html',
+                controller: 'ModalEditNotificationController',
+                size: 'sm',
+                resolve: {
+                    notification: function() {
+                        return notification;
+                    }
+                }
+            }).result.then(function() {
+                updateNotificationList();
+            });
+        };
+
     }]);
 
 
@@ -224,6 +271,41 @@ app.controller('ModalReconfigureBlueprintController', function($scope, $modalIns
                 $.notify({title: 'HTTP ' + response.status, message: 'unable to reconfigure blueprint'}, {type: 'danger'});
             });
         }
+    };
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});
+
+app.controller('ModalCreateNotificationController', function($scope, $modalInstance, notifications) {
+    $scope.createNotification = function(notification) {
+        notifications.post({ subject: notification.subject, message: notification.message }).then(function () {
+            $modalInstance.close(true);
+        }, function(response) {
+            $.notify({title: 'HTTP ' + response.status, message: 'unable to create notification'}, {type: 'danger'});
+        });
+    };
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});
+
+app.controller('ModalEditNotificationController', function($scope, $modalInstance, Restangular, notification) {
+    $scope.notification = Restangular.copy(notification);
+    $scope.notification.subject = notification.subject;
+    $scope.notification.message = notification.message;
+
+    $scope.editNotification = function(notification) {
+        notification.subject = $scope.notification.subject;
+        notification.message = $scope.notification.message;
+
+        notification.put().then(function() {
+            $modalInstance.close(true);
+        }, function(response) {
+            $.notify({title: 'HTTP ' + response.status, message: 'unable to edit notification'}, {type: 'danger'});
+        });
     };
 
     $scope.cancel = function() {
