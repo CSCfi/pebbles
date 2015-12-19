@@ -67,8 +67,8 @@
 
             <tr ng-repeat="notification in notifications">
                 <td>{{ notification.subject }}</td>
-                <td>{{ notification.broadcasted | date:'medium' }}</td>
-                <td>{{ notification.message }}</td>
+                <td>{{ notification.broadcasted | date:'medium' }}</td>
+                <td>{{ notification.message }}</td>
                 <td>
                     <button ng-click="openEditNotification(notification)" class="btn btn-primary btn-xs" type="button">
                         <span class="glyphicon glyphicon-edit"></span>
