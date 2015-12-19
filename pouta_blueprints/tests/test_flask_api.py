@@ -913,12 +913,6 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/locks/%s' % unique_id)
         self.assertStatus(response, 200)
 
-    def test_anonymous_get_notifications(self):
-        response = self.make_request(
-            path='/api/v1/notifications'
-        )
-        self.assert_401(response)
-
     def test_anonymous_export_blueprints(self):
         response = self.make_request(path='/api/v1/import_export/blueprints')
         self.assertStatus(response, 401)
@@ -1027,6 +1021,11 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(blueprint_invalid3))
         self.assertEqual(response3.status_code, 422)
 
+    def test_anonymous_get_notifications(self):
+        response = self.make_request(
+            path='/api/v1/notifications'
+        )
+        self.assert_401(response)
 
     def test_user_get_notifications(self):
         response = self.make_authenticated_user_request(
