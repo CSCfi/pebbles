@@ -85,8 +85,8 @@
 
 
     <h2>Export / Import Blueprints</h2>
-    <button class="btn btn-default" ng-click="downloadFile()">Export</button>
-    <button class="btn btn-default" ng-click="open_import_blueprints_dialog()">Import</button>
+    <button class="btn btn-default" ng-click="exportBlueprints()">Export</button>
+    <button class="btn btn-default" ng-click="openImportBlueprintsDialog()">Import</button>
 
     <h2>Global variables</h2>
 
@@ -97,7 +97,7 @@
         </tr>
         </thead>
         <tbody>
-            <tr ng-repeat="variable in variables | filter : { readonly: false}">
+            <tr ng-repeat="variable in variables | filter : { readonly: false }">
             <td>
                 {{ variable.key }}
             </td>
@@ -123,7 +123,7 @@
         </tr>
         </thead>
         <tbody>
-            <tr ng-repeat="variable in variables | filter : { readonly: true}">
+            <tr ng-repeat="variable in variables | filter : { readonly: true }">
             <td> {{ variable.key }}
             </td>
             <td> {{ variable.value }} </td>
