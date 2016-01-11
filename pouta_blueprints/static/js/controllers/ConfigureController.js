@@ -182,7 +182,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 app.controller('ModalImportBlueprintsController', function($scope, $modalInstance, importExportBlueprints, blueprints)
 {
 
-    $scope.uploadFile = function(element) {
+    $scope.importBlueprints = function(element) {
 
         $scope.isImportSuccess = false;
         $scope.isImportFailed = false;
@@ -192,34 +192,50 @@ app.controller('ModalImportBlueprintsController', function($scope, $modalInstanc
         var reader = new FileReader();
         reader.onload = function() {
             $scope.$apply(function() {
-                var blueprintsJson = JSON.parse(String(reader.result));  // Read from the file and convert to JSON object
-                var totalItems = blueprintsJson.length;
-                for (var blueprintIndex in blueprintsJson) {
-                    if (blueprintsJson.hasOwnProperty(blueprintIndex)) {
-                        var blueprintItem = blueprintsJson[blueprintIndex];
-                        var obj = {
-                            name: blueprintItem.name,
-                            config: blueprintItem.config,
-                            plugin_name: blueprintItem.plugin_name,
-                            index: blueprintIndex
-                        };  // Send according to forms defined
+                try {
+                    // Read from the file and convert to JSON object
+                    var blueprintsJson = JSON.parse(String(reader.result));
+                    var totalItems = blueprintsJson.length;
+                    for (var blueprintIndex in blueprintsJson) {
+                        if (blueprintsJson.hasOwnProperty(blueprintIndex)) {
+                            var blueprintItem = blueprintsJson[blueprintIndex];
+                            var obj = {
+                                name: blueprintItem.name,
+                                config: blueprintItem.config,
+                                plugin_name: blueprintItem.plugin_name,
+                                index: blueprintIndex
+                            };  // Send according to forms defined
 
-                        importExportBlueprints.post(obj).then(function () {  // Post to the REST API
-                            requestsCount++;
-                            $scope.imported = true;
-                            if (requestsCount == totalItems) {  // Check if all the requests were OK
-                                $scope.isImportSuccess = true;
-                            }
-                        }, function (response) {
-                            errorResponse = errorResponse + response.config.data.index + ' ';  // Attach the indices of blueprint items which are corrupt
-                            $.notify({
-                                title: 'HTTP ' + response.status,
-                                message: 'error:' + response.statusText
-                            }, {type: 'danger'});
-                            $scope.isImportFailed = true;
-                            $scope.errorResponse = errorResponse;
-                        });
+                            importExportBlueprints.post(obj).then(function () {  // Post to the REST API
+                                requestsCount++;
+                                $scope.imported = true;
+                                if (requestsCount == totalItems) {  // Check if all the requests were OK
+                                    $scope.isImportSuccess = true;
+                                }
+                            }, function (response) {
+                                 // Attach the indices of blueprint items which are corrupt
+                                errorResponse = errorResponse + response.config.data.index + ' ';
+                                $.notify({
+                                    title: 'HTTP ' + response.status,
+                                    message: 'error:' + response.statusText
+                                }, {type: 'danger'});
+                                $scope.isImportFailed = true;
+                                $scope.errorResponse = errorResponse;
+                            });
+                        }
                     }
+                    if(totalItems == 0){
+                        $.notify({
+                                    title: 'Blueprints could not be imported!',
+                                    message: 'No blueprints found'
+                                }, {type: 'danger'});
+                    }
+                }
+                catch(exception){
+                    $.notify({
+                        title: 'Blueprints could not be imported!',
+                        message: exception
+                    }, {type: 'danger'});
                 }
             });
         };
