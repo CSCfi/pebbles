@@ -182,7 +182,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 app.controller('ModalImportBlueprintsController', function($scope, $modalInstance, importExportBlueprints, blueprints)
 {
 
-     $scope.importBlueprints = function(element) {
+    $scope.importBlueprints = function(element) {
 
         $scope.isImportSuccess = false;
         $scope.isImportFailed = false;
