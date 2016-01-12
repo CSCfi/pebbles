@@ -29,7 +29,7 @@ def test(failfast=False, pattern='test*.py'):
     """Runs the unit tests without coverage."""
     import unittest
     tests = unittest.TestLoader().discover('pouta_blueprints.tests', pattern=pattern)
-    unittest.TextTestRunner(verbosity=2, failfast=failfast).run(tests)
+    return unittest.TextTestRunner(verbosity=2, failfast=failfast).run(tests)
 
 
 @manager.command
