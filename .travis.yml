@@ -13,11 +13,14 @@ install:
 
 before_script:
 - flake8 --ignore=E501,E402 pouta_blueprints
+
 script:
 - python manage.py test
+
 notifications:
   flowdock:
     secure: VteCDhr47oT0S2kST2s755cYJMVZachfn+utiPAasqxTiaFb+ZpxB7jR9Dt6BTIyPTkxfVYGpfJv8+6sM72ezQNETu6XmwCatQvVIQ8S5jdSb5uW6jv+0bcZbyBfK+D6xzEG/yBjy6UZGdwhYDmf+aUd1RR1GAzl6BBDtvRP3Vk=
+
 env:
   global:
   - secure: aC1Z9lbous/dOTOCNhGGjz0mrhRFCTTpSwZyqlEQmkheEOkJhclhQRoecyADwsRKlGwOb1CSwmyuz5rjtd1MqbP8dpBKJwbJEgkezGCk75QokIdrPGV+zyNdcVYPvZgBXytiERIRxYmiL/rqVUWOELDvPI35LowolF1b5ENgzlg=
