@@ -27,6 +27,7 @@ server {
     ssl on;
     ssl_certificate           {{ nginx_ssl_crt }};
     ssl_certificate_key       {{ nginx_ssl_key }};
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
 
     client_max_body_size 20M;
     client_body_timeout 10s;
