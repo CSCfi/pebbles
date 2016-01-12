@@ -25,11 +25,16 @@ manager.add_command("runserver", Server())
 
 
 @manager.command
-def test(failfast=False, pattern='test*.py'):
+def test(failfast=False, pattern='test*.py', verbosity=1):
     """Runs the unit tests without coverage."""
     import unittest
+    verb_level=int(verbosity)
     tests = unittest.TestLoader().discover('pouta_blueprints.tests', pattern=pattern)
-    unittest.TextTestRunner(verbosity=2, failfast=failfast).run(tests)
+    res = unittest.TextTestRunner(verbosity=verb_level, failfast=failfast).run(tests)
+    if res.wasSuccessful():
+        return 0
+    else:
+        return 1
 
 
 @manager.command
