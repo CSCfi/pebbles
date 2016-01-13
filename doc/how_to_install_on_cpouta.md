@@ -40,9 +40,9 @@ to gain more space, speed and resilience against single disk failures.
 
 * Details tab:
   * Instance name: e.g. 'pb_server'
-  * Flavor: mini
-  * Instance boot source: boot from image (creates new volume)
-  * Image: CentOS-7.0
+  * Flavor: 'mini'
+  * Instance boot source: 'boot from image (creates new volume)'
+  * Image: 'CentOS-7.0'
   * Device size: 20 GB
 
 * Access and security tab:
@@ -52,6 +52,9 @@ to gain more space, speed and resilience against single disk failures.
 * Networks tab: default network is ok.
 
 * Post-Creation and Advanced tabs can be skipped
+
+NOTE: There is also an Instance boot source option 'boot from image' without '(creates new volume)'. That will launch
+a VM that boots from local image file, not volume.
 
 ## Assign a public IP
 
