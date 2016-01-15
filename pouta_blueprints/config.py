@@ -54,9 +54,9 @@ class BaseConfig(object):
     SSL_VERIFY = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
     M2M_CREDENTIAL_STORE = '/var/run/pouta_blueprints_m2m'
-    MESSAGE_QUEUE_URI = 'redis://www:6379/0'
+    MESSAGE_QUEUE_URI = 'redis://redis:6379/0'
     INSTANCE_DATA_DIR = '/var/spool/pb_instances'
-    INTERNAL_API_BASE_URL = 'https://www:1443/api/v1'
+    INTERNAL_API_BASE_URL = 'https://api:1443/api/v1'
     PUBLIC_IPV4 = '127.0.0.1'
     BASE_URL = 'https://localhost:8888'
     MAX_CONTENT_LENGTH = 1024 * 1024
@@ -87,8 +87,7 @@ class BaseConfig(object):
     DD_HOST_ROOT_VOLUME_SIZE = 0
     DD_HOST_DATA_VOLUME_FACTOR = 4
 
-    PUBLIC_HTTPS_PROXY_PORT = 8443
-    INTERNAL_HTTPS_PROXY_PORT = 8443
+    EXTERNAL_HTTPS_PORT = 443
 
     PROVISIONING_NUM_WORKERS = 1
 

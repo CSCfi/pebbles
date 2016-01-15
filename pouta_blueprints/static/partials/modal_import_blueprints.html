@@ -1,0 +1,21 @@
+<div class="modal-header">
+    <button ng-hide="imported" type="button" class="close" ng-click="cancel()"><span aria-hidden="true">&times;</span></button>
+    <h4 class="modal-title">Import Blueprints</h4>
+</div>
+<div class="modal-body">
+<div class="alert">
+<input type="file" onchange="angular.element(this).scope().importBlueprints(this)"/>
+</div>
+<div class="alert alert-success" ng-show="isImportSuccess">
+  Blueprints Imported Successfully 
+</div>
+
+<div class="alert alert-danger" ng-show="isImportFailed">
+  <strong> Some Blueprints Could Not Be Imported Due to Errors</strong>
+  <div ng-bind-html="errorResponse"></div>
+</div>
+</div>
+<div class="modal-footer">
+    <button ng-show="imported" ng-click="done()" type="button" class="btn btn-primary" >Done</button>
+</div>
+

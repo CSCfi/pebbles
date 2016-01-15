@@ -14,25 +14,31 @@
     - image_name: ubuntu_with_ssh
 
 - hosts:
-    - www
+    - api
     - worker
-    - proxy
+    - frontend
   sudo: True
   roles:
       - cloud_user_with_sudo
       - common
 
-- hosts: www
+- hosts: frontend
   sudo: True
   roles:
-      - www
+      - frontend
+
+- hosts: api
+  sudo: True
+  roles:
+      - api
 
 - hosts: worker
   sudo: True
   roles:
       - worker
 
-- hosts: proxy
+- hosts: sso
   sudo: True
   roles:
-      - proxy
+      - sso
+      - cloud_user_with_sudo

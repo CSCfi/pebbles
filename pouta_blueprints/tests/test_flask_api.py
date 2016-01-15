@@ -913,6 +913,114 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/locks/%s' % unique_id)
         self.assertStatus(response, 200)
 
+    def test_anonymous_export_blueprints(self):
+        response = self.make_request(path='/api/v1/import_export/blueprints')
+        self.assertStatus(response, 401)
+
+    def test_user_export_blueprints(self):
+
+        response = self.make_authenticated_user_request(path='/api/v1/import_export/blueprints')
+        self.assertStatus(response, 403)
+
+    def test_admin_export_blueprints(self):
+
+        response = self.make_authenticated_admin_request(path='/api/v1/import_export/blueprints')
+        self.assertStatus(response, 200)
+        self.assertEquals(len(response.json), 3)  # There were three blueprints initialized during setup
+
+    def test_anonymous_import_blueprints(self):
+
+        blueprints_data = [
+            {'name': 'foo',
+             'config': {
+                 'maximum_lifetime': '1h'
+             },
+             'plugin_name': 'TestPlugin'
+             },
+            {'name': 'foobar',
+             'config': {
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
+             },
+             'plugin_name': 'TestPlugin'
+             }
+        ]
+
+        for blueprint_item in blueprints_data:
+            response = self.make_request(  # Test for authenticated user
+                method='POST',
+                path='/api/v1/import_export/blueprints',
+                data=json.dumps(blueprint_item))
+            self.assertEqual(response.status_code, 401)
+
+    def test_user_import_blueprints(self):
+
+        blueprints_data = [
+            {'name': 'foo',
+             'config': {
+                 'maximum_lifetime': '1h'
+             },
+             'plugin_name': 'TestPlugin'
+             },
+            {'name': 'foobar',
+             'config': {
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
+             },
+             'plugin_name': 'TestPlugin'
+             }
+        ]
+
+        for blueprint_item in blueprints_data:
+            response = self.make_authenticated_user_request(  # Test for authenticated user
+                method='POST',
+                path='/api/v1/import_export/blueprints',
+                data=json.dumps(blueprint_item))
+            self.assertEqual(response.status_code, 403)
+
+    def test_admin_import_blueprints(self):
+
+        blueprints_data = [
+            {'name': 'foo',
+             'config': {
+                 'maximum_lifetime': '1h'
+             },
+             'plugin_name': 'TestPlugin'
+             },
+            {'name': 'foobar',
+             'config': {
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
+             },
+             'plugin_name': 'TestPlugin'
+             }
+        ]
+
+        for blueprint_item in blueprints_data:
+            response = self.make_authenticated_admin_request(
+                method='POST',
+                path='/api/v1/import_export/blueprints',
+                data=json.dumps(blueprint_item))
+            self.assertEqual(response.status_code, 200)
+
+        blueprint_invalid1 = {'name': 'foo', 'plugin_name': 'TestPlugin'}
+        response1 = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/import_export/blueprints',
+            data=json.dumps(blueprint_invalid1))
+        self.assertEqual(response1.status_code, 422)
+
+        blueprint_invalid2 = {'name': '', 'plugin_name': 'TestPlugin'}
+        response2 = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/import_export/blueprints',
+            data=json.dumps(blueprint_invalid2))
+        self.assertEqual(response2.status_code, 422)
+
+        blueprint_invalid3 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'plugin_name': ''}
+        response3 = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/import_export/blueprints',
+            data=json.dumps(blueprint_invalid3))
+        self.assertEqual(response3.status_code, 422)
+
     def test_anonymous_get_notifications(self):
         response = self.make_request(
             path='/api/v1/notifications'

@@ -28,8 +28,47 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         };
         updateNotificationList();
 
+
+        var importExportBlueprints = Restangular.all('import_export/blueprints');
+
+        $scope.exportBlueprints = function () {
+
+            importExportBlueprints.getList().then(function(response) {
+
+                var jsonStr = JSON.stringify(response, null, 2); // Pretty print
+
+                var blob = new Blob([jsonStr], {type: 'application/json'});
+                var anchorLink = document.createElement('a');
+                var mouseEvent = new MouseEvent('click');
+
+                anchorLink.download = "blueprints.json";
+                anchorLink.href = window.URL.createObjectURL(blob);
+                anchorLink.dataset.downloadurl = ['text/json', anchorLink.download, anchorLink.href].join(':');
+                anchorLink.dispatchEvent(mouseEvent);
+            });
+        };
+
+        $scope.openImportBlueprintsDialog = function() {
+            $uibModal.open({
+                templateUrl: '/partials/modal_import_blueprints.html',
+                controller: 'ModalImportBlueprintsController',
+                resolve: {
+                    importExportBlueprints: function() {
+                        return importExportBlueprints;
+                    },
+                    blueprints: function() {
+                        return blueprints;
+                    }
+               }
+            }).result.then(function() {
+                   blueprints.getList().then(function (response) {
+                   $scope.blueprints = response;
+                   });
+               });
+        };
+
         $scope.openCreateBlueprintDialog = function(plugin) {
-            var modalCreateBlueprint = $uibModal.open({
+            $uibModal.open({
                 templateUrl: '/partials/modal_create_blueprint.html',
                 controller: 'ModalCreateBlueprintController',
                 resolve: {
@@ -48,7 +87,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         };
 
         $scope.openReconfigureBlueprintDialog = function(blueprint) {
-            var modalReconfigureBlueprint = $uibModal.open({
+            $uibModal.open({
                 templateUrl: '/partials/modal_reconfigure_blueprint.html',
                 controller: 'ModalReconfigureBlueprintController',
                 resolve: {
@@ -107,7 +146,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         };
 
         $scope.openCreateNotification= function() {
-            var modalCreateNotification = $uibModal.open({
+            $uibModal.open({
                 templateUrl: '/partials/modal_create_notification.html',
                 controller: 'ModalCreateNotificationController',
                 size: 'sm',
@@ -115,14 +154,14 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                     notifications: function() {
                         return notifications;
                     }
-                },
+                }
             }).result.then(function() {
                 updateNotificationList()
             });
         };
 
         $scope.openEditNotification = function(notification) {
-            var modalEditNotification = $uibModal.open({
+            $uibModal.open({
                 templateUrl: '/partials/modal_edit_notification.html',
                 controller: 'ModalEditNotificationController',
                 size: 'sm',
@@ -138,13 +177,89 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 
     }]);
 
+
+
+app.controller('ModalImportBlueprintsController', function($scope, $modalInstance, importExportBlueprints, blueprints)
+{
+
+    $scope.importBlueprints = function(element) {
+
+        $scope.isImportSuccess = false;
+        $scope.isImportFailed = false;
+        var errorResponse = "Indexes of blueprints which were not imported: ";
+        var requestsCount = 0;
+        var file = element.files[0];
+        var reader = new FileReader();
+        reader.onload = function() {
+            $scope.$apply(function() {
+                try {
+                    // Read from the file and convert to JSON object
+                    var blueprintsJson = JSON.parse(String(reader.result));
+                    var totalItems = blueprintsJson.length;
+                    for (var blueprintIndex in blueprintsJson) {
+                        if (blueprintsJson.hasOwnProperty(blueprintIndex)) {
+                            var blueprintItem = blueprintsJson[blueprintIndex];
+                            var obj = {
+                                name: blueprintItem.name,
+                                config: blueprintItem.config,
+                                plugin_name: blueprintItem.plugin_name,
+                                index: blueprintIndex
+                            };  // Send according to forms defined
+
+                            importExportBlueprints.post(obj).then(function () {  // Post to the REST API
+                                requestsCount++;
+                                $scope.imported = true;
+                                if (requestsCount == totalItems) {  // Check if all the requests were OK
+                                    $scope.isImportSuccess = true;
+                                }
+                            }, function (response) {
+                                 // Attach the indices of blueprint items which are corrupt
+                                errorResponse = errorResponse + response.config.data.index + ' ';
+                                $.notify({
+                                    title: 'HTTP ' + response.status,
+                                    message: 'error:' + response.statusText
+                                }, {type: 'danger'});
+                                $scope.isImportFailed = true;
+                                $scope.errorResponse = errorResponse;
+                            });
+                        }
+                    }
+                    if(totalItems == 0){
+                        $.notify({
+                                    title: 'Blueprints could not be imported!',
+                                    message: 'No blueprints found'
+                                }, {type: 'danger'});
+                    }
+                }
+                catch(exception){
+                    $.notify({
+                        title: 'Blueprints could not be imported!',
+                        message: exception
+                    }, {type: 'danger'});
+                }
+            });
+        };
+        reader.readAsText(file);  // Fires the onload event defined above
+    };
+
+    $scope.done = function() {
+        $modalInstance.close(true);
+    };
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+
+});
+
+
 app.controller('ModalCreateBlueprintController', function($scope, $modalInstance, plugin, blueprints) {
     $scope.plugin = plugin;
     $scope.createBlueprint = function(form, model) {
         if (form.$valid) {
             blueprints.post({ plugin: $scope.plugin.id, name: model.name, config: model }).then(function () {
                 $modalInstance.close(true);
-            }, function() {
+            }, function(response) {
                 $.notify({title: 'HTTP ' + response.status, message: 'unable to create blueprint'}, {type: 'danger'});
             });
         }
@@ -177,7 +292,7 @@ app.controller('ModalCreateNotificationController', function($scope, $modalInsta
     $scope.createNotification = function(notification) {
         notifications.post({ subject: notification.subject, message: notification.message }).then(function () {
             $modalInstance.close(true);
-        }, function() {
+        }, function(response) {
             $.notify({title: 'HTTP ' + response.status, message: 'unable to create notification'}, {type: 'danger'});
         });
     };
@@ -198,7 +313,7 @@ app.controller('ModalEditNotificationController', function($scope, $modalInstanc
 
         notification.put().then(function() {
             $modalInstance.close(true);
-        }, function() {
+        }, function(response) {
             $.notify({title: 'HTTP ' + response.status, message: 'unable to edit notification'}, {type: 'danger'});
         });
     };

@@ -1,0 +1,25 @@
+---
+
+- name: Create the Supervisor config file for redis
+  template: src=etc/supervisor/conf.d/supervisor_config_redis.conf.j2
+            dest=/etc/supervisor/conf.d/{{ application_name }}-redis.conf
+            backup=yes
+  when: server_type == "devel"
+
+- name: Create the Supervisor config file for api (devel)
+  template: src=etc/supervisor/conf.d/supervisor_config_devserver.j2
+            dest=/etc/supervisor/conf.d/{{ application_name }}-application.conf
+            backup=yes
+  when: server_type == "devel"
+
+- name: Create the Supervisor config file for api (prod)
+  template: src=etc/supervisor/conf.d/supervisor_config_gunicorn.j2
+            dest=/etc/supervisor/conf.d/{{ application_name }}-application.conf
+            backup=yes
+  when: server_type == "prod"
+
+- name: Re-read the Supervisor config files
+  command: supervisorctl reread
+
+- name: Update Supervisor to add the app in the process group
+  command: supervisorctl update

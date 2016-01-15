@@ -9,7 +9,7 @@
 - name: Create self-signed SSL cert
   command: >
     openssl req -new -nodes -x509
-    -subj "/C=FI/ST=SouthernFinland/L=Helsinki/O=IT/CN={{ domain }}"
+    -subj "/C=FI/ST=SouthernFinland/L=Helsinki/O=IT/CN={{ domain_name }}"
     -days 3650
     -extensions v3_ca
     -keyout {{ docker_host_cert_dir }}/server.key
@@ -56,32 +56,55 @@
     - "{{ docker_host_cert_dir }}"
   when: ansible_lsb.id=="CentOS"
 
-- name: Bring up container for www
+# Avoid docker 1.8.2 with ansible 1.9.x pull bug
+# see https://github.com/ansible/ansible-modules-core/issues/2043
+- name: Pull images
+  command: docker pull {{ item }}
+  with_items:
+    - "{{ docker_image_redis }}"
+    - "{{ docker_image_postgres }}"
+
+- name: Bring up container for db
   docker:
-    hostname: www
+    name: db
+    image: "{{ docker_image_postgres }}"
+    state: running
+    restart_policy: always
+    env:
+      POSTGRES_USER: "{{ application_database_user }}"
+      POSTGRES_PASSWORD: "{{ application_database_password }}"
+
+- name: Bring up container for redis
+  docker:
+    name: redis
+    image: "{{ docker_image_redis }}"
+    state: running
+    restart_policy: always
+
+- name: Bring up container for api
+  docker:
+    hostname: api
     image: "{{ image_name }}"
     state: running
     restart_policy: always
-    name: www
+    name: api
     expose:
       - 22
-      - 80
-      - 443
-      - 1443
-      - 6379
+      - "{{ gunicorn_bind_port }}"
+      - "{{ gunicorn_bind_port_worker }}"
     ports:
       - "2222:22"
-      - "{{ docker_http_port }}:80"
-      - "{{ docker_https_port }}:443"
-      - "{{ docker_https_port_worker}}:1443"
+    links:
+      - "db:db"
+      - "redis:redis"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
-      - "{{ docker_host_cert_dir }}:/etc/apache2/ssl:ro"
+      - "{{ provisioning_log_file_root }}"
 
-- name: add www to inventory
+- name: add api to inventory
   add_host:
-    name: www
-    groups: docker,www
+    name: api
+    groups: docker,api
     ansible_ssh_host: localhost
     ansible_ssh_port: 2222
     ansible_ssh_user: ansible
@@ -89,29 +112,66 @@
   # when: item.Config.Hostname == "www" and item.State.Running == True
   # with_items: docker_containers
 
-- name: Bring up container for proxy
+
+- name: Bring up container for sso
   docker:
-    hostname: proxy
+    hostname: sso
     image: "{{ image_name }}"
     state: running
     restart_policy: always
-    name: proxy
+    name: sso
+    expose:
+      - 80
+    ports:
+      - "2225:22"
+    links:
+      - "api:api"
+    volumes:
+      - "{{ docker_host_sso_dir }}:/etc/{{ application_name }}/sso:ro"
+  when: "{{ enable_shibboleth | bool }}"
+
+- name: add sso to inventory
+  add_host:
+    name: sso
+    groups: docker,sso
+    ansible_ssh_host: localhost
+    ansible_ssh_port: 2225
+    ansible_ssh_user: ansible
+  when: "{{ enable_shibboleth | bool }}"
+
+- name: define frontend links
+  set_fact:
+    frontend_links: "['api:api', 'redis:redis']"
+  when: "{{ not enable_shibboleth | bool }}"
+
+- name: define frontend links (shibboleth enabled)
+  set_fact:
+    frontend_links: "['api:api', 'redis:redis', 'sso:sso']"
+  when: "{{ enable_shibboleth | bool }}"
+
+- name: Bring up container for frontend
+  docker:
+    hostname: frontend
+    image: "{{ image_name }}"
+    state: running
+    restart_policy: always
+    name: frontend
     expose:
       - 22
-      - "{{ internal_https_proxy_port }}"
+      - "{{ application_external_https_port }}"
     ports:
       - "2224:22"
-      - "{{ public_https_proxy_port }}:{{ internal_https_proxy_port }}"
-    links:
-      - "www:www"
+      - "{{ application_external_https_port }}:{{ application_external_https_port }}"
+    links: "{{ frontend_links }}"
     volumes:
-      - "{{ docker_host_app_root }}:/shared_folder/source:ro"
       - "{{ docker_host_cert_dir }}:/etc/nginx/ssl:ro"
+    volumes_from:
+      - api:ro
 
-- name: add proxy to inventory
+- name: add frontend to inventory
   add_host:
-    name: proxy
-    groups: docker,proxy
+    name: frontend
+    groups: docker,frontend
     ansible_ssh_host: localhost
     ansible_ssh_port: 2224
     ansible_ssh_user: ansible
@@ -129,8 +189,8 @@
     ports:
       - "2223:22"
     links:
-      - "www:www"
-      - "proxy:proxy"
+      - "api:api"
+      - "redis:redis"
     volumes:
       - "{{ docker_host_app_root }}:/shared_folder/source:ro"
       - "{{ docker_host_m2m_credentials_dir }}:{{ application_m2m_credentials_dir }}:ro"

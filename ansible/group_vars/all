@@ -13,9 +13,15 @@ server_type: "devel"
 git_repository: "https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git"
 git_version: "master"
 
-apt_repository_url: "http://www.nic.funet.fi/pub/mirrors/archive.ubuntu.com/"
-#apt_repository_url: "http://fi.mirrors.archive.ubuntu.com/ubuntu/"
+#apt_repository_url: "http://www.nic.funet.fi/pub/mirrors/archive.ubuntu.com/"
+apt_repository_url: "http://fi.mirrors.archive.ubuntu.com/ubuntu/"
 #apt_repository_url: "mirror://mirrors.ubuntu.com/mirrors.txt"
+
+# external service ports
+application_external_http_port: 80
+application_external_https_port: 443
+application_external_http_port_worker: 1080
+application_external_https_port_worker: 1443
 
 virtualenv_path: "/webapps/{{ application_name }}/venv"
 runtime_path: "/webapps/{{ application_name }}/run"
@@ -26,24 +32,35 @@ application_worker_endpoint_log_file: "{{ application_log_dir }}/gunicorn_worker
 celery_log_file: "{{ application_log_dir }}/celery.log"
 celery_system_log_file: "{{ application_log_dir }}/celery-system.log"
 celerybeat_log_file: "{{ application_log_dir }}/celerybeat.log"
-domain: "localhost"
+domain_name: "localhost"
 application_name: "pouta_blueprints"
 application_user: "{{ application_name }}"
 application_group: "webapps"
-application_debug_logging: "True"
-application_secret_key: "change me"
+application_debug_logging: True
+application_secret_key: "change_me"
 application_config_dir: "/etc/{{ application_name }}"
 application_config: "{{ application_config_dir }}/config.yaml"
-application_database_uri: "sqlite:///{{ runtime_path }}/db.sqlite"
+application_database_name: "{{ application_name }}"
+application_database_user: postgres
+application_database_password: "{{ application_secret_key }}"
+application_database_uri: "postgresql://postgres:{{ application_database_password }}@db/{{ application_database_name }}"
 application_m2m_credentials_dir: "/run/shm/{{ application_name }}"
 application_m2m_credentials_path: "{{ application_m2m_credentials_dir }}/creds"
 shared_folder_path: "/shared_folder"
 instance_data_dir: /var/spool/pb_instances
-proxy_bind_address: "127.0.0.1"
-proxy_bind_port: 8888
-proxy_bind_port_worker: 8889
-proxy_bind_endpoint: "{{ proxy_bind_address }}:{{ proxy_bind_port }}"
-proxy_bind_endpoint_worker: "{{ proxy_bind_address }}:{{ proxy_bind_port_worker }}"
+
+# frontend
+frontend_proxy_config_dir: "{{ runtime_path }}/proxy_conf.d"
+
+# gunicorn api worker processes
+gunicorn_bind_address: "0.0.0.0"
+gunicorn_bind_port: 8888
+gunicorn_bind_port_worker: 8889
+gunicorn_bind_endpoint: "api:{{ gunicorn_bind_port }}"
+gunicorn_bind_endpoint_worker: "{{ gunicorn_bind_address }}:{{ gunicorn_bind_port_worker }}"
+gunicorn_num_workers: "{{ 2 * ansible_processor_vcpus }}"
+gunicorn_max_requests: 50
+
 public_ipv4: "{{ ansible_eth0[\"ipv4\"][\"address\"] }}"
 provisioning_log_file_root: "/webapps/{{ application_name }}/provisioning_logs"
 
@@ -51,26 +68,17 @@ provisioning_log_file_root: "/webapps/{{ application_name }}/provisioning_logs"
 enable_shibboleth: False
 shibboleth_entity_id: "https://myserviceid.example.org"
 shibboleth_discovery_url: "https://disco.example.org/shibboleth/WAYF"
-shibboleth_cert: "example.crt"
 shibboleth_metadata_url: "https://idp.exmaple.org/metadata.xml"
 shibboleth_support_contact: "admin@example.org"
 
-# apache
-apache_static_root: "/webapps/{{ application_name }}/static"
-apache_access_log_file: "{{ application_log_dir }}/apache_access.log"
-apache_error_log_file: "{{ application_log_dir }}/apache_error.log"
-apache_ssl_cert_dir: "/etc/apache2/ssl"
-apache_ssl_crt: "{{ apache_ssl_cert_dir }}/server.crt"
-apache_ssl_key: "{{ apache_ssl_cert_dir }}/server.key"
-apache_ssl_chain: "{{ apache_ssl_cert_dir }}/chain.crt"
-apache_server_admin_email: "admin@example.org"
-apache_worker_access_log_file: "{{ application_log_dir }}/apache_worker_access.log"
-apache_worker_error_log_file: "{{ application_log_dir }}/apache_worker_error.log"
-apache_enable_ssl: yes
-
-# gunicorn
-gunicorn_num_workers: "{{ 2 * ansible_processor_vcpus }}"
-gunicorn_max_requests: 50
+# nginx
+nginx_static_root: "/webapps/{{ application_name }}/source/{{ application_name }}/static"
+nginx_access_log_file: "{{application_log_dir}}/nginx_access.log"
+nginx_error_log_file: "{{application_log_dir}}/nginx_error.log"
+nginx_worker_access_log_file: "{{application_log_dir}}/nginx_worker_access.log"
+nginx_worker_error_log_file: "{{application_log_dir}}/nginx_worker_error.log"
+nginx_ssl_crt: "/etc/nginx/ssl/server.crt"
+nginx_ssl_key: "/etc/nginx/ssl/server.key"
 
 # provisioning workers
 provisioning_num_workers: "{{ 2 if deploy_mode == 'devel' else 4 * ansible_processor_vcpus }}"
@@ -85,9 +93,8 @@ docker_host_app_root: "/opt/{{ application_name }}"
 docker_host_m2m_credentials_dir: "/run/shm/{{ application_name }}"
 docker_host_image_dir: "/var/lib/pb/docker_images"
 docker_host_cert_dir: "/var/lib/pb/certs"
-docker_http_port: 80
-docker_https_port: 443
-docker_http_port_worker: 1080
-docker_https_port_worker: 1443
-public_https_proxy_port: 8443
-internal_https_proxy_port: 8443
+docker_host_sso_dir: "/var/lib/pb/sso"
+
+# docker images
+docker_image_redis: "redis:2.8"
+docker_image_postgres: "postgres:9.3"

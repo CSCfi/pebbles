@@ -24,7 +24,7 @@ add_docker_group()
 
 patch_sources_list()
 {
-    if grep -q "nova.clouds" /etc/apt/sources.list; then
+    if [ -f /etc/apt/sources.list ] && grep -q "nova.clouds" /etc/apt/sources.list; then
         echo "-------------------------------------------------------------------------------"
         echo
         echo "Patching /etc/apt/sources.list to point to a Finnish mirror"
@@ -35,11 +35,11 @@ patch_sources_list()
 
 run_apt_update()
 {
-    echo "-------------------------------------------------------------------------------"
-    echo
-    echo "Updating apt repository metadata"
-    echo
     if [ -f /var/lib/apt/periodic/update-success-stamp ]; then
+        echo "-------------------------------------------------------------------------------"
+        echo
+        echo "Updating apt repository metadata"
+        echo
         metadata_age=$[$(date +%s) - $(stat -c %Z /var/lib/apt/periodic/update-success-stamp)]
         if [  $metadata_age -gt 3600 ]; then
             sudo aptitude update
@@ -58,7 +58,7 @@ install_packages()
     fi
     if [ -f /etc/redhat-release ]; then
         sudo yum install -y centos-release-openstack
-        sudo yum install -y git python-devel python-setuptools python-novaclient
+        sudo yum install -y bind-utils git python-devel python-setuptools python-novaclient
     fi
 
     sudo -H easy_install pip
@@ -98,6 +98,28 @@ END_M2M
         echo "Seems like OpenStack credentials do not work. Make sure you have m2m openrc sourced with correct password"
         echo
         exit 1
+    fi
+}
+
+populate_sso_data()
+{
+    p_sso_data_dir=$1
+
+    echo "-------------------------------------------------------------------------------"
+    echo
+    echo "Populating /var/lib/pb/sso"
+
+    if [ ! -e /var/lib/pb/sso ]; then
+        echo "Creating /var/lib/pb/sso"
+        sudo mkdir -p /var/lib/pb/sso
+    fi
+
+    echo "Copying SSO certificates to /var/lib/pb/sso/"
+    sudo cp -v $p_sso_data_dir/{sp_key,sp_cert,idp_cert}.pem /var/lib/pb/sso/
+
+    if [ -f /etc/redhat-release ]; then
+        echo "Enabling container access to sso_data in SELinux"
+        sudo chcon -Rt svirt_sandbox_file_t /var/lib/pb/sso
     fi
 }
 
@@ -141,7 +163,7 @@ create_shared_secret()
 {
     echo "-------------------------------------------------------------------------------"
     echo
-    echo "Creating shared secret for both containers"
+    echo "Creating shared secret for all containers"
     if [ ! -e .pb_application_secret_key ]; then
         echo "no existing key found, creating a new one"
         openssl rand -base64 32 > .pb_application_secret_key
@@ -159,14 +181,36 @@ get_public_ip()
 
     public_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
     if [ "xxx$public_ipv4" == "xxx" ]; then
-       echo " NOT FOUND"
+       echo "NOT FOUND"
        echo
        echo "Please assign a public IP to the instance and run me again"
        echo
 
        exit 1
     else
-       echo " $public_ipv4"
+       echo "$public_ipv4"
+       echo
+    fi
+}
+
+get_domain_name()
+{
+    p_ip=$1
+    echo "-------------------------------------------------------------------------------"
+    echo
+    echo -n "Figuring out domain name for ip $p_ip: "
+    # reverse lookup
+    domain_name=$(dig -x $p_ip +short)
+    # dig will output the root dot also, we get rid of that with trailing conditional replace
+    domain_name=${domain_name/%./}
+    if [ "xxx$domain_name" == "xxx" ]; then
+       echo "NOT FOUND"
+       echo
+       echo "There seems to be a problem resolving the public ip to a name"
+       echo
+       exit 1
+    else
+       echo "$domain_name"
        echo
     fi
 }
@@ -175,64 +219,70 @@ run_ansible()
 {
     export ANSIBLE_HOST_KEY_CHECKING=0
     export PYTHONUNBUFFERED=1
-
-    if [ $use_shibboleth ]; then
-        use_shibboleth_extra_args="-e web_server_type=apache -e enable_shibboleth=True"
-    else
-        use_shibboleth_extra_args=""
+    extra_args="$extra_env"
+    if [ $use_shibboleth == true ]; then
+        extra_args="-e enable_shibboleth=True -e @$sso_data_dir/sso_config.yml $extra_args"
     fi
+
+    # figure out the roles to deploy
+    [[ $deploy_roles =~ "api,"    ]] && deploy_api=True    || deploy_api=False
+    [[ $deploy_roles =~ "worker," ]] && deploy_worker=True || deploy_worker=False
+    [[ $deploy_roles =~ "frontend,"  ]] && deploy_frontend=True  || deploy_frontend=False
+    [[ $deploy_roles =~ "db,"     ]] && deploy_db=True     || deploy_db=False
+    [[ $deploy_roles =~ "redis,"  ]] && deploy_redis=True  || deploy_redis=False
+    extra_args="$extra_args -e deploy_api=$deploy_api"
+    extra_args="$extra_args -e deploy_worker=$deploy_worker"
+    extra_args="$extra_args -e deploy_frontend=$deploy_frontend"
+    extra_args="$extra_args -e deploy_db=$deploy_db"
+    extra_args="$extra_args -e deploy_redis=$deploy_redis"
 
     echo "-------------------------------------------------------------------------------"
     echo
     echo "Running ansible to create containers and install software"
+    echo "Extra arguments: $extra_args"
     echo
+    sleep 2
+
     cd pouta-blueprints
     ansible-playbook -i $HOME/pb_ansible_inventory ansible/playbook.yml\
      -e deploy_mode=docker \
      -e server_type=prod \
+     -e application_debug_logging=False \
      -e application_secret_key=$application_secret_key \
      -e public_ipv4=$public_ipv4 \
+     -e domain_name=$domain_name \
      -e docker_host_app_root=$PWD \
-     $use_shibboleth_extra_args
+     $extra_args
+}
+
+create_ssh_alias()
+{
+    p_name=$1
+    p_port=$2
+
+    if ! grep -q "Host $p_name" ~/.ssh/config; then
+        echo "adding entry for $p_name"
+        cat >> ~/.ssh/config << EOF_SSH
+Host $p_name
+        StrictHostKeyChecking no
+        HostName localhost
+        Port $p_port
+EOF_SSH
+
+    fi
 }
 
 create_ssh_aliases()
 {
     echo "-------------------------------------------------------------------------------"
     echo
-    echo "Creating aliases for www and worker in ssh config"
-    if ! grep -q "Host www" ~/.ssh/config; then
-        echo "adding entry for www"
-        cat >> ~/.ssh/config << EOF_SSH
-Host www
-        StrictHostKeyChecking no
-        HostName localhost
-        Port 2222
-EOF_SSH
+    echo "Creating aliases in ssh config"
 
-    fi
+    [[ $deploy_roles =~ "api," ]] && create_ssh_alias api 2222
+    [[ $deploy_roles =~ "worker," ]] && create_ssh_alias worker 2223
+    [[ $deploy_roles =~ "frontend," ]] && create_ssh_alias frontend 2224
 
-    if ! grep -q "Host worker" ~/.ssh/config; then
-        echo "adding entry for worker"
-        cat >> ~/.ssh/config << EOF_SSH
-Host worker
-        StrictHostKeyChecking no
-        HostName localhost
-        Port 2223
-EOF_SSH
-
-    fi
-
-    if ! grep -q "Host proxy" ~/.ssh/config; then
-        echo "adding entry for proxy"
-        cat >> ~/.ssh/config << EOF_SSH
-Host proxy
-        StrictHostKeyChecking no
-        HostName localhost
-        Port 2224
-EOF_SSH
-
-    fi
+    [[ $use_shibboleth == true ]] && create_ssh_alias sso 2225
 
     echo "making ssh config accessible for user only"
     chmod go-rwx ~/.ssh/config
@@ -240,38 +290,59 @@ EOF_SSH
     echo
 }
 
-if [ "xxx$1" != "xxx" ]; then
+print_usage()
+{
+    echo "Usage: $0 [options]"
+    echo
+    echo " where options are:"
+    echo "  -c          : just copy OpenStack credentials and exit"
+    echo "  -s sso_data : enable shibboleth installation, copy data from sso_data"
+    echo "  -r roles    : comma separated list of roles to deploy on this host"
+    echo "                full list of roles: $deploy_roles"
+    echo "  -e var=val  : environment var for ansible, can be specified more than once"
+    echo
+    echo "By default, a full install/configuration run is performed"
+    echo
+    exit 0
+}
 
-    # parameters given
-    case $1 in
-    creds)
-        create_creds_file
+
+# Main starts here. First parse options
+
+deploy_roles="api,worker,frontend,redis,db"
+use_shibboleth=false
+sso_data_dir=""
+extra_env=""
+
+while getopts "h?cs:r:e:" opt; do
+    case "$opt" in
+    h|\?)
+        print_usage
         exit 0
-    ;;
-
-    shibboleth|--shibboleth)
+        ;;
+    c)  create_creds_file
+        exit 0
+        ;;
+    s)  use_shibboleth=true
+        sso_data_dir=$(realpath $OPTARG)
         echo
         echo "Ansible provisioning will enable Shibboleth and Apache"
         echo
-        use_shibboleth=1
-    ;;
-
-    help|-h|--help)
+        echo "sso_data will be picked from $sso_data_dir"
         echo
-        echo "Usage: $0 [creds] [shibboleth]"
-        echo
-        echo "By default, a full install/configuration run is performed"
-        echo
-        exit 0
-    ;;
-
-    *)
-        echo "Unknown parameter $1"
-        exit 1
-    ;;
+        ;;
+    r)  deploy_roles="$OPTARG"
+        ;;
+    e)  extra_env="$extra_env -e $OPTARG"
+        ;;
     esac
-fi
+done
 
+echo
+echo "Deploying roles $deploy_roles"
+echo
+
+deploy_roles="${deploy_roles},"
 
 # all modules (more granularity added later if necessary)
 
@@ -279,18 +350,24 @@ add_docker_group
 patch_sources_list
 run_apt_update
 install_packages
-create_creds_file
+if [[ $deploy_roles =~ "worker," ]]; then
+    create_creds_file
+fi
+if [ $use_shibboleth == true ]; then
+    populate_sso_data $sso_data_dir
+fi
 create_ansible_inventory
 clone_git_repo
 create_shared_secret
 get_public_ip
+get_domain_name $public_ipv4
 run_ansible
 create_ssh_aliases
 
 echo "-------------------------------------------------------------------------------"
 echo "Setup finished, point your browser to "
 echo
-echo " https://$public_ipv4/#/initialize"
+echo " https://$domain_name/#/initialize"
 echo
 echo " and create an admin user"
 echo "-------------------------------------------------------------------------------"

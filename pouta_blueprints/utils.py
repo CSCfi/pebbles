@@ -4,6 +4,7 @@ import struct
 import six
 from functools import wraps
 from flask import abort, g
+import re
 
 KEYPAIR_DEFAULT = {
     'bits': 2048,
@@ -67,3 +68,21 @@ def memoize(func):
             cache[x] = func(x)
         return cache[x]
     return inner
+
+
+def parse_maximum_lifetime(max_life_str):
+
+    m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)??$', max_life_str)
+    if m:
+        days = hours = mins = 0
+        if m.group(1):
+            days = int(m.group(1).strip()[:-1])
+        if m.group(2):
+            hours = int(m.group(2).strip()[:-1])
+        if m.group(3):
+            mins = int(m.group(3).strip()[:-1])
+
+        maximum_lifetime = days * 86400 + hours * 3600 + mins * 60
+        return maximum_lifetime
+    else:
+        raise ValueError
