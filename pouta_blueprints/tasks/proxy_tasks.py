@@ -17,7 +17,9 @@ def proxy_add_route(route_key, target, no_rewrite_rules=False):
         """
         location /notebooks/${route_key}/ {
           ${no_rw}rewrite ^/notebooks/${route_key}/(.*)$$ /$$1 break;
+          proxy_set_header Host $$host;
           proxy_pass ${target};
+          proxy_http_version 1.1;
           ${no_rw}proxy_redirect ${target} $$scheme://$$host:${external_https_port}/notebooks/${route_key};
           proxy_set_header Upgrade $$http_upgrade;
           proxy_set_header Connection "upgrade";
