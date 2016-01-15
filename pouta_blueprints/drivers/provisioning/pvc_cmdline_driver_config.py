@@ -107,6 +107,11 @@ CONFIG = {
                 'title': 'Maximum instances per user',
                 'default': 1,
             },
+            'cost_multiplier': {
+                'type': 'number',
+                'title': 'Cost multiplier (default 1.0)',
+                'default': 1.0,
+            },
             'firewall_rules': {
                 'type': 'array',
                 'title': 'Frontend firewall rules',
@@ -150,6 +155,7 @@ CONFIG = {
         'software',
         'maximum_lifetime',
         'maximum_instances_per_user',
+        'cost_multiplier',
         'firewall_rules',
         'allow_update_client_connectivity',
     ],
