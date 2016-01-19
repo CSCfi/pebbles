@@ -54,13 +54,19 @@ class ImportExportBlueprints(restful.Resource):
 
         # for blueprint_form in form.data.blueprints:
 
+        name_error = {"missing blueprint name": "blueprint name is missing from the config"}
+
         plugin_name = form.plugin_name.data
         plugin = Plugin.query.filter_by(name=plugin_name).first()
 
         blueprint = Blueprint()
-        blueprint.name = form.config.data['name']
         blueprint.plugin = plugin.id
         blueprint.config = form.config.data
+
+        if 'name' in form.config.data:
+            blueprint.name = form.config.data['name']
+        else:
+            return name_error, 422
 
         if 'preallocated_credits' in form.config.data:
             try:
