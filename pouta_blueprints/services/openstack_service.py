@@ -163,7 +163,7 @@ class CreateRootVolume(task.Task):
 
 
 class CreateDataVolume(task.Task):
-    def execute(self, display_name, data_volume_size, config):
+    def execute(self, display_name, data_volume_size, data_volume_type, config):
         if data_volume_size:
             logging.debug("creating a data volume for instance %s, %d" % (display_name, data_volume_size))
             nc = get_openstack_nova_client(config)
@@ -171,7 +171,8 @@ class CreateDataVolume(task.Task):
 
             volume = nc.volumes.create(
                 size=data_volume_size,
-                display_name=volume_name
+                display_name=volume_name,
+                volume_type=data_volume_type,
             )
             self.volume_id = volume.id
             retries = 0
@@ -471,7 +472,7 @@ class OpenStackService(object):
 
     def provision_instance(self, display_name, image_name, flavor_name, public_key, extra_sec_groups=None,
                            master_sg_name=None, allocate_public_ip=True, root_volume_size=0,
-                           data_volume_size=0, userdata=None):
+                           data_volume_size=0, data_volume_type=None, userdata=None):
         try:
             flow, _ = get_provision_flow()
             return taskflow.engines.run(flow, engine='parallel', store=dict(
@@ -484,6 +485,7 @@ class OpenStackService(object):
                 allocate_public_ip=allocate_public_ip,
                 root_volume_size=root_volume_size,
                 data_volume_size=data_volume_size,
+                data_volume_type=data_volume_type,
                 userdata=userdata,
                 config=self._config))
         except Exception as e:
