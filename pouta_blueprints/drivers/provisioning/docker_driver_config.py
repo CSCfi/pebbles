@@ -59,6 +59,16 @@ CONFIG = {
                 'title': 'Skip rewriting and redirecting the proxy url',
                 'default': False,
             },
+            'proxy_no_redirect': {
+                'type': 'boolean',
+                'title': 'Skip redirecting the proxy url',
+                'default': False,
+            },
+            'set_host_header': {
+                'type': 'boolean',
+                'title': 'Set host header',
+                'default': False,
+            },
             'environment_vars': {
                 'type': 'string',
                 'title': 'environment variables for docker, separated by space',
@@ -83,6 +93,8 @@ CONFIG = {
         'maximum_lifetime',
         'cost_multiplier',
         'proxy_no_rewrite',
+        'proxy_no_redirect',
+        'set_host_header',
     ],
     'model': {
         'name': 'docker-rstudio',
@@ -94,5 +106,7 @@ CONFIG = {
         'consumed_slots': 1,
         'needs_ssh_keys': False,
         'proxy_no_rewrite': False,
+        'proxy_no_redirect': False,
+        'set_host_header': False,
     }
 }
