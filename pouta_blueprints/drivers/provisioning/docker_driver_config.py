@@ -54,20 +54,26 @@ CONFIG = {
                 'title': 'Needs ssh-keys to access',
                 'default': False,
             },
-            'proxy_no_rewrite': {
-                'type': 'boolean',
-                'title': 'Skip rewriting and redirecting the proxy url',
-                'default': False,
-            },
-            'proxy_no_redirect': {
-                'type': 'boolean',
-                'title': 'Skip redirecting the proxy url',
-                'default': False,
-            },
-            'set_host_header': {
-                'type': 'boolean',
-                'title': 'Set host header',
-                'default': False,
+            'proxy_options': {
+                'type': 'object',
+                'title': 'Proxy Options',
+                'properties': {
+                    'proxy_rewrite': {
+                        'type': 'boolean',
+                        'title': 'Rewrite the proxy url',
+                        'default': False,
+                    },
+                    'proxy_redirect': {
+                        'type': 'boolean',
+                        'title': 'Redirect the proxy url',
+                        'default': False,
+                    },
+                    'set_host_header': {
+                        'type': 'boolean',
+                        'title': 'Set host header',
+                        'default': False,
+                    }
+                }
             },
             'environment_vars': {
                 'type': 'string',
@@ -92,9 +98,7 @@ CONFIG = {
         'maximum_instances_per_user',
         'maximum_lifetime',
         'cost_multiplier',
-        'proxy_no_rewrite',
-        'proxy_no_redirect',
-        'set_host_header',
+        'proxy_options',
     ],
     'model': {
         'name': 'docker-rstudio',
@@ -105,8 +109,10 @@ CONFIG = {
         'cost_multiplier': 0.0,
         'consumed_slots': 1,
         'needs_ssh_keys': False,
-        'proxy_no_rewrite': False,
-        'proxy_no_redirect': False,
-        'set_host_header': False,
+        'proxy_options': {
+            'proxy_rewrite': False,
+            'proxy_redirect': False,
+            'set_host_header': False
+        },
     }
 }

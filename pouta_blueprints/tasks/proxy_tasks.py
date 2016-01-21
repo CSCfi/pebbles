@@ -8,7 +8,7 @@ RUNTIME_PATH = '/webapps/pouta_blueprints/run/proxy_conf.d'
 
 
 @celery_app.task(name="pouta_blueprints.tasks.proxy_add_route")
-def proxy_add_route(route_key, target, options=None):
+def proxy_add_route(route_key, target, options):
     logger.info('proxy_add_route(%s, %s)' % (route_key, target))
 
     # generate a location snippet for nginx proxy config
@@ -16,41 +16,35 @@ def proxy_add_route(route_key, target, options=None):
     template = Template(
         """
         location /notebooks/${route_key}/ {
-          ${no_rw}rewrite ^/notebooks/${route_key}/(.*)$$ /$$1 break;
-          ${set_hh}proxy_set_header Host $$host;
+          $no_rw
+          $set_hh
           proxy_pass ${target};
-          ${no_rd}proxy_redirect ${target} $$scheme://$$host:${external_https_port}/notebooks/${route_key};
-          proxy_set_header Upgrade $$http_upgrade;
+          $no_rd
+          proxy_set_header Upgrade $$$http_upgrade;
           proxy_set_header Connection "upgrade";
         }
         """
     )
+    logger.info(options)
+    no_rw = no_rd = set_hh = ''
+    if 'proxy_rewrite' in options:
+        no_rw = 'rewrite ^/notebooks/${route_key}/(.*)$$ /$$1 break;'
 
-    if 'proxy_no_rewrite' in options:
-        no_rw = '#'
-    else:
-        no_rw = ''
-
-    if 'proxy_no_redirect' in options:
-        no_rd = '#'
-    else:
-        no_rd = ''
+    if 'proxy_redirect' in options:
+        no_rd = 'proxy_redirect ${target} $$scheme://$$host:${external_https_port}/notebooks/${route_key};'
 
     if 'set_host_header' in options:
-        set_hh = ''
-    else:
-        set_hh = '#'
+        set_hh = 'proxy_set_header Host $$host;'
+
+    options_template = Template(template.safe_substitute(no_rw=no_rw, no_rd=no_rd, set_hh=set_hh))
 
     path = '%s/route_key-%s' % (RUNTIME_PATH, route_key)
     with open(path, 'w') as f:
         f.write(
-            template.substitute(
+            options_template.substitute(
                 route_key=route_key,
                 target=target,
-                external_https_port=get_config()['EXTERNAL_HTTPS_PORT'],
-                no_rw=no_rw,
-                no_rd=no_rd,
-                set_hh=set_hh
+                external_https_port=get_config()['EXTERNAL_HTTPS_PORT']
             )
         )
 
