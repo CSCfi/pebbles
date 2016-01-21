@@ -52,7 +52,8 @@ class OpenStackServiceMock(object):
     def provision_instance(self, display_name, image_name, flavor_name,
                            public_key, extra_sec_groups=None,
                            master_sg_name=None, allocate_public_ip=True,
-                           root_volume_size=0, data_volume_size=0, userdata=None
+                           root_volume_size=0, data_volume_size=0, data_volume_type=None,
+                           userdata=None
                            ):
         self.spawn_count += 1
         res = dict(
@@ -203,7 +204,7 @@ class DockerDriverAccessMock(object):
     def get_pb_client(self, token, base_url, ssl_verify):
         return self.pbc_mock
 
-    def run_ansible_on_host(self, host, custom_logger):
+    def run_ansible_on_host(self, host, custom_logger, config):
         if self.failure_mode:
             raise RuntimeError
 
@@ -254,6 +255,8 @@ class DockerDriverTestCase(BaseTestCase):
             DD_HOST_EXTRA_SGS='',
             DD_HOST_ROOT_VOLUME_SIZE=0,
             DD_HOST_DATA_VOLUME_FACTOR=4,
+            DD_HOST_DATA_VOLUME_DEVICE='/dev/vdc',
+            DD_HOST_DATA_VOLUME_TYPE='',
         )
         dd = docker_driver.DockerDriver(logger, config)
         dd._ap = DockerDriverAccessMock(config)

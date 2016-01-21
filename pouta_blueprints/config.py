@@ -86,6 +86,8 @@ class BaseConfig(object):
     DD_HOST_EXTRA_SGS = ''
     DD_HOST_ROOT_VOLUME_SIZE = 0
     DD_HOST_DATA_VOLUME_FACTOR = 4
+    DD_HOST_DATA_VOLUME_DEVICE = '/dev/vdc'
+    DD_HOST_DATA_VOLUME_TYPE = ''
 
     EXTERNAL_HTTPS_PORT = 443
 

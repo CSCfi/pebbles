@@ -71,7 +71,7 @@ class DockerDriverAccessProxy(object):
         return PBClient(token, api_base_url, ssl_verify)
 
     @staticmethod
-    def run_ansible_on_host(host, logger):
+    def run_ansible_on_host(host, logger, config):
         import ansible.runner
         import ansible.playbook
         import ansible.inventory
@@ -101,6 +101,11 @@ class DockerDriverAccessProxy(object):
         logger.debug("_prepare_host(): running ansible")
         logger.debug('_prepare_host(): inventory hosts %s' % a_inventory.host_list)
 
+        extra_vars = dict()
+
+        if 'DD_HOST_DATA_VOLUME_DEVICE' in config:
+            extra_vars['notebook_host_block_dev_path'] = config['DD_HOST_DATA_VOLUME_DEVICE']
+
         pb = ansible.playbook.PlayBook(
             playbook="/webapps/pouta_blueprints/source/ansible/notebook_playbook.yml",
             stats=stats,
@@ -108,7 +113,7 @@ class DockerDriverAccessProxy(object):
             runner_callbacks=runner_cb,
             inventory=a_inventory,
             remote_user='cloud-user',
-            extra_vars={'notebook_host_block_dev_path': '/dev/vdc'},
+            extra_vars=extra_vars,
         )
 
         pb_res = pb.run()
@@ -602,6 +607,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             allocate_public_ip=False,
             root_volume_size=self.config['DD_HOST_ROOT_VOLUME_SIZE'],
             data_volume_size=flavor_slots * self.config['DD_HOST_DATA_VOLUME_FACTOR'],
+            data_volume_type=self.config['DD_HOST_DATA_VOLUME_TYPE'],
         )
         if 'error' in res.keys():
             raise RuntimeError('Failed to spawn a new host: %s' % res['error'])
@@ -625,7 +631,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def _prepare_host(self, host):
         ap = self._get_ap()
 
-        ap.run_ansible_on_host(host, self.logger)
+        ap.run_ansible_on_host(host, self.logger, self.config)
 
         docker_client = ap.get_docker_client(host['docker_url'])
 
