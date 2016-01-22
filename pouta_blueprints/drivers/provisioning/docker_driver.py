@@ -279,7 +279,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         options = {}
         proxy_options = blueprint_config.get('proxy_options')
-        if(proxy_options):
+        if proxy_options:
             proxy_rewrite = proxy_options.get('proxy_rewrite')
             proxy_redirect = proxy_options.get('proxy_redirect')
             set_host_header = proxy_options.get('set_host_header')
@@ -290,17 +290,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 options['proxy_redirect'] = proxy_redirect
             if set_host_header:
                 options['set_host_header'] = set_host_header
-
-        proxy_no_rewrite = blueprint_config.get('proxy_no_rewrite')
-        proxy_no_redirect = blueprint_config.get('proxy_no_redirect')
-        set_host_header = blueprint_config.get('set_host_header')
-
-        if proxy_no_rewrite:
-            options['proxy_no_rewrite'] = proxy_no_rewrite
-        if proxy_no_redirect:
-            options['proxy_no_redirect'] = proxy_no_redirect
-        if set_host_header:
-            options['set_host_header'] = set_host_header
 
         ap.proxy_add_route(
             proxy_route,

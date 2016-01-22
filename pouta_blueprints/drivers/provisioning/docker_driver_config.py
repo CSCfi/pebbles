@@ -110,8 +110,8 @@ CONFIG = {
         'consumed_slots': 1,
         'needs_ssh_keys': False,
         'proxy_options': {
-            'proxy_rewrite': False,
-            'proxy_redirect': False,
+            'proxy_rewrite': True,
+            'proxy_redirect': True,
             'set_host_header': False
         }
     }
