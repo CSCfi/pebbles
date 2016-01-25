@@ -85,7 +85,7 @@ Update the server packages (we'll boot it later):
 Clone the repository from GitHub:
 
     $ sudo yum install -y git
-    $ git clone --branch v2.0.0 https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
+    $ git clone --branch v3.0.0 https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
 
 Run the install script once - you will asked to log out and in again to make unix group changes effective. Here is a 
 good time to reboot the server after the updates:
@@ -201,27 +201,29 @@ TBA
 
 The default installation with the provided script makes a Docker container based deployment. Since the system will have
 OpenStack credentials for the project it is serving and also be exposed to internet, we want to have an extra layer of 
-isolation between http server and provisioning processes holding the credentials. The processes are not containerized 
-more than necessary to achieve this, so you can think of the containers as mini virtual machines. In the future we are 
-planning to make the containerization much more fine grained.
+isolation between http server and provisioning processes holding the credentials. The database (PosgreSQL) and message 
+queue backend (Redis) also run in their own containers, using official vanilla images.
 
-There are *TODO* containers: api, worker and frontend. You can list the status with:
+The containers are: api, worker, frontend, db and redis (plus possibly sso, if you enable shibboleth authentication). 
+You can list the status with:
 
     $ docker ps
     $ docker ps -a
     
-Aliases are provided for an easy ssh access:
+Aliases are provided for an easy ssh access: 
 
     $ ssh worker
-    $ ssh www
-    $ ssh proxy
+    $ ssh api
+    $ ssh frontend
     
-Both of the containers share the git repository that was checked out during installation through a read only shared 
-folder. Worker also has an additional shared folder for the credentials stored on the ramdisk on the host machine.
+The api, frontend and worker containers share the git repository that was checked out during installation through a 
+read only shared folder. For other directories shared from the host, see the [Ansible play]
+(https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/blob/master/ansible/roles/single_server_with_docker/tasks/main.yml)
+that sets up the container infrastructure. 
 
 To see the server process logs, take a look at /webapps/pouta_blueprints/logs -directory in the container:
 
-    $ ssh www
+    $ ssh api
     $ ls /webapps/pouta_blueprints/logs
 
 You can also launch a tmux based status session, that will have windows open for the host and each of the containers 
