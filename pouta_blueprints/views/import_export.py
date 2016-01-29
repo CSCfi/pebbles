@@ -14,7 +14,6 @@ import_export = FlaskBlueprint('import_export', __name__)
 
 blueprint_export_fields = {
     'maximum_lifetime': fields.Integer,
-    'name': fields.String,
     'is_enabled': fields.Boolean,
     'plugin_name': fields.String,
     'config': fields.Raw,
@@ -34,7 +33,6 @@ class ImportExportBlueprints(restful.Resource):
         for blueprint in blueprints:
             plugin = Plugin.query.filter_by(id=blueprint.plugin).first()
             obj = {
-                'name': blueprint.name,
                 'maximum_lifetime': blueprint.maximum_lifetime,
                 'is_enabled': blueprint.is_enabled,
                 'config': blueprint.config,
@@ -56,13 +54,19 @@ class ImportExportBlueprints(restful.Resource):
 
         # for blueprint_form in form.data.blueprints:
 
+        name_error = {"missing blueprint name": "blueprint name is missing from the config"}
+
         plugin_name = form.plugin_name.data
         plugin = Plugin.query.filter_by(name=plugin_name).first()
 
         blueprint = Blueprint()
-        blueprint.name = form.name.data
         blueprint.plugin = plugin.id
         blueprint.config = form.config.data
+
+        if 'name' in form.config.data:
+            blueprint.name = form.config.data['name']
+        else:
+            return name_error, 422
 
         if 'preallocated_credits' in form.config.data:
             try:

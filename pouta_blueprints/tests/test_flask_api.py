@@ -931,18 +931,21 @@ class FlaskApiTestCase(BaseTestCase):
     def test_anonymous_import_blueprints(self):
 
         blueprints_data = [
-            {'name': 'foo',
-             'config': {
-                 'maximum_lifetime': '1h'
-             },
-             'plugin_name': 'TestPlugin'
-             },
-            {'name': 'foobar',
-             'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
-             },
-             'plugin_name': 'TestPlugin'
-             }
+            {
+                'config': {
+                    'name': 'foo',
+                    'maximum_lifetime': '1h'
+                },
+                'plugin_name': 'TestPlugin'
+            },
+            {
+                'config': {
+                    'name': 'foobar',
+                    'maximum_lifetime': '1d 10m',
+                    'description': 'dummy blueprint'
+                },
+                'plugin_name': 'TestPlugin'
+            }
         ]
 
         for blueprint_item in blueprints_data:
@@ -955,18 +958,21 @@ class FlaskApiTestCase(BaseTestCase):
     def test_user_import_blueprints(self):
 
         blueprints_data = [
-            {'name': 'foo',
-             'config': {
-                 'maximum_lifetime': '1h'
-             },
-             'plugin_name': 'TestPlugin'
-             },
-            {'name': 'foobar',
-             'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
-             },
-             'plugin_name': 'TestPlugin'
-             }
+            {
+                'config': {
+                    'name': 'foo',
+                    'maximum_lifetime': '1h'
+                },
+                'plugin_name': 'TestPlugin'
+            },
+            {
+                'config': {
+                    'name': 'foobar',
+                    'maximum_lifetime': '1d 10m',
+                    'description': 'dummy blueprint'
+                },
+                'plugin_name': 'TestPlugin'
+            }
         ]
 
         for blueprint_item in blueprints_data:
@@ -979,18 +985,21 @@ class FlaskApiTestCase(BaseTestCase):
     def test_admin_import_blueprints(self):
 
         blueprints_data = [
-            {'name': 'foo',
-             'config': {
-                 'maximum_lifetime': '1h'
-             },
-             'plugin_name': 'TestPlugin'
-             },
-            {'name': 'foobar',
-             'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
-             },
-             'plugin_name': 'TestPlugin'
-             }
+            {
+                'config': {
+                    'name': 'foo',
+                    'maximum_lifetime': '1h'
+                },
+                'plugin_name': 'TestPlugin'
+            },
+            {
+                'config': {
+                    'name': 'foobar',
+                    'maximum_lifetime': '1d 10m',
+                    'description': 'dummy blueprint'
+                },
+                'plugin_name': 'TestPlugin'
+            }
         ]
 
         for blueprint_item in blueprints_data:
@@ -1000,26 +1009,33 @@ class FlaskApiTestCase(BaseTestCase):
                 data=json.dumps(blueprint_item))
             self.assertEqual(response.status_code, 200)
 
-        blueprint_invalid1 = {'name': 'foo', 'plugin_name': 'TestPlugin'}
+        blueprint_invalid1 = {'plugin_name': 'TestPlugin'}
         response1 = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/import_export/blueprints',
             data=json.dumps(blueprint_invalid1))
         self.assertEqual(response1.status_code, 422)
 
-        blueprint_invalid2 = {'name': '', 'plugin_name': 'TestPlugin'}
+        blueprint_invalid2 = {'config': '', 'plugin_name': 'TestPlugin'}
         response2 = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/import_export/blueprints',
             data=json.dumps(blueprint_invalid2))
         self.assertEqual(response2.status_code, 422)
 
-        blueprint_invalid3 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'plugin_name': ''}
+        blueprint_invalid3 = {'config': {'maximum_lifetime': '1h'}, 'plugin_name': ''}
         response3 = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/import_export/blueprints',
             data=json.dumps(blueprint_invalid3))
         self.assertEqual(response3.status_code, 422)
+
+        blueprint_invalid4 = {'config': {'maximum_lifetime': '1h'}, 'plugin_name': 'TestPlugin'}
+        response4 = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/import_export/blueprints',
+            data=json.dumps(blueprint_invalid4))
+        self.assertEqual(response4.status_code, 422)
 
     def test_anonymous_get_notifications(self):
         response = self.make_request(

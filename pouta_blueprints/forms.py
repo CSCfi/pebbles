@@ -39,7 +39,6 @@ class BlueprintForm(ModelForm):
 
 
 class BlueprintImportFormField(Form):
-    name = StringField('name', validators=[DataRequired()])
     config = StringField('config', validators=[DataRequired()])
     plugin_name = StringField('plugin_name', validators=[DataRequired()])
 
