@@ -28,6 +28,12 @@ class BlueprintList(restful.Resource):
             plugin = Plugin.query.filter_by(id=blueprint.plugin).first()
             blueprint.schema = plugin.schema
             blueprint.form = plugin.form
+            # Due to immutable nature of config field, whole dict needs to be reassigned.
+            # Issue #444 in github
+            blueprint_config = blueprint.config
+            blueprint_config['name'] = blueprint.name
+            blueprint.config = blueprint_config
+
             results.append(blueprint)
         return results
 
@@ -42,6 +48,8 @@ class BlueprintList(restful.Resource):
         blueprint = Blueprint()
         blueprint.name = form.name.data
         blueprint.plugin = form.plugin.data
+
+        form.config.data.pop('name', None)
         blueprint.config = form.config.data
 
         if 'preallocated_credits' in form.config.data:
@@ -94,7 +102,10 @@ class BlueprintView(restful.Resource):
         if not blueprint:
             abort(404)
         blueprint.name = form.config.data.get('name') or form.name.data
+
+        form.config.data.pop('name', None)
         blueprint.config = form.config.data
+
         if 'preallocated_credits' in blueprint.config:
             try:
                 blueprint.preallocated_credits = bool(blueprint.config['preallocated_credits'])

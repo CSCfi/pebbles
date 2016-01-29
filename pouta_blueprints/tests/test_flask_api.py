@@ -383,7 +383,7 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(data))
         self.assert_403(response)
         # Admin
-        data = {'name': 'test_blueprint_1', 'config': 'foo: bar', 'plugin': 'dummy'}
+        data = {'name': 'test_blueprint_1', 'config': {'foo': 'bar'}, 'plugin': 'dummy'}
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/blueprints',
