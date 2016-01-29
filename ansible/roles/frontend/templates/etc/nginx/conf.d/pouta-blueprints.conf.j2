@@ -38,6 +38,7 @@ server {
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header Host $http_host;
         proxy_redirect off;
+        expires epoch;
 
         if (!-f $request_filename) {
             proxy_pass http://gunicorn_api_server;
