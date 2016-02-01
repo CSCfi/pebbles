@@ -158,9 +158,11 @@
     name: frontend
     expose:
       - 22
+      - 80
       - "{{ application_external_https_port }}"
     ports:
       - "2224:22"
+      - "80:80"
       - "{{ application_external_https_port }}:{{ application_external_https_port }}"
     links: "{{ frontend_links }}"
     volumes:
