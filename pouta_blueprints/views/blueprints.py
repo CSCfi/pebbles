@@ -132,7 +132,10 @@ class BlueprintView(restful.Resource):
                 pass
 
         blueprint.plugin = form.plugin.data
-        blueprint.is_enabled = form.is_enabled.data
+        if form.is_enabled.raw_data:
+            blueprint.is_enabled = form.is_enabled.raw_data[0]
+        else:
+            blueprint.is_enabled = False
 
         db.session.add(blueprint)
         db.session.commit()
