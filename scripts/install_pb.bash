@@ -200,7 +200,7 @@ get_domain_name()
     echo
     echo -n "Figuring out domain name for ip $p_ip: "
     # reverse lookup
-    domain_name=$(dig -x $p_ip +short)
+    domain_name=$(dig -x $p_ip +short | head -1)
     # dig will output the root dot also, we get rid of that with trailing conditional replace
     domain_name=${domain_name/%./}
     if [ "xxx$domain_name" == "xxx" ]; then
