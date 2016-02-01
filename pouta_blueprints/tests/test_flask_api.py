@@ -426,6 +426,23 @@ class FlaskApiTestCase(BaseTestCase):
             blueprint = Blueprint.query.filter_by(id=self.known_blueprint_id_2).first()
             self.assertEqual(blueprint.maximum_lifetime, expected_lifetime)
 
+    def test_modify_blueprint_activate(self):
+        data = {
+            'name': 'test_blueprint_activate',
+            'config': {
+                "maximum_lifetime": "0h"
+            },
+            'plugin': self.known_plugin_id,
+        }
+        put_response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled,
+            data=json.dumps(data))
+        self.assert_200(put_response)
+
+        blueprint = Blueprint.query.filter_by(id=self.known_blueprint_id_disabled).first()
+        self.assertEqual(blueprint.is_enabled, False)
+
     def test_modify_blueprint_config_magic_vars_admin(self):
         data = {
             'name': 'test_blueprint_2',
