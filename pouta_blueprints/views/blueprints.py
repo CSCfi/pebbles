@@ -19,7 +19,7 @@ class BlueprintList(restful.Resource):
     @auth.login_required
     @marshal_with(blueprint_fields)
     def get(self):
-        query = Blueprint.query
+        query = Blueprint.query.order_by(Blueprint.name)
         if not g.user.is_admin:
             query = query.filter_by(is_enabled=True)
 
