@@ -5,6 +5,8 @@ CONFIG = {
         'description': 'Description',
         'required': [
             'name',
+            'docker_image',
+            'internal_port',
         ],
         'properties': {
             'name': {
