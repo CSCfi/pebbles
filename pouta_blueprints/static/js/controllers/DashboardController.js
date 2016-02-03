@@ -124,5 +124,21 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             $scope.stopPolling();
         });
 
+        $scope.filterOddEven = function(index, choice) {
+            index++;
+            if (choice == 1) {
+                return index % 2 == 1;
+            }
+            else {
+                return index % 2 != 1;
+            }
+        };
+
+        $scope.oddEvenRange = function() {
+            var arr = [1, 2];
+            return arr;
+        };
+
         $scope.startPolling();
     }]);
+
