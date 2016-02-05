@@ -1,12 +1,18 @@
 app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', '$upload', 'Restangular',
                              function($q,   $scope,   $timeout,   AuthService,   $upload,   Restangular) {
     var user = Restangular.one('users', AuthService.getUserId());
+    var quota = Restangular.one('quota', AuthService.getUserId());
     var key = null;
     var key_url = null;
     var change_password_result = "";
     var upload_ok = null;
 
     $scope.getUserName = AuthService.getUserName;
+
+    quota.get().then(function (response) {
+                $scope.credits_spent = response.credits_spent;
+                $scope.credits_quota = response.credits_quota;
+            });
 
     $scope.upload_error = function() {
         if (upload_ok === false) {
