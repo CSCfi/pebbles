@@ -227,6 +227,10 @@ class DockerDriverAccessMock(object):
     def get_image_names():
         return ['test/test1']
 
+    @staticmethod
+    def wait_for_port(ip_address, port, max_wait_secs=60):
+        pass
+
 
 # noinspection PyProtectedMember
 class DockerDriverTestCase(BaseTestCase):

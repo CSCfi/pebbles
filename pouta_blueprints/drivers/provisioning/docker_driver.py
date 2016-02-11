@@ -14,6 +14,7 @@ from pouta_blueprints.models import Instance
 from pouta_blueprints.services.openstack_service import OpenStackService
 import pouta_blueprints.tasks
 from lockfile import locked, LockTimeout
+import socket
 
 DD_STATE_SPAWNED = 'spawned'
 DD_STATE_ACTIVE = 'active'
@@ -140,6 +141,22 @@ class DockerDriverAccessProxy(object):
                 if os.path.isfile(os.path.join(DD_IMAGE_DIRECTORY, file_name)) and file_name.endswith('.img')
                 ]
 
+    @staticmethod
+    def wait_for_port(ip_address, port, max_wait_secs=60):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1)
+        start = time.time()
+        is_port_active = False
+        while time.time() - start < max_wait_secs:
+            result = s.connect_ex((ip_address, port))
+            if result == 0:
+                is_port_active = True
+                break
+            time.sleep(2)
+        s.close()
+        if not is_port_active:
+            raise RuntimeError('Timeout: Could not listen to port')
+
 
 class DockerDriver(base_driver.ProvisioningDriverBase):
     def get_configuration(self):
@@ -248,6 +265,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         ports = docker_client.port(container_id, blueprint_config['internal_port'])
         if len(ports) == 1:
             public_port = ports[0]['HostPort']
+            try:
+                self._ap.wait_for_port(selected_host['private_ip'], int(public_port))
+            except RuntimeError:
+                log_uploader.warn("Could not check if the port used in provisioning is listening")
+
         else:
             raise RuntimeError('Expected exactly one mapped port')
 
