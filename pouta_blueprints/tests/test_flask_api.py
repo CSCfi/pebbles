@@ -102,12 +102,7 @@ class FlaskApiTestCase(BaseTestCase):
         db.session.commit()
 
         conf = BaseConfig()
-        for var_name in BaseConfig.__dict__:
-            if not var_name.isupper():
-                continue
-            variable = Variable(var_name, conf[var_name])
-            db.session.add(variable)
-        db.session.commit()
+        Variable.sync_local_config_to_db(BaseConfig, conf)
 
     def make_request(self, method='GET', path='/', headers=None, data=None):
         assert method in self.methods
@@ -863,6 +858,17 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/variables/DEBUG')
         self.assert_200(response)
 
+    def test_get_blacklisted_variable(self):
+        # Anonymous
+        response = self.make_request(path='/api/v1/variables/SECRET_KEY')
+        self.assert_401(response)
+        # Authenticated
+        response = self.make_authenticated_user_request(path='/api/v1/variables/SECRET_KEY')
+        self.assert_403(response)
+        # Admin
+        response = self.make_authenticated_admin_request(path='/api/v1/variables/SECRET_KEY')
+        self.assert_404(response)
+
     def test_anonymous_set_variable(self):
         response = self.make_request(
             method='PUT',
@@ -891,15 +897,15 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertNotEquals(new_var_data['value'], var_data['value'])
 
     def test_admin_set_ro_variable(self):
-        var_data = self.make_authenticated_admin_request(path='/api/v1/variables/SECRET_KEY').json
+        var_data = self.make_authenticated_admin_request(path='/api/v1/variables/MESSAGE_QUEUE_URI').json
 
         response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/variables/%s' % var_data['id'],
-            data=json.dumps({'key': 'SECRET_KEY', 'value': 'foo'})
+            data=json.dumps({'key': 'MESSAGE_QUEUE_URI', 'value': 'foo'})
         )
         self.assertEquals(response.status_code, 409)
-        new_var_data = self.make_authenticated_admin_request(path='/api/v1/variables/SECRET_KEY').json
+        new_var_data = self.make_authenticated_admin_request(path='/api/v1/variables/MESSAGE_QUEUE_URI').json
         self.assertEquals(new_var_data['value'], var_data['value'])
 
     def test_admin_acquire_lock(self):

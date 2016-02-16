@@ -396,7 +396,7 @@ class Variable(db.Model):
             return
 
         for k in vars(config_cls).keys():
-            if not k.startswith("_") and k.isupper():
+            if not k.startswith("_") and k.isupper() and k not in cls.blacklisted_variables:
                 variable = Variable.query.filter_by(key=k).first()
                 if not variable:
                     variable = Variable(k, config[k])
@@ -444,3 +444,5 @@ class Variable(db.Model):
     filtered_variables = (
         'SECRET_KEY', 'INTERNAL_API_BASE_URL', 'SQLALCHEMY_DATABASE_URI', 'WTF_CSRF_ENABLED',
         'MESSAGE_QUEUE_URI', 'SSL_VERIFY', 'ENABLE_SHIBBOLETH_LOGIN', 'PROVISIONING_NUM_WORKERS')
+
+    blacklisted_variables = ('SECRET_KEY', 'SQLALCHEMY_DATABASE_URI')
