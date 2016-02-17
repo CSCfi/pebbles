@@ -685,6 +685,32 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/instances/%s' % self.known_instance_id)
         self.assert_200(response)
 
+    def test_get_activation_url(self):
+
+        t1 = ActivationToken(User.query.filter_by(id=self.known_user_id).first())
+        known_token = t1.token
+        db.session.add(t1)
+
+        # Anonymous
+        response = self.make_request(path='/api/v1/users/%s/user_activation_url' % self.known_user_id)
+        self.assert_401(response)
+        response2 = self.make_request(path='/api/v1/users/%s/user_activation_url' % '0xBogus')
+        self.assert_401(response2)
+        # Authenticated
+        response = self.make_authenticated_user_request(path='/api/v1/users/%s/user_activation_url' % self.known_user_id)
+        self.assert_403(response)
+        response2 = self.make_authenticated_user_request(path='/api/v1/users/%s/user_activation_url' % '0xBogus')
+        self.assert_403(response2)
+        # Admin
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/users/%s/user_activation_url' % self.known_user_id
+        )
+        self.assert_200(response)
+        token_check = known_token in response.json['activation_url']
+        self.assertTrue(token_check)
+        response2 = self.make_authenticated_admin_request(path='/api/v1/users/%s/activation_url' % '0xBogus')
+        self.assert_404(response2)
+
     def test_get_keypairs(self):
         # Anonymous
         response = self.make_request(path='/api/v1/users/%s/keypairs' % self.known_user_id)

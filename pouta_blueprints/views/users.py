@@ -7,9 +7,9 @@ import logging
 import re
 import werkzeug
 
-from pouta_blueprints.models import db, Keypair, User
+from pouta_blueprints.models import db, Keypair, User, ActivationToken
 from pouta_blueprints.forms import ChangePasswordForm, UserForm
-from pouta_blueprints.server import restful
+from pouta_blueprints.server import restful, app
 from pouta_blueprints.utils import generate_ssh_keypair, requires_admin
 from pouta_blueprints.views.commons import user_fields, auth, invite_user
 
@@ -93,6 +93,15 @@ class UserView(restful.Resource):
             abort(404)
         user.delete()
         db.session.commit()
+
+
+class UserActivationUrl(restful.Resource):
+    @auth.login_required
+    @requires_admin
+    def get(self, user_id):
+        token = ActivationToken.query.filter_by(user_id=user_id).first()
+        activation_url = '%s/#/activate/%s' % (app.config['BASE_URL'], token.token)
+        return {'activation_url': activation_url}
 
 
 public_key_fields = {

@@ -46,7 +46,16 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
                 });
             };
 
-
+            $scope.get_activation_url = function(user) {
+                $uibModal.open({
+                    size: 'lg',
+                    templateUrl: '/partials/modal_activation_url.html',
+                    controller: 'ModalActivationUrlController',
+                    resolve: {
+                       user: user
+                    }
+                });
+            };
 
             $scope.open_quota_dialog = function(users) {
                 var modalQuota = $uibModal.open({
@@ -123,6 +132,20 @@ app.controller('ModalQuotaController', function ($q, $scope, $modalInstance, Res
             });
         }
     };
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});
+
+app.controller('ModalActivationUrlController', function($scope, $modalInstance, Restangular, user) {
+
+    var users = Restangular.one('users', user.id);
+    var user_activation_url = users.customGET('user_activation_url');
+    user_activation_url.then(function (response) {
+            $scope.activation_url = response['activation_url'];
+        });
+
 
     $scope.cancel = function() {
         $modalInstance.dismiss('cancel');
