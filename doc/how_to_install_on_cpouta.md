@@ -85,7 +85,7 @@ Update the server packages (we'll boot it later):
 Clone the repository from GitHub:
 
     $ sudo yum install -y git
-    $ git clone --branch v3.0.2 https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
+    $ git clone --branch v3.0.3 https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
 
 Run the install script once - you will asked to log out and in again to make unix group changes effective. Here is a 
 good time to reboot the server after the updates:
