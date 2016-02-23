@@ -86,3 +86,38 @@ def parse_maximum_lifetime(max_life_str):
         return maximum_lifetime
     else:
         raise ValueError
+
+
+def parse_ports_string(ports_str):
+
+    ports_list = []
+    ports_str = ports_str.replace(',', ' ')
+    ports = ports_str.split(' ')
+    ports = filter(None, ports)
+    for port in ports:
+        if ':' in port:
+            (from_port, to_port) = parse_port_range(port)
+        else:
+            try:
+                from_port = int(port)
+                to_port = int(port)
+            except:
+                raise ValueError('Port is not an integer')
+
+        if 0 < from_port < 65536 and 0 < to_port < 65536:
+            ports_list.append((from_port, to_port))
+        else:
+            raise ValueError('Error parsing the input port string')
+    return ports_list
+
+
+def parse_port_range(port_range):
+
+    m = re.match(r'(\d+):(\d+)', port_range)
+    if m:
+        if int(m.group(1)) < int(m.group(2)):
+            return (int(m.group(1)), int(m.group(2)))
+        else:
+            raise ValueError('Port range invalid')
+    else:
+        raise ValueError('No port range found')

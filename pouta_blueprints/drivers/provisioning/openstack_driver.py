@@ -4,6 +4,7 @@ from pouta_blueprints.services.openstack_service import OpenStackService
 from pouta_blueprints.drivers.provisioning import base_driver
 from pouta_blueprints.client import PBClient
 from pouta_blueprints.models import Instance
+from pouta_blueprints.utils import parse_ports_string
 
 SLEEP_BETWEEN_POLLS = 3
 POLL_MAX_WAIT = 180
@@ -33,17 +34,29 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         instance_data = instance['instance_data']
         security_group_id = instance_data['security_group_id']
 
-        # As currently only single firewall rule can be added by the user,
-        # first delete all existing rules and add the new one
+        blueprint_config = pbclient.get_blueprint_description(instance['blueprint_id'])
+        config = blueprint_config['config']
+
+        # Delete all existing rules and add the rules using the input port string
         oss.clear_security_group_rules(security_group_id)
-        oss.create_security_group_rule(
-            security_group_id,
-            from_port=22,
-            to_port=22,
-            cidr="%s/32" % instance['client_ip'],
-            ip_protocol='tcp',
-            group_id=None
-        )
+
+        ports_str = config['exposed_ports']
+        if not ports_str:
+            ports_str = '22'  # If the input port string is empty then use 22 as the default port
+        ports_list = parse_ports_string(ports_str)
+
+        for ports in ports_list:
+            from_port = ports[0]
+            to_port = ports[1]
+
+            oss.create_security_group_rule(
+                security_group_id,
+                from_port=from_port,
+                to_port=to_port,
+                cidr="%s/32" % instance['client_ip'],
+                ip_protocol='tcp',
+                group_id=None
+            )
 
     def do_provision(self, token, instance_id):
         self.logger.debug("do_provision %s" % instance_id)
@@ -60,6 +73,17 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
 
         log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
         log_uploader.info("Provisioning OpenStack instance (%s)\n" % instance_id)
+
+        ports_str = config['exposed_ports']
+        if ports_str:
+            try:
+                parse_ports_string(ports_str)
+            except:
+                error = 'Incorrect exposed ports definition in blueprint'
+                error_body = {'state': Instance.STATE_FAILED, 'error_msg': error}
+                pbclient.do_instance_patch(instance_id, error_body)
+                self.logger.debug(error)
+                raise RuntimeError(error)
 
         # fetch user public key
         key_data = pbclient.get_user_key_data(instance_user).json()
