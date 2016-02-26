@@ -47,6 +47,13 @@ CONFIG = {
                 'title': 'Cost multiplier (default 1.0)',
                 'default': 1.0,
             },
+            'exposed_ports': {
+                'type': 'string',
+                'title': 'Exposed ports (list of ports and port ranges, separated by space)',
+                'default': '22',
+                'pattern': '^[^a-zA-Z\\+*?\[^\]\$(){}=!<>|@#%&\/\';\".~-]+$',
+                'validationMessage': 'Should be a list of ports xx and7or port ranges xx:xx, separated by space)',
+            },
             'userdata': {
                 'type': 'text',
                 'title': 'Customization script for instance after it is launched',
@@ -90,6 +97,7 @@ CONFIG = {
             'type': 'textarea',
             'title': 'Customization script for instance after it is launched'
         },
+        'exposed_ports',
         'firewall_rules',
         'allow_update_client_connectivity',
     ],
