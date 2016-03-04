@@ -412,7 +412,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         try:
             return self._do_housekeep_locked(token)
         except LockTimeout:
-            self.logger.debug('do_housekeep(): another thread is locking, skipping')
+            self.logger.info('do_housekeep(): another thread is locking, skipping')
 
     @locked('%s/docker_driver_housekeep' % DD_RUNTIME_PATH, 1)
     def _do_housekeep_locked(self, token):
