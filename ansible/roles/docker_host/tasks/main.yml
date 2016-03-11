@@ -1,5 +1,4 @@
-- name: Disable auto-updates on Pouta
-  file: name=/etc/cron.daily/automatic_updates state=absent
+
 
 - name: Add docker repo key (Ubuntu)
   apt_key: keyserver=keyserver.ubuntu.com id=36A1D7869245C8950F966E92D8576A8BA88D21E9
