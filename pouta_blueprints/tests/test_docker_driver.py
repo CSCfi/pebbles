@@ -253,8 +253,8 @@ class DockerDriverTestCase(BaseTestCase):
             DD_FREE_SLOT_TARGET=4,
             DD_HOST_FLAVOR_NAME_SMALL='mini',
             DD_HOST_FLAVOR_SLOTS_SMALL=4,
-            DD_HOST_FLAVOR_NAME_LARGE='mini',
-            DD_HOST_FLAVOR_SLOTS_LARGE=4,
+            DD_HOST_FLAVOR_NAME_LARGE='small',
+            DD_HOST_FLAVOR_SLOTS_LARGE=16,
             DD_HOST_MASTER_SG='pb_server',
             DD_HOST_EXTRA_SGS='',
             DD_HOST_ROOT_VOLUME_SIZE=0,
@@ -323,7 +323,7 @@ class DockerDriverTestCase(BaseTestCase):
         self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
 
         # manipulate the host data a bit so that the host is marked as used
-        host_file_data[0]['first_use_ts'] = cur_ts
+        host_file_data[0]['lifetime_tick_ts'] = cur_ts
 
         # fast forward time past host lifetime, should have one active and one spawned
         cur_ts += 60 + docker_driver.DD_HOST_LIFETIME
@@ -416,8 +416,13 @@ class DockerDriverTestCase(BaseTestCase):
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
+        num_slots = (
+            dd.config['DD_HOST_FLAVOR_SLOTS_SMALL'] +
+            dd.config['DD_HOST_FLAVOR_SLOTS_LARGE'] * (dd.config['DD_MAX_HOSTS'] - 1)
+        )
+
         # spawn instances up to the limit
-        for i in range(0, dd.config['DD_MAX_HOSTS'] * dd.config['DD_HOST_FLAVOR_SLOTS_SMALL']):
+        for i in range(0, num_slots):
             ddam.pbc_mock.add_instance_data('%d' % (1000 + i))
             dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts)
             cur_ts += 60
@@ -443,8 +448,13 @@ class DockerDriverTestCase(BaseTestCase):
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
+        num_slots = (
+            dd.config['DD_HOST_FLAVOR_SLOTS_SMALL'] +
+            dd.config['DD_HOST_FLAVOR_SLOTS_LARGE'] * (dd.config['DD_MAX_HOSTS'] - 1)
+        )
+
         # spawn instances up to the limit
-        for i in range(0, dd.config['DD_MAX_HOSTS'] * dd.config['DD_HOST_FLAVOR_SLOTS_SMALL']):
+        for i in range(0, num_slots):
             ddam.pbc_mock.add_instance_data('%d' % (1000 + i))
             dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts)
             cur_ts += 60
@@ -453,7 +463,7 @@ class DockerDriverTestCase(BaseTestCase):
         self.assertEquals(len(ddam.oss_mock.servers), dd.config['DD_MAX_HOSTS'])
 
         # remove instances
-        for i in range(0, dd.config['DD_MAX_HOSTS'] * dd.config['DD_HOST_FLAVOR_SLOTS_SMALL']):
+        for i in range(0, num_slots):
             dd._do_deprovision(token='foo', instance_id='%d' % (1000 + i))
 
         # let logic scale down (3 ticks per host should be enough)

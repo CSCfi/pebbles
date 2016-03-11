@@ -541,8 +541,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             # if the host has been used or it is a bigger flavor, calculate lifetime normally
             elif host.get('lifetime_tick_ts', 0):
                 lifetime = max(DD_HOST_LIFETIME - (cur_ts - host['lifetime_tick_ts']), 0)
-            # if the host is the only one and bigger flavor, don't leave it waiting
-            elif len(hosts) == 1 and host['num_slots'] == self.config['DD_HOST_FLAVOR_SLOTS_LARGE']:
+            # if the host is the only one and not smaller flavor, don't leave it waiting
+            elif len(hosts) == 1 and host['num_slots'] != self.config['DD_HOST_FLAVOR_SLOTS_SMALL']:
                 host['lifetime_tick_ts'] = cur_ts
                 lifetime = DD_HOST_LIFETIME
             # host has not been used
