@@ -17,7 +17,7 @@ As cloud-user on the server, pull the images:
 
 Then save the image to image directory (/var/lib/pb/docker_images by default):
 
-    docker save rocker/rstudio | gzip -c > /var/lib/pb/docker_images/rocker.rstudio.img
+    docker save rocker/rstudio > /var/lib/pb/docker_images/rocker.rstudio.img
 
 NOTE: Images from the image directory are pushed to notebook hosts only when they are being
       prepared. This limitation will be removed in the future, see
