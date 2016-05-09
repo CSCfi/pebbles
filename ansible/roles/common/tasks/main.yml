@@ -40,6 +40,8 @@
     - python-dev
     - python-virtualenv
     - supervisor
+    - libssl-dev
+    - libffi-dev
   when: ansible_lsb.id=="Ubuntu"
 
 - name: Install dependencies (CentOS)
@@ -49,6 +51,8 @@
     - python
     - python-pip
     - python-dev
+    - libffi-devel
+    - openssl-devel
     - python-virtualenv
     - supervisor
   when: ansible_lsb.id=="CentOS"
