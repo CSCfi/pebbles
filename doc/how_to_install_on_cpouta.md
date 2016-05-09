@@ -33,17 +33,15 @@ using ssh interactive session.
 
 ## Boot the server
 
-We'll next create the server VM. It will be based on CentOS-7.0, and use an OpenStack volume as the root disk
-to gain more space, speed and resilience against single disk failures.
+We'll next create the server VM. It will be based on CentOS-7.0.
 
 * Go to (Instances -> Launch Instance)
 
 * Details tab:
   * Instance name: e.g. 'pb_server'
-  * Flavor: 'mini'
-  * Instance boot source: 'boot from image (creates new volume)'
+  * Flavor: 'standard.small'
+  * Instance boot source: 'boot from image'
   * Image: 'CentOS-7.0'
-  * Device size: 20 GB
 
 * Access and security tab:
   * Key Pair: your keypair
@@ -52,9 +50,6 @@ to gain more space, speed and resilience against single disk failures.
 * Networks tab: default network is ok.
 
 * Post-Creation and Advanced tabs can be skipped
-
-NOTE: There is also an Instance boot source option 'boot from image' without '(creates new volume)'. That will launch
-a VM that boots from local image file, not volume.
 
 ## Assign a public IP
 
