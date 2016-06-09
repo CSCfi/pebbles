@@ -46,6 +46,17 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
                 });
             };
 
+            $scope.block_user = function(user) {
+                var block = !user.is_blocked
+                var user_blacklist = Restangular.one('users', user.id).all('user_blacklist').customPUT({'block': block});
+                user_blacklist.then(function () {
+                    users.getList().then(function (response) {
+                        $scope.users = response;
+                    });
+                });
+
+            };
+
             $scope.get_activation_url = function(user) {
                 $uibModal.open({
                     size: 'lg',

@@ -63,6 +63,7 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
+    is_blocked = db.Column(db.Boolean, default=False)
     credits_quota = db.Column(db.Float, default=1.0)
     latest_seen_notification_ts = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
@@ -119,7 +120,7 @@ class User(db.Model):
         return self.calculate_credits_spent() >= self.credits_quota
 
     def can_login(self):
-        return not self.is_deleted and self.is_active
+        return not self.is_deleted and self.is_active and not self.is_blocked
 
     def unseen_notifications(self):
         q = Notification.query

@@ -178,3 +178,27 @@ class UploadKeyPair(restful.Resource):
         except Exception as e:
             logging.exception(e)
             abort(422)
+
+
+class UserBlacklist(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('block', type=bool, required=True)
+
+    @auth.login_required
+    @requires_admin
+    def put(self, user_id):
+        args = self.parser.parse_args()
+        block = args.block
+
+        user = User.query.filter_by(id=user_id).first()
+        if not user:
+            logging.warn("trying to block/unblock non-existing user")
+            abort(404)
+        if block:
+            logging.info("blocking user %s", user.email)
+            user.is_blocked = True
+        else:
+            logging.info("unblocking user %s", user.email)
+            user.is_blocked = False
+        db.session.add(user)
+        db.session.commit()
