@@ -14,6 +14,7 @@ user_fields = {
     'is_active': fields.Boolean,
     'is_admin': fields.Boolean,
     'is_deleted': fields.Boolean,
+    'is_blocked': fields.Boolean
 }
 
 blueprint_fields = {

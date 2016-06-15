@@ -14,7 +14,7 @@ from pouta_blueprints.models import db, User
 from pouta_blueprints.views.commons import create_user
 from pouta_blueprints.views.blueprints import blueprints, BlueprintList, BlueprintView
 from pouta_blueprints.views.plugins import plugins, PluginList, PluginView
-from pouta_blueprints.views.users import users, UserList, UserView, UserActivationUrl, KeypairList, CreateKeyPair, UploadKeyPair
+from pouta_blueprints.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, KeypairList, CreateKeyPair, UploadKeyPair
 from pouta_blueprints.views.notifications import NotificationList, NotificationView
 from pouta_blueprints.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pouta_blueprints.views.activations import activations, ActivationList, ActivationView
@@ -33,6 +33,7 @@ api.add_resource(FirstUserView, api_root + '/initialize')
 api.add_resource(UserList, api_root + '/users', methods=['GET', 'POST', 'PATCH'])
 api.add_resource(UserView, api_root + '/users/<string:user_id>')
 api.add_resource(UserActivationUrl, api_root + '/users/<string:user_id>/user_activation_url')
+api.add_resource(UserBlacklist, api_root + '/users/<string:user_id>/user_blacklist')
 api.add_resource(KeypairList, api_root + '/users/<string:user_id>/keypairs')
 api.add_resource(CreateKeyPair, api_root + '/users/<string:user_id>/keypairs/create')
 api.add_resource(UploadKeyPair, api_root + '/users/<string:user_id>/keypairs/upload')
@@ -90,6 +91,9 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
         if not user.is_active:
             user.is_active = True
             db.session.commit()
+        if user.is_blocked:
+            error_description = 'You have been blocked, contact your administrator'
+            return render_template('error.html', error_title='User Blocked', error_description=error_description)
 
         token = user.generate_auth_token(app.config['SECRET_KEY'])
         return render_template(

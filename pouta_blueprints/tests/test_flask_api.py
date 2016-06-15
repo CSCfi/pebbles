@@ -252,6 +252,46 @@ class FlaskApiTestCase(BaseTestCase):
         user = User.query.filter_by(id=u.id).first()
         self.assertTrue(user.email != email)
 
+    def test_block_user(self):
+        email = "test@example.org"
+        u = User(email, "testuser", is_admin=False)
+        # Anonymous
+        db.session.add(u)
+        db.session.commit()
+
+        response = self.make_request(
+            method='PUT',
+            path='/api/v1/users/%s/user_blacklist' % u.id,
+            data=json.dumps({'block': True})
+        )
+        self.assert_401(response)
+        # Authenticated
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/users/%s/user_blacklist' % u.id,
+            data=json.dumps({'block': True})
+        )
+        self.assert_403(response)
+        # Admin
+        # Block
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/users/%s/user_blacklist' % u.id,
+            data=json.dumps({'block': True})
+        )
+        self.assert_200(response)
+        user = User.query.filter_by(id=u.id).first()
+        self.assertTrue(user.is_blocked)
+        # Unblock
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/users/%s/user_blacklist' % u.id,
+            data=json.dumps({'block': False})
+        )
+        self.assert_200(response)
+        user = User.query.filter_by(id=u.id).first()
+        self.assertFalse(user.is_blocked)
+
     def test_get_users(self):
         # Anonymous
         response = self.make_request(path='/api/v1/users')

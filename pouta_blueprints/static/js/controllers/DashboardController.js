@@ -82,6 +82,8 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
                 } else {
                     if (response.data.error == 'USER_OVER_QUOTA') {
                         $.notify({title: 'HTTP ' + response.status, message: 'User quota exceeded, contact your administrator in order to get more'}, {type: 'danger'});
+                    } else if (response.data.error == 'USER_BLOCKED') {
+                        $.notify({title: 'HTTP ' + response.status, message: 'You have been blocked, contact your administrator'}, {type: 'danger'});
                     } else {
                         $.notify({title: 'HTTP ' + response.status, message: 'Maximum number of running instances for the selected blueprint reached.'}, {type: 'danger'});
                     }

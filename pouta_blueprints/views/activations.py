@@ -51,6 +51,9 @@ class ActivationList(restful.Resource):
         if not user:
             abort(404)
 
+        if user.is_blocked:
+            abort(409)
+
         if ActivationToken.query.filter_by(user_id=user.id).count() >= MAX_ACTIVATION_TOKENS_PER_USER:
             logging.warn(
                 'There are already %d activation tokens for user %s'
