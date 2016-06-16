@@ -17,7 +17,8 @@ def proxy_add_route(route_key, target, options):
         'location /notebooks/%s/ {' % (route_key),
         'proxy_pass %s;' % (target),
         'proxy_set_header Upgrade $http_upgrade;',
-        'proxy_set_header Connection "upgrade";'
+        'proxy_set_header Connection "upgrade";',
+        'proxy_read_timeout 86400;'
     ]
 
     external_https_port = get_config()['EXTERNAL_HTTPS_PORT']
