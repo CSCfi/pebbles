@@ -1,5 +1,5 @@
 - name: Install docker
-  yum: name=docker state=present
+  yum: name=docker-1.9.1 state=present
   when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"
 
 - name: Copy the server key to the host
