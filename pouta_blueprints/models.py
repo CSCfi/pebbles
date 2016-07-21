@@ -73,6 +73,7 @@ class User(db.Model):
     _email = db.Column('email', db.String(MAX_EMAIL_LENGTH), unique=True)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     is_admin = db.Column(db.Boolean, default=False)
+    is_group_owner = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
     is_blocked = db.Column(db.Boolean, default=False)
@@ -153,6 +154,30 @@ class User(db.Model):
 
     def __repr__(self):
         return self.email
+
+
+group_user = db.Table('groups_users', db.Column('group_id', db.String(32), db.ForeignKey('groups.id')), db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'user_id'))
+group_banned_user = db.Table('groups_banned_users', db.Column('group_id', db.String(32), db.ForeignKey('groups.id')), db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'user_id'))
+group_owner = db.Table('groups_owners', db.Column('group_id', db.String(32), db.ForeignKey('groups.id')), db.Column('owner_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'owner_id'))
+
+
+class Group(db.Model):
+    __tablename__ = 'groups'
+
+    id = db.Column(db.String(32), primary_key=True)
+    name = db.Column(db.String(50))
+    join_code = db.Column(db.String(32))
+    description = db.Column(db.Text)
+    users = db.relationship("User", secondary=group_user, backref="groups", lazy="dynamic")
+    banned_users = db.relationship("User", secondary=group_banned_user, backref="banned_groups", lazy="dynamic")
+    owners = db.relationship("User", secondary=group_owner, backref="owned_groups", lazy="dynamic")
+    blueprints = db.relationship("Blueprint", backref="group", lazy="dynamic")
+
+    def __init__(self, name, join_code, first_owner):
+        self.id = uuid.uuid4().hex
+        self.name = name
+        self.join_code = join_code
+        self.owners.append(first_owner)
 
 
 class Notification(db.Model):
@@ -248,6 +273,7 @@ class Blueprint(db.Model):
     preallocated_credits = db.Column(db.Boolean, default=False)
     cost_multiplier = db.Column(db.Float, default=1.0)
     instances = db.relationship('Instance', backref='blueprint', lazy='dynamic')
+    group_id = db.Column(db.String(32), db.ForeignKey('groups.id'))
 
     def __init__(self):
         self.id = uuid.uuid4().hex
