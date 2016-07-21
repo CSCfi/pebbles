@@ -40,6 +40,8 @@ class UserList(restful.Resource):
     def get(self):
         if g.user.is_admin:
             return User.query.all()
+        if g.user.is_group_owner:
+            return User.query.filter_by(is_admin=False).all()
         return [g.user]
 
     @auth.login_required

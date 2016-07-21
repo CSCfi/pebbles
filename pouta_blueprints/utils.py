@@ -57,6 +57,16 @@ def requires_admin(f):
     return decorated
 
 
+def requires_group_owner_or_admin(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not g.user.is_admin or not g.user.is_group_owner:
+            abort(403)
+        return f(*args, **kwargs)
+
+    return decorated
+
+
 def memoize(func):
     """
     Generic memoization implementation suitable for decorator use

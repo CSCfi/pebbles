@@ -14,6 +14,7 @@ from pouta_blueprints.server import app, restful
 from pouta_blueprints.utils import requires_admin, memoize
 from pouta_blueprints.tasks import run_update, update_user_connectivity
 from pouta_blueprints.views.commons import auth
+from pouta_blueprints.rules import apply_rules_instances, get_group_blueprint_ids_for_instances
 
 instances = FlaskBlueprint('instances', __name__)
 
@@ -74,15 +75,7 @@ class InstanceList(restful.Resource):
     def get(self):
         user = g.user
         args = self.parser.parse_args()
-        q = Instance.query
-        if not user.is_admin or args.get('show_only_mine'):
-            q = q.filter_by(user_id=user.id)
-        if not args.get('show_deleted'):
-            q = q.filter(Instance.state != Instance.STATE_DELETED)
-        if args.get('offset'):
-            q = q.offset(args.get('offset'))
-        if args.get('limit'):
-            q = q.limit(args.get('limit'))
+        q = apply_rules_instances(user, args)
         instances = q.all()
 
         get_blueprint = memoize(query_blueprint)
@@ -118,7 +111,9 @@ class InstanceList(restful.Resource):
             return form.errors, 422
 
         blueprint_id = form.blueprint.data
-
+        allowed_blueprint_ids = get_group_blueprint_ids_for_instances(user.groups)
+        if blueprint_id not in allowed_blueprint_ids:
+            abort(403)
         blueprint = Blueprint.query.filter_by(id=blueprint_id, is_enabled=True).first()
         if not blueprint:
             abort(404)
@@ -173,9 +168,8 @@ class InstanceView(restful.Resource):
     @marshal_with(instance_fields)
     def get(self, instance_id):
         user = g.user
-        query = Instance.query.filter_by(id=instance_id)
-        if not user.is_admin:
-            query = query.filter_by(user_id=user.id)
+        args = {'instance_id': instance_id}
+        query = apply_rules_instances(user, args)
         instance = query.first()
         if not instance:
             abort(404)
@@ -202,11 +196,13 @@ class InstanceView(restful.Resource):
     def delete(self, instance_id):
         user = g.user
         query = Instance.query.filter_by(id=instance_id)
-        if not user.is_admin:
+        if not user.is_admin or not user.is_group_owner:
             query = query.filter_by(user_id=user.id)
         instance = query.first()
         if not instance:
             abort(404)
+        if user.is_group_owner and instance.blueprint.group not in user.owned_groups:
+            abort(403)
         instance.to_be_deleted = True
         instance.state = Instance.STATE_DELETING
         instance.deprovisioned_at = datetime.datetime.utcnow()

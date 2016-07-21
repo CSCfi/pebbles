@@ -26,6 +26,15 @@ class UserForm(ModelForm):
     is_admin = BooleanField('is_admin', default=False, false_values=['false', False, ''])
 
 
+class GroupForm(ModelForm):
+    name = StringField('name', validators=[DataRequired()])
+    join_code = StringField('join_code', validators=[DataRequired()])
+    description = StringField('description', default=None)
+    users = StringField('users', default=None)
+    banned_users = StringField('banned_users', default=None)
+    owners = StringField('owners', default=None)
+
+
 class NotificationForm(ModelForm):
     subject = StringField('subject', validators=[DataRequired(), Length(max=MAX_NOTIFICATION_SUBJECT_LENGTH)])
     message = StringField('message', validators=[DataRequired()])
@@ -36,6 +45,7 @@ class BlueprintForm(ModelForm):
     config = StringField('config', validators=[DataRequired()])
     plugin = StringField('plugin', validators=[DataRequired()])
     is_enabled = BooleanField('is_enabled', default=False)
+    group_id = StringField('group_id', validators=[DataRequired()])
 
 
 class BlueprintImportFormField(Form):

@@ -13,6 +13,7 @@ user_fields = {
     'credits_spent': fields.Float,
     'is_active': fields.Boolean,
     'is_admin': fields.Boolean,
+    'is_group_owner': fields.Boolean,
     'is_deleted': fields.Boolean,
     'is_blocked': fields.Boolean
 }
@@ -25,7 +26,20 @@ blueprint_fields = {
     'plugin': fields.String,
     'config': fields.Raw,
     'schema': fields.Raw,
-    'form': fields.Raw
+    'form': fields.Raw,
+    'group_name': fields.String,
+    'owner': fields.Boolean
+}
+
+group_fields = {
+    'id': fields.String(attribute='id'),
+    'name': fields.String,
+    'join_code': fields.String,
+    'description': fields.Raw,
+    'config': fields.Raw,
+    'user_ids': fields.Raw,
+    'banned_user_ids': fields.Raw,
+    'owner_ids': fields.Raw,
 }
 
 auth = HTTPBasicAuth()
