@@ -30,4 +30,5 @@ or
     vagrant up --provider=docker
 
 After the installation the first admin user is created by using the
-initialization form at (http://localhost:8080/#/initialize)
+initialization form at (https://localhost:8888/#/initialize). The development 
+environment uses a self-signed certificate.
