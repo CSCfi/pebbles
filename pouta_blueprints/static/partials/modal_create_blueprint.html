@@ -3,6 +3,10 @@
     <h4 class="modal-title">Create Blueprint</h4>
 </div>
 <div class="modal-body">
+    <label class="control-label">Select Group</label>
+    <select name="groupSelect" class="form-control" id="groupSelect" ng-model="groupModel">
+        <option ng-repeat="group in groups" value="{{group.id}}">{{group.name}}</option>
+    </select>
     <form name="ngform">
         <div
           sf-model="plugin.model"
@@ -11,9 +15,8 @@
 
         </div>
     </form>
-    <input id="test">Enter something</input>
 </div>
 <div class="modal-footer">
-    <button ng-click="createBlueprint(ngform, plugin.model)" class="btn btn-primary">Create</button>
+    <button ng-click="createBlueprint(ngform, plugin.model, groupModel)" class="btn btn-primary">Create</button>
     <button ng-click="cancel()" class="btn btn-default" >Close</button>
 </div>

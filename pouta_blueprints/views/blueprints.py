@@ -33,7 +33,7 @@ class BlueprintList(restful.Resource):
             blueprint_config = blueprint.config
             blueprint_config['name'] = blueprint.name
             blueprint.config = blueprint_config
-            if blueprint.group in user.groups:
+            if blueprint.group in user.owned_groups:
                 blueprint.owner = True
 
             results.append(blueprint)

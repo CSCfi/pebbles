@@ -27,7 +27,7 @@ blueprint_fields = {
     'config': fields.Raw,
     'schema': fields.Raw,
     'form': fields.Raw,
-    'group_name': fields.String,
+    'group_id': fields.String,
     'owner': fields.Boolean
 }
 
@@ -37,9 +37,7 @@ group_fields = {
     'join_code': fields.String,
     'description': fields.Raw,
     'config': fields.Raw,
-    'user_ids': fields.Raw,
-    'banned_user_ids': fields.Raw,
-    'owner_ids': fields.Raw,
+    'user_config': fields.Raw
 }
 
 auth = HTTPBasicAuth()
