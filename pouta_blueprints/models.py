@@ -158,16 +158,24 @@ class Group(db.Model):
     name = db.Column(db.String(50))
     join_code = db.Column(db.String(32))
     description = db.Column(db.Text)
-    users = db.relationship("User", secondary=group_user, backref="groups", lazy="dynamic")
-    banned_users = db.relationship("User", secondary=group_banned_user, backref="banned_groups", lazy="dynamic")
-    owners = db.relationship("User", secondary=group_owner, backref="owned_groups", lazy="dynamic")
-    blueprints = db.relationship("Blueprint", backref="group", lazy="dynamic")
+    _user_config = db.Column('user_config', db.Text)
+    users = db.relationship('User', secondary=group_user, backref='groups', lazy='dynamic')
+    banned_users = db.relationship('User', secondary=group_banned_user, backref='banned_groups', lazy='dynamic')
+    owners = db.relationship('User', secondary=group_owner, backref='owned_groups', lazy='dynamic')
+    blueprints = db.relationship('Blueprint', backref='group', lazy='dynamic')
 
-    def __init__(self, name, join_code, first_owner):
+    def __init__(self, name, join_code):
         self.id = uuid.uuid4().hex
         self.name = name
         self.join_code = join_code
-        self.owners.append(first_owner)
+
+    @hybrid_property
+    def user_config(self):
+        return load_column(self._user_config)
+
+    @user_config.setter
+    def user_config(self, value):
+        self._user_config = json.dumps(value)
 
 
 class Notification(db.Model):

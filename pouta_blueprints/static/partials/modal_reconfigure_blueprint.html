@@ -3,6 +3,10 @@
     <h4 class="modal-title">Update Blueprint Config</h4>
 </div>
 <div class="modal-body">
+    <label class="control-label">Select Group</label>
+    <select name="groupSelect" class="form-control" id="groupSelect" ng-model="groupModel">
+        <option ng-repeat="group in groups" value="{{group.id}}">{{group.name}}</option>
+    </select>
     <form name="ngform2">
         <div class="form-activate"
           sf-model="blueprint.config"
@@ -12,6 +16,6 @@
     </form>
 </div>
 <div class="modal-footer">
-    <button ng-click="updateBlueprint(ngform2, blueprint.config)" class="btn btn-primary">Update</button>
+    <button ng-click="updateBlueprint(ngform2, blueprint.config, groupModel)" class="btn btn-primary">Update</button>
     <button ng-click="cancel()" type="button" class="btn btn-default" >Close</button>
 </div>

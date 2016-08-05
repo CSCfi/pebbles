@@ -29,10 +29,8 @@ class UserForm(ModelForm):
 class GroupForm(ModelForm):
     name = StringField('name', validators=[DataRequired()])
     join_code = StringField('join_code', validators=[DataRequired()])
-    description = StringField('description', default=None)
-    users = StringField('users', default=None)
-    banned_users = StringField('banned_users', default=None)
-    owners = StringField('owners', default=None)
+    description = StringField('description')
+    user_config = StringField('user_config')
 
 
 class NotificationForm(ModelForm):

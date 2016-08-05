@@ -60,7 +60,7 @@ def requires_admin(f):
 def requires_group_owner_or_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not g.user.is_admin or not g.user.is_group_owner:
+        if not g.user.is_admin and not g.user.is_group_owner:
             abort(403)
         return f(*args, **kwargs)
 

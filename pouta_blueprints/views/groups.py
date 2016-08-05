@@ -2,7 +2,6 @@ from flask.ext.restful import marshal_with
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 import logging
-import json
 from pouta_blueprints.models import db, Group, User
 from pouta_blueprints.forms import GroupForm
 from pouta_blueprints.server import restful
@@ -26,10 +25,7 @@ class GroupList(restful.Resource):
             results = []
             for group in query.all():
                 group.config = {"name": group.name, "join_code": group.join_code, "description": group.description}
-                group.user_ids = [{"id": user_item.id} for user_item in group.users]
-                group.banned_user_ids = [{"id": banned_user_item.id} for banned_user_item in group.banned_users]
-                group.owner_ids = [{"id": owner_item.id} for owner_item in group.owners]
-                results.add(group)
+                results.append(group)
         return results
 
     @auth.login_required
@@ -42,18 +38,17 @@ class GroupList(restful.Resource):
         # Check if the join code is valid
         join_code = form.join_code.data
         join_code_error = {"join code error": "joining code already taken, please use a different code"}
-        join_code_grp = Group.query.filter_by(join_code=join_code)
+        join_code_grp = Group.query.filter_by(join_code=join_code).first()
+        logging.warn(join_code_grp)
         if join_code_grp:
             logging.warn("group with code %s already exists", join_code)
             return join_code_error, 422
 
-        user = g.user
-        group = Group(form.name.data, join_code, user)
+        group = Group(form.name.data, join_code)
         group.description = form.description.data
-        user_ids_str = form.users.data  # Initial number of added users
-        banned_user_ids_str = form.banned_users.data
-        owners_ids_str = form.owners.data
-        group = group_users_add(group, banned_user_ids_str, user_ids_str, owners_ids_str)
+        user_config = form.user_config.data
+        group = group_users_add(group, user_config["banned_users"], user_config['users'], user_config["owners"])
+        group.user_config = user_config
         db.session.add(group)
         db.session.commit()
 
@@ -80,23 +75,23 @@ class GroupView(restful.Resource):
         # check if the join code is valid
         join_code = form.join_code.data
         join_code_error = {"join code error": "joining code already taken, please use a different code"}
-        join_code_grp = Group.query.filter_by(join_code=join_code)
-        if join_code_grp:
+        join_group = Group.query.filter_by(join_code=join_code).first()
+        if join_group and join_group.id != group_id:
             logging.warn("group with code %s already exists", join_code)
             return join_code_error, 422
-
+        logging.warn(group_id)
         user = g.user
         group = Group.query.filter_by(id=group_id).first()
-        if not user.is_admin and group not in user.owner_groups:
+        logging.warn(group)
+        if not user.is_admin and group not in user.owned_groups:
             abort(403)
         group.name = form.name.data
         group.join_code = form.join_code.data
         group.description = form.description.data
-        users_id_str = form.users.data  # Initial number of added users
-        banned_users_id_str = form.banned_users.data
-        owners_ids_str = form.owners.data
-        group = group_users_add(group, banned_users_id_str, users_id_str, owners_ids_str)
 
+        user_config = form.user_config.data
+        group = group_users_add(group, user_config["banned_users"], user_config['users'], user_config["owners"])
+        group.user_config = user_config
         db.session.add(group)
         db.session.commit()
 
@@ -111,12 +106,12 @@ class GroupView(restful.Resource):
         db.session.commit()
 
 
-def group_users_add(group, banned_user_ids_str, user_ids_str, owner_ids_str):
+def group_users_add(group, banned_users, users, owners):
     # Add Banned users
-    banned_user_ids = []
-    if banned_user_ids_str:
-        banned_user_ids = json.loads(banned_user_ids_str)  # from UI
-        for banned_user_id in banned_user_ids:
+    banned_users_final = []
+    if banned_users:
+        for banned_user_item in banned_users:
+            banned_user_id = banned_user_item['id']
             banned_user = User.query.filter_by(id=banned_user_id).first()
             if not banned_user:
                 logging.warn("user %s does not exist", banned_user_id)
@@ -124,12 +119,14 @@ def group_users_add(group, banned_user_ids_str, user_ids_str, owner_ids_str):
             if banned_user in group.banned_users:
                 logging.warn("user %s already banned", banned_user_id)
                 continue
-            group.banned_users.append(banned_user)
+            banned_users_final.append(banned_user)
+    group.banned_users = banned_users_final  # setting a new list adds and also removes relationships
     # Now add users
-    if user_ids_str:
-        user_ids = json.loads(user_ids_str)
-        for user_id in user_ids:
-            if user_id in banned_user_ids:  # Check if the user is not banned
+    users_final = []
+    if users:
+        for user_item in users:
+            user_id = user_item['id']
+            if user_item in banned_users:  # Check if the user is not banned
                 logging.warn("user %s is blocked, cannot add", user_id)
                 continue
             user = User.query.filter_by(id=user_id).first()
@@ -139,12 +136,15 @@ def group_users_add(group, banned_user_ids_str, user_ids_str, owner_ids_str):
             if user in group.users:
                 logging.warn("user already added to the group")
                 continue
-            group.users.append(user)
+            users_final.append(user)
+    group.users = users_final
     # Group owners
-    if owner_ids_str:
-        owner_ids = json.loads(owner_ids_str)
-        for owner_id in owner_ids:
-            if owner_id in banned_user_ids:  # Check if the user is not banned
+    owners_final = []
+    owners_final.append(g.user)  # Always add the user creating/modifying the group
+    if owners:
+        for owner_item in owners:
+            owner_id = owner_item['id']
+            if owner_item in banned_users:  # Check if the user is not banned
                 logging.warn("user %s is blocked, cannot add as owner", owner_id)
                 continue
             owner = User.query.filter_by(id=owner_id).first()
@@ -154,7 +154,8 @@ def group_users_add(group, banned_user_ids_str, user_ids_str, owner_ids_str):
             if owner in group.owners:
                 logging.warn("user already added as owner to the group")
                 continue
-            group.owners.append(owner)
+            owners_final.append(owner)
+    group.owners = owners_final
     return group
 
 
@@ -166,7 +167,7 @@ class GroupJoin(restful.Resource):
             return {"join_code missing": "no join code given"}, 422
 
         user = g.user
-        group = Group.query.filter_by(join_code=join_code)
+        group = Group.query.filter_by(join_code=join_code).first()
         if user in group.banned_users:
             logging.warn("user banned from the group with code %s", join_code)
             return {"group ban": "You are banned from this group, please contact the concerned person"}, 422

@@ -15,6 +15,12 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             $scope.blueprints = response;
         });
 
+         var groups = Restangular.all('groups');
+
+         groups.getList().then(function (response) {
+             $scope.groups = response;
+         });
+
         var variables = Restangular.all('variables');
         variables.getList().then(function (response) {
             $scope.variables = response;
@@ -77,6 +83,9 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                     },
                     blueprints: function() {
                         return blueprints;
+                    },
+                    groups_list: function() {
+                        return $scope.groups;
                     }
                 }
             }).result.then(function() {
@@ -93,6 +102,9 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                 resolve: {
                     blueprint: function() {
                         return blueprint;
+                    },
+                    groups_list: function() {
+                        return $scope.groups;
                     }
                 }
             }).result.then(function() {
@@ -253,11 +265,13 @@ app.controller('ModalImportBlueprintsController', function($scope, $modalInstanc
 });
 
 
-app.controller('ModalCreateBlueprintController', function($scope, $modalInstance, plugin, blueprints) {
+app.controller('ModalCreateBlueprintController', function($scope, $modalInstance, plugin, blueprints, groups_list) {
     $scope.plugin = plugin;
-    $scope.createBlueprint = function(form, model) {
+    $scope.groups = groups_list;
+    console.log($scope.groups);
+    $scope.createBlueprint = function(form, model, groupModel) {
         if (form.$valid) {
-            blueprints.post({ plugin: $scope.plugin.id, name: model.name, config: model }).then(function () {
+            blueprints.post({ plugin: $scope.plugin.id, name: model.name, config: model, group_id:  groupModel}).then(function () {
                 $modalInstance.close(true);
             }, function(response) {
                 $.notify({title: 'HTTP ' + response.status, message: 'unable to create blueprint'}, {type: 'danger'});
@@ -270,11 +284,14 @@ app.controller('ModalCreateBlueprintController', function($scope, $modalInstance
     };
 });
 
-app.controller('ModalReconfigureBlueprintController', function($scope, $modalInstance, blueprint) {
+app.controller('ModalReconfigureBlueprintController', function($scope, $modalInstance, blueprint, groups_list) {
     $scope.blueprint = blueprint;
-    $scope.updateBlueprint = function(form, model) {
+    $scope.groups = groups_list;
+    $scope.groupModel = blueprint.group_id;
+    $scope.updateBlueprint = function(form, model, groupModel) {
         if (form.$valid) {
             $scope.blueprint.config = model;
+            $scope.blueprint.group_id = groupModel;
             $scope.blueprint.put().then(function () {
                 $modalInstance.close(true);
             }, function(response) {
