@@ -69,7 +69,7 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider, confi
 
     var notAuthenticatedP = redirectIf('AuthService', 'isNotAuthenticated', '/');
     var alreadyAuthenticatedP = redirectIf('AuthService', 'isAuthenticated', '/dashboard');
-    var isAdminP = redirectIf('AuthService', 'isAdmin', '/admin-dashboard');
+    var isAdminP = redirectIf('AuthService', 'isGroupOwnerOrAdmin', '/admin-dashboard');
     $routeProvider
         .when('/', {
             templateUrl: partialsDir + '/welcome.html',

@@ -4,6 +4,7 @@
         <thead>
             <tr>
                 <td>Name</td>
+                <td>Group</td>
                 <td>Life-time</td>
                 <td>Description</td>
                 <td>Actions</td>
@@ -15,6 +16,7 @@
             </tr>
             <tr ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }">
                 <td>{{ blueprint.name }}</td>
+                <td>{{ blueprint.group_name }}</td>
                 <td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
                 <td>{{ blueprint.config.description }}</td>
                 <td>

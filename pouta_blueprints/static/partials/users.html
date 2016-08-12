@@ -32,6 +32,7 @@
                 <span class="label label-default" ng-show="user.is_active">active</span>
                 <span class="label label-warning" ng-hide="user.is_active">inactive</span>
                 <span class="label label-primary" ng-show="user.is_admin">admin</span>
+                <span class="label label-success" ng-show="user.is_group_owner">group owner</span>
                 <span class="label label-danger" ng-show="user.is_deleted">deleted</span>
                 <span class="label label-danger" ng-show="user.is_blocked">blocked</span>
             </td>
@@ -39,6 +40,7 @@
                 {{ credits_spent[user.id] | number }} / {{ user.credits_quota | number}}
             </td>
             <td>
+                <button ng-click="make_group_owner(user)" type="submit" class="btn btn-default">{{ user.is_group_owner && 'Remove as Group Owner' || 'Make Group Owner' }}</button>
                 <button ng-hide="user.is_deleted" ng-click="remove_user(user)" type="submit" class="btn btn-default">Remove</button>
                 <button ng-click="open_quota_dialog([user])" type="submit" class="btn btn-default">Update quota</button>
                 <button ng-hide="user.is_active" ng-click="get_activation_url(user)" type="submit" class="btn btn-default">Activation Link</button>

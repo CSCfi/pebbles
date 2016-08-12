@@ -57,6 +57,10 @@ app.controller('NavbarController', ['$scope', '$rootScope', '$location', 'AuthSe
         return AuthService.isAdmin();
     };
 
+    $scope.isGroupOwnerOrAdmin = function() {
+        return AuthService.isGroupOwnerOrAdmin();
+    };
+
     $scope.logout = function() {
         AuthService.logout();
         $scope.email = "";

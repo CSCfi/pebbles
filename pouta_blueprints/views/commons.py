@@ -28,6 +28,7 @@ blueprint_fields = {
     'schema': fields.Raw,
     'form': fields.Raw,
     'group_id': fields.String,
+    'group_name': fields.String,
     'owner': fields.Boolean
 }
 

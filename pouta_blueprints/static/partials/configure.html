@@ -29,6 +29,7 @@
         <thead>
         <tr>
             <td>Type</td>
+            <td>Group</td>
             <td>Max life-time</td>
             <td></td>
         </tr>
@@ -38,8 +39,9 @@
                 <td colspan="3">No blueprints</td>
             </tr>
 
-            <tr ng-repeat="blueprint in blueprints">
+            <tr ng-repeat="blueprint in blueprints | filter : {owner: 'true'}">
                 <td>{{blueprint.name}}</td>
+                <td>{{blueprint.group_name}}</td>
                 <td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
                 <td>
                     <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)" class="btn btn-primary">Activate</button>
