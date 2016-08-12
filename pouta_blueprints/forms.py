@@ -28,7 +28,6 @@ class UserForm(ModelForm):
 
 class GroupForm(ModelForm):
     name = StringField('name', validators=[DataRequired()])
-    join_code = StringField('join_code', validators=[DataRequired()])
     description = StringField('description')
     user_config = StringField('user_config')
 

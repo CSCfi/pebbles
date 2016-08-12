@@ -1,6 +1,6 @@
 /* global app */
-app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService', 'Restangular', 'isUserDashboard',
-                              function ($q,   $scope,   $interval,   AuthService,   Restangular,   isUserDashboard) {
+app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService', 'Restangular', 'isUserDashboard', '$uibModal',
+                              function ($q,   $scope,   $interval,   AuthService,   Restangular,   isUserDashboard,  $uibModal) {
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
         var LIMIT_DEFAULT = 100, OFFSET_DEFAULT=0;
 
@@ -8,6 +8,8 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
         blueprints.getList().then(function (response) {
             $scope.blueprints = response;
         });
+
+        var group_join = Restangular.all('groups').one('group_join');
 
         var keypairs = Restangular.all('users/' + AuthService.getUserId() + '/keypairs');
         keypairs.getList().then(function (response) {
@@ -33,7 +35,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             if (offset) {
                 queryParams.offset = $scope.offset;
             }
-            if (AuthService.isAdmin() && isUserDashboard) {
+            if (AuthService.isGroupOwnerOrAdmin() && isUserDashboard) {
                 queryParams.show_only_mine = true;
             }
             instances.getList(queryParams).then(function (response) {
@@ -142,5 +144,62 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
         };
 
         $scope.startPolling();
+
+        $scope.openGroupJoinModal=function() {
+                $uibModal.open({
+                    templateUrl: '/partials/modal_group_join.html',
+                    controller: 'ModalGroupJoinController',
+                    size: 'sm',
+                    resolve: {
+                        group_join: function() {
+                            return group_join;
+                        }
+                    }
+                }).result.then(function() {
+                     blueprints.getList().then(function (response) {
+                         $scope.blueprints = response;
+                         console.log($scope.blueprints);
+                      });
+                });
+            };
+
     }]);
 
+app.controller('ModalGroupJoinController', function($scope, $modalInstance, group_join) {
+
+    var grp_join_sf = {}
+    grp_join_sf.schema = {
+            "type": "object",
+            "title": "Comment",
+            "properties": {
+            "join_code":  {
+                "title": "Joining Code",
+                "type": "string",
+                "description": "The code/password to join your group",
+                "default": "joining code"
+                }
+            },
+            "required": ["join_code"]
+
+        }
+    grp_join_sf.form = [
+            "join_code"
+        ]
+    grp_join_sf.model = {}
+    $scope.grp_join_sf = grp_join_sf;
+    $scope.group_join = group_join;
+
+    $scope.joinGroup = function(form, model) {
+     if (form.$valid) {
+            $scope.group_join.one(model.join_code).customPUT().then(function () {
+                $modalInstance.close(true);
+            }, function(response) {
+                $.notify({title: 'HTTP ' + response.status, message: response.data.error}, {type: 'danger'});
+            });
+        }
+    };
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});

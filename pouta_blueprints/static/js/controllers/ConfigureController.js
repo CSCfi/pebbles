@@ -13,6 +13,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 
         blueprints.getList({show_deactivated: true}).then(function (response) {
             $scope.blueprints = response;
+            console.log($scope.blueprints);
         });
 
          var groups = Restangular.all('groups');

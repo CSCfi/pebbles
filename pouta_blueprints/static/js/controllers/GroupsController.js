@@ -10,7 +10,7 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             }
         };
 
-        if (AuthService.isAdmin()) {
+        if (AuthService.isGroupOwnerOrAdmin()) {
             var users = Restangular.all('users');
             var groups = Restangular.all('groups');
 
@@ -30,13 +30,9 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                     "name":  {
                     "title": "Group Name",
                     "type": "string",
+                    "maxLength": 32,
+                    "validationMessage": "Maximum character limit of 32 reached",
                     "default": "mygroup"
-                    },
-                "join_code":  {
-                    "title": "Joining Code",
-                    "type": "string",
-                    "description": "The code/password to join your group",
-                    "default": "mycode"
                     },
                 "description": {
                     "title": "Group Description",
@@ -45,12 +41,11 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                     "validationMessage": "Maximum text limit for the description reached!"
                     }
                 },
-                "required": ["name","join_code"]
+                "required": ["name"]
 
             }
             groupsSF.form = [
                 "name",
-                "join_code",
                 {
                     "key": "description",
                     "type": "textarea",
@@ -128,9 +123,8 @@ app.controller('ModalCreateGroupController', function($scope, $modalInstance, gr
 
     $scope.createGroup = function(form, model, user_config) {
      if (form.$valid) {
-            //usersModel_ids = _.map(usersModel, function(item){ return item['id']; });
             groups.post({ 
-                 name: model.name, join_code: model.join_code, description: model.description,
+                 name: model.name, description: model.description,
                  user_config:{
                      "users": user_config.userModel,
                      "banned_users": user_config.banUserModel,
@@ -159,7 +153,6 @@ app.controller('ModalModifyGroupController', function($scope, $modalInstance, gr
     $scope.modifyGroup = function(form, model, user_config) {
      if (form.$valid) {
             $scope.group.name = model.name
-            $scope.group.join_code = model.join_code
             $scope.group.description = model.description
             $scope.group.user_config = {
                  "users": user_config.users,

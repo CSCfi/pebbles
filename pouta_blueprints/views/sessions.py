@@ -13,6 +13,7 @@ token_fields = {
     'token': fields.String,
     'user_id': fields.String,
     'is_admin': fields.Boolean,
+    'is_group_owner': fields.Boolean
 }
 
 
@@ -28,6 +29,7 @@ class SessionView(restful.Resource):
             return marshal({
                 'token': user.generate_auth_token(app.config['SECRET_KEY']),
                 'is_admin': user.is_admin,
+                'is_group_owner': user.is_group_owner,
                 'user_id': user.id
             }, token_fields)
         logging.warn("invalid login credentials for %s" % form.email.data)

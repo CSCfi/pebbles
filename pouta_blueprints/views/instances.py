@@ -111,7 +111,7 @@ class InstanceList(restful.Resource):
             return form.errors, 422
 
         blueprint_id = form.blueprint.data
-        allowed_blueprint_ids = get_group_blueprint_ids_for_instances(user.groups)
+        allowed_blueprint_ids = get_group_blueprint_ids_for_instances(user.groups + user.owned_groups)
         if blueprint_id not in allowed_blueprint_ids:
             abort(403)
         blueprint = Blueprint.query.filter_by(id=blueprint_id, is_enabled=True).first()
@@ -196,12 +196,12 @@ class InstanceView(restful.Resource):
     def delete(self, instance_id):
         user = g.user
         query = Instance.query.filter_by(id=instance_id)
-        if not user.is_admin or not user.is_group_owner:
+        if not user.is_admin and not user.is_group_owner:
             query = query.filter_by(user_id=user.id)
         instance = query.first()
         if not instance:
             abort(404)
-        if user.is_group_owner and instance.blueprint.group not in user.owned_groups:
+        if user.is_group_owner and instance.blueprint.group not in user.owned_groups and instance.user_id != user.id:
             abort(403)
         instance.to_be_deleted = True
         instance.state = Instance.STATE_DELETING

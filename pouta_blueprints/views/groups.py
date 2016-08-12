@@ -18,14 +18,15 @@ class GroupList(restful.Resource):
     def get(self):
 
         user = g.user
-        if not user.is_admin:
-            results = user.groups()
-        else:  # group owner
+        results = []
+        if not user.is_admin:  # group owner
+            groups = user.owned_groups
+        else:
             query = Group.query
-            results = []
-            for group in query.all():
-                group.config = {"name": group.name, "join_code": group.join_code, "description": group.description}
-                results.append(group)
+            groups = query.all()
+        for group in groups:
+            group.config = {"name": group.name, "join_code": group.join_code, "description": group.description}
+            results.append(group)
         return results
 
     @auth.login_required
@@ -36,15 +37,7 @@ class GroupList(restful.Resource):
             logging.warn("validation error on creating group")
             return form.errors, 422
         # Check if the join code is valid
-        join_code = form.join_code.data
-        join_code_error = {"join code error": "joining code already taken, please use a different code"}
-        join_code_grp = Group.query.filter_by(join_code=join_code).first()
-        logging.warn(join_code_grp)
-        if join_code_grp:
-            logging.warn("group with code %s already exists", join_code)
-            return join_code_error, 422
-
-        group = Group(form.name.data, join_code)
+        group = Group(form.name.data)
         group.description = form.description.data
         user_config = form.user_config.data
         group = group_users_add(group, user_config["banned_users"], user_config['users'], user_config["owners"])
@@ -72,21 +65,12 @@ class GroupView(restful.Resource):
         if not form.validate_on_submit():
             logging.warn("validation error on creating group")
             return form.errors, 422
-        # check if the join code is valid
-        join_code = form.join_code.data
-        join_code_error = {"join code error": "joining code already taken, please use a different code"}
-        join_group = Group.query.filter_by(join_code=join_code).first()
-        if join_group and join_group.id != group_id:
-            logging.warn("group with code %s already exists", join_code)
-            return join_code_error, 422
-        logging.warn(group_id)
         user = g.user
         group = Group.query.filter_by(id=group_id).first()
-        logging.warn(group)
         if not user.is_admin and group not in user.owned_groups:
             abort(403)
         group.name = form.name.data
-        group.join_code = form.join_code.data
+        group.join_code = form.name.data  # hybrid property
         group.description = form.description.data
 
         user_config = form.user_config.data
@@ -164,16 +148,21 @@ class GroupJoin(restful.Resource):
     @auth.login_required
     def put(self, join_code):
         if not join_code:
-            return {"join_code missing": "no join code given"}, 422
+            return {"error": "no join code given"}, 422
 
         user = g.user
         group = Group.query.filter_by(join_code=join_code).first()
+        if not group:
+            return {"error": "The code entered is invalid. Please recheck and try again"}, 422
         if user in group.banned_users:
             logging.warn("user banned from the group with code %s", join_code)
-            return {"group ban": "You are banned from this group, please contact the concerned person"}, 422
+            return {"error": "You are banned from this group, please contact the concerned person"}, 422
         if user in group.users:
             logging.warn("user %s already exists in group", user.id)
-            return {"user already added": "User already in the group"}, 422
+            return {"error": "User already in the group"}, 422
         group.users.append(user)
+        user_config = group.user_config
+        user_config['users'].append({'id': user.id})
+        group.user_config = user_config
         db.session.add(group)
         db.session.commit()

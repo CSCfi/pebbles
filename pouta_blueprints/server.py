@@ -14,7 +14,7 @@ from pouta_blueprints.models import db, User
 from pouta_blueprints.views.commons import create_user
 from pouta_blueprints.views.blueprints import blueprints, BlueprintList, BlueprintView
 from pouta_blueprints.views.plugins import plugins, PluginList, PluginView
-from pouta_blueprints.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, KeypairList, CreateKeyPair, UploadKeyPair
+from pouta_blueprints.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserGroupOwner, KeypairList, CreateKeyPair, UploadKeyPair
 from pouta_blueprints.views.groups import groups, GroupList, GroupView, GroupJoin
 from pouta_blueprints.views.notifications import NotificationList, NotificationView
 from pouta_blueprints.views.instances import instances, InstanceList, InstanceView, InstanceLogs
@@ -35,12 +35,13 @@ api.add_resource(UserList, api_root + '/users', methods=['GET', 'POST', 'PATCH']
 api.add_resource(UserView, api_root + '/users/<string:user_id>')
 api.add_resource(UserActivationUrl, api_root + '/users/<string:user_id>/user_activation_url')
 api.add_resource(UserBlacklist, api_root + '/users/<string:user_id>/user_blacklist')
+api.add_resource(UserGroupOwner, api_root + '/users/<string:user_id>/user_group_owner')
 api.add_resource(KeypairList, api_root + '/users/<string:user_id>/keypairs')
 api.add_resource(CreateKeyPair, api_root + '/users/<string:user_id>/keypairs/create')
 api.add_resource(UploadKeyPair, api_root + '/users/<string:user_id>/keypairs/upload')
 api.add_resource(GroupList, api_root + '/groups')
 api.add_resource(GroupView, api_root + '/groups/<string:group_id>')
-api.add_resource(GroupJoin, api_root + '/groups/<string:join_code>')
+api.add_resource(GroupJoin, api_root + '/groups/group_join/<string:join_code>')
 api.add_resource(NotificationList, api_root + '/notifications')
 api.add_resource(NotificationView, api_root + '/notifications/<string:notification_id>')
 api.add_resource(SessionView, api_root + '/sessions')
@@ -102,7 +103,7 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
 
         token = user.generate_auth_token(app.config['SECRET_KEY'])
         return render_template(
-            'login.html', token=token, username=eppn, is_admin=user.is_admin, userid=user.id)
+            'login.html', token=token, username=eppn, is_admin=user.is_admin, is_group_owner=user.is_group_owner, userid=user.id)
 
     @sso.login_error_handler
     def login_error(user_info):

@@ -43,7 +43,6 @@ def run_update(instance_id):
     logger.info('update triggered for %s' % instance_id)
     token = get_token()
     mgr = get_provisioning_manager()
-
     plugin = get_provisioning_type(token, instance_id)
     mgr.map_method([plugin], 'update', token, instance_id)
 

@@ -204,3 +204,27 @@ class UserBlacklist(restful.Resource):
             user.is_blocked = False
         db.session.add(user)
         db.session.commit()
+
+
+class UserGroupOwner(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('make_group_owner', type=bool, required=True)
+
+    @auth.login_required
+    @requires_admin
+    def put(self, user_id):
+        args = self.parser.parse_args()
+        make_group_owner = args.make_group_owner
+
+        user = User.query.filter_by(id=user_id).first()
+        if not user:
+            logging.warn("user does not exist")
+            abort(404)
+        if make_group_owner:
+            logging.info("making user %s a group owner", user.email)
+            user.is_group_owner = True
+        else:
+            logging.info("removing user %s as a group owner", user.email)
+            user.is_group_owner = False
+        db.session.add(user)
+        db.session.commit()
