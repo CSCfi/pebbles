@@ -1,11 +1,15 @@
 import sys
+import os as os
 
 from flask import Flask
+from flask_migrate import upgrade as flask_upgrade_db_to_head
+from flask_migrate import Migrate
 
 from pouta_blueprints.models import db, bcrypt, Variable
 from pouta_blueprints.config import BaseConfig, TestConfig
 
 app = Flask(__name__, static_url_path='')
+migrate = Migrate(app, db)
 
 
 # Setup static files to be served by Flask for automated testing
@@ -39,10 +43,20 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
 
 bcrypt.init_app(app)
 db.init_app(app)
-with app.app_context():
-    db.create_all()
 
-    # Do not populate variables into DB when running tests, as these are
-    # populated during the test case setup phase.
-    if not test_run:
-        Variable.sync_local_config_to_db(BaseConfig, app.dynamic_config)
+
+def run_things_in_context(test_run):
+    # This is only split into a function so we can easily test some of it's
+    # behavior.
+    with app.app_context():
+        # upgrade to the head of the migration path (the default)
+        # we might want to pass a particular revision id instead
+        # in the future
+        if os.environ.get("DB_AUTOMIGRATION", None):
+            flask_upgrade_db_to_head()
+        # Do not populate variables into DB when running tests, as these are
+        # populated during the test case setup phase.
+        if not test_run:
+            Variable.sync_local_config_to_db(BaseConfig, app.dynamic_config)
+
+run_things_in_context(test_run)

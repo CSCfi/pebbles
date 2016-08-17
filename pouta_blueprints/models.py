@@ -4,6 +4,7 @@ import names
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
+from sqlalchemy.exc import OperationalError
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import logging
 import uuid
@@ -12,6 +13,7 @@ import datetime
 import six
 
 from pouta_blueprints.utils import validate_ssh_pubkey
+
 
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
@@ -392,10 +394,13 @@ class Variable(db.Model):
         Synchronizes keys from given config object to current database
         """
 
-        # Prevent over-writing old entries in DB by accident
-        if Variable.query.count() and not force_sync:
+        try:
+            # Prevent over-writing old entries in DB by accident
+            if Variable.query.count() and not force_sync:
+                return
+        except OperationalError:
+            logging.warn("Database structure not present! Run migrations!")
             return
-
         for k in vars(config_cls).keys():
             if not k.startswith("_") and k.isupper() and k not in cls.blacklisted_variables:
                 variable = Variable.query.filter_by(key=k).first()
