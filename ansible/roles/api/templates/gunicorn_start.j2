@@ -13,7 +13,7 @@ cd {{ application_path }}
 source {{ virtualenv_path }}/bin/activate
 export PYTHONPATH={{ application_path }}:$PYTHONPATH
 
-exec gunicorn 'pouta_blueprints.server:app' \
+exec env DB_AUTOMIGRATION=1 gunicorn 'pouta_blueprints.server:app' \
         --workers $NUM_WORKERS \
         --name $NAME \
         --max-requests $MAX_REQUESTS \
