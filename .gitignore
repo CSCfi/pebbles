@@ -1,2 +1,5 @@
 #.pyc files
 *.pyc
+
+#vagrant directory
+.vagrant
