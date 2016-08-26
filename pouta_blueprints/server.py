@@ -12,6 +12,7 @@ from pouta_blueprints.app import app
 from pouta_blueprints.models import db, User
 
 from pouta_blueprints.views.commons import create_user
+from pouta_blueprints.views.blueprint_templates import blueprint_templates, BlueprintTemplateList, BlueprintTemplateView
 from pouta_blueprints.views.blueprints import blueprints, BlueprintList, BlueprintView
 from pouta_blueprints.views.plugins import plugins, PluginList, PluginView
 from pouta_blueprints.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserGroupOwner, KeypairList, CreateKeyPair, UploadKeyPair
@@ -47,6 +48,8 @@ api.add_resource(NotificationView, api_root + '/notifications/<string:notificati
 api.add_resource(SessionView, api_root + '/sessions')
 api.add_resource(ActivationList, api_root + '/activations')
 api.add_resource(ActivationView, api_root + '/activations/<string:token_id>')
+api.add_resource(BlueprintTemplateList, api_root + '/blueprint_templates')
+api.add_resource(BlueprintTemplateView, api_root + '/blueprint_templates/<string:template_id>')
 api.add_resource(BlueprintList, api_root + '/blueprints')
 api.add_resource(BlueprintView, api_root + '/blueprints/<string:blueprint_id>')
 api.add_resource(InstanceList, api_root + '/instances')
@@ -70,6 +73,7 @@ api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
 api.add_resource(StatsList, api_root + '/stats')
 api.add_resource(ImportExportBlueprints, api_root + '/import_export/blueprints')
 
+app.register_blueprint(blueprint_templates)
 app.register_blueprint(blueprints)
 app.register_blueprint(plugins)
 app.register_blueprint(users)

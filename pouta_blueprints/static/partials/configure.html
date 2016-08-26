@@ -1,5 +1,5 @@
 <div>
-    <h1>Configure Blueprints</h1>
+    <h1>Configure Blueprint Templates</h1>
     <h2>Plugins</h2>
     <table class="table table-striped">
         <thead>
@@ -16,45 +16,44 @@
             <tr ng-repeat="plugin in plugins">
                 <td>{{plugin.name}}</td>
                 <td>
-                    <button ng-click="openCreateBlueprintDialog(plugin)" class="btn btn-default">
-                      Create Blueprint
+                    <button ng-click="openCreateTemplateDialog(plugin)" class="btn btn-default">
+                      Create Template
                     </button>
                 </td>
             </tr>
         </tbody>
     </table>
 
-    <h2>Blueprints</h2>
+    <h2>Blueprint Templates</h2>
     <table class="table table-striped">
         <thead>
         <tr>
             <td>Type</td>
-            <td>Group</td>
             <td>Max life-time</td>
             <td></td>
         </tr>
         </thead>
         <tbody>
-            <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
-                <td colspan="3">No blueprints</td>
+            <tr ng-hide="templates != undefined && (templates | filter : {is_enabled: 'true'}).length">
+                <td colspan="3">No templates</td>
             </tr>
 
-            <tr ng-repeat="blueprint in blueprints | filter : {owner: 'true'}">
-                <td>{{blueprint.name}}</td>
-                <td>{{blueprint.group_name}}</td>
-                <td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
+            <tr ng-repeat="template in templates">
+                <td>{{template.name}}</td>
+                <!--<td><lifetime value="{{ template.maximum_lifetime }}" maximum-lifetime="{{ template.maximum_lifetime }}"/></td>-->
+                <td>{{template.config.maximum_lifetime}}</td>
                 <td>
-                    <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)" class="btn btn-primary">Activate</button>
-                    <button ng-show="blueprint.is_enabled" ng-click="deactivate(blueprint)" class="btn btn-default">Deactivate</button>
-                    <button ng-click="openReconfigureBlueprintDialog(blueprint)" class="btn btn-default">Reconfigure</button>
+                    <button ng-hide="template.is_enabled" ng-click="activate(template)" class="btn btn-primary">Activate</button>
+                    <button ng-show="template.is_enabled" ng-click="deactivate(template)" class="btn btn-default">Deactivate</button>
+                    <button ng-click="openReconfigureTemplateDialog(template)" class="btn btn-default">Reconfigure</button>
                 </td>
             </tr>
         </tbody>
     </table>
 
-    <h2>Export / Import Blueprints</h2>
-    <button class="btn btn-default" ng-click="exportBlueprints()">Export</button>
-    <button class="btn btn-default" ng-click="openImportBlueprintsDialog()">Import</button>
+    <h2>Export / Import Templates</h2>
+    <button class="btn btn-default" ng-click="exportTemplates()">Export</button>
+    <button class="btn btn-default" ng-click="openImportTemplatesDialog()">Import</button>
 
     <h2>Notifications</h2>
     <table class="table table-striped">

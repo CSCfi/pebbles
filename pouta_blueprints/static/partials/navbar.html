@@ -3,7 +3,8 @@
     <li ng-class="{ active: isActive('/dashboard')}"><a ng-show="isLoggedIn()" href="#/dashboard">Dashboard</a></li>
     <li ng-class="{ active: isActive('/users')}"><a ng-show="isAdmin()" href="#/users">Users</a></li>
     <li ng-class="{ active: isActive('/groups')}"><a ng-show="isGroupOwnerOrAdmin()" href="#/groups">Groups</a></li>
-    <li ng-class="{ active: isActive('/configure')}"><a ng-show="isGroupOwnerOrAdmin()" href="#/configure">Configure</a></li>
+    <li ng-class="{ active: isActive('/blueprints')}"><a ng-show="isGroupOwnerOrAdmin()" href="#/blueprints">Blueprints</a></li>
+    <li ng-class="{ active: isActive('/configure')}"><a ng-show="isAdmin()" href="#/configure">Configure</a></li>
     <li ng-class="{ active: isActive('/admin-stats')}"><a ng-show="isAdmin()" href="#/admin-stats">Statistics</a></li>
     <li ng-class="{ active: isActive('/account')}" ><a ng-show="isLoggedIn()" href="#/account">Account</a></li>
   </ul>
