@@ -130,6 +130,13 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider, confi
                 redirectIfNotAuthenticated: notAuthenticatedP,
             }
         })
+         .when('/blueprints', {
+            controller: 'BlueprintsController',
+            templateUrl: partialsDir + '/blueprints.html',
+            resolve: {
+                redirectIfNotAuthenticated: notAuthenticatedP,
+            }
+        })
         .when('/configure', {
             controller: 'ConfigureController',
             templateUrl: partialsDir + '/configure.html',

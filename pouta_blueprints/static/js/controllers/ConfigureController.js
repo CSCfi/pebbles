@@ -9,18 +9,12 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             $scope.plugins = response;
         });
 
-        var blueprints = Restangular.all('blueprints');
+        var templates = Restangular.all('blueprint_templates');
 
-        blueprints.getList({show_deactivated: true}).then(function (response) {
-            $scope.blueprints = response;
-            console.log($scope.blueprints);
+        templates.getList({show_deactivated: true}).then(function (response) {
+            $scope.templates = response;
+            console.log($scope.templates);
         });
-
-         var groups = Restangular.all('groups');
-
-         groups.getList().then(function (response) {
-             $scope.groups = response;
-         });
 
         var variables = Restangular.all('variables');
         variables.getList().then(function (response) {
@@ -36,11 +30,11 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         updateNotificationList();
 
 
-        var importExportBlueprints = Restangular.all('import_export/blueprints');
+        var importExportTemplates = Restangular.all('import_export/blueprints');  // NEEDS CHANGE!
 
-        $scope.exportBlueprints = function () {
+        $scope.exportTemplates = function () {
 
-            importExportBlueprints.getList().then(function(response) {
+            importExportTemplates.getList().then(function(response) {
 
                 var jsonStr = JSON.stringify(response, null, 2); // Pretty print
 
@@ -55,16 +49,17 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             });
         };
 
-        $scope.openImportBlueprintsDialog = function() {
+        // NEEDS CHANGE
+        $scope.openImportTemplatesDialog = function() {
             $uibModal.open({
                 templateUrl: '/partials/modal_import_blueprints.html',
-                controller: 'ModalImportBlueprintsController',
+                controller: 'ModalImportTemplatesController',
                 resolve: {
-                    importExportBlueprints: function() {
-                        return importExportBlueprints;
+                    importExportTemplates: function() {
+                        return importExportTemplates;
                     },
-                    blueprints: function() {
-                        return blueprints;
+                    templates: function() {
+                        return templates;
                     }
                }
             }).result.then(function() {
@@ -74,43 +69,37 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                });
         };
 
-        $scope.openCreateBlueprintDialog = function(plugin) {
+        $scope.openCreateTemplateDialog = function(plugin) {
             $uibModal.open({
-                templateUrl: '/partials/modal_create_blueprint.html',
-                controller: 'ModalCreateBlueprintController',
+                templateUrl: '/partials/modal_create_template.html',
+                controller: 'ModalCreateTemplateController',
                 resolve: {
                     plugin: function() {
                         return plugin;
                     },
-                    blueprints: function() {
-                        return blueprints;
-                    },
-                    groups_list: function() {
-                        return $scope.groups;
+                    templates: function() {
+                        return templates;
                     }
                 }
             }).result.then(function() {
-                blueprints.getList().then(function (response) {
-                    $scope.blueprints = response;
+                templates.getList().then(function (response) {
+                    $scope.templates = response;
                 });
             });
         };
 
-        $scope.openReconfigureBlueprintDialog = function(blueprint) {
+        $scope.openReconfigureTemplateDialog = function(template) {
             $uibModal.open({
-                templateUrl: '/partials/modal_reconfigure_blueprint.html',
-                controller: 'ModalReconfigureBlueprintController',
+                templateUrl: '/partials/modal_reconfigure_template.html',
+                controller: 'ModalReconfigureTemplateController',
                 resolve: {
-                    blueprint: function() {
-                        return blueprint;
-                    },
-                    groups_list: function() {
-                        return $scope.groups;
+                    template: function() {
+                        return template;
                     }
                 }
             }).result.then(function() {
-                blueprints.getList().then(function (response) {
-                    $scope.blueprints = response;
+                templates.getList().then(function (response) {
+                    $scope.templates = response;
                 });
             });
         };
@@ -122,24 +111,24 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             });
         };
 
-        $scope.selectBlueprint = function(blueprint) {
-            $scope.selectedBlueprint = blueprint;
+        $scope.selectTemplate = function(template) {
+            $scope.selectedTemplate = template;
             $scope.$broadcast('schemaFormRedraw');
         };
 
         $scope.updateConfig = function() {
-            $scope.selectedBlueprint.put();
-            $('#blueprintConfig').modal('hide');
+            $scope.selectedTemplate.put();
+            $('#templateConfig').modal('hide');
         };
 
-        $scope.activate = function (blueprint) {
-            blueprint.is_enabled = true;
-            blueprint.put();
+        $scope.activate = function (template) {
+            template.is_enabled = true;
+            template.put();
         };
 
-        $scope.deactivate = function (blueprint) {
-            blueprint.is_enabled = undefined;
-            blueprint.put();
+        $scope.deactivate = function (template) {
+            template.is_enabled = undefined;
+            template.put();
         };
 
         $scope.updateVariable = function(variable) {
@@ -192,7 +181,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 
 
 
-app.controller('ModalImportBlueprintsController', function($scope, $modalInstance, importExportBlueprints, blueprints)
+app.controller('ModalImportTemplatesController', function($scope, $modalInstance, importExportBlueprints, templates)
 {
 
     $scope.importBlueprints = function(element) {
@@ -266,16 +255,21 @@ app.controller('ModalImportBlueprintsController', function($scope, $modalInstanc
 });
 
 
-app.controller('ModalCreateBlueprintController', function($scope, $modalInstance, plugin, blueprints, groups_list) {
+app.controller('ModalCreateTemplateController', function($scope, $modalInstance, plugin, templates) {
     $scope.plugin = plugin;
-    $scope.groups = groups_list;
-    console.log($scope.groups);
-    $scope.createBlueprint = function(form, model, groupModel) {
+    var attrsData = Object.keys(plugin.schema.properties);
+    $scope.attrsData =  _(attrsData).map(function(attr){ return {'id': attr} }).value(); // Data for angular multiselect
+    $scope.attrsModel = []
+    $scope.attrsSettings = {displayProp: 'id', scrollable: true, enableSearch: true};
+
+    $scope.createTemplate = function(form, model, attrsModel) {
         if (form.$valid) {
-            blueprints.post({ plugin: $scope.plugin.id, name: model.name, config: model, group_id:  groupModel}).then(function () {
+            attrsModel = _(attrsModel).map(function(attr){ return attr.id }).value();  // Get the data back as an array of attrs
+            var allowed_attrs = {'allowed_attrs': attrsModel} // Sending array in an obj, Only to please WTForms
+            templates.post({ plugin: $scope.plugin.id, name: model.name, config: model, allowed_attrs: allowed_attrs}).then(function () {
                 $modalInstance.close(true);
             }, function(response) {
-                $.notify({title: 'HTTP ' + response.status, message: 'unable to create blueprint'}, {type: 'danger'});
+                $.notify({title: 'HTTP ' + response.status, message: 'unable to create blueprint template'}, {type: 'danger'});
             });
         }
     };
@@ -285,18 +279,25 @@ app.controller('ModalCreateBlueprintController', function($scope, $modalInstance
     };
 });
 
-app.controller('ModalReconfigureBlueprintController', function($scope, $modalInstance, blueprint, groups_list) {
-    $scope.blueprint = blueprint;
-    $scope.groups = groups_list;
-    $scope.groupModel = blueprint.group_id;
-    $scope.updateBlueprint = function(form, model, groupModel) {
+app.controller('ModalReconfigureTemplateController', function($scope, $modalInstance, template) {
+    $scope.template = template;
+    var attrsData = Object.keys(template.schema.properties);
+    $scope.attrsData =  _(attrsData).map(function(attr){ return {'id': attr} }).value(); // Data for angular multiselect
+    var attrsModel = template.allowed_attrs;
+    $scope.attrsModel = _(attrsModel).map(function(attr){ return {'id': attr} }).value(); 
+    $scope.attrsSettings = {displayProp: 'id', scrollable: true, enableSearch: true};
+
+    $scope.updateTemplate = function(form, model, attrsModel) {
+        console.log(attrsModel);
         if (form.$valid) {
-            $scope.blueprint.config = model;
-            $scope.blueprint.group_id = groupModel;
-            $scope.blueprint.put().then(function () {
+            $scope.template.config = model;
+            attrsModel = _(attrsModel).map(function(attr){ return attr.id }).value();  // Get the data back as an array of attrs
+            var allowed_attrs = {'allowed_attrs': attrsModel} // Sending array in an obj, Only to please WTForms
+            $scope.template.allowed_attrs = allowed_attrs;
+            $scope.template.put().then(function () {
                 $modalInstance.close(true);
             }, function(response) {
-                $.notify({title: 'HTTP ' + response.status, message: 'unable to reconfigure blueprint'}, {type: 'danger'});
+                $.notify({title: 'HTTP ' + response.status, message: 'unable to reconfigure blueprint template'}, {type: 'danger'});
             });
         }
     };

@@ -37,10 +37,18 @@ class NotificationForm(ModelForm):
     message = StringField('message', validators=[DataRequired()])
 
 
-class BlueprintForm(ModelForm):
+class BlueprintTemplateForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
     config = StringField('config', validators=[DataRequired()])
     plugin = StringField('plugin', validators=[DataRequired()])
+    allowed_attrs = StringField('allowed_attrs')
+    is_enabled = BooleanField('is_enabled', default=False)
+
+
+class BlueprintForm(ModelForm):
+    name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
+    template_id = StringField('template_id', validators=[DataRequired()])
+    config = StringField('config', validators=[DataRequired()])
     is_enabled = BooleanField('is_enabled', default=False)
     group_id = StringField('group_id', validators=[DataRequired()])
 

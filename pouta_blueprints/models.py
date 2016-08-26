@@ -268,13 +268,70 @@ class Plugin(db.Model):
         self._model = json.dumps(value)
 
 
-class Blueprint(db.Model):
-    __tablename__ = 'blueprints'
+class BlueprintTemplate(db.Model):
+    __tablename__ = 'blueprint_templates'
     id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(MAX_NAME_LENGTH))
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     plugin = db.Column(db.String(32), db.ForeignKey('plugins.id'))
+    blueprints = db.relationship('Blueprint', backref='template', lazy='dynamic')
+    _blueprint_schema = db.Column('blueprint_schema', db.Text)
+    _blueprint_form = db.Column('blueprint_form', db.Text)
+    _blueprint_model = db.Column('blueprint_model', db.Text)
+    _allowed_attrs = db.Column('allowed_attrs', db.Text)
+
+    def __init__(self):
+        self.id = uuid.uuid4().hex
+
+    @hybrid_property
+    def config(self):
+        return load_column(self._config)
+
+    @config.setter
+    def config(self, value):
+        self._config = json.dumps(value)
+
+    @hybrid_property
+    def blueprint_schema(self):
+        return load_column(self._blueprint_schema)
+
+    @blueprint_schema.setter
+    def blueprint_schema(self, value):
+        self._blueprint_schema = json.dumps(value)
+
+    @hybrid_property
+    def blueprint_form(self):
+        return load_column(self._blueprint_form)
+
+    @blueprint_form.setter
+    def blueprint_form(self, value):
+        self._blueprint_form = json.dumps(value)
+
+    @hybrid_property
+    def blueprint_model(self):
+        return load_column(self._blueprint_model)
+
+    @blueprint_model.setter
+    def blueprint_model(self, value):
+        self._blueprint_model = json.dumps(value)
+
+    @hybrid_property
+    def allowed_attrs(self):
+        return load_column(self._allowed_attrs)
+
+    @allowed_attrs.setter
+    def allowed_attrs(self, value):
+        self._allowed_attrs = json.dumps(value)
+
+
+class Blueprint(db.Model):
+    __tablename__ = 'blueprints'
+    id = db.Column(db.String(32), primary_key=True)
+    name = db.Column(db.String(MAX_NAME_LENGTH))
+    template_id = db.Column(db.String(32), db.ForeignKey('blueprint_templates.id'))
+    _config = db.Column('config', db.Text)
+    is_enabled = db.Column(db.Boolean, default=False)
     maximum_lifetime = db.Column(db.Integer, default=3600)
     preallocated_credits = db.Column(db.Boolean, default=False)
     cost_multiplier = db.Column(db.Float, default=1.0)

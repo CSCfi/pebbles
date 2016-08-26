@@ -2,7 +2,7 @@ from flask.ext.restful import fields
 from flask.ext.httpauth import HTTPBasicAuth
 from flask import g, render_template
 import logging
-from pouta_blueprints.models import db, ActivationToken, User
+from pouta_blueprints.models import db, ActivationToken, User, BlueprintTemplate
 from pouta_blueprints.server import app
 from pouta_blueprints.tasks import send_mails
 
@@ -16,20 +16,6 @@ user_fields = {
     'is_group_owner': fields.Boolean,
     'is_deleted': fields.Boolean,
     'is_blocked': fields.Boolean
-}
-
-blueprint_fields = {
-    'id': fields.String(attribute='id'),
-    'maximum_lifetime': fields.Integer,
-    'name': fields.String,
-    'is_enabled': fields.Boolean,
-    'plugin': fields.String,
-    'config': fields.Raw,
-    'schema': fields.Raw,
-    'form': fields.Raw,
-    'group_id': fields.String,
-    'group_name': fields.String,
-    'owner': fields.Boolean
 }
 
 group_fields = {
@@ -98,3 +84,17 @@ def invite_user(email, password=None, is_admin=False):
         logging.warn(content)
 
     return user
+
+
+def get_full_blueprint_config(blueprint):
+
+    template = BlueprintTemplate.query.filter_by(id=blueprint.template_id)
+    template_config = template.config
+    allowed_attrs = template.blueprint_form  # set in blueprint templates view
+    bp_config = blueprint.config
+
+    for attr in allowed_attrs:
+        if attr in bp_config:
+            template_config[attr] = bp_config[attr]
+
+    return template_config

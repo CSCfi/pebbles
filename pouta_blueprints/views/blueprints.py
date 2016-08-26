@@ -1,19 +1,35 @@
-from flask.ext.restful import marshal_with
+from flask.ext.restful import marshal_with, fields
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 
 import logging
 
-from pouta_blueprints.models import db, Blueprint, Plugin, Group
+from pouta_blueprints.models import db, Blueprint, Group
 from pouta_blueprints.forms import BlueprintForm
 from pouta_blueprints.server import restful
-from pouta_blueprints.views.commons import auth, blueprint_fields
+from pouta_blueprints.views.commons import auth
 from pouta_blueprints.utils import requires_group_owner_or_admin, parse_maximum_lifetime
 from pouta_blueprints.rules import apply_rules_blueprints
 
 blueprints = FlaskBlueprint('blueprints', __name__)
 
 MAX_ACTIVATION_TOKENS_PER_USER = 3
+
+blueprint_fields = {
+    'id': fields.String(attribute='id'),
+    'maximum_lifetime': fields.Integer,
+    'name': fields.String,
+    'template_id': fields.String,
+    'is_enabled': fields.Boolean,
+    'plugin': fields.String,
+    'config': fields.Raw,
+    'full_config': fields.Raw,
+    'schema': fields.Raw,
+    'form': fields.Raw,
+    'group_id': fields.String,
+    'group_name': fields.String,
+    'owner': fields.Boolean
+}
 
 
 class BlueprintList(restful.Resource):
@@ -25,14 +41,20 @@ class BlueprintList(restful.Resource):
         query = query.join(Group, Blueprint.group).order_by(Group.name)
         results = []
         for blueprint in query.all():
-            plugin = Plugin.query.filter_by(id=blueprint.plugin).first()
-            blueprint.schema = plugin.schema
-            blueprint.form = plugin.form
+            template = blueprint.template
+            logging.warn(template)
+            blueprint.schema = template.blueprint_schema
+            blueprint.form = template.blueprint_form
             # Due to immutable nature of config field, whole dict needs to be reassigned.
             # Issue #444 in github
             blueprint_config = blueprint.config
+            logging.warn(blueprint.config)
+            blueprint.full_config = get_full_blueprint_config(blueprint)
+            logging.warn(blueprint.full_config)
+
             blueprint_config['name'] = blueprint.name
             blueprint.config = blueprint_config
+
             blueprint.group_name = blueprint.group.name
             if user.is_admin or blueprint.group in user.owned_groups:
                 blueprint.owner = True
@@ -51,7 +73,6 @@ class BlueprintList(restful.Resource):
         user = g.user
         blueprint = Blueprint()
         blueprint.name = form.name.data
-        blueprint.plugin = form.plugin.data
 
         group_id = form.group_id.data
         group = Group.query.filter_by(id=group_id).first()
@@ -59,34 +80,11 @@ class BlueprintList(restful.Resource):
             logging.warn("invalid group for the user")
             abort(406)
         blueprint.group_id = group_id
+
         form.config.data.pop('name', None)
         blueprint.config = form.config.data
-
-        if 'preallocated_credits' in form.config.data:
-            try:
-                blueprint.preallocated_credits = bool(form.config.data['preallocated_credits'])
-            except:
-                pass
-
-        if 'maximum_lifetime' in form.config.data:
-
-            timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
-            try:
-                max_life_str = str(form.config.data['maximum_lifetime'])
-                if max_life_str:
-                    maximum_lifetime = parse_maximum_lifetime(max_life_str)
-                    blueprint.maximum_lifetime = maximum_lifetime
-                else:
-                    blueprint.maximum_lifetime = 3600  # Default value if not provided anything by user
-            except ValueError:
-                return timeformat_error, 422
-
-        if 'cost_multiplier' in form.config.data:
-            try:
-                blueprint.cost_multiplier = float(form.config.data['cost_multiplier'])
-            except:
-                pass
-
+        blueprint.template_id = form.template_id.data
+        blueprint = set_blueprint_fields_from_config(blueprint)
         db.session.add(blueprint)
         db.session.commit()
 
@@ -100,6 +98,8 @@ class BlueprintView(restful.Resource):
         blueprint = query.first()
         if not blueprint:
             abort(404)
+        blueprint.full_config = get_full_blueprint_config(blueprint)
+        blueprint.plugin = blueprint.template.plugin
         return blueprint
 
     @auth.login_required
@@ -122,32 +122,8 @@ class BlueprintView(restful.Resource):
         form.config.data.pop('name', None)
         blueprint.config = form.config.data
 
-        if 'preallocated_credits' in blueprint.config:
-            try:
-                blueprint.preallocated_credits = bool(blueprint.config['preallocated_credits'])
-            except:
-                pass
+        blueprint = set_blueprint_fields_from_config(blueprint)
 
-        if 'maximum_lifetime' in blueprint.config:
-
-            timeformat_error = {"timeformat error": "pattern should be -d-h-m-s"}
-            try:
-                max_life_str = str(form.config.data['maximum_lifetime'])
-                if max_life_str:
-                    maximum_lifetime = parse_maximum_lifetime(max_life_str)
-                    blueprint.maximum_lifetime = maximum_lifetime
-                else:
-                    blueprint.maximum_lifetime = 3600  # Default value if not provided anything by user
-            except ValueError:
-                return timeformat_error, 422
-
-        if 'cost_multiplier' in blueprint.config:
-            try:
-                blueprint.cost_multiplier = float(blueprint.config['cost_multiplier'])
-            except:
-                pass
-
-        blueprint.plugin = form.plugin.data
         if form.is_enabled.raw_data:
             blueprint.is_enabled = form.is_enabled.raw_data[0]
         else:
@@ -155,3 +131,48 @@ class BlueprintView(restful.Resource):
 
         db.session.add(blueprint)
         db.session.commit()
+
+
+def get_full_blueprint_config(blueprint):
+
+    template = blueprint.template
+    allowed_attrs = template.allowed_attrs
+    allowed_attrs = ['name', 'description'] + allowed_attrs
+    full_config = template.config
+    bp_config = blueprint.config
+    for attr in allowed_attrs:
+        if attr in bp_config:
+            full_config[attr] = bp_config[attr]
+    return full_config
+
+
+def set_blueprint_fields_from_config(blueprint):
+
+    config = blueprint.config
+
+    if 'preallocated_credits' in config:
+        try:
+            blueprint.preallocated_credits = bool(config['preallocated_credits'])
+        except:
+            pass
+
+    if 'maximum_lifetime' in config:
+
+        timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
+        try:
+            max_life_str = str(config['maximum_lifetime'])
+            if max_life_str:
+                maximum_lifetime = parse_maximum_lifetime(max_life_str)
+                blueprint.maximum_lifetime = maximum_lifetime
+            else:
+                blueprint.maximum_lifetime = 3600  # Default value if not provided anything by user
+        except ValueError:
+            return timeformat_error, 422
+
+        if 'cost_multiplier' in config:
+            try:
+                blueprint.cost_multiplier = float(config['cost_multiplier'])
+            except:
+                pass
+
+    return blueprint
