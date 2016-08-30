@@ -154,7 +154,8 @@ app.controller('ModalImportBlueprintsController', function($scope, $modalInstanc
                             var obj = {
                                 name: blueprintItem.name,
                                 config: blueprintItem.config,
-                                plugin_name: blueprintItem.plugin_name,
+                                template_name: blueprintItem.template_name,
+                                group_name: blueprintItem.group_name,
                                 index: blueprintIndex
                             };  // Send according to forms defined
 

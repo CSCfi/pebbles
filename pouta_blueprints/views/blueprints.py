@@ -20,6 +20,7 @@ blueprint_fields = {
     'maximum_lifetime': fields.Integer,
     'name': fields.String,
     'template_id': fields.String,
+    'template_name': fields.String,
     'is_enabled': fields.Boolean,
     'plugin': fields.String,
     'config': fields.Raw,
@@ -42,19 +43,17 @@ class BlueprintList(restful.Resource):
         results = []
         for blueprint in query.all():
             template = blueprint.template
-            logging.warn(template)
             blueprint.schema = template.blueprint_schema
             blueprint.form = template.blueprint_form
             # Due to immutable nature of config field, whole dict needs to be reassigned.
             # Issue #444 in github
             blueprint_config = blueprint.config
-            logging.warn(blueprint.config)
             blueprint.full_config = get_full_blueprint_config(blueprint)
-            logging.warn(blueprint.full_config)
 
             blueprint_config['name'] = blueprint.name
             blueprint.config = blueprint_config
 
+            blueprint.template_name = template.name
             blueprint.group_name = blueprint.group.name
             if user.is_admin or blueprint.group in user.owned_groups:
                 blueprint.owner = True

@@ -62,9 +62,9 @@ class BlueprintTemplateList(restful.Resource):
         config = form.config.data
         config.pop('name', None)
         blueprint_template.config = config
-        blueprint_template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']
-        logging.warn(blueprint_template.allowed_attrs)
-        blueprint_template = blueprint_schemaform_config(blueprint_template)
+        if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
+            blueprint_template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']
+            blueprint_template = blueprint_schemaform_config(blueprint_template)
 
         db.session.add(blueprint_template)
         db.session.commit()
@@ -100,15 +100,13 @@ class BlueprintTemplateView(restful.Resource):
         config.pop('name', None)
         blueprint_template.config = config
         if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
-            allowed_attrs = form.allowed_attrs.data['allowed_attrs']
-            blueprint_template.allowed_attrs = allowed_attrs
+            blueprint_template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']
             blueprint_template = blueprint_schemaform_config(blueprint_template)
 
         if form.is_enabled.raw_data:
             blueprint_template.is_enabled = form.is_enabled.raw_data[0]
         else:
             blueprint_template.is_enabled = False
-        logging.warn(blueprint_template)
         db.session.add(blueprint_template)
         db.session.commit()
 

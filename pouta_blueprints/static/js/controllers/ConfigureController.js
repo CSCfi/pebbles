@@ -13,7 +13,6 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 
         templates.getList({show_deactivated: true}).then(function (response) {
             $scope.templates = response;
-            console.log($scope.templates);
         });
 
         var variables = Restangular.all('variables');
@@ -30,7 +29,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         updateNotificationList();
 
 
-        var importExportTemplates = Restangular.all('import_export/blueprints');  // NEEDS CHANGE!
+        var importExportTemplates = Restangular.all('import_export/blueprint_templates');
 
         $scope.exportTemplates = function () {
 
@@ -42,17 +41,16 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                 var anchorLink = document.createElement('a');
                 var mouseEvent = new MouseEvent('click');
 
-                anchorLink.download = "blueprints.json";
+                anchorLink.download = "blueprint_templates.json";
                 anchorLink.href = window.URL.createObjectURL(blob);
                 anchorLink.dataset.downloadurl = ['text/json', anchorLink.download, anchorLink.href].join(':');
                 anchorLink.dispatchEvent(mouseEvent);
             });
         };
 
-        // NEEDS CHANGE
         $scope.openImportTemplatesDialog = function() {
             $uibModal.open({
-                templateUrl: '/partials/modal_import_blueprints.html',
+                templateUrl: '/partials/modal_import_templates.html',
                 controller: 'ModalImportTemplatesController',
                 resolve: {
                     importExportTemplates: function() {
@@ -63,8 +61,8 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                     }
                }
             }).result.then(function() {
-                   blueprints.getList().then(function (response) {
-                   $scope.blueprints = response;
+                   templates.getList().then(function (response) {
+                   $scope.templates = response;
                    });
                });
         };
@@ -181,14 +179,14 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 
 
 
-app.controller('ModalImportTemplatesController', function($scope, $modalInstance, importExportBlueprints, templates)
+app.controller('ModalImportTemplatesController', function($scope, $modalInstance, importExportTemplates, templates)
 {
 
-    $scope.importBlueprints = function(element) {
+    $scope.importTemplates = function(element) {
 
         $scope.isImportSuccess = false;
         $scope.isImportFailed = false;
-        var errorResponse = "Indexes of blueprints which were not imported: ";
+        var errorResponse = "Indexes of templates which were not imported: ";
         var requestsCount = 0;
         var file = element.files[0];
         var reader = new FileReader();
@@ -196,26 +194,27 @@ app.controller('ModalImportTemplatesController', function($scope, $modalInstance
             $scope.$apply(function() {
                 try {
                     // Read from the file and convert to JSON object
-                    var blueprintsJson = JSON.parse(String(reader.result));
-                    var totalItems = blueprintsJson.length;
-                    for (var blueprintIndex in blueprintsJson) {
-                        if (blueprintsJson.hasOwnProperty(blueprintIndex)) {
-                            var blueprintItem = blueprintsJson[blueprintIndex];
+                    var templatesJson = JSON.parse(String(reader.result));
+                    var totalItems = templatesJson.length;
+                    for (var templateIndex in templatesJson) {
+                        if (templatesJson.hasOwnProperty(templateIndex)) {
+                            var templateItem = templatesJson[templateIndex];
                             var obj = {
-                                name: blueprintItem.name,
-                                config: blueprintItem.config,
-                                plugin_name: blueprintItem.plugin_name,
-                                index: blueprintIndex
+                                name: templateItem.name,
+                                config: templateItem.config,
+                                plugin_name: templateItem.plugin_name,
+                                allowed_attrs: {'allowed_attrs': templateItem.allowed_attrs},  // WTForms needs dict
+                                index: templateIndex
                             };  // Send according to forms defined
 
-                            importExportBlueprints.post(obj).then(function () {  // Post to the REST API
+                            importExportTemplates.post(obj).then(function () {  // Post to the REST API
                                 requestsCount++;
                                 $scope.imported = true;
                                 if (requestsCount == totalItems) {  // Check if all the requests were OK
                                     $scope.isImportSuccess = true;
                                 }
                             }, function (response) {
-                                 // Attach the indices of blueprint items which are corrupt
+                                 // Attach the indices of template items which are corrupt
                                 errorResponse = errorResponse + response.config.data.index + ' ';
                                 $.notify({
                                     title: 'HTTP ' + response.status,
@@ -228,14 +227,14 @@ app.controller('ModalImportTemplatesController', function($scope, $modalInstance
                     }
                     if(totalItems == 0){
                         $.notify({
-                                    title: 'Blueprints could not be imported!',
-                                    message: 'No blueprints found'
+                                    title: 'Blueprint Templates could not be imported!',
+                                    message: 'No templates found'
                                 }, {type: 'danger'});
                     }
                 }
                 catch(exception){
                     $.notify({
-                        title: 'Blueprints could not be imported!',
+                        title: 'Blueprint Templates could not be imported!',
                         message: exception
                     }, {type: 'danger'});
                 }
