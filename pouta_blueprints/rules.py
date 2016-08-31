@@ -1,4 +1,5 @@
 from pouta_blueprints.models import Blueprint, Instance
+from sqlalchemy import or_, and_
 from sqlalchemy.orm import load_only
 import itertools
 import logging
@@ -11,10 +12,21 @@ def apply_rules_blueprints(user, args={}):
         group_ids = [group_item.id for group_item in user.groups]
         banned_group_ids = [banned_group_item.id for banned_group_item in user.banned_groups]
         owned_group_ids = [owned_group_item.id for owned_group_item in user.owned_groups]
-        allowed_group_ids = set(group_ids) - set(banned_group_ids) | set(owned_group_ids)  # do not allow the banned users
-        logging.warn(allowed_group_ids)
-        q = q.filter(Blueprint.group_id.in_(allowed_group_ids))
-        # q = q.filter_by(is_enabled=True)  # DO SOMETHING ABOUT THIS
+        allowed_group_ids = set(group_ids) - set(banned_group_ids)  # do not allow the banned users
+
+        # Start building query expressions based on the condition that :
+        # a group owner can see all of his blueprints and only enabled ones of other groups
+        query_exp = Blueprint.is_enabled == True
+        allowed_group_ids_exp = None
+        if allowed_group_ids:
+            allowed_group_ids_exp = Blueprint.group_id.in_(allowed_group_ids)
+        query_exp = and_(allowed_group_ids_exp, query_exp)
+        owned_group_ids_exp = None
+        if owned_group_ids:
+            owned_group_ids_exp = Blueprint.group_id.in_(owned_group_ids)
+        query_exp = or_(query_exp, owned_group_ids_exp)
+        q = q.filter(query_exp)
+
     if args.get('blueprint_id'):
         q = q.filter_by(id=args.get('blueprint_id'))
 

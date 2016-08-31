@@ -67,10 +67,13 @@ class GroupView(restful.Resource):
             return form.errors, 422
         user = g.user
         group = Group.query.filter_by(id=group_id).first()
+        if not group:
+            abort(404)
         if not user.is_admin and group not in user.owned_groups:
             abort(403)
-        group.name = form.name.data
-        group.join_code = form.name.data  # hybrid property
+        if group.name != form.name.data:
+            group.name = form.name.data
+            group.join_code = form.name.data  # hybrid property
         group.description = form.description.data
 
         user_config = form.user_config.data
@@ -100,9 +103,6 @@ def group_users_add(group, banned_users, users, owners):
             if not banned_user:
                 logging.warn("user %s does not exist", banned_user_id)
                 continue
-            if banned_user in group.banned_users:
-                logging.warn("user %s already banned", banned_user_id)
-                continue
             banned_users_final.append(banned_user)
     group.banned_users = banned_users_final  # setting a new list adds and also removes relationships
     # Now add users
@@ -116,9 +116,6 @@ def group_users_add(group, banned_users, users, owners):
             user = User.query.filter_by(id=user_id).first()
             if not user:
                 logging.warn("trying to add non-existent user %s", user_id)
-                continue
-            if user in group.users:
-                logging.warn("user already added to the group")
                 continue
             users_final.append(user)
     group.users = users_final
@@ -134,9 +131,6 @@ def group_users_add(group, banned_users, users, owners):
             owner = User.query.filter_by(id=owner_id).first()
             if not owner:
                 logging.warn("trying to add non-existent owner %s", owner_id)
-                continue
-            if owner in group.owners:
-                logging.warn("user already added as owner to the group")
                 continue
             owners_final.append(owner)
     group.owners = owners_final
