@@ -41,6 +41,19 @@ def test(failfast=False, pattern='test*.py', verbosity=1):
 
 
 @manager.command
+def selenium(failfast=False, pattern='selenium_test*.py', verbosity=1):
+    """Runs the selenium tests."""
+    import unittest
+    verb_level = int(verbosity)
+    tests = unittest.TestLoader().discover('pouta_blueprints.tests', pattern=pattern)
+    res = unittest.TextTestRunner(verbosity=verb_level, failfast=failfast).run(tests)
+    if res.wasSuccessful():
+        return 0
+    else:
+        return 1
+
+
+@manager.command
 def cov():
     """Runs the unit tests with coverage."""
     import coverage
