@@ -89,6 +89,8 @@ class BaseConfig(object):
     DD_HOST_DATA_VOLUME_DEVICE = '/dev/vdb'
     DD_HOST_DATA_VOLUME_TYPE = ''
 
+    PRESERVE_CONTEXT_ON_EXCEPTION = False
+
     EXTERNAL_HTTPS_PORT = 443
 
     PROVISIONING_NUM_WORKERS = 1
@@ -103,10 +105,22 @@ class BaseConfig(object):
 
 class TestConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    PRESERVE_CONTEXT_ON_EXCEPTION = False
     MAIL_SUPPRESS_SEND = True
     FAKE_PROVISIONING = True
     SKIP_TASK_QUEUE = True
     BCRYPT_LOG_ROUNDS = 1
     WRITE_PROVISIONING_LOGS = False
     TEST_MODE = True
+    INSTALLATION_NAME = 'Pouta Blueprints'
+
+
+class LiveTestConfig(TestConfig):
+    """ Config for testing live. e.g. with Selenium.
+    """
+    # Live testing setup spawns a subprocess for the live server so in-memory
+    # is not easily achievable.
+    # ToDo: we could use tempfile to create a temporary named file in __init__
+    # and close it in __del__. If we do it's important to log the location so
+    # that the tester can access the db manually.
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.livetest.db'
+    PRESERVE_CONTEXT_ON_EXCEPTION = False

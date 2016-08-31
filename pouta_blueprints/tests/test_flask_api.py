@@ -6,10 +6,12 @@ import uuid
 
 from pouta_blueprints.tests.base import db, BaseTestCase
 from pouta_blueprints.models import (
-    User, Blueprint, Plugin, ActivationToken,
-    Notification, Instance, Variable)
+    User, Blueprint, ActivationToken,
+    Instance, Variable)
 from pouta_blueprints.config import BaseConfig
 from pouta_blueprints.views import activations
+
+from pouta_blueprints.tests.fixtures import primary_test_setup
 
 ADMIN_TOKEN = None
 USER_TOKEN = None
@@ -25,82 +27,7 @@ class FlaskApiTestCase(BaseTestCase):
             'DELETE': self.client.delete,
         }
         db.create_all()
-        u1 = User("admin@example.org", "admin", is_admin=True)
-        u2 = User("user@example.org", "user", is_admin=False)
-
-        # Fix user IDs to be the same for all tests, in order to reuse the same token
-        # for multiple tests
-        u1.id = 'u1'
-        u2.id = 'u2'
-        self.known_admin_id = u1.id
-        self.known_user_id = u2.id
-        db.session.add(u1)
-        db.session.add(u2)
-
-        p1 = Plugin()
-        p1.name = "TestPlugin"
-        self.known_plugin_id = p1.id
-        db.session.add(p1)
-
-        b1 = Blueprint()
-        b1.name = "TestBlueprint"
-        b1.plugin = p1.id
-        db.session.add(b1)
-        self.known_blueprint_id_disabled = b1.id
-
-        b2 = Blueprint()
-        b2.name = "EnabledTestBlueprint"
-        b2.plugin = p1.id
-        b2.is_enabled = True
-        db.session.add(b2)
-        self.known_blueprint_id = b2.id
-
-        b3 = Blueprint()
-        b3.name = "EnabledTestBlueprintClientIp"
-        b3.plugin = p1.id
-        b3.is_enabled = True
-        b3.config = {'allow_update_client_connectivity': True}
-        db.session.add(b3)
-        self.known_blueprint_id_2 = b3.id
-
-        n1 = Notification()
-        n1.subject = "First notification"
-        n1.message = "First notification message"
-        self.known_notification_id = n1.id
-        db.session.add(n1)
-
-        n2 = Notification()
-        n2.subject = "Second notification"
-        n2.message = "Second notification message"
-        self.known_notification2_id = n2.id
-        db.session.add(n2)
-
-        db.session.commit()
-
-        i1 = Instance(
-            Blueprint.query.filter_by(id=b2.id).first(),
-            User.query.filter_by(email="user@example.org").first())
-        db.session.add(i1)
-        self.known_instance_id = i1.id
-
-        i2 = Instance(
-            Blueprint.query.filter_by(id=b3.id).first(),
-            User.query.filter_by(email="user@example.org").first())
-        db.session.add(i2)
-        self.known_instance_id_2 = i2.id
-        i3 = Instance(
-            Blueprint.query.filter_by(id=b3.id).first(),
-            User.query.filter_by(email="user@example.org").first())
-        db.session.add(i3)
-        i3.state = Instance.STATE_DELETED
-
-        i4 = Instance(
-            Blueprint.query.filter_by(id=b3.id).first(),
-            User.query.filter_by(email="admin@example.org").first())
-        db.session.add(i4)
-
-        db.session.commit()
-
+        primary_test_setup(self)
         conf = BaseConfig()
         Variable.sync_local_config_to_db(BaseConfig, conf)
 
@@ -157,7 +84,10 @@ class FlaskApiTestCase(BaseTestCase):
     def make_authenticated_user_request(self, method='GET', path='/', headers=None, data=None):
         global USER_TOKEN
         if not USER_TOKEN:
-            USER_TOKEN = self.get_auth_token(creds={'email': 'user@example.org', 'password': 'user'})
+            USER_TOKEN = self.get_auth_token(creds={
+                'email': self.known_user_email,
+                'password': self.known_user_password}
+            )
         self.user_token = USER_TOKEN
         return self.make_authenticated_request(method, path, headers, data,
                                                auth_token=self.user_token)
@@ -193,7 +123,8 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'email': 'user@example.org', 'password': 'user'}))
+            data=json.dumps({'email': 'user@example.org', 'password': 'user'})
+        )
         self.assert_200(response)
 
         token = '%s:' % response.json['token']
