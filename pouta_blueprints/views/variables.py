@@ -79,5 +79,6 @@ class PublicVariableList(restful.Resource):
     def get(self):
         try:
             return Variable.query.filter(Variable.key.in_(PUBLIC_CONFIG_VARIABLES)).order_by(Variable.key).all()
-        except:
+        except Exception as ex:
+            logging.error("error in retrieving variables" + str(ex))
             return []
