@@ -399,7 +399,8 @@ class Variable(db.Model):
             if Variable.query.count() and not force_sync:
                 return
         except OperationalError:
-            logging.warn("Database structure not present! Run migrations!")
+            logging.warn("Database structure not present! Run migrations or"
+                         " configure db access!")
             return
         for k in vars(config_cls).keys():
             if not k.startswith("_") and k.isupper() and k not in cls.blacklisted_variables:
@@ -452,3 +453,12 @@ class Variable(db.Model):
         'MESSAGE_QUEUE_URI', 'SSL_VERIFY', 'ENABLE_SHIBBOLETH_LOGIN', 'PROVISIONING_NUM_WORKERS')
 
     blacklisted_variables = ('SECRET_KEY', 'SQLALCHEMY_DATABASE_URI')
+
+    def __unicode__(self):
+        return u"<Variable(%s, %s)>" % (self.key, self.value)
+
+    def __str__(self):
+        return "<Variable(%s, %s)>" % (self.key, self.value)
+
+    def __repr__(self):
+        return self.__str__()
