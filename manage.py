@@ -1,5 +1,6 @@
 from flask import url_for
 from flask.ext.script import Manager, Server, Shell
+from flask_migrate import MigrateCommand, Migrate
 from werkzeug.contrib.profiler import ProfilerMiddleware
 import getpass
 from pouta_blueprints import models
@@ -15,6 +16,7 @@ except NameError:
     pass
 
 manager = Manager(app)
+migrate = Migrate(app, models.db)
 
 
 def _make_context():
@@ -22,13 +24,14 @@ def _make_context():
 
 manager.add_command("shell", Shell(make_context=_make_context, use_bpython=True))
 manager.add_command("runserver", Server())
+manager.add_command("db", MigrateCommand)
 
 
 @manager.command
 def test(failfast=False, pattern='test*.py', verbosity=1):
     """Runs the unit tests without coverage."""
     import unittest
-    verb_level=int(verbosity)
+    verb_level = int(verbosity)
     tests = unittest.TestLoader().discover('pouta_blueprints.tests', pattern=pattern)
     res = unittest.TextTestRunner(verbosity=verb_level, failfast=failfast).run(tests)
     if res.wasSuccessful():
