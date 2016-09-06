@@ -36,11 +36,13 @@ class GroupList(restful.Resource):
         if not form.validate_on_submit():
             logging.warn("validation error on creating group")
             return form.errors, 422
-        # Check if the join code is valid
         group = Group(form.name.data)
         group.description = form.description.data
         user_config = form.user_config.data
-        group = group_users_add(group, user_config["banned_users"], user_config['users'], user_config["owners"])
+        try:
+            group = group_users_add(group, user_config)
+        except:
+            abort(422)
         group.user_config = user_config
         db.session.add(group)
         db.session.commit()
@@ -77,7 +79,10 @@ class GroupView(restful.Resource):
         group.description = form.description.data
 
         user_config = form.user_config.data
-        group = group_users_add(group, user_config["banned_users"], user_config['users'], user_config["owners"])
+        try:
+            group = group_users_add(group, user_config)
+        except KeyError:
+            abort(422)
         group.user_config = user_config
         db.session.add(group)
         db.session.commit()
@@ -93,10 +98,11 @@ class GroupView(restful.Resource):
         db.session.commit()
 
 
-def group_users_add(group, banned_users, users, owners):
+def group_users_add(group, user_config):
     # Add Banned users
     banned_users_final = []
-    if banned_users:
+    if 'banned_users' in user_config:
+        banned_users = user_config['banned_users']
         for banned_user_item in banned_users:
             banned_user_id = banned_user_item['id']
             banned_user = User.query.filter_by(id=banned_user_id).first()
@@ -107,7 +113,8 @@ def group_users_add(group, banned_users, users, owners):
     group.banned_users = banned_users_final  # setting a new list adds and also removes relationships
     # Now add users
     users_final = []
-    if users:
+    if 'users' in user_config:
+        users = user_config['users']
         for user_item in users:
             user_id = user_item['id']
             if user_item in banned_users:  # Check if the user is not banned
@@ -122,7 +129,8 @@ def group_users_add(group, banned_users, users, owners):
     # Group owners
     owners_final = []
     owners_final.append(g.user)  # Always add the user creating/modifying the group
-    if owners:
+    if 'owners' in user_config:
+        owners = user_config['owners']
         for owner_item in owners:
             owner_id = owner_item['id']
             if owner_item in banned_users:  # Check if the user is not banned
@@ -150,12 +158,14 @@ class GroupJoin(restful.Resource):
             return {"error": "The code entered is invalid. Please recheck and try again"}, 422
         if user in group.banned_users:
             logging.warn("user banned from the group with code %s", join_code)
-            return {"error": "You are banned from this group, please contact the concerned person"}, 422
+            return {"error": "You are banned from this group, please contact the concerned person"}, 403
         if user in group.users:
             logging.warn("user %s already exists in group", user.id)
             return {"error": "User already in the group"}, 422
         group.users.append(user)
         user_config = group.user_config
+        if 'users' not in user_config:
+            user_config['users'] = []
         user_config['users'].append({'id': user.id})
         group.user_config = user_config
         db.session.add(group)
