@@ -12,7 +12,7 @@ install:
 - pip install .
 
 before_script:
-- flake8 --ignore=E501,E402 pouta_blueprints
+- flake8 --ignore=E501,E402,E712 pouta_blueprints
 
 script:
 - python manage.py test
