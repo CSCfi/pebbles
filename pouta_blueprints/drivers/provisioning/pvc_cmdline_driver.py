@@ -272,13 +272,13 @@ if __name__ == '__main__':
         "software": ['Common', 'Cluster', 'Ganglia', 'Hadoop', 'Spark'],
         'firewall_rules': ["tcp 22 22 193.166.85.0/24"],
         # 'firewall_rules': [""],
-        'frontend_flavor': 'mini',
+        'frontend_flavor': 'standard.tiny',
         'frontend_image': 'Ubuntu-14.04',
         'frontend_volumes': [
             {'name': 'local_data', 'device': 'vdc', 'size': 5},
             {'name': 'shared_data', 'device': 'vdd', 'size': 0},
         ],
-        'node_flavor': 'mini',
+        'node_flavor': 'standard.tiny',
         'node_image': 'Ubuntu-14.04',
         'node_volumes': [
             {'name': 'local_data', 'size': 5},

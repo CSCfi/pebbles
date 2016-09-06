@@ -163,13 +163,13 @@ CONFIG = {
         'name': 'pvc',
         'description': 'pvc blueprint',
         'software': ['Common', ],
-        'frontend_flavor': 'mini',
+        'frontend_flavor': 'standard.tiny',
         'frontend_image': 'Ubuntu-14.04',
         'frontend_volumes': [
             {'name': 'local_data', 'device': '/dev/vdc', 'size': 0},
             {'name': 'shared_data', 'device': '/dev/vdd', 'size': 0},
         ],
-        'node_flavor': 'mini',
+        'node_flavor': 'standard.tiny',
         'node_image': 'Ubuntu-14.04',
         'node_volumes': [
             {'name': 'local_data', 'device': '/dev/vdc', 'size': 0},

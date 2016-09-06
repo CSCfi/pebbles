@@ -133,13 +133,13 @@ Refresh the page after a minute or two, and the *Plugins* list on top of the pag
 ## Create a test blueprint
 
 Click 'Create Blueprint' next to OpenStackDriver in the plugin list and you are presented by a dialog for configuring 
-the new blueprint. We'll create a blueprint for Ubuntu-14.04 based VM, using mini flavor, running for 1h maximum. We'll
+the new blueprint. We'll create a blueprint for Ubuntu-14.04 based VM, using standard.tiny flavor, running for 1h maximum. We'll
 also test running a custom command as part of the boot process and allow user to open ssh access to the instance from 
 an arbitrary address
  
 * Name: Ubuntu-14.04 test
 * Description: Test blueprint for launching a single core Ubuntu-14.04 VM in cPouta
-* Flavor: mini
+* Flavor: standard.tiny
 * Maximum lifetime: 1h
 * Maximum instances per user: 1
 * Pre-allocate credits for the instance from the user quota: unchecked
