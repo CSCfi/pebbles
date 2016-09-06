@@ -1,8 +1,7 @@
-from flask.ext.restful import fields
+from flask import g
+from flask.ext.restful import fields, marshal_with
 from flask import Blueprint as FlaskBlueprint
 import logging
-
-from flask.ext.restful import marshal_with
 
 from pouta_blueprints.models import db, Blueprint, BlueprintTemplate, Plugin, Group
 from pouta_blueprints.server import restful
@@ -10,6 +9,7 @@ from pouta_blueprints.views.commons import auth
 from pouta_blueprints.views.blueprint_templates import blueprint_schemaform_config
 from pouta_blueprints.views.blueprints import set_blueprint_fields_from_config
 from pouta_blueprints.utils import requires_admin, requires_group_owner_or_admin
+from pouta_blueprints.rules import apply_rules_export_blueprints
 from pouta_blueprints.forms import BlueprintImportForm, BlueprintTemplateImportForm
 
 import_export = FlaskBlueprint('import_export', __name__)
@@ -89,7 +89,8 @@ class ImportExportBlueprints(restful.Resource):
     @requires_group_owner_or_admin
     @marshal_with(blueprint_export_fields)
     def get(self):
-        query = Blueprint.query
+        user = g.user
+        query = apply_rules_export_blueprints(user)
         blueprints = query.all()
 
         results = []
@@ -104,7 +105,6 @@ class ImportExportBlueprints(restful.Resource):
                 'group_name': blueprint.group.name
             }
             results.append(obj)
-
         return results
 
     @auth.login_required
@@ -114,7 +114,7 @@ class ImportExportBlueprints(restful.Resource):
 
         if not form.validate_on_submit():
             logging.warn(form.errors)
-            logging.warn("validation error on create blueprint")
+            logging.warn("validation error on creating blueprints with import")
             return form.errors, 422
 
         template_name = form.template_name.data

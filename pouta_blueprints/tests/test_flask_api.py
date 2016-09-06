@@ -15,6 +15,8 @@ from pouta_blueprints.tests.fixtures import primary_test_setup
 
 ADMIN_TOKEN = None
 USER_TOKEN = None
+GROUP_OWNER_TOKEN = None
+GROUP_OWNER_TOKEN2 = None
 
 
 class FlaskApiTestCase(BaseTestCase):
@@ -91,6 +93,22 @@ class FlaskApiTestCase(BaseTestCase):
         self.user_token = USER_TOKEN
         return self.make_authenticated_request(method, path, headers, data,
                                                auth_token=self.user_token)
+
+    def make_authenticated_group_owner_request(self, method='GET', path='/', headers=None, data=None):
+        global GROUP_OWNER_TOKEN
+        if not GROUP_OWNER_TOKEN:
+            GROUP_OWNER_TOKEN = self.get_auth_token(creds={'email': 'group_owner@example.org', 'password': 'group_owner'})
+        self.group_owner_token = GROUP_OWNER_TOKEN
+        return self.make_authenticated_request(method, path, headers, data,
+                                               auth_token=self.group_owner_token)
+
+    def make_authenticated_group_owner2_request(self, method='GET', path='/', headers=None, data=None):
+        global GROUP_OWNER_TOKEN2
+        if not GROUP_OWNER_TOKEN2:
+            GROUP_OWNER_TOKEN2 = self.get_auth_token(creds={'email': 'group_owner2@example.org', 'password': 'group_owner2'})
+        self.group_owner_token2 = GROUP_OWNER_TOKEN2
+        return self.make_authenticated_request(method, path, headers, data,
+                                               auth_token=self.group_owner_token2)
 
     def test_first_user(self):
         db.drop_all()
@@ -235,6 +253,151 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/users')
         self.assert_200(response)
 
+    def test_get_groups(self):
+        # Anonymous
+        response = self.make_request(path='/api/v1/groups')
+        self.assert_401(response)
+        # Authenticated User
+        response = self.make_authenticated_user_request(path='/api/v1/groups')
+        self.assert_403(response)
+        # Authenticated Group Owner
+        response = self.make_authenticated_group_owner_request(path='/api/v1/groups')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 1)
+        # Admin
+        response = self.make_authenticated_admin_request(path='/api/v1/groups')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 4)
+
+    def test_create_group(self):
+
+        data = {
+            'name': 'TestGroup',
+            'description': 'Group Details',
+            'user_config': {
+                'users': [{'id': self.known_user_id}],
+                'banned_users': [],
+                'owners': []
+            }
+        }
+        data_2 = {
+            'name': 'TestGroup2',
+            'description': 'Group Details',
+            'user_config': {
+                'banned_users': [{'id': self.known_user_id}],
+            }
+        }
+        data_3 = {
+            'name': 'TestGroup',
+            'description': 'Group Details',
+            'user_config': {
+            }
+        }
+        # Anonymous
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/groups',
+            data=json.dumps(data))
+        self.assertStatus(response, 401)
+        # Authenticated User
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/groups',
+            data=json.dumps(data))
+        self.assertStatus(response, 403)
+        # Group Owner
+        response = self.make_authenticated_group_owner_request(
+            method='POST',
+            path='/api/v1/groups',
+            data=json.dumps(data))
+        self.assertStatus(response, 200)
+
+        response = self.make_authenticated_group_owner_request(
+            method='POST',
+            path='/api/v1/groups',
+            data=json.dumps(data_2))
+        self.assertStatus(response, 200)
+
+        response = self.make_authenticated_group_owner_request(
+            method='POST',
+            path='/api/v1/groups',
+            data=json.dumps(data_3))
+        self.assertStatus(response, 200)
+        # Admin
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/groups',
+            data=json.dumps(data))
+        self.assertStatus(response, 200)
+
+    def test_create_group_invalid_data(self):
+        invalid_data = {
+            'name': 'TestGroup',
+            'description': 'Group Details',
+            'user_config': {
+                'users': ['bogus_id']
+            }
+        }
+        invalid_response = self.make_authenticated_group_owner_request(
+            method='POST',
+            path='/api/v1/groups',
+            data=json.dumps(invalid_data))
+        self.assertStatus(invalid_response, 422)
+
+        invalid_response = self.make_authenticated_group_owner_request(
+            method='POST',
+            path='/api/v1/groups',
+            data=json.dumps(invalid_data))
+        self.assertStatus(invalid_response, 422)
+
+    def test_join_group(self):
+        # Anonymous
+        response = self.make_request(
+            method='PUT',
+            path='/api/v1/groups/group_join/%s' % self.known_group_join_id)
+        self.assertStatus(response, 401)
+        # Authenticated User
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/groups/group_join/%s' % self.known_group_join_id)
+        self.assertStatus(response, 200)
+        # Group Owner
+        response = self.make_authenticated_group_owner_request(
+            method='PUT',
+            path='/api/v1/groups/group_join/%s' % self.known_group_join_id)
+        self.assertStatus(response, 200)
+
+    def test_join_group_invalid(self):
+        # Authenticated User
+        invalid_response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/groups/group_join/')
+        self.assertStatus(invalid_response, 405)  # Not allowed without joining code
+        # Authenticated User Bogus Code
+        invalid_response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/groups/group_join/%s' % 'bogusx10')
+        self.assertStatus(invalid_response, 422)
+        # Group Owner Bogus Code
+        invalid_response = self.make_authenticated_group_owner_request(
+            method='PUT',
+            path='/api/v1/groups/group_join/%s' % 'bogusx10')
+        self.assertStatus(invalid_response, 422)
+
+    def test_join_group_banned_user(self):
+
+        # Authenticated User
+        banned_response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/groups/group_join/%s' % self.known_banned_group_join_id)
+        self.assertStatus(banned_response, 403)
+
+        # Authenticated User
+        banned_response = self.make_authenticated_group_owner_request(
+            method='PUT',
+            path='/api/v1/groups/group_join/%s' % self.known_banned_group_join_id)
+        self.assertStatus(banned_response, 403)
+
     def test_get_plugins(self):
         # Anonymous
         response = self.make_request(path='/api/v1/plugins')
@@ -297,18 +460,68 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(data))
         self.assertStatus(response, 422)
 
+    def test_get_blueprint_templates(self):
+        # Anonymous
+        response = self.make_request(path='/api/v1/blueprint_templates')
+        self.assert_401(response)
+        # Authenticated User
+        response = self.make_authenticated_user_request(path='/api/v1/blueprint_templates')
+        self.assert_403(response)
+        # Authenticated Group Owner
+        response = self.make_authenticated_group_owner_request(path='/api/v1/blueprint_templates')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 1)
+        # Admin
+        response = self.make_authenticated_admin_request(path='/api/v1/blueprint_templates')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 2)
+
+    def test_create_blueprint_template(self):
+        # Anonymous
+        data = {'name': 'test_blueprint_template_1', 'config': '', 'plugin': 'dummy'}
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/blueprint_templates',
+            data=json.dumps(data))
+        self.assert_401(response)
+        # Authenticated User
+        data = {'name': 'test_blueprint_template_1', 'config': '', 'plugin': 'dummy'}
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/blueprint_templates',
+            data=json.dumps(data))
+        self.assert_403(response)
+        # Authenticated Group Owner
+        data = {'name': 'test_blueprint_template_1', 'config': '', 'plugin': 'dummy'}
+        response = self.make_authenticated_group_owner_request(
+            method='POST',
+            path='/api/v1/blueprint_templates',
+            data=json.dumps(data))
+        self.assert_403(response)
+        # Admin
+        data = {'name': 'test_blueprint_template_1', 'config': {'foo': 'bar'}, 'plugin': 'dummy'}
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/blueprint_templates',
+            data=json.dumps(data))
+        self.assert_200(response)
+
     def test_get_blueprints(self):
         # Anonymous
         response = self.make_request(path='/api/v1/blueprints')
         self.assert_401(response)
-        # Authenticated
+        # Authenticated User for Group 1
         response = self.make_authenticated_user_request(path='/api/v1/blueprints')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
+        # Authenticated Group Owner for Group 1 and Normal User for Group 2
+        response = self.make_authenticated_group_owner_request(path='/api/v1/blueprints')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 4)
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/blueprints')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 3)
+        self.assertEqual(len(response.json), 5)
 
     def test_get_blueprint(self):
         # Existing blueprint
@@ -335,41 +548,85 @@ class FlaskApiTestCase(BaseTestCase):
 
     def test_create_blueprint(self):
         # Anonymous
-        data = {'name': 'test_blueprint_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_blueprint_1', 'config': '', 'template_id': self.known_template_id, 'group_id': self.known_group_id}
         response = self.make_request(
             method='POST',
             path='/api/v1/blueprints',
             data=json.dumps(data))
         self.assert_401(response)
         # Authenticated
-        data = {'name': 'test_blueprint_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_blueprint_1', 'config': '', 'template_id': self.known_template_id, 'group_id': self.known_group_id}
         response = self.make_authenticated_user_request(
             method='POST',
             path='/api/v1/blueprints',
             data=json.dumps(data))
         self.assert_403(response)
+        # Group Owner 1
+        data = {'name': 'test_blueprint_1', 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id}
+        response = self.make_authenticated_group_owner_request(
+            method='POST',
+            path='/api/v1/blueprints',
+            data=json.dumps(data))
+        self.assert_200(response)
+        # Group Owner 2 (extra owner added to group 1)
+        response = self.make_authenticated_group_owner2_request(
+            method='POST',
+            path='/api/v1/blueprints',
+            data=json.dumps(data))
+        self.assert_200(response)
         # Admin
-        data = {'name': 'test_blueprint_1', 'config': {'foo': 'bar'}, 'plugin': 'dummy'}
+        data = {'name': 'test_blueprint_1', 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id}
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/blueprints',
             data=json.dumps(data))
         self.assert_200(response)
 
+    def test_create_blueprint_full_config(self):
+        # Group Owner
+        data = {
+            'name': 'test_blueprint_2',
+            'config': {
+                'foo': 'bar',
+                'memory_limit': '1024m',
+                'maximum_lifetime': '10h'
+            },
+            'template_id': self.known_template_id,
+            'group_id': self.known_group_id
+        }
+        post_response = self.make_authenticated_group_owner_request(
+            method='POST',
+            path='/api/v1/blueprints',
+            data=json.dumps(data))
+        self.assert_200(post_response)
+
+        blueprint = Blueprint.query.filter_by(name='test_blueprint_2').first()
+        blueprint_id = blueprint.id
+
+        get_response = self.make_authenticated_group_owner_request(
+            method='GET',
+            path='/api/v1/blueprints/%s' % blueprint_id)
+        self.assert_200(get_response)
+        blueprint_json = get_response.json
+        self.assertNotIn('foo', blueprint_json['full_config'])  # 'foo' exists in blueprint config but not in template config
+        self.assertNotEqual(blueprint_json['full_config']['memory_limit'], '1024m')  # blueprint config value (memory_limit is not an allowed attribute)
+        self.assertEquals(blueprint_json['full_config']['memory_limit'], '512m')  # blueprint template value (memory_limit is not an allowed attribute)
+        self.assertEquals(blueprint_json['full_config']['maximum_lifetime'], '10h')  # blueprint config value overrides template value (allowed attribute)
+
     def test_create_modify_blueprint_timeformat(self):
 
         form_data = [
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d 1h 40m'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d1h40m'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '30m'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '5h30m'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d12h'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d 10m'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1h 1m'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '0d2h 30m'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": ''}, 'plugin': 'dummy'}
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d 1h 40m'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d1h40m'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '30m'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '5h30m'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d12h'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d 10m'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1h 1m'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '0d2h 30m'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": ''}, 'template_id': self.known_template_id, 'group_id': self.known_group_id}
         ]
         expected_lifetimes = [92400, 92400, 86400, 36000, 1800, 19800, 129600, 87000, 3660, 9000, 3600]
 
@@ -398,8 +655,41 @@ class FlaskApiTestCase(BaseTestCase):
             'config': {
                 "maximum_lifetime": "0h"
             },
-            'plugin': self.known_plugin_id,
+            'template_id': self.known_template_id,
+            'group_id': self.known_group_id
         }
+
+        # Authenticated Normal User
+        put_response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled,
+            data=json.dumps(data))
+        self.assert_403(put_response)
+        # Group owner not an owner of the blueprint group 2
+        put_response = self.make_authenticated_group_owner_request(
+            method='PUT',
+            path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled_2,
+            data=json.dumps(data))
+        self.assert_403(put_response)
+        # Group Owner is an owner of the blueprint group 1
+        put_response = self.make_authenticated_group_owner_request(
+            method='PUT',
+            path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled,
+            data=json.dumps(data))
+        self.assert_200(put_response)
+        # Group owner 2 is part of the blueprint group 1 as an additional owner
+        put_response = self.make_authenticated_group_owner2_request(
+            method='PUT',
+            path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled,
+            data=json.dumps(data))
+        self.assert_200(put_response)
+        # Group owner 2 owner of the blueprint group 2
+        put_response = self.make_authenticated_group_owner2_request(
+            method='PUT',
+            path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled,
+            data=json.dumps(data))
+        self.assert_200(put_response)
+        # Admin
         put_response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled,
@@ -418,7 +708,8 @@ class FlaskApiTestCase(BaseTestCase):
                 "cost_multiplier": '0.1',
                 "preallocated_credits": "true",
             },
-            'plugin': self.known_plugin_id
+            'template_id': self.known_template_id,
+            'group_id': self.known_group_id
         }
         put_response = self.make_authenticated_admin_request(
             method='PUT',
@@ -433,16 +724,19 @@ class FlaskApiTestCase(BaseTestCase):
 
     def test_create_blueprint_admin_invalid_data(self):
         invalid_form_data = [
-            {'name': '', 'config': 'foo: bar', 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': '', 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': 'foo: bar', 'plugin': ''},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": ' '}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10 100'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1hh'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '-1m'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '-10h'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '2d -10h'}, 'plugin': 'dummy'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '30s'}, 'plugin': 'dummy'},
+            {'name': '', 'config': 'foo: bar', 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': '', 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': 'foo: bar', 'template_id': self.known_template_id},
+            {'name': 'test_blueprint_2', 'config': 'foo: bar', 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": ' '}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10 100'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1hh'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '-1m'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '-10h'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '2d -10h'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '30s'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'group_id': 'unknown'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': 'unknown', 'group_id': self.known_group_id},
         ]
         for data in invalid_form_data:
             response = self.make_authenticated_admin_request(
@@ -450,6 +744,36 @@ class FlaskApiTestCase(BaseTestCase):
                 path='/api/v1/blueprints',
                 data=json.dumps(data))
             self.assertStatus(response, 422)
+
+    def test_create_blueprint_group_owner_invalid_data(self):
+        invalid_form_data = [
+            {'name': '', 'config': 'foo: bar', 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': '', 'template_id': self.known_template_id, 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': 'foo: bar', 'template_id': self.known_template_id},
+            {'name': 'test_blueprint_2', 'config': 'foo: bar', 'group_id': self.known_group_id},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'group_id': 'unknown'},
+            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': 'unknown', 'group_id': self.known_group_id},
+        ]
+        for data in invalid_form_data:
+            response = self.make_authenticated_group_owner_request(
+                method='POST',
+                path='/api/v1/blueprints',
+                data=json.dumps(data))
+            self.assertStatus(response, 422)
+
+        # Group owner is a user but not the owner of the group with id : known_group_id_2
+        invalid_group_data = {'name': 'test_blueprint_2', 'config': {"name": "foo"}, 'template_id': self.known_template_id, 'group_id': self.known_group_id_2}
+        response = self.make_authenticated_group_owner_request(
+            method='POST',
+            path='/api/v1/blueprints',
+            data=json.dumps(invalid_group_data))
+        self.assertStatus(response, 403)
+
+        put_response = self.make_authenticated_group_owner_request(
+            method='PUT',
+            path='/api/v1/blueprints/%s' % self.known_blueprint_id_2,
+            data=json.dumps(invalid_group_data))
+        self.assertStatus(put_response, 403)
 
     def test_anonymous_invite_user(self):
         data = {'email': 'test@example.org', 'password': 'test', 'is_admin': True}
@@ -576,6 +900,14 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_401(response)
 
     def test_user_create_instance(self):
+        # User is not a part of the group (Group2)
+        data = {'blueprint': self.known_blueprint_id_g2}
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/instances',
+            data=json.dumps(data))
+        self.assert_403(response)
+        # User is a part of the group (Group1)
         data = {'blueprint': self.known_blueprint_id}
         response = self.make_authenticated_user_request(
             method='POST',
@@ -933,20 +1265,96 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/locks/%s' % unique_id)
         self.assertStatus(response, 200)
 
+    def test_user_and_group_owner_export_blueprint_templates(self):
+        response = self.make_authenticated_user_request(path='/api/v1/import_export/blueprint_templates')
+        self.assertStatus(response, 403)
+
+        response = self.make_authenticated_group_owner_request(path='/api/v1/import_export/blueprint_templates')
+        self.assertStatus(response, 403)
+
+    def test_admin_export_blueprint_templates(self):
+
+        response = self.make_authenticated_admin_request(path='/api/v1/import_export/blueprint_templates')
+        self.assertStatus(response, 200)
+        self.assertEquals(len(response.json), 2)  # There were total 2 templates initialized during setup
+
+    def test_user_and_group_owner_import_blueprint_templates(self):
+
+        blueprints_data = [
+            {'name': 'foo',
+             'config': {
+                 'maximum_lifetime': '1h'
+             },
+             'plugin_name': 'TestPlugin',
+             'allowed_attrs': ['maximum_lifetime']
+             },
+            {'name': 'foobar',
+             'config': {
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
+             },
+             'plugin_name': 'TestPlugin',
+             'allowed_attrs': []
+             }
+        ]
+        # Authenticated User
+        for blueprint_item in blueprints_data:
+            response = self.make_authenticated_user_request(
+                method='POST',
+                path='/api/v1/import_export/blueprint_templates',
+                data=json.dumps(blueprint_item))
+            self.assertEqual(response.status_code, 403)
+        # Group Owner
+        for blueprint_item in blueprints_data:
+            response = self.make_authenticated_group_owner_request(
+                method='POST',
+                path='/api/v1/import_export/blueprint_templates',
+                data=json.dumps(blueprint_item))
+            self.assertEqual(response.status_code, 403)
+
+    def test_admin_import_blueprint_templates(self):
+
+        blueprints_data = [
+            {'name': 'foo',
+             'config': {
+                 'maximum_lifetime': '1h'
+             },
+             'plugin_name': 'TestPlugin',
+             'allowed_attrs': ['maximum_lifetime']
+             },
+            {'name': 'foobar',
+             'config': {
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
+             },
+             'plugin_name': 'TestPlugin',
+             'allowed_attrs': []
+             }
+        ]
+        # Admin
+        for blueprint_item in blueprints_data:
+            response = self.make_authenticated_admin_request(
+                method='POST',
+                path='/api/v1/import_export/blueprint_templates',
+                data=json.dumps(blueprint_item))
+            self.assertEqual(response.status_code, 200)
+
     def test_anonymous_export_blueprints(self):
         response = self.make_request(path='/api/v1/import_export/blueprints')
         self.assertStatus(response, 401)
 
     def test_user_export_blueprints(self):
-
         response = self.make_authenticated_user_request(path='/api/v1/import_export/blueprints')
         self.assertStatus(response, 403)
+
+    def test_group_owner_export_blueprints(self):
+        response = self.make_authenticated_group_owner_request(path='/api/v1/import_export/blueprints')
+        self.assertStatus(response, 200)
+        self.assertEquals(len(response.json), 3)
 
     def test_admin_export_blueprints(self):
 
         response = self.make_authenticated_admin_request(path='/api/v1/import_export/blueprints')
         self.assertStatus(response, 200)
-        self.assertEquals(len(response.json), 3)  # There were three blueprints initialized during setup
+        self.assertEquals(len(response.json), 5)  # There were total 5 blueprints initialized during setup
 
     def test_anonymous_import_blueprints(self):
 
@@ -955,13 +1363,15 @@ class FlaskApiTestCase(BaseTestCase):
              'config': {
                  'maximum_lifetime': '1h'
              },
-             'plugin_name': 'TestPlugin'
+             'template_name': 'TestTemplate',
+             'group_name': 'Group1'
              },
             {'name': 'foobar',
              'config': {
                  'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
              },
-             'plugin_name': 'TestPlugin'
+             'template_name': 'TestTemplate',
+             'group_name': 'Group1'
              }
         ]
 
@@ -979,13 +1389,15 @@ class FlaskApiTestCase(BaseTestCase):
              'config': {
                  'maximum_lifetime': '1h'
              },
-             'plugin_name': 'TestPlugin'
+             'template_name': 'TestTemplate',
+             'group_name': 'Group1'
              },
             {'name': 'foobar',
              'config': {
                  'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
              },
-             'plugin_name': 'TestPlugin'
+             'template_name': 'TestTemplate',
+             'group_name': 'Group1'
              }
         ]
 
@@ -1003,13 +1415,15 @@ class FlaskApiTestCase(BaseTestCase):
              'config': {
                  'maximum_lifetime': '1h'
              },
-             'plugin_name': 'TestPlugin'
+             'template_name': 'TestTemplate',
+             'group_name': 'Group1'
              },
             {'name': 'foobar',
              'config': {
                  'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
              },
-             'plugin_name': 'TestPlugin'
+             'template_name': 'TestTemplate',
+             'group_name': 'Group1'
              }
         ]
 
@@ -1020,25 +1434,32 @@ class FlaskApiTestCase(BaseTestCase):
                 data=json.dumps(blueprint_item))
             self.assertEqual(response.status_code, 200)
 
-        blueprint_invalid1 = {'name': 'foo', 'plugin_name': 'TestPlugin'}
+        blueprint_invalid1 = {'name': 'foo', 'template_name': 'TestTemplate', 'group_name': 'Group1'}
         response1 = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/import_export/blueprints',
             data=json.dumps(blueprint_invalid1))
         self.assertEqual(response1.status_code, 422)
 
-        blueprint_invalid2 = {'name': '', 'plugin_name': 'TestPlugin'}
+        blueprint_invalid2 = {'name': '', 'template_name': 'TestTemplate', 'group_name': 'Group1'}
         response2 = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/import_export/blueprints',
             data=json.dumps(blueprint_invalid2))
         self.assertEqual(response2.status_code, 422)
 
-        blueprint_invalid3 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'plugin_name': ''}
+        blueprint_invalid3 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': '', 'group_name': 'Group1'}
         response3 = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/import_export/blueprints',
             data=json.dumps(blueprint_invalid3))
+        self.assertEqual(response3.status_code, 422)
+
+        blueprint_invalid4 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': 'TestTemplate', 'group_name': ''}
+        response3 = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/import_export/blueprints',
+            data=json.dumps(blueprint_invalid4))
         self.assertEqual(response3.status_code, 422)
 
     def test_anonymous_get_notifications(self):

@@ -155,6 +155,9 @@ class User(db.Model):
     def __repr__(self):
         return self.email
 
+    def __hash__(self):
+        return hash(self.email)
+
 
 group_user = db.Table('groups_users', db.Column('group_id', db.String(32), db.ForeignKey('groups.id')), db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'user_id'))
 group_banned_user = db.Table('groups_banned_users', db.Column('group_id', db.String(32), db.ForeignKey('groups.id')), db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'user_id'))

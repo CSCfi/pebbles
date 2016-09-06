@@ -1,8 +1,21 @@
-from pouta_blueprints.models import Blueprint, Instance
+from pouta_blueprints.models import Blueprint, BlueprintTemplate, Instance
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import load_only
+from sqlalchemy.sql.expression import true
 import itertools
-import logging
+# import logging
+
+
+def apply_rules_blueprint_templates(user, args={}):
+
+    q = BlueprintTemplate.query
+    if not user.is_admin:
+        query_exp = BlueprintTemplate.is_enabled == true()
+        q = q.filter(query_exp)
+    if args.get('template_id'):
+        q = q.filter_by(id=args.get('template_id'))
+
+    return q
 
 
 def apply_rules_blueprints(user, args={}):
@@ -16,7 +29,7 @@ def apply_rules_blueprints(user, args={}):
 
         # Start building query expressions based on the condition that :
         # a group owner can see all of his blueprints and only enabled ones of other groups
-        query_exp = Blueprint.is_enabled == True
+        query_exp = Blueprint.is_enabled == true()
         allowed_group_ids_exp = None
         if allowed_group_ids:
             allowed_group_ids_exp = Blueprint.group_id.in_(allowed_group_ids)
@@ -30,6 +43,17 @@ def apply_rules_blueprints(user, args={}):
     if args.get('blueprint_id'):
         q = q.filter_by(id=args.get('blueprint_id'))
 
+    return q
+
+
+def apply_rules_export_blueprints(user, args={}):
+    q = Blueprint.query
+    if not user.is_admin:
+        owned_group_ids = [owned_group_item.id for owned_group_item in user.owned_groups]
+        query_exp = None
+        if owned_group_ids:
+            query_exp = Blueprint.group_id.in_(owned_group_ids)
+        q = q.filter(query_exp)
     return q
 
 

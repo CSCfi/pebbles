@@ -1,5 +1,5 @@
 from flask.ext.restful import marshal_with
-from flask import abort
+from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 from flask.ext.restful import fields
 
@@ -10,6 +10,7 @@ from pouta_blueprints.forms import BlueprintTemplateForm
 from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth
 from pouta_blueprints.utils import requires_admin, requires_group_owner_or_admin
+from pouta_blueprints.rules import apply_rules_blueprint_templates
 
 blueprint_templates = FlaskBlueprint('blueprint_templates', __name__)
 
@@ -33,7 +34,8 @@ class BlueprintTemplateList(restful.Resource):
     @requires_group_owner_or_admin
     @marshal_with(blueprint_template_fields)
     def get(self):
-        query = BlueprintTemplate.query
+        user = g.user
+        query = apply_rules_blueprint_templates(user)
         results = []
         for blueprint_template in query.all():
             plugin = Plugin.query.filter_by(id=blueprint_template.plugin).first()
@@ -75,7 +77,8 @@ class BlueprintTemplateView(restful.Resource):
     @requires_group_owner_or_admin
     @marshal_with(blueprint_template_fields)
     def get(self, template_id):
-        query = BlueprintTemplate.query.filter_by(id=template_id)
+        args = {'template_id': template_id}
+        query = apply_rules_blueprint_templates(g.user, args)
         blueprint_template = query.first()
         if not blueprint_template:
             abort(404)

@@ -4,7 +4,7 @@ from flask import Blueprint as FlaskBlueprint
 
 import logging
 
-from pouta_blueprints.models import db, Blueprint, Group
+from pouta_blueprints.models import db, Blueprint, BlueprintTemplate, Group
 from pouta_blueprints.forms import BlueprintForm
 from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth
@@ -66,24 +66,33 @@ class BlueprintList(restful.Resource):
     def post(self):
         form = BlueprintForm()
         if not form.validate_on_submit():
+            logging.warn(form.errors)
             logging.warn("validation error on create blueprint")
             return form.errors, 422
-
         user = g.user
         blueprint = Blueprint()
         blueprint.name = form.name.data
-
+        template_id = form.template_id.data
+        template = BlueprintTemplate.query.filter_by(id=template_id).first()
+        if not template:
+            abort(422)
+        blueprint.template_id = template_id
         group_id = form.group_id.data
         group = Group.query.filter_by(id=group_id).first()
+        if not group:
+            abort(422)
         if not user.is_admin and group not in user.owned_groups:
             logging.warn("invalid group for the user")
-            abort(406)
+            abort(403)
         blueprint.group_id = group_id
-
-        form.config.data.pop('name', None)
+        if 'name' in form.config.data:
+            form.config.data.pop('name', None)
         blueprint.config = form.config.data
-        blueprint.template_id = form.template_id.data
-        blueprint = set_blueprint_fields_from_config(blueprint)
+        try:
+            blueprint = set_blueprint_fields_from_config(blueprint)
+        except ValueError:
+            timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
+            return timeformat_error, 422
         db.session.add(blueprint)
         db.session.commit()
 
@@ -113,12 +122,17 @@ class BlueprintView(restful.Resource):
         blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
         if not blueprint:
             abort(404)
-        if not user.is_admin and blueprint.group not in user.owned_groups:
+        group_id = form.group_id.data
+        group = Group.query.filter_by(id=group_id).first()
+        if not group:
+            abort(422)
+        if not user.is_admin and (blueprint.group not in user.owned_groups or group not in user.owned_groups):
             logging.warn("invalid group for the user")
-            abort(406)
+            abort(403)
 
         blueprint.name = form.config.data.get('name') or form.name.data
-        form.config.data.pop('name', None)
+        if 'name' in form.config.data:
+            form.config.data.pop('name', None)
         blueprint.config = form.config.data
 
         blueprint = set_blueprint_fields_from_config(blueprint)
@@ -156,22 +170,17 @@ def set_blueprint_fields_from_config(blueprint):
             pass
 
     if 'maximum_lifetime' in config:
+        max_life_str = str(config['maximum_lifetime'])
+        if max_life_str:
+            maximum_lifetime = parse_maximum_lifetime(max_life_str)
+            blueprint.maximum_lifetime = maximum_lifetime
+        else:
+            blueprint.maximum_lifetime = 3600  # Default value if not provided anything by user
 
-        timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
+    if 'cost_multiplier' in config:
         try:
-            max_life_str = str(config['maximum_lifetime'])
-            if max_life_str:
-                maximum_lifetime = parse_maximum_lifetime(max_life_str)
-                blueprint.maximum_lifetime = maximum_lifetime
-            else:
-                blueprint.maximum_lifetime = 3600  # Default value if not provided anything by user
-        except ValueError:
-            return timeformat_error, 422
-
-        if 'cost_multiplier' in config:
-            try:
-                blueprint.cost_multiplier = float(config['cost_multiplier'])
-            except:
-                pass
+            blueprint.cost_multiplier = float(config['cost_multiplier'])
+        except:
+            pass
 
     return blueprint
