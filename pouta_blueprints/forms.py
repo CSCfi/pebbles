@@ -2,7 +2,7 @@ from flask.ext.wtf import Form
 from wtforms_alchemy import model_form_factory
 from wtforms import BooleanField, StringField
 # from wtforms import FormField, FieldList
-from wtforms.validators import DataRequired, Email, Length, IPAddress
+from wtforms.validators import DataRequired, Email, Length, IPAddress, Regexp
 
 from pouta_blueprints.models import (
     MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH,
@@ -11,6 +11,7 @@ from pouta_blueprints.models import (
 )
 
 from pouta_blueprints.models import db
+import re
 
 BaseModelForm = model_form_factory(Form)
 
@@ -28,7 +29,7 @@ class UserForm(ModelForm):
 
 
 class GroupForm(ModelForm):
-    name = StringField('name', validators=[DataRequired()])
+    name = StringField('name', validators=[DataRequired(), Regexp('^(?!System).+', re.IGNORECASE, message='name cannot start with System')])
     description = StringField('description')
     user_config = StringField('user_config')
 

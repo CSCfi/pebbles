@@ -84,6 +84,7 @@ class GroupView(restful.Resource):
         except KeyError:
             abort(422)
         group.user_config = user_config
+
         db.session.add(group)
         db.session.commit()
 

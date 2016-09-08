@@ -2,7 +2,7 @@ from flask.ext.restful import fields
 from flask.ext.httpauth import HTTPBasicAuth
 from flask import g, render_template
 import logging
-from pouta_blueprints.models import db, ActivationToken, User, BlueprintTemplate
+from pouta_blueprints.models import db, ActivationToken, User, Group
 from pouta_blueprints.server import app
 from pouta_blueprints.tasks import send_mails
 
@@ -53,6 +53,8 @@ def create_user(email, password, is_admin=False):
         return None
 
     user = User(email, password, is_admin=is_admin)
+    if not is_admin:
+        add_user_to_default_group(user)
     db.session.add(user)
     db.session.commit()
     return user
@@ -86,15 +88,15 @@ def invite_user(email, password=None, is_admin=False):
     return user
 
 
-def get_full_blueprint_config(blueprint):
+def create_system_groups(admin):
+    system_default_group = Group('System.default')
+    system_default_group.owners.append(admin)
+    db.session.add(system_default_group)
+    db.session.commit()
 
-    template = BlueprintTemplate.query.filter_by(id=blueprint.template_id)
-    template_config = template.config
-    allowed_attrs = template.blueprint_form  # set in blueprint templates view
-    bp_config = blueprint.config
 
-    for attr in allowed_attrs:
-        if attr in bp_config:
-            template_config[attr] = bp_config[attr]
-
-    return template_config
+def add_user_to_default_group(user):
+    system_default_group = Group.query.filter_by(name='System.default').first()
+    system_default_group.users.append(user)
+    db.session.add(system_default_group)
+    db.session.commit()

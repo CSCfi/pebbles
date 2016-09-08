@@ -6,7 +6,7 @@ import uuid
 
 from pouta_blueprints.tests.base import db, BaseTestCase
 from pouta_blueprints.models import (
-    User, Blueprint, ActivationToken,
+    User, Group, Blueprint, ActivationToken,
     Instance, Variable)
 from pouta_blueprints.config import BaseConfig
 from pouta_blueprints.views import activations
@@ -267,7 +267,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/groups')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 4)
+        self.assertEqual(len(response.json), 5)
 
     def test_create_group(self):
 
@@ -338,6 +338,19 @@ class FlaskApiTestCase(BaseTestCase):
                 'users': ['bogus_id']
             }
         }
+        # Try to create system level groups
+        invalid_system_data = {
+            'name': 'System.Group',
+            'description': 'Group Details',
+            'user_config': {
+            }
+        }
+        invalid_system_data_2 = {
+            'name': 'system group',
+            'description': 'Group Details',
+            'user_config': {
+            }
+        }
         invalid_response = self.make_authenticated_group_owner_request(
             method='POST',
             path='/api/v1/groups',
@@ -349,6 +362,46 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/groups',
             data=json.dumps(invalid_data))
         self.assertStatus(invalid_response, 422)
+
+        invalid_response = self.make_authenticated_group_owner_request(
+            method='POST',
+            path='/api/v1/groups',
+            data=json.dumps(invalid_system_data))
+        self.assertStatus(invalid_response, 422)
+
+        invalid_response = self.make_authenticated_group_owner_request(
+            method='POST',
+            path='/api/v1/groups',
+            data=json.dumps(invalid_system_data_2))
+        self.assertStatus(invalid_response, 422)
+
+    def test_delete_group(self):
+        name = 'GroupToBeDeleted'
+        g = Group(name)
+        u = User.query.filter_by(id=self.known_user_id).first()
+        g.users.append(u)
+        db.session.add(g)
+        db.session.commit()
+        # Anonymous
+        response = self.make_request(
+            method='DELETE',
+            path='/api/v1/groups/%s' % g.id
+        )
+        self.assert_401(response)
+        # Authenticated
+        response = self.make_authenticated_user_request(
+            method='DELETE',
+            path='/api/v1/groups/%s' % g.id
+        )
+        self.assert_403(response)
+        # Admin
+        response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/groups/%s' % g.id
+        )
+        self.assert_200(response)
+        group = Group.query.filter_by(id=g.id).first()
+        self.assertIsNone(group)
 
     def test_join_group(self):
         # Anonymous
@@ -854,8 +907,10 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(data))
         self.assert_200(response)
         user = User.query.filter_by(email='test@example.org').first()
+        default_group = Group.query.filter_by(name='System.default').first()
         self.assertIsNotNone(user)
         self.assertTrue(user.is_active)
+        self.assertTrue(user in default_group.users)  # Each active user gets added in the system default group
 
     def test_send_recovery_link(self):
         # positive test for existing user

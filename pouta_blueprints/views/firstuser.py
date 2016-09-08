@@ -7,7 +7,7 @@ import logging
 from pouta_blueprints.models import User
 from pouta_blueprints.forms import UserForm
 from pouta_blueprints.server import restful
-from pouta_blueprints.views.commons import user_fields, create_user, create_worker
+from pouta_blueprints.views.commons import user_fields, create_user, create_worker, create_system_groups
 
 firstuser = FlaskBlueprint('firstuser', __name__)
 
@@ -24,6 +24,8 @@ class FirstUserView(restful.Resource):
                 return form.errors, 422
             user = create_user(form.email.data, form.password.data, is_admin=True)
             create_worker()
+            logging.warn("creating system group")
+            create_system_groups(user)
             return user
         else:
             return abort(403)
