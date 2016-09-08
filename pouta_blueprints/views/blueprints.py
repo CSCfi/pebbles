@@ -66,7 +66,6 @@ class BlueprintList(restful.Resource):
     def post(self):
         form = BlueprintForm()
         if not form.validate_on_submit():
-            logging.warn(form.errors)
             logging.warn("validation error on create blueprint")
             return form.errors, 422
         user = g.user

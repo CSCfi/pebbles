@@ -7,7 +7,7 @@ from pouta_blueprints.models import db, ActivationToken, User
 from pouta_blueprints.forms import ActivationForm, PasswordResetRequestForm
 from pouta_blueprints.server import app, restful
 from pouta_blueprints.tasks import send_mails
-from pouta_blueprints.views.commons import user_fields
+from pouta_blueprints.views.commons import user_fields, add_user_to_default_group
 
 activations = Blueprint('activations', __name__)
 
@@ -31,7 +31,7 @@ class ActivationView(restful.Resource):
 
         user.set_password(form.password.data)
         user.is_active = True
-
+        add_user_to_default_group(user)
         db.session.add(user)
         db.session.delete(token)
         db.session.commit()

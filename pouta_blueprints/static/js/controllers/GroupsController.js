@@ -31,7 +31,8 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                     "title": "Group Name",
                     "type": "string",
                     "maxLength": 32,
-                    "validationMessage": "Maximum character limit of 32 reached",
+                    "pattern": "^(?!(?:SYSTEM|System|system)).+",  // No case sensitive flag in schemaform
+                    "validationMessage": "Required Field! Max length 32 chars",
                     "default": "mygroup"
                     },
                 "description": {
@@ -100,16 +101,6 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                 });
             };
 
-            $scope.block_user = function(user) {
-                var block = !user.is_blocked
-                var user_blacklist = Restangular.one('users', user.id).all('user_blacklist').customPUT({'block': block});
-                user_blacklist.then(function () {
-                    users.getList().then(function (response) {
-                        $scope.users = response;
-                    });
-                });
-
-            };
         }
     }]);
 
@@ -133,7 +124,11 @@ app.controller('ModalCreateGroupController', function($scope, $modalInstance, gr
             }).then(function () {
                 $modalInstance.close(true);
             }, function(response) {
-                $.notify({title: 'HTTP ' + response.status, message: 'unable to create group'}, {type: 'danger'});
+                error_message = 'unable to create group'
+                if ('name' in response.data){
+                    error_message = response.data.name
+                }
+                $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger'});
             });
         }
     };
@@ -149,6 +144,7 @@ app.controller('ModalModifyGroupController', function($scope, $modalInstance, gr
     $scope.group = group;
     $scope.userData = users;
     $scope.userSettings = {displayProp: 'email', scrollable: true, enableSearch: true};
+    var old_name = group.name;
 
     $scope.modifyGroup = function(form, model, user_config) {
      if (form.$valid) {
@@ -162,7 +158,12 @@ app.controller('ModalModifyGroupController', function($scope, $modalInstance, gr
             $scope.group.put().then(function () {
                 $modalInstance.close(true);
             }, function(response) {
-                $.notify({title: 'HTTP ' + response.status, message: 'unable to modify group'}, {type: 'danger'});
+                 error_message = 'unable to create group'
+                if ('name' in response.data){
+                    error_message = response.data.name
+                    $scope.group.name = old_name
+                }
+                $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger'});
             });
         }
     };
