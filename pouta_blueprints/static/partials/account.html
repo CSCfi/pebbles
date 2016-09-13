@@ -8,17 +8,25 @@
     </div>
     <div class="row">
         <div class="col-md-12">
-            <h2>Manage SSH Keys <small><span ng-click="showSSHKeysHelp = ! showSSHKeysHelp" class="glyphicon glyphicon-question-sign"></span></small></h2>
+            <h2>Manage SSH Keys</h2>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-md-8 xol-xs-12">
-            <div ng-show="showSSHKeysHelp" class="well">Some blueprints require your public SSH key
-                that is used to access your instances. You can generate your
-                public and private keys and download the private key,
-                or upload your existing public key.
-                New keys will be used with every new instance created.
+        <div class="col-md-7 xol-xs-10">
+            <div class="well">
+                <p>
+                    Some blueprints require a public SSH key. This
+                    key is installed on the created instances and you can use
+                    the corresponding private key to connect to the instances
+                    without a password.
+                </p>
+                <p>
+                    You can generate your public and private keys and
+                    download the private key, or upload your existing public
+                    key.  New keys will be used with every new instance
+                    created.
+                </p>
             </div>
         </div>
     </div>
