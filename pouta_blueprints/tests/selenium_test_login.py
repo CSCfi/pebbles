@@ -77,5 +77,21 @@ class LoginTestCase(SeleniumBaseTestCase):
         element = driver.find_element_by_tag_name("pb-notifications")
         self.assertIsNotNone(element)
 
+    def test_frontpage_name_description(self):
+        """ Tests that the configurable installation name and description are
+        present on the login page.
+        """
+        driver = self.drivers[0]
+        driver.get(self.get_server_url() + "/")
+        wait = WebDriverWait(driver, 10)
+        wait.until(EC.visibility_of_element_located((By.NAME,
+                                                    "installation-name")))
+        element = driver.find_element_by_name("installation-name")
+        config = self.config
+        assert config["INSTALLATION_NAME"] == element.text
+        element = driver.find_element_by_name("installation-description")
+        assert config["INSTALLATION_DESCRIPTION"] == element.text
+
+
 if __name__ == "__main__":
     unittest.main()

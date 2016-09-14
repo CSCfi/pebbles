@@ -365,11 +365,23 @@ class Lock(db.Model):
 
 
 class Variable(db.Model):
+    """ Represents a variable stored in the db.
+
+        Variables can be initialized from a file but once a DB entry exists
+        for a key, it becomes the definitive source.
+
+        Readonly variables are expected to be constant throughout the lifetime
+        of the installation. If you want to change them you must do so
+        manually from the shell.
+
+        All variables are stored as strings, so
+    """
     __tablename__ = 'variables'
 
     id = db.Column(db.String(32), primary_key=True)
     key = db.Column(db.String(MAX_VARIABLE_KEY_LENGTH), unique=True)
     _value = db.Column('value', db.String(MAX_VARIABLE_VALUE_LENGTH))
+    # readonly variables are expected to stay the same throuhgout
     readonly = db.Column(db.Boolean, default=False)
     t = db.Column(db.String(16))
 
