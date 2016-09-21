@@ -1,6 +1,7 @@
 import unittest
 
 from pouta_blueprints.tests.base import SeleniumBaseTestCase
+from pouta_blueprints.models import Variable
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -92,6 +93,44 @@ class LoginTestCase(SeleniumBaseTestCase):
         element = driver.find_element_by_name("installation-description")
         assert config["INSTALLATION_DESCRIPTION"] == element.text
 
+    def test_frontpage_login_visibility(self):
+        """
+            If shibboleth login is enabled, it should be the only visible way
+            to log in and form should be hidden. Also vice versa.
+        """
+        shibboleth_enabled = \
+            Variable.query.filter_by(key="ENABLE_SHIBBOLETH_LOGIN").first()
+        saved = shibboleth_enabled.value
+        # Set Value to True
+        # Show shibboleth, don't show login by default
+        shibboleth_enabled.value = True
+        self.db.session.commit()
+        driver = self.drivers[0]
+        driver.get(self.get_server_url() + "/")
+        wait = WebDriverWait(driver, 10)
+        wait.until(EC.visibility_of_element_located((By.NAME,
+                                                    "shibboleth-login")))
+        element = driver.find_element_by_name("shibboleth-login")
+        assert element.is_displayed()
+        other_element = driver.find_element_by_name("password-login")
+        assert not other_element.is_displayed()
+        # Set Value to True
+        # Don't show shibboleth, do show login by default
+        shibboleth_enabled.value = False
+        self.db.session.commit()
+        driver.get(self.get_server_url() + "/")
+        wait = WebDriverWait(driver, 10)
+        wait.until(EC.visibility_of_element_located((By.NAME,
+                                                    "password-login")))
+        element = driver.find_element_by_name("shibboleth-login")
+        assert not element.is_displayed()
+        other_element = driver.find_element_by_name("password-login")
+        assert other_element.is_displayed()
+
+        # Don't remember if live tests are run in isolation so revert original
+        # value just in case
+        shibboleth_enabled.value = saved
+        self.db.session.commit()
 
 if __name__ == "__main__":
     unittest.main()

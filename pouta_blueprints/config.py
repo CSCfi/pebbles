@@ -71,7 +71,7 @@ class BaseConfig(object):
     DEFAULT_QUOTA = 1.0
     ENABLE_SHIBBOLETH_LOGIN = False
     INSTALLATION_NAME = 'Pouta Blueprints'
-    INSTALLATION_DESCRIPTION = ('Pouta Blueprints is a tool for provisioning '
+    INSTALLATION_DESCRIPTION = ('A tool for provisioning '
                                 'ephemeral private cloud resources.')
     BRAND_IMAGE = ''
     PLUGIN_WHITELIST = 'DummyDriver'
