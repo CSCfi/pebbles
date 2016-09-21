@@ -17,8 +17,14 @@ def primary_test_setup(test_case):
         ToDo: store test vars inside a namespace on the parent object, e.g.
         test_case.vars to avoid cluttering.
     """
-    u1 = User("admin@example.org", "admin", is_admin=True)
-    u2 = User("user@example.org", "user", is_admin=False)
+
+    test_case.known_admin_email = "admin@example.org"
+    test_case.known_user_email = "user@example.org"
+    test_case.known_admin_password = "admin"
+    test_case.known_user_password = "user"
+
+    u1 = User(test_case.known_admin_email, test_case.known_admin_password, is_admin=True)
+    u2 = User(test_case.known_user_email, test_case.known_user_password, is_admin=False)
     u3 = User("group_owner@example.org", "group_owner")
     u4 = User("group_owner2@example.org", "group_owner2")
 
@@ -44,6 +50,7 @@ def primary_test_setup(test_case):
     g2 = Group('Group2')
     g3 = Group('Group3')
     g4 = Group('Group4')
+    g5 = Group('System.default')
 
     g1.id = 'g1'
     g1.owners.append(u3)
@@ -66,6 +73,7 @@ def primary_test_setup(test_case):
     db.session.add(g2)
     db.session.add(g3)
     db.session.add(g4)
+    db.session.add(g5)
     db.session.commit()
 
     p1 = Plugin()
