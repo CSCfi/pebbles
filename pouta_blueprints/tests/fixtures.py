@@ -21,6 +21,7 @@ def primary_test_setup(namespace):
     namespace.known_admin_password = "admin"
     namespace.known_user_email = "user@example.org"
     namespace.known_user_password = "user"
+
     u1 = User(namespace.known_admin_email, namespace.known_admin_password, is_admin=True)
     u2 = User(namespace.known_user_email, namespace.known_user_password, is_admin=False)
     u3 = User("group_owner@example.org", "group_owner")
@@ -52,6 +53,7 @@ def primary_test_setup(namespace):
     g2 = Group('Group2')
     g3 = Group('Group3')
     g4 = Group('Group4')
+    g5 = Group('System.default')
 
     g1.id = 'g1'
     g1.owners.append(u3)
@@ -74,6 +76,7 @@ def primary_test_setup(namespace):
     db.session.add(g2)
     db.session.add(g3)
     db.session.add(g4)
+    db.session.add(g5)
     db.session.commit()
 
     p1 = Plugin()
