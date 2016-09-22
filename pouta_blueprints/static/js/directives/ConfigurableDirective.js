@@ -4,7 +4,7 @@ app.directive('configurableValue', ['ConfigurationService', function(Configurati
         link: function(scope, element, attrs) {
             ConfigurationService.getValue().then(function (data) {
                 element.text(data[attrs.key]);
-            }); 
+            });
         }
     };
 }]);
@@ -19,11 +19,10 @@ app.directive('configurableShow', ['ConfigurationService', function(Configuratio
                 } else {
                     element.hide();
                 }
-            }); 
+            });
         }
     };
 }]);
-
 app.directive('brandImage', ['ConfigurationService', function(ConfigurationService) {
     return {
         restrict: 'A',

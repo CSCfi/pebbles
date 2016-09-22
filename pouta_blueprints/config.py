@@ -71,6 +71,8 @@ class BaseConfig(object):
     DEFAULT_QUOTA = 1.0
     ENABLE_SHIBBOLETH_LOGIN = False
     INSTALLATION_NAME = 'Pouta Blueprints'
+    INSTALLATION_DESCRIPTION = ('A tool for provisioning '
+                                'ephemeral private cloud resources.')
     BRAND_IMAGE = ''
     PLUGIN_WHITELIST = 'DummyDriver'
 
@@ -124,3 +126,6 @@ class LiveTestConfig(TestConfig):
     # that the tester can access the db manually.
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.livetest.db'
     PRESERVE_CONTEXT_ON_EXCEPTION = False
+    # bit of culture never hurt anybody
+    INSTALLATION_NAME = 'Underworld Branding Iron'
+    INSTALLATION_DESCRIPTION = 'Abandon all hope, ye who enter here.'
