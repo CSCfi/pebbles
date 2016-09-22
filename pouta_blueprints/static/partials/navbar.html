@@ -6,23 +6,6 @@
     <li ng-class="{ active: isActive('/admin-stats')}"><a ng-show="isAdmin()" href="#/admin-stats">Statistics</a></li>
     <li ng-class="{ active: isActive('/account')}" ><a ng-show="isLoggedIn()" href="#/account">Account</a></li>
   </ul>
-  <div ng-show="isLoggedOut()" class="navbar-form navbar-right">
-    <form ng-submit="login()">
-      <div ng-show="invalidLogin()" class="form-group">
-          <span id="invalid-login" class="label label-default"><strong>Invalid login!</strong></span>
-      </div>
-      <div class="form-group">
-        <input type="email" id="email" name="email" ng-model="email" placeholder="Email" class="form-control" required>
-      </div>
-      <div class="form-group">
-        <input type="password" id="password" name="password" ng-model="password" placeholder="Password" class="form-control" required>
-      </div>
-      <div class="form-group">
-        <input type="submit" class="btn btn-success" value="Sign in" />
-      </div>
-    </form>
-
-  </div>
   <div ng-show="isLoggedIn()" class="navbar-form navbar-right">
     <form ng-submit="logout()">
         <button id="logout" type="submit" class="btn btn-success">Log out</button>

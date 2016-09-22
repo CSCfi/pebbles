@@ -19,7 +19,12 @@ variable_fields = {
 
 
 variables = Blueprint('variables', __name__)
-PUBLIC_CONFIG_VARIABLES = {'ENABLE_SHIBBOLETH_LOGIN', 'INSTALLATION_NAME', 'BRAND_IMAGE'}
+PUBLIC_CONFIG_VARIABLES = (
+    'ENABLE_SHIBBOLETH_LOGIN',
+    'INSTALLATION_NAME',
+    'INSTALLATION_DESCRIPTION',
+    'BRAND_IMAGE'
+)
 
 
 class VariableList(restful.Resource):
