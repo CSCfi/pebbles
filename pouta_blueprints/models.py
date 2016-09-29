@@ -5,6 +5,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.schema import MetaData
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import logging
 import uuid
@@ -23,6 +24,15 @@ MAX_VARIABLE_VALUE_LENGTH = 512
 MAX_NOTIFICATION_SUBJECT_LENGTH = 255
 
 db = SQLAlchemy()
+
+convention = {
+    "ix": 'ix_%(column_0_label)s',
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
+
+db.Model.metadata = MetaData(naming_convention=convention)
 
 bcrypt = Bcrypt()
 
@@ -467,11 +477,23 @@ class Lock(db.Model):
 
 
 class Variable(db.Model):
+    """ Represents a variable stored in the db.
+
+        Variables can be initialized from a file but once a DB entry exists
+        for a key, it becomes the definitive source.
+
+        Readonly variables are expected to be constant throughout the lifetime
+        of the installation. If you want to change them you must do so
+        manually from the shell.
+
+        All variables are stored as strings, so
+    """
     __tablename__ = 'variables'
 
     id = db.Column(db.String(32), primary_key=True)
     key = db.Column(db.String(MAX_VARIABLE_KEY_LENGTH), unique=True)
     _value = db.Column('value', db.String(MAX_VARIABLE_VALUE_LENGTH))
+    # readonly variables are expected to stay the same throuhgout
     readonly = db.Column(db.Boolean, default=False)
     t = db.Column(db.String(16))
 

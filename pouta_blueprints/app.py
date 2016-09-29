@@ -52,7 +52,9 @@ def run_things_in_context(test_run):
         # upgrade to the head of the migration path (the default)
         # we might want to pass a particular revision id instead
         # in the future
-        if os.environ.get("DB_AUTOMIGRATION", None) and not test_run:
+        if os.environ.get("DB_AUTOMIGRATION", None) and \
+           os.environ.get("DB_AUTOMIGRATION", None) not in ["0", 0] and \
+           not test_run:
             flask_upgrade_db_to_head()
         # Do not populate variables into DB when running tests, as these are
         # populated during the test case setup phase.

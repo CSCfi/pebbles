@@ -77,7 +77,6 @@ class SeleniumBaseTestCase(LiveServerTestCase):
     def _do_login(self, username, password, driver,
                   wait_for_element_id="user-dashboard", wait_for=10):
         """ Load frontpage and enter credentials.
-
             Params:
                 credentials to enter to fields
                 driver to use
@@ -85,6 +84,10 @@ class SeleniumBaseTestCase(LiveServerTestCase):
                 timeout (so we can timeout sooner e.g. for failed logins)
         """
         driver.get(self.get_server_url() + "/")
+        elem = driver.find_element_by_name("click-show-login")
+        # make the form visible if we have SSO enabled
+        if elem.is_displayed():
+            elem.click()
         elem = driver.find_element_by_name("email")
         elem.send_keys(username)
         elem = driver.find_element_by_name("password")
