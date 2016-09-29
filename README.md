@@ -32,3 +32,9 @@ or
 After the installation the first admin user is created by using the
 initialization form at (https://localhost:8888/#/initialize). The development 
 environment uses a self-signed certificate.
+
+
+## Database migrations ##
+
+Check out [database_migrations.md](doc/database_migrations.md) for how to run
+or create migrations.
