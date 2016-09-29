@@ -1,14 +1,18 @@
-""" Initial migrate. Might have to ghost this in production system or export
-and import data.
+"""Initial commit.
 
-Revision ID: e47a91921333
+May be necessary to ghost this in production or do a manual migrate.
+
+SQLite seems to be stupid and require an explicit name for each constraint
+and it just won't take an empty name like all real databases.
+
+Revision ID: c0732331a3c8
 Revises: None
-Create Date: 2016-08-16 11:40:55.579305
+Create Date: 2016-09-28 15:34:30.135146
 
 """
 
 # revision identifiers, used by Alembic.
-revision = 'e47a91921333'
+revision = 'c0732331a3c8'
 down_revision = None
 
 from alembic import op
@@ -20,15 +24,15 @@ def upgrade():
     op.create_table('locks',
     sa.Column('lock_id', sa.String(length=64), nullable=False),
     sa.Column('acquired_at', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('lock_id'),
-    sa.UniqueConstraint('lock_id')
+    sa.PrimaryKeyConstraint('lock_id', name=op.f('pk_locks')),
+    sa.UniqueConstraint('lock_id', name=op.f('uq_locks_lock_id'))
     )
     op.create_table('notifications',
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('broadcasted', sa.DateTime(), nullable=True),
     sa.Column('subject', sa.String(length=255), nullable=True),
     sa.Column('message', sa.Text(), nullable=True),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_notifications'))
     )
     op.create_table('plugins',
     sa.Column('id', sa.String(length=32), nullable=False),
@@ -36,7 +40,7 @@ def upgrade():
     sa.Column('schema', sa.Text(), nullable=True),
     sa.Column('form', sa.Text(), nullable=True),
     sa.Column('model', sa.Text(), nullable=True),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_plugins'))
     )
     op.create_table('users',
     sa.Column('id', sa.String(length=32), nullable=False),
@@ -48,8 +52,8 @@ def upgrade():
     sa.Column('is_blocked', sa.Boolean(), nullable=True),
     sa.Column('credits_quota', sa.Float(), nullable=True),
     sa.Column('latest_seen_notification_ts', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('email')
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_users')),
+    sa.UniqueConstraint('email', name=op.f('uq_users_email'))
     )
     op.create_table('variables',
     sa.Column('id', sa.String(length=32), nullable=False),
@@ -57,14 +61,14 @@ def upgrade():
     sa.Column('value', sa.String(length=512), nullable=True),
     sa.Column('readonly', sa.Boolean(), nullable=True),
     sa.Column('t', sa.String(length=16), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('key')
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_variables')),
+    sa.UniqueConstraint('key', name=op.f('uq_variables_key'))
     )
     op.create_table('activation_tokens',
     sa.Column('token', sa.String(length=32), nullable=False),
     sa.Column('user_id', sa.String(length=32), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('token')
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_activation_tokens_user_id_users')),
+    sa.PrimaryKeyConstraint('token', name=op.f('pk_activation_tokens'))
     )
     op.create_table('blueprints',
     sa.Column('id', sa.String(length=32), nullable=False),
@@ -75,15 +79,15 @@ def upgrade():
     sa.Column('maximum_lifetime', sa.Integer(), nullable=True),
     sa.Column('preallocated_credits', sa.Boolean(), nullable=True),
     sa.Column('cost_multiplier', sa.Float(), nullable=True),
-    sa.ForeignKeyConstraint(['plugin'], ['plugins.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['plugin'], ['plugins.id'], name=op.f('fk_blueprints_plugin_plugins')),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_blueprints'))
     )
     op.create_table('keypairs',
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('user_id', sa.String(length=32), nullable=True),
     sa.Column('_public_key', sa.String(length=450), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_keypairs_user_id_users')),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_keypairs'))
     )
     op.create_table('instances',
     sa.Column('id', sa.String(length=32), nullable=False),
@@ -99,10 +103,10 @@ def upgrade():
     sa.Column('to_be_deleted', sa.Boolean(), nullable=True),
     sa.Column('error_msg', sa.String(length=256), nullable=True),
     sa.Column('instance_data', sa.Text(), nullable=True),
-    sa.ForeignKeyConstraint(['blueprint_id'], ['blueprints.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('name')
+    sa.ForeignKeyConstraint(['blueprint_id'], ['blueprints.id'], name=op.f('fk_instances_blueprint_id_blueprints')),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_instances_user_id_users')),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_instances')),
+    sa.UniqueConstraint('name', name=op.f('uq_instances_name'))
     )
     ### end Alembic commands ###
 
