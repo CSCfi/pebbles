@@ -14,8 +14,13 @@ Database migration-related code is in migrations/. Migrations/env.py contains
 some general settings, e.g. naming conventions for constraints and the use of
 so-called batch mode with SQLite (that doesn't support ALTER statements). 
 
-Individual migrations are in migrations/versions. They are linked by reference
-to the previous version inside the file and must always form a single chain.
+Individual migrations are files in migrations/versions. They are linked by
+reference to the previous version inside the file and must always form a
+single chain.
+
+All the automated deployment systems assume that the migrations will sync the
+system to the state in which models.py is. This includes the dev server
+deployment.
 
 ## Process ##
 
@@ -66,3 +71,12 @@ SQLite also permits completely unnamed constraints. This is all nice and well
 until it's necessary to modify such a constraint, which is difficult because it
 can't be referenced unambiguously.  For this reason a custom naming scheme has
 been enabled in models.py.
+
+The verbs that flask-migrate uses are unintuitive. The verb "migrate" actually
+creates a migration and the verbs "upgrade" and "downgrade" apply migrations
+(i.e. migrate).
+
+For deployment security it's possible and perhaps even desired to first commit
+and deploy changes to the database and models and only when that didn't break
+to deploy (or enable via some mechanism) the code that uses these new
+features.
