@@ -8,6 +8,7 @@ from pouta_blueprints.server import app
 from pouta_blueprints.views.commons import create_user, create_worker
 from pouta_blueprints.models import db, Variable
 from pouta_blueprints.config import BaseConfig
+from pouta_blueprints.tests.fixtures import primary_test_setup
 
 # 2to3 fix for input
 try:
@@ -77,6 +78,12 @@ def profile():
     app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[50])
     app.run(debug=True)
 
+
+@manager.command
+def fixtures():
+    """ Insert the same fixtures as in tests to make manually testing UI simpler.
+    """
+    primary_test_setup(type('', (), {})())
 
 @manager.command
 def createuser(email=None, password=None, admin=False):
