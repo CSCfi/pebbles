@@ -17,7 +17,6 @@ from pouta_blueprints.config import BaseConfig
 from pouta_blueprints.config import TestConfig
 from pouta_blueprints.config import LiveTestConfig
 from pouta_blueprints.models import Variable
-from pouta_blueprints.tests.fixtures import primary_test_setup
 
 
 class BaseTestCase(TestCase):
@@ -63,6 +62,7 @@ class SeleniumBaseTestCase(LiveServerTestCase):
         return app
 
     def setUp(self):
+        from pouta_blueprints.tests.fixtures import primary_test_setup
         with self.app.app_context():
             self.db.drop_all()
             self.db.create_all()
