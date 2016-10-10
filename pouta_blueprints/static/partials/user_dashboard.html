@@ -44,8 +44,8 @@
                                         </div>
                                     </small></td>
                                     <td>
-                                        <button ng-click="showDelete = true;"
-                                            class="btn btn-default">
+                                        <button ng-click="openDestroyDialog(instance)"
+                                            class="btn btn-danger" ng-disabled="instance.state=='deleting'">
                                             <span class="glyphicon glyphicon-remove"></span> Destroy
                                         </button>
                                         <p ng-show="showDelete">
