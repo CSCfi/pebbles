@@ -81,6 +81,7 @@ class User(db.Model):
     latest_seen_notification_ts = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
+    owned_groups = db.relationship('Group', backref='owner', lazy='dynamic')
 
     def __init__(self, email, password=None, is_admin=False):
         self.id = uuid.uuid4().hex
@@ -159,9 +160,23 @@ class User(db.Model):
         return hash(self.email)
 
 
-group_user = db.Table('groups_users', db.Column('group_id', db.String(32), db.ForeignKey('groups.id')), db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'user_id'))
-group_banned_user = db.Table('groups_banned_users', db.Column('group_id', db.String(32), db.ForeignKey('groups.id')), db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'user_id'))
-group_owner = db.Table('groups_owners', db.Column('group_id', db.String(32), db.ForeignKey('groups.id')), db.Column('owner_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'owner_id'))
+group_user = db.Table(
+    'groups_users',
+    db.Column('group_id', db.String(32), db.ForeignKey('groups.id')),
+    db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'user_id')
+)
+
+group_banned_user = db.Table(
+    'groups_banned_users',
+    db.Column('group_id', db.String(32), db.ForeignKey('groups.id')),
+    db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'user_id')
+)
+
+group_manager = db.Table(
+    'groups_managers',
+    db.Column('group_id', db.String(32), db.ForeignKey('groups.id')),
+    db.Column('manager_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'manager_id')
+)
 
 
 class Group(db.Model):
@@ -172,9 +187,11 @@ class Group(db.Model):
     _join_code = db.Column(db.String(64))
     description = db.Column(db.Text)
     _user_config = db.Column('user_config', db.Text)
+    owner_id = db.Column(db.String(32), db.ForeignKey('users.id'))
+    # owner = db.relationship('User', backref='owned_groups', lazy='dynamic')
     users = db.relationship('User', secondary=group_user, backref='groups', lazy='dynamic')
     banned_users = db.relationship('User', secondary=group_banned_user, backref='banned_groups', lazy='dynamic')
-    owners = db.relationship('User', secondary=group_owner, backref='owned_groups', lazy='dynamic')
+    managers = db.relationship('User', secondary=group_manager, backref='managed_groups', lazy='dynamic')
     blueprints = db.relationship('Blueprint', backref='group', lazy='dynamic')
 
     def __init__(self, name):

@@ -90,7 +90,7 @@ def invite_user(email, password=None, is_admin=False):
 
 def create_system_groups(admin):
     system_default_group = Group('System.default')
-    system_default_group.owners.append(admin)
+    system_default_group.owner_id = admin.id
     db.session.add(system_default_group)
     db.session.commit()
 

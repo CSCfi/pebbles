@@ -56,14 +56,15 @@ def primary_test_setup(namespace):
     g5 = Group('System.default')
 
     g1.id = 'g1'
-    g1.owners.append(u3)
+    g1.owner_id = u3.id
     g1.users.append(u2)
-    g1.owners.append(u4)  # Add extra owner
+    g1.managers.append(u3)  # The owner is always a manager
+    g1.managers.append(u4)  # Add extra owner
     g2.id = 'g2'
-    g2.owners.append(u4)
+    g2.owner_id = u4.id
     g2.users.append(u3)
     g3.id = 'g3'
-    g3.owners.append(u4)
+    g3.owner_id = u4.id
     g3.banned_users.append(u2)
     g3.banned_users.append(u3)
 
@@ -81,6 +82,22 @@ def primary_test_setup(namespace):
 
     p1 = Plugin()
     p1.name = "TestPlugin"
+    p1.schema = {
+        "type": "object",
+        "title": "Comment",
+        "description": "Description",
+        "properties": {
+            "name": {
+                "type": "string"
+            },
+            "description": {
+                "type": "string"
+            },
+            "maximum_lifetime": {
+                "type": "string"
+            }
+        }
+    }
     namespace.known_plugin_id = p1.id
     db.session.add(p1)
 

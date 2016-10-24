@@ -10,6 +10,7 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
                 me.setUserName(email);
                 me.setAdminStatus(response.is_admin);
                 me.setGroupOwnerStatus(response.is_group_owner);
+                me.setGroupManagerStatus(response.is_group_manager);
                 me.setUserId(response.user_id);
                 return deferred.resolve(response);
             }, function(response) {
@@ -67,6 +68,15 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
             return false;
         },
 
+        isGroupManagerOrAdmin : function() {
+            var groupManagerStatus = this.getGroupManagerStatus();
+            var adminStatus = this.getAdminStatus();
+            if (groupManagerStatus === "true" || adminStatus === "true") {
+                return true;
+            }
+            return false;
+        },
+
         setUserId : function(userId) {
             localStorageService.set('userId', userId);
         },
@@ -105,6 +115,14 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
 
         getGroupOwnerStatus : function() {
             return localStorageService.get('isGroupOwner');
+        },
+
+        setGroupManagerStatus : function(isGroupManager) {
+            localStorageService.set('isGroupManager', isGroupManager);
+        },
+
+        getGroupManagerStatus : function() {
+            return localStorageService.get('isGroupManager');
         }
     };
 }]);

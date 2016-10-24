@@ -8,7 +8,7 @@ from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth
 from pouta_blueprints.views.blueprint_templates import blueprint_schemaform_config
 from pouta_blueprints.views.blueprints import set_blueprint_fields_from_config
-from pouta_blueprints.utils import requires_admin, requires_group_owner_or_admin
+from pouta_blueprints.utils import requires_admin, requires_group_manager_or_admin
 from pouta_blueprints.rules import apply_rules_export_blueprints
 from pouta_blueprints.forms import BlueprintImportForm, BlueprintTemplateImportForm
 
@@ -86,7 +86,7 @@ class ImportExportBlueprintTemplates(restful.Resource):
 
 class ImportExportBlueprints(restful.Resource):
     @auth.login_required
-    @requires_group_owner_or_admin
+    @requires_group_manager_or_admin
     @marshal_with(blueprint_export_fields)
     def get(self):
         user = g.user
@@ -108,7 +108,7 @@ class ImportExportBlueprints(restful.Resource):
         return results
 
     @auth.login_required
-    @requires_group_owner_or_admin
+    @requires_group_manager_or_admin
     def post(self):
         form = BlueprintImportForm()
 

@@ -45,7 +45,7 @@
                 <td colspan="3">No blueprints</td>
             </tr>
 
-            <tr ng-repeat="blueprint in blueprints | filter : {owner: 'true'}">
+            <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'}">
                 <td>{{blueprint.name}}</td>
                 <td>{{blueprint.template_name}}</td>
                 <td>{{blueprint.group_name}}</td>

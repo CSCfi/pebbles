@@ -8,7 +8,7 @@ from pouta_blueprints.models import db, Plugin
 from pouta_blueprints.forms import PluginForm
 from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth
-from pouta_blueprints.utils import requires_admin, requires_group_owner_or_admin
+from pouta_blueprints.utils import requires_admin
 
 plugins = Blueprint('plugins', __name__)
 
@@ -23,7 +23,7 @@ plugin_fields = {
 
 class PluginList(restful.Resource):
     @auth.login_required
-    @requires_group_owner_or_admin
+    @requires_admin
     @marshal_with(plugin_fields)
     def get(self):
         return Plugin.query.all()
@@ -51,7 +51,7 @@ class PluginList(restful.Resource):
 
 class PluginView(restful.Resource):
     @auth.login_required
-    @requires_group_owner_or_admin
+    @requires_admin
     @marshal_with(plugin_fields)
     def get(self, plugin_id):
         plugin = Plugin.query.filter_by(id=plugin_id).first()

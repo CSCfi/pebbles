@@ -8,7 +8,7 @@ from pouta_blueprints.models import db, Blueprint, BlueprintTemplate, Group
 from pouta_blueprints.forms import BlueprintForm
 from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth
-from pouta_blueprints.utils import requires_group_owner_or_admin, parse_maximum_lifetime
+from pouta_blueprints.utils import requires_group_manager_or_admin, parse_maximum_lifetime
 from pouta_blueprints.rules import apply_rules_blueprints
 
 blueprints = FlaskBlueprint('blueprints', __name__)
@@ -29,7 +29,7 @@ blueprint_fields = {
     'form': fields.Raw,
     'group_id': fields.String,
     'group_name': fields.String,
-    'owner': fields.Boolean
+    'manager': fields.Boolean
 }
 
 
@@ -55,14 +55,14 @@ class BlueprintList(restful.Resource):
 
             blueprint.template_name = template.name
             blueprint.group_name = blueprint.group.name
-            if user.is_admin or blueprint.group in user.owned_groups:
-                blueprint.owner = True
+            if user.is_admin or blueprint.group in user.managed_groups:
+                blueprint.manager = True
 
             results.append(blueprint)
         return results
 
     @auth.login_required
-    @requires_group_owner_or_admin
+    @requires_group_manager_or_admin
     def post(self):
         form = BlueprintForm()
         if not form.validate_on_submit():
@@ -80,7 +80,7 @@ class BlueprintList(restful.Resource):
         group = Group.query.filter_by(id=group_id).first()
         if not group:
             abort(422)
-        if not user.is_admin and group not in user.owned_groups:
+        if not user.is_admin and group not in user.managed_groups:
             logging.warn("invalid group for the user")
             abort(403)
         blueprint.group_id = group_id
@@ -110,7 +110,7 @@ class BlueprintView(restful.Resource):
         return blueprint
 
     @auth.login_required
-    @requires_group_owner_or_admin
+    @requires_group_manager_or_admin
     def put(self, blueprint_id):
         form = BlueprintForm()
         if not form.validate_on_submit():
@@ -125,7 +125,7 @@ class BlueprintView(restful.Resource):
         group = Group.query.filter_by(id=group_id).first()
         if not group:
             abort(422)
-        if not user.is_admin and (blueprint.group not in user.owned_groups or group not in user.owned_groups):
+        if not user.is_admin and (blueprint.group not in user.managed_groups or group not in user.managed_groups):
             logging.warn("invalid group for the user")
             abort(403)
 

@@ -16,7 +16,7 @@ from pouta_blueprints.views.blueprint_templates import blueprint_templates, Blue
 from pouta_blueprints.views.blueprints import blueprints, BlueprintList, BlueprintView
 from pouta_blueprints.views.plugins import plugins, PluginList, PluginView
 from pouta_blueprints.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserGroupOwner, KeypairList, CreateKeyPair, UploadKeyPair
-from pouta_blueprints.views.groups import groups, GroupList, GroupView, GroupJoin
+from pouta_blueprints.views.groups import groups, GroupList, GroupView, GroupJoin, GroupUsersList
 from pouta_blueprints.views.notifications import NotificationList, NotificationView
 from pouta_blueprints.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pouta_blueprints.views.activations import activations, ActivationList, ActivationView
@@ -28,6 +28,7 @@ from pouta_blueprints.views.variables import variables, VariableList, VariableVi
 from pouta_blueprints.views.locks import locks, LockView
 from pouta_blueprints.views.stats import stats, StatsList
 from pouta_blueprints.views.import_export import import_export, ImportExportBlueprintTemplates, ImportExportBlueprints
+from pouta_blueprints.utils import is_group_manager
 
 api = restful.Api(app)
 api_root = '/api/v1'
@@ -43,6 +44,7 @@ api.add_resource(UploadKeyPair, api_root + '/users/<string:user_id>/keypairs/upl
 api.add_resource(GroupList, api_root + '/groups')
 api.add_resource(GroupView, api_root + '/groups/<string:group_id>')
 api.add_resource(GroupJoin, api_root + '/groups/group_join/<string:join_code>')
+api.add_resource(GroupUsersList, api_root + '/groups/<string:group_id>/users')
 api.add_resource(NotificationList, api_root + '/notifications')
 api.add_resource(NotificationView, api_root + '/notifications/<string:notification_id>')
 api.add_resource(SessionView, api_root + '/sessions')
@@ -104,11 +106,22 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
             db.session.commit()
         if user.is_blocked:
             error_description = 'You have been blocked, contact your administrator'
-            return render_template('error.html', error_title='User Blocked', error_description=error_description)
+            return render_template(
+                'error.html',
+                error_title='User Blocked',
+                error_description=error_description
+            )
 
         token = user.generate_auth_token(app.config['SECRET_KEY'])
         return render_template(
-            'login.html', token=token, username=eppn, is_admin=user.is_admin, is_group_owner=user.is_group_owner, userid=user.id)
+            'login.html',
+            token=token,
+            username=eppn,
+            is_admin=user.is_admin,
+            is_group_owner=user.is_group_owner,
+            is_group_manager=is_group_manager(user),
+            userid=user.id
+        )
 
     @sso.login_error_handler
     def login_error(user_info):
@@ -120,4 +133,8 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
                 'Your home organization did not return us your login attributes which prevents '
                 'you from logging in. Waiting a bit might resolve this.')
 
-        return render_template('error.html', error_title=error_title, error_description=error_description)
+        return render_template(
+            'error.html',
+            error_title=error_title,
+            error_description=error_description
+        )

@@ -17,6 +17,9 @@
                 {% if is_group_owner %}
                     localStorageService.set('isGroupOwner', true);
                 {% endif %}
+                {% if is_group_manager %}
+                    localStorageService.set('isGroupManager', true);
+                {% endif %}
                 localStorageService.set('userId', '{{ userid }}');
                 window.location.assign("/");
             });

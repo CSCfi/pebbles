@@ -9,12 +9,10 @@
           sf-form="groupsSF.form"
           sf-schema="groupsSF.schema"/>
 
-             <label for="usersSelect">Select Users to Add</label>
-             <div id="usersSelect" ng-dropdown-multiselect="" options="userData" selected-model="group.user_config.users" extra-settings="userSettings"></div>
              <label for="userBanSelect">Select Users to Ban</label>
              <div id="userBanSelect" ng-dropdown-multiselect="" options="userData" selected-model="group.user_config.banned_users" extra-settings="userSettings"></div>
-             <label for="userOwnerSelect">Add extra admins (If needed)</label>
-             <div id="userOwnerSelect" ng-dropdown-multiselect="" options="userData" selected-model="group.user_config.owners" extra-settings="userSettings"></div>
+             <label for="userOwnerSelect">Add additional group managers (If needed)</label>
+             <div id="userOwnerSelect" ng-dropdown-multiselect="" options="managerData" selected-model="group.user_config.managers" extra-settings="userSettings"></div>
     </form>
 </div>
 <div class="modal-footer">

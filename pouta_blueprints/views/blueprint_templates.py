@@ -9,7 +9,7 @@ from pouta_blueprints.models import db, BlueprintTemplate, Plugin
 from pouta_blueprints.forms import BlueprintTemplateForm
 from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth
-from pouta_blueprints.utils import requires_admin, requires_group_owner_or_admin
+from pouta_blueprints.utils import requires_admin, requires_group_manager_or_admin
 from pouta_blueprints.rules import apply_rules_blueprint_templates
 
 blueprint_templates = FlaskBlueprint('blueprint_templates', __name__)
@@ -31,7 +31,7 @@ blueprint_template_fields = {
 
 class BlueprintTemplateList(restful.Resource):
     @auth.login_required
-    @requires_group_owner_or_admin
+    @requires_group_manager_or_admin
     @marshal_with(blueprint_template_fields)
     def get(self):
         user = g.user
@@ -74,7 +74,7 @@ class BlueprintTemplateList(restful.Resource):
 
 class BlueprintTemplateView(restful.Resource):
     @auth.login_required
-    @requires_group_owner_or_admin
+    @requires_group_manager_or_admin
     @marshal_with(blueprint_template_fields)
     def get(self, template_id):
         args = {'template_id': template_id}

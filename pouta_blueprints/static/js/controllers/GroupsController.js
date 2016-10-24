@@ -11,13 +11,7 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
         };
 
         if (AuthService.isGroupOwnerOrAdmin()) {
-            var users = Restangular.all('users');
             var groups = Restangular.all('groups');
-
-            users.getList().then(function (response) {
-                $scope.users = response;
-            });
-
             groups.getList().then(function (response) {
                 $scope.groups = response;
             });
@@ -66,9 +60,6 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                         },
                         groups: function() {
                             return groups;
-                        },
-                        users: function() {
-                            return $scope.users;
                         }
                     }
                 }).result.then(function() {
@@ -90,9 +81,10 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                         group: function() {
                             return group;
                         },
-                        users: function() {
-                            return $scope.users;
-                        },
+                        group_users: function() {
+                            var group_users = Restangular.all('groups').one(group.id).all('users');
+                            return group_users;
+                        }
                     }
                 }).result.then(function() {
                     groups.getList().then(function (response) {
@@ -104,23 +96,15 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
         }
     }]);
 
-app.controller('ModalCreateGroupController', function($scope, $modalInstance, groupsSF, groups, users) {
+app.controller('ModalCreateGroupController', function($scope, $modalInstance, groupsSF, groups) {
 
     $scope.groupsSF = groupsSF;
     groupsSF.model = {}
-    $scope.userData = users;
-    $scope.user_config = {"userModel": [], "banUserModel": [], "ownerModel": []}
-    $scope.userSettings = {displayProp: 'email', scrollable: true, enableSearch: true};
 
-    $scope.createGroup = function(form, model, user_config) {
+    $scope.createGroup = function(form, model) {
      if (form.$valid) {
             groups.post({ 
                  name: model.name, description: model.description,
-                 user_config:{
-                     "users": user_config.userModel,
-                     "banned_users": user_config.banUserModel,
-                     "owners": user_config.ownerModel
-                 }
             }).then(function () {
                 $modalInstance.close(true);
             }, function(response) {
@@ -138,11 +122,16 @@ app.controller('ModalCreateGroupController', function($scope, $modalInstance, gr
     };
 });
 
-app.controller('ModalModifyGroupController', function($scope, $modalInstance, groupsSF, group, users) {
+app.controller('ModalModifyGroupController', function($scope, $modalInstance, groupsSF, group, group_users) {
 
     $scope.groupsSF = groupsSF
     $scope.group = group;
-    $scope.userData = users;
+    group_users.getList({'banned_list': true}).then(function (response) {
+        $scope.userData = response;
+    });
+    group_users.getList().then(function (response) {
+        $scope.managerData = response;
+    });
     $scope.userSettings = {displayProp: 'email', scrollable: true, enableSearch: true};
     var old_name = group.name;
 
@@ -151,17 +140,19 @@ app.controller('ModalModifyGroupController', function($scope, $modalInstance, gr
             $scope.group.name = model.name
             $scope.group.description = model.description
             $scope.group.user_config = {
-                 "users": user_config.users,
                  "banned_users": user_config.banned_users,
-                 "owners": user_config.owners
+                 "managers": user_config.managers
             }
             $scope.group.put().then(function () {
                 $modalInstance.close(true);
             }, function(response) {
-                 error_message = 'unable to create group'
+                error_message = 'unable to create group';
                 if ('name' in response.data){
-                    error_message = response.data.name
-                    $scope.group.name = old_name
+                    error_message = response.data.name;
+                    $scope.group.name = old_name;
+                }
+                if ('error' in response.data){
+                    error_message = response.data.error;
                 }
                 $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger'});
             });
