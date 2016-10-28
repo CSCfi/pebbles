@@ -81,7 +81,7 @@ nginx_ssl_crt: "/etc/nginx/ssl/server.crt"
 nginx_ssl_key: "/etc/nginx/ssl/server.key"
 
 # provisioning workers
-provisioning_num_workers: "{{ 2 if deploy_mode == 'devel' else 4 * ansible_processor_vcpus }}"
+provisioning_num_workers: "{{ 1 if deploy_mode == 'devel' else 4 * ansible_processor_vcpus }}"
 
 # pouta-virtualcluster
 pvc_install_dir: "/opt/pvc"

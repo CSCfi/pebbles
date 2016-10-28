@@ -30,6 +30,7 @@ class ProvisioningDriverBase(object):
     def __init__(self, logger, config):
         self.logger = logger
         self.config = config
+        self._m2m_credentials = {}
 
     def get_m2m_credentials(self):
         if getattr(self, '_m2m_credentials', None):
@@ -37,7 +38,6 @@ class ProvisioningDriverBase(object):
             return self._m2m_credentials
 
         m2m_credential_store = self.config['M2M_CREDENTIAL_STORE']
-        self._m2m_credentials = {}
         try:
             self._m2m_credentials = json.load(open(m2m_credential_store))
 
@@ -48,7 +48,7 @@ class ProvisioningDriverBase(object):
                 elif key in ('OS_USERNAME', 'OS_TENANT_NAME', 'OS_TENANT_ID', 'OS_AUTH_URL'):
                     debug_str.append('%s: %s' % (key, self._m2m_credentials[key]))
                 else:
-                    debug_str.append('unknown key %s' % key)
+                    debug_str.append('other key %s' % key)
             self.logger.debug(' '.join(debug_str))
         except (IOError, ValueError) as e:
             self.logger.warn("Unable to parse M2M credentials from path %s %s" % (m2m_credential_store, e))

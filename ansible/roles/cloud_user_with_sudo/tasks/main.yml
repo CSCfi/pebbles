@@ -10,3 +10,4 @@
 
 - name: Add cloud-user public key
   authorized_key: user=cloud-user key="{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+  when: deploy_mode != "devel"
