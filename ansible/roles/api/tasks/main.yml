@@ -14,7 +14,12 @@
     state=present
   with_items:
     - postgresql-9.3
+    - libpq-dev
     - redis-server
+  when: deploy_mode == "devel"
+
+- name: start and enable postgresql service
+  service: name=postgresql state=started enabled=yes
   when: deploy_mode == "devel"
 
 - name: Create database for application (docker)
