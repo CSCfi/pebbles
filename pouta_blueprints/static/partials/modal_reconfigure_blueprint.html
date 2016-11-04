@@ -4,8 +4,7 @@
 </div>
 <div class="modal-body">
     <label class="control-label">Select Group</label>
-    <select name="groupSelect" class="form-control" id="groupSelect" ng-model="groupModel">
-        <option ng-repeat="group in groups" value="{{group.id}}">{{group.name}}</option>
+    <select name="groupSelect" class="form-control" id="groupSelect" ng-options="group.name for group in groups" ng-model="groupModel">
     </select>
     <form name="ngform2">
         <div class="form-activate"

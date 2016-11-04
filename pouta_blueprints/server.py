@@ -16,7 +16,7 @@ from pouta_blueprints.views.blueprint_templates import blueprint_templates, Blue
 from pouta_blueprints.views.blueprints import blueprints, BlueprintList, BlueprintView
 from pouta_blueprints.views.plugins import plugins, PluginList, PluginView
 from pouta_blueprints.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserGroupOwner, KeypairList, CreateKeyPair, UploadKeyPair
-from pouta_blueprints.views.groups import groups, GroupList, GroupView, GroupJoin, GroupUsersList
+from pouta_blueprints.views.groups import groups, GroupList, GroupView, GroupJoin, GroupListExit, GroupExit, GroupUsersList
 from pouta_blueprints.views.notifications import NotificationList, NotificationView
 from pouta_blueprints.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pouta_blueprints.views.activations import activations, ActivationList, ActivationView
@@ -44,6 +44,8 @@ api.add_resource(UploadKeyPair, api_root + '/users/<string:user_id>/keypairs/upl
 api.add_resource(GroupList, api_root + '/groups')
 api.add_resource(GroupView, api_root + '/groups/<string:group_id>')
 api.add_resource(GroupJoin, api_root + '/groups/group_join/<string:join_code>')
+api.add_resource(GroupListExit, api_root + '/groups/group_list_exit')
+api.add_resource(GroupExit, api_root + '/groups/group_exit/<string:group_id>')
 api.add_resource(GroupUsersList, api_root + '/groups/<string:group_id>/users')
 api.add_resource(NotificationList, api_root + '/notifications')
 api.add_resource(NotificationView, api_root + '/notifications/<string:notification_id>')

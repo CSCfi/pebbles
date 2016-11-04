@@ -175,15 +175,14 @@ app.controller('ModalGroupJoinController', function($scope, $modalInstance, grou
             "join_code":  {
                 "title": "Joining Code",
                 "type": "string",
-                "description": "The code/password to join your group",
-                "default": "joining code"
+                "description": "The code/password to join your group"
                 }
             },
             "required": ["join_code"]
 
         }
     grp_join_sf.form = [
-            "join_code"
+            {"key": "join_code", "type": "textfield", "placeholder": "paste the joining code here"}
         ]
     grp_join_sf.model = {}
     $scope.grp_join_sf = grp_join_sf;
@@ -192,6 +191,7 @@ app.controller('ModalGroupJoinController', function($scope, $modalInstance, grou
     $scope.joinGroup = function(form, model) {
      if (form.$valid) {
             $scope.group_join.one(model.join_code).customPUT().then(function () {
+                alert("Group successfully joined");
                 $modalInstance.close(true);
             }, function(response) {
                 $.notify({title: 'HTTP ' + response.status, message: response.data.error}, {type: 'danger'});

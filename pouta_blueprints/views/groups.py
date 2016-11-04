@@ -7,6 +7,7 @@ from pouta_blueprints.forms import GroupForm
 from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth, group_fields, user_fields
 from pouta_blueprints.utils import requires_admin, requires_group_owner_or_admin, requires_group_manager_or_admin
+import re
 
 groups = FlaskBlueprint('groups', __name__)
 
@@ -16,16 +17,21 @@ class GroupList(restful.Resource):
     @requires_group_manager_or_admin
     @marshal_with(group_fields)
     def get(self):
-
         user = g.user
         results = []
-        if not user.is_admin:  # group manager
+        if not user.is_admin:
             groups = user.managed_groups
         else:
             query = Group.query
             groups = query.all()
+
         for group in groups:
-            group.config = {"name": group.name, "join_code": group.join_code, "description": group.description}
+            if user.is_admin or (group.owner_id == user.id):
+                group.config = {"name": group.name, "join_code": group.join_code, "description": group.description}
+                group.user_config = generate_user_config(group)
+            else:
+                group.config = {}
+                group.user_config = {}
             results.append(group)
         return results
 
@@ -44,7 +50,7 @@ class GroupList(restful.Resource):
             group = group_users_add(group, user_config)
         except KeyError:
             abort(422)
-        group.user_config = user_config
+        # group.user_config = user_config
         db.session.add(group)
         db.session.commit()
 
@@ -86,7 +92,7 @@ class GroupView(restful.Resource):
             abort(422)
         except RuntimeError as e:
             return {"error": "{}".format(e)}, 422
-        group.user_config = user_config
+        # group.user_config = user_config
 
         db.session.add(group)
         db.session.commit()
@@ -147,6 +153,19 @@ def group_users_add(group, user_config):
     return group
 
 
+def generate_user_config(group):
+
+    user_config = {'banned_users': [], 'managers': []}
+    if group.banned_users:
+        for banned_user in group.banned_users:
+            user_config['banned_users'].append({'id': banned_user.id})
+    if group.managers:
+        for manager in group.managers:
+            if manager.id != group.owner_id:
+                user_config['managers'].append({'id': manager.id})
+    return user_config
+
+
 class GroupJoin(restful.Resource):
     @auth.login_required
     def put(self, join_code):
@@ -167,6 +186,44 @@ class GroupJoin(restful.Resource):
             user_config['users'] = []
         user_config['users'].append({'id': user.id})
         group.user_config = user_config
+        db.session.add(group)
+        db.session.commit()
+
+
+class GroupListExit(restful.Resource):
+    @auth.login_required
+    @marshal_with(group_fields)
+    def get(self):
+        user = g.user
+        results = []
+        groups = user.groups + user.managed_groups
+        for group in groups:
+            if re.match('^System.+', group.name):  # Do not show system level groups
+                continue
+            group.config = {}
+            group.user_config = {}
+            results.append(group)
+        return results
+
+
+class GroupExit(restful.Resource):
+    @auth.login_required
+    def put(self, group_id):
+        user = g.user
+        group = Group.query.filter_by(id=group_id).first()
+        if not group:
+            logging.warn("no group with id %s", group_id)
+            abort(404)
+        if user.id == group.owner_id:
+            logging.warn("cannot exit the owned group %s", group_id)
+            return {"error": "Cannot exit the group which is owned by you"}, 422
+        if user not in group.users and user not in group.managers:
+            logging.warn("user %s is not a part of the group", user.id)
+            abort(403)
+        if user in group.users:
+            group.users.remove(user)
+        elif user in group.managers:
+            group.managers.remove(user)
         db.session.add(group)
         db.session.commit()
 

@@ -110,8 +110,19 @@ def primary_test_setup(namespace):
     t2 = BlueprintTemplate()
     t2.name = 'EnabledTestTemplate'
     t2.plugin = p1.id
-    t2.config = {'memory_limit': '512m', 'maximum_lifetime': '1h'}
-    t2.allowed_attrs = ['maximum_lifetime']
+    t2.config = {
+        'cost_multiplier': '1.0',
+        'maximum_lifetime': '1h',
+        'memory_limit': '512m',
+        'preallocated_credits': 'false',
+        'allow_update_client_connectivity': False
+    }
+    t2.allowed_attrs = [
+        'maximum_lifetime',
+        'cost_multiplier',
+        'preallocated_credits',
+        'allow_update_client_connectivity'
+    ]
     t2.is_enabled = True
     db.session.add(t2)
     namespace.known_template_id = t2.id

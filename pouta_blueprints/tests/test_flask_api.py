@@ -527,6 +527,81 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/groups/group_join/%s' % self.known_banned_group_join_id)
         self.assertStatus(banned_response, 403)
 
+    def test_group_exit_list(self):
+        # Anonymous
+        response = self.make_request(path='/api/v1/groups/group_list_exit')
+        self.assert_401(response)
+        # Authenticated User
+        response = self.make_authenticated_user_request(path='/api/v1/groups/group_list_exit')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 1)
+        # Authenticated Group Owner
+        response = self.make_authenticated_group_owner_request(path='/api/v1/groups/group_list_exit')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 2)
+        # Admin
+        response = self.make_authenticated_admin_request(path='/api/v1/groups/group_list_exit')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 0)
+
+    def test_exit_group(self):
+        g = Group('TestGroupExit')
+        g.owner_id = self.known_group_owner_id_2
+        u = User.query.filter_by(id=self.known_user_id).first()
+        u_extra = User.query.filter_by(id=self.known_group_owner_id).first()  # extra user
+        g.users.append(u)
+        g.users.append(u_extra)
+        db.session.add(g)
+        db.session.commit()
+        # Anonymous
+        response = self.make_request(
+            method='PUT',
+            path='/api/v1/groups/group_exit/%s' % g.id)
+        self.assertStatus(response, 401)
+        # Authenticated User of the group
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/groups/group_exit/%s' % g.id)
+        self.assertStatus(response, 200)
+        self.assertEqual(len(g.users.all()), 1)
+        # Group Owner who is just a user of the group
+        response = self.make_authenticated_group_owner_request(
+            method='PUT',
+            path='/api/v1/groups/group_exit/%s' % g.id)
+        self.assertStatus(response, 200)
+        self.assertEqual(len(g.users.all()), 0)
+
+    def test_exit_group_invalid(self):
+        g = Group('InvalidTestGroupExit')
+        g.owner_id = self.known_group_owner_id
+        db.session.add(g)
+        db.session.commit()
+        # Authenticated User
+        invalid_response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/groups/group_exit/')
+        self.assertStatus(invalid_response, 405)  # Not allowed without group id
+        # Authenticated User Bogus group id
+        invalid_response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/groups/group_exit/%s' % 'bogusx10')
+        self.assertStatus(invalid_response, 404)
+        # Group Owner Bogus group id
+        invalid_response = self.make_authenticated_group_owner_request(
+            method='PUT',
+            path='/api/v1/groups/group_exit/%s' % 'bogusx10')
+        self.assertStatus(invalid_response, 404)
+        # Authenticated User - Trying to exit a group without
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/groups/group_exit/%s' % g.id)
+        self.assertStatus(response, 403)
+        # Group Owner of the group
+        response = self.make_authenticated_group_owner_request(
+            method='PUT',
+            path='/api/v1/groups/group_exit/%s' % g.id)
+        self.assertStatus(response, 422)  # owner of the group cannot exit the group
+
     def test_get_group_users(self):
 
         # Authenticated User, not a manager
@@ -1652,14 +1727,14 @@ class FlaskApiTestCase(BaseTestCase):
              'config': {
                  'maximum_lifetime': '1h'
              },
-             'template_name': 'TestTemplate',
+             'template_name': 'EnabledTestTemplate',
              'group_name': 'Group1'
              },
             {'name': 'foobar',
              'config': {
                  'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
              },
-             'template_name': 'TestTemplate',
+             'template_name': 'EnabledTestTemplate',
              'group_name': 'Group1'
              }
         ]
@@ -1671,14 +1746,14 @@ class FlaskApiTestCase(BaseTestCase):
                 data=json.dumps(blueprint_item))
             self.assertEqual(response.status_code, 200)
 
-        blueprint_invalid1 = {'name': 'foo', 'template_name': 'TestTemplate', 'group_name': 'Group1'}
+        blueprint_invalid1 = {'name': 'foo', 'template_name': 'EnabledTestTemplate', 'group_name': 'Group1'}
         response1 = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/import_export/blueprints',
             data=json.dumps(blueprint_invalid1))
         self.assertEqual(response1.status_code, 422)
 
-        blueprint_invalid2 = {'name': '', 'template_name': 'TestTemplate', 'group_name': 'Group1'}
+        blueprint_invalid2 = {'name': '', 'template_name': 'EnabledTestTemplate', 'group_name': 'Group1'}
         response2 = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/import_export/blueprints',
@@ -1692,7 +1767,7 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(blueprint_invalid3))
         self.assertEqual(response3.status_code, 422)
 
-        blueprint_invalid4 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': 'TestTemplate', 'group_name': ''}
+        blueprint_invalid4 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': 'EnabledTestTemplate', 'group_name': ''}
         response3 = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/import_export/blueprints',

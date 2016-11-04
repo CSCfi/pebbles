@@ -14,6 +14,7 @@ from pouta_blueprints.server import app, restful
 from pouta_blueprints.utils import requires_admin, memoize, is_group_manager
 from pouta_blueprints.tasks import run_update, update_user_connectivity
 from pouta_blueprints.views.commons import auth
+from pouta_blueprints.views.blueprints import get_full_blueprint_config
 from pouta_blueprints.rules import apply_rules_instances, get_group_blueprint_ids_for_instances
 
 instances = FlaskBlueprint('instances', __name__)
@@ -112,12 +113,12 @@ class InstanceList(restful.Resource):
 
         blueprint_id = form.blueprint.data
         allowed_blueprint_ids = get_group_blueprint_ids_for_instances(user.groups + user.managed_groups)
-        if blueprint_id not in allowed_blueprint_ids:
+        if not user.is_admin and blueprint_id not in allowed_blueprint_ids:
             abort(403)
         blueprint = Blueprint.query.filter_by(id=blueprint_id, is_enabled=True).first()
         if not blueprint:
             abort(404)
-
+        blueprint.full_config = get_full_blueprint_config(blueprint)  # Get the additional fields from the blueprint template
         if user.quota_exceeded():
             return {'error': 'USER_OVER_QUOTA'}, 409
 
@@ -132,7 +133,7 @@ class InstanceList(restful.Resource):
             user_id=user.id
         ).filter(Instance.state != 'deleted').all()
 
-        user_instance_limit = blueprint.config.get('maximum_instances_per_user', USER_INSTANCE_LIMIT)
+        user_instance_limit = blueprint.full_config.get('maximum_instances_per_user', USER_INSTANCE_LIMIT)
         if instances_for_user and len(instances_for_user) >= user_instance_limit:
             return {'error': 'BLUEPRINT_INSTANCE_LIMIT_REACHED'}, 409
 
@@ -175,12 +176,13 @@ class InstanceView(restful.Resource):
             abort(404)
 
         blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
+        blueprint.full_config = get_full_blueprint_config(blueprint)
         instance.blueprint_id = blueprint.id
         instance.username = instance.user
         instance.logs = InstanceLogs.get_logfile_urls(instance.id)
 
-        if 'allow_update_client_connectivity' in blueprint.config \
-                and blueprint.config['allow_update_client_connectivity']:
+        if 'allow_update_client_connectivity' in blueprint.full_config \
+                and blueprint.full_config['allow_update_client_connectivity']:
             instance.can_update_connectivity = True
 
         age = 0
@@ -223,8 +225,9 @@ class InstanceView(restful.Resource):
             abort(404)
 
         blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
-        if 'allow_update_client_connectivity' in blueprint.config \
-                and blueprint.config['allow_update_client_connectivity']:
+        blueprint.full_config = get_full_blueprint_config(blueprint)
+        if 'allow_update_client_connectivity' in blueprint.full_config \
+                and blueprint.full_config['allow_update_client_connectivity']:
             instance.client_ip = form.client_ip.data
             if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
                 update_user_connectivity.delay(instance.id)

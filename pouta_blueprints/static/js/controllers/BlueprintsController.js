@@ -209,8 +209,6 @@ app.controller('ModalImportBlueprintsController', function($scope, $modalInstanc
 app.controller('ModalCreateBlueprintController', function($scope, $modalInstance, template, blueprints, groups_list) {
     $scope.template = template;
     $scope.groups = groups_list;
-    console.log($scope.groups);
-    console.log($scope.template.id);
     $scope.createBlueprint = function(form, model, groupModel) {
         if (form.$valid) {
             blueprints.post({ template_id: $scope.template.id, name: model.name, config: model, group_id:  groupModel}).then(function () {
@@ -229,11 +227,11 @@ app.controller('ModalCreateBlueprintController', function($scope, $modalInstance
 app.controller('ModalReconfigureBlueprintController', function($scope, $modalInstance, blueprint, groups_list) {
     $scope.blueprint = blueprint;
     $scope.groups = groups_list;
-    $scope.groupModel = blueprint.group_id;
+    $scope.groupModel =  _.filter(groups_list, {'id': blueprint.group_id})[0];
     $scope.updateBlueprint = function(form, model, groupModel) {
         if (form.$valid) {
             $scope.blueprint.config = model;
-            $scope.blueprint.group_id = groupModel;
+            $scope.blueprint.group_id = groupModel.id;
             $scope.blueprint.put().then(function () {
                 $modalInstance.close(true);
             }, function(response) {
@@ -242,6 +240,7 @@ app.controller('ModalReconfigureBlueprintController', function($scope, $modalIns
         }
     };
 
+    
     $scope.cancel = function() {
         $modalInstance.dismiss('cancel');
     };

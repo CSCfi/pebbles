@@ -87,8 +87,9 @@ class BlueprintList(restful.Resource):
         if 'name' in form.config.data:
             form.config.data.pop('name', None)
         blueprint.config = form.config.data
+        blueprint.full_config = get_full_blueprint_config(blueprint)
         try:
-            blueprint = set_blueprint_fields_from_config(blueprint)
+            blueprint = set_blueprint_fields_from_full_config(blueprint)
         except ValueError:
             timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
             return timeformat_error, 422
@@ -133,8 +134,8 @@ class BlueprintView(restful.Resource):
         if 'name' in form.config.data:
             form.config.data.pop('name', None)
         blueprint.config = form.config.data
-
-        blueprint = set_blueprint_fields_from_config(blueprint)
+        blueprint.full_config = get_full_blueprint_config(blueprint)
+        blueprint = set_blueprint_fields_from_full_config(blueprint)
 
         if form.is_enabled.raw_data:
             blueprint.is_enabled = form.is_enabled.raw_data[0]
@@ -147,8 +148,9 @@ class BlueprintView(restful.Resource):
 
 def get_full_blueprint_config(blueprint):
 
-    template = blueprint.template
+    template = BlueprintTemplate.query.filter_by(id=blueprint.template_id).first()
     allowed_attrs = template.allowed_attrs
+    logging.warn(allowed_attrs)
     allowed_attrs = ['name', 'description'] + allowed_attrs
     full_config = template.config
     bp_config = blueprint.config
@@ -158,27 +160,27 @@ def get_full_blueprint_config(blueprint):
     return full_config
 
 
-def set_blueprint_fields_from_config(blueprint):
+def set_blueprint_fields_from_full_config(blueprint):
 
-    config = blueprint.config
+    full_config = blueprint.full_config
 
-    if 'preallocated_credits' in config:
+    if 'preallocated_credits' in full_config:
         try:
-            blueprint.preallocated_credits = bool(config['preallocated_credits'])
+            blueprint.preallocated_credits = bool(full_config['preallocated_credits'])
         except:
             pass
 
-    if 'maximum_lifetime' in config:
-        max_life_str = str(config['maximum_lifetime'])
+    if 'maximum_lifetime' in full_config:
+        max_life_str = str(full_config['maximum_lifetime'])
         if max_life_str:
             maximum_lifetime = parse_maximum_lifetime(max_life_str)
             blueprint.maximum_lifetime = maximum_lifetime
         else:
             blueprint.maximum_lifetime = 3600  # Default value if not provided anything by user
 
-    if 'cost_multiplier' in config:
+    if 'cost_multiplier' in full_config:
         try:
-            blueprint.cost_multiplier = float(config['cost_multiplier'])
+            blueprint.cost_multiplier = float(full_config['cost_multiplier'])
         except:
             pass
 

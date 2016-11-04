@@ -69,6 +69,25 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
         });
     };
 
+    var group_list_exit = Restangular.all('groups').all('group_list_exit');
+    var refresh_group_list_exit = function(){
+        group_list_exit.getList().then(function (response) {
+            $scope.group_list_exit = response;
+        });
+    };
+
+    refresh_group_list_exit();
+
+    $scope.exit_group = function(group) {
+        var group_exit = Restangular.all('groups').one('group_exit').one(group.id);
+        group_exit.put().then(function () {
+               refresh_group_list_exit();
+            }, function(response) {
+                $.notify({title: 'HTTP ' + response.status, message: response.data.error}, {type: 'danger'});
+            });
+
+     };
+
     $scope.change_password_msg_visible = function() {
         if (change_password_result === "") {
             return false;
@@ -97,4 +116,5 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
             change_password_result = "";
         }, 10000);
     };
+
 }]);
