@@ -15,29 +15,13 @@ Currently supported resource types are
 Additional resources can be added by implementing the driver interface
 [/pouta_blueprints/drivers/provisioning/base_driver.py](pouta_blueprints/drivers/provisioning/base_driver.py)
 
-## Installation on cPouta ##
+## Documentation ##
 
-To install Pouta Blueprints in your project on cPouta, see
-[how_to_install_on_cpouta.md](doc/how_to_install_on_cpouta.md)
+The system comes with Sphinx documentation under doc/. It's a work in progress
+to figure out where the documentation will be hosted.
 
-## Installation of development environment ##
+        $ cd doc && make html
 
-Provided Vagrantfile can be used to start a new **Pouta Blueprints** instance
-(requires VirtualBox or Docker)
+Will build the html documentation. There is a requirement of graphviz
+for creating system structure graphs.
 
-    vagrant up
-
-or
-
-    vagrant up --provider=docker
-
-After the installation the first admin user is created by using the
-initialization form at (https://localhost:8888/#/initialize). The development 
-environment uses a self-signed certificate.
-
-## Database migrations ##
-
-It's imperative that changes to the model objects and corresponding migrations
-always be commited in the same commit (squash if you have to).  Check out
-[database_migrations.md](doc/database_migrations.md) for how to run or create
-migrations. 

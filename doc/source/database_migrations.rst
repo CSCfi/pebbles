@@ -1,9 +1,11 @@
-# Database Migrations #
+Database Migrations
+*******************
 
 The tool stack we use for databases is SQLAlchemy, Alembic, Flask-SQLAlchemy
 and Flask-Migrate.
 
-## Overview ##
+Overview
+========
 
 It's always possible to just use the db.create_all() to create all database
 tables based on code at that point. This is what unit tests do to save time.
@@ -22,12 +24,15 @@ All the automated deployment systems assume that the migrations will sync the
 system to the state in which models.py is. This includes the dev server
 deployment.
 
-## Process ##
+Process
+=======
 
 After you change the models (add fields, constraints etc), first make sure you
 have the correct packages installed etc. (ToDo: document!).
 
 Then to make sure db is up to date with latest version file, run
+
+.. code-block:: sh
 
         (env) pouta-blueprints/ $ python manage.py db upgrade
 
@@ -36,6 +41,8 @@ This reads through all the files, introspects the state of your configured db
 
 Then to create a new file, run 
         
+.. code-block:: sh
+
         (env) pouta-blueprints/ $ python manage.py db migrate
 
 inspect that you have a new .py file under migrations/versions and at the very
@@ -45,6 +52,8 @@ is very much recommended.
 
 To apply the migration you have created, run
 
+.. code-block:: sh
+
         (env) pouta-blueprints/ $ python manage.py db upgrade
 
 And the system picks up the new migration, sees that it hasn't been run yet
@@ -53,10 +62,13 @@ and applies it.
 To downgrade e.g. after something appears broken and you don't want to start
 generating the db from scratch you can run
 
+.. code-block:: sh
+
         (env) pouta-blueprints/ $ python manage.py db downgrade [revision
         identifier]
 
-## Notes ##
+Notes
+=====
 
 If you use the default settings the SQLite database location will be
 at /tmp/change_me.db. Unit tests use an in-memory SQLite and live tests use a

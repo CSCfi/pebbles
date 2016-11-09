@@ -6,3 +6,9 @@
 
 # vim .swp files
 *.swp
+
+#built HTML docs at least in the master branch
+#
+doc/build/
+
+
