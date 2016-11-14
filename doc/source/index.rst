@@ -15,6 +15,7 @@ Contents:
    :maxdepth: 2
    
    use_cases
+   group_owners_guide
    system_architecture
    drivers
    dev_environment
