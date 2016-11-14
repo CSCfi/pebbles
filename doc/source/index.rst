@@ -16,6 +16,7 @@ Contents:
    
    use_cases
    system_architecture
+   drivers
    dev_environment
    how_to_install_on_cpouta
    database_migrations

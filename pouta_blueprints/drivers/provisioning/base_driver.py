@@ -1,3 +1,9 @@
+"""Drivers abstract resource provisioning strategies to the system and user.
+
+A driver object can be instantiated to connect to some end point to CRUD
+resources like Docker containers or OpenStack virtual machines.
+"""
+
 import select
 import shlex
 import json
@@ -17,6 +23,8 @@ from pouta_blueprints.models import Instance
 
 @six.add_metaclass(abc.ABCMeta)
 class ProvisioningDriverBase(object):
+    """ This class functions as the base for other classes.
+    """
     config = {}
 
     def __init__(self, logger, config):

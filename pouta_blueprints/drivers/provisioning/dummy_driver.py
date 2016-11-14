@@ -9,6 +9,10 @@ from pouta_blueprints.models import Instance
 
 
 class DummyDriver(base_driver.ProvisioningDriverBase):
+    """ Dummy driver mostly pretends to be a real driver for system testing purposes.
+
+        ToDo: read code document what exactly it does
+    """
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.dummy_driver_config import CONFIG
 

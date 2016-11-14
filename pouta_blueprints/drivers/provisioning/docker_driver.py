@@ -1,3 +1,6 @@
+""" ToDo: Document generic philosophy of using Docker with Pebbles here.
+"""
+
 import json
 import time
 import uuid
@@ -159,6 +162,8 @@ class DockerDriverAccessProxy(object):
 
 
 class DockerDriver(base_driver.ProvisioningDriverBase):
+    """ ToDo: document what the docker driver does on a general level here.
+    """
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.docker_driver_config import CONFIG
 
