@@ -132,5 +132,6 @@ class LoginTestCase(SeleniumBaseTestCase):
         shibboleth_enabled.value = saved
         self.db.session.commit()
 
+
 if __name__ == "__main__":
     unittest.main()

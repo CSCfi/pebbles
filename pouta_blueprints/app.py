@@ -61,4 +61,5 @@ def run_things_in_context(test_run):
         if not test_run:
             Variable.sync_local_config_to_db(BaseConfig, app.dynamic_config)
 
+
 run_things_in_context(test_run)

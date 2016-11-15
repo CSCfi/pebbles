@@ -1147,5 +1147,7 @@ class FlaskApiTestCase(BaseTestCase):
             method='GET',
             path='/api/v1/stats')
         self.assertStatus(response, 403)
+
+
 if __name__ == '__main__':
     unittest.main()
