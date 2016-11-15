@@ -32,10 +32,12 @@ Documentation
 The system comes with Sphinx documentation under doc/. It's a work in progress
 to figure out where the documentation will be hosted.::
 
-        $ cd doc && make html
+        $ mkvirtualenv pb-doc
+        (pb-doc) $ pip install -r requirements.txt
+        (pb-doc) $ cd doc && make html
 
-Will build the html documentation. There is a requirement of graphviz
-for creating system structure graphs.
+Will build the html documentation under doc/build. There is a requirement of
+graphviz for creating system structure graphs.
 
 .. _OpenStack driver: pouta_blueprints/drivers/provisioning/openstack_driver.py
 .. _Docker driver: pouta_blueprints/drivers/provisioning/README_docker_driver.md 
