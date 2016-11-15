@@ -13,8 +13,7 @@ import json
 import datetime
 import six
 
-from pouta_blueprints.utils import validate_ssh_pubkey
-
+from pouta_blueprints.utils import validate_ssh_pubkey, get_blueprint_fields_from_config
 
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
@@ -186,9 +185,7 @@ class Group(db.Model):
     name = db.Column(db.String(32))
     _join_code = db.Column(db.String(64))
     description = db.Column(db.Text)
-    _user_config = db.Column('user_config', db.Text)
     owner_id = db.Column(db.String(32), db.ForeignKey('users.id'))
-    # owner = db.relationship('User', backref='owned_groups', lazy='dynamic')
     users = db.relationship('User', secondary=group_user, backref='groups', lazy='dynamic')
     banned_users = db.relationship('User', secondary=group_banned_user, backref='banned_groups', lazy='dynamic')
     managers = db.relationship('User', secondary=group_manager, backref='managed_groups', lazy='dynamic')
@@ -198,14 +195,6 @@ class Group(db.Model):
         self.id = uuid.uuid4().hex
         self.name = name
         self.join_code = name
-
-    @hybrid_property
-    def user_config(self):
-        return load_column(self._user_config)
-
-    @user_config.setter
-    def user_config(self, value):
-        self._user_config = json.dumps(value)
 
     @hybrid_property
     def join_code(self):
@@ -362,9 +351,6 @@ class Blueprint(db.Model):
     template_id = db.Column(db.String(32), db.ForeignKey('blueprint_templates.id'))
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
-    maximum_lifetime = db.Column(db.Integer, default=3600)
-    preallocated_credits = db.Column(db.Boolean, default=False)
-    cost_multiplier = db.Column(db.Float, default=1.0)
     instances = db.relationship('Instance', backref='blueprint', lazy='dynamic')
     group_id = db.Column(db.String(32), db.ForeignKey('groups.id'))
 
@@ -379,10 +365,21 @@ class Blueprint(db.Model):
     def config(self, value):
         self._config = json.dumps(value)
 
+    @hybrid_property
+    def maximum_lifetime(self):
+        return get_blueprint_fields_from_config(self, 'maximum_lifetime')
+
+    @hybrid_property
+    def preallocated_credits(self):
+        return get_blueprint_fields_from_config(self, 'preallocated_credits')
+
+    @hybrid_property
+    def cost_multiplier(self):
+        return get_blueprint_fields_from_config(self, 'cost_multiplier')
+
     def cost(self, duration=None):
         if not duration:
             duration = self.maximum_lifetime
-
         return self.cost_multiplier * duration / 3600
 
     def __repr__(self):
@@ -435,15 +432,15 @@ class Instance(db.Model):
         if not duration:
             duration = self.runtime
 
+        # self.blueprint = set_blueprint_fields_from_full_config(self.blueprint)
+
         if self.blueprint.preallocated_credits:
             duration = self.blueprint.maximum_lifetime
 
         try:
             cost_multiplier = self.blueprint.cost_multiplier
         except:
-            logging.warn("invalid cost_multiplier for blueprint %s, defaulting to 1.0" % self.blueprint_id)
             cost_multiplier = 1.0
-
         return cost_multiplier * duration / 3600
 
     @hybrid_property

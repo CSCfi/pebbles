@@ -70,8 +70,9 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
 
         isGroupManagerOrAdmin : function() {
             var groupManagerStatus = this.getGroupManagerStatus();
+            var groupOwnerStatus = this.getGroupOwnerStatus();
             var adminStatus = this.getAdminStatus();
-            if (groupManagerStatus === "true" || adminStatus === "true") {
+            if (groupManagerStatus === "true" || groupOwnerStatus === "true" || adminStatus === "true") {
                 return true;
             }
             return false;

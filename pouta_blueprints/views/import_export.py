@@ -7,7 +7,6 @@ from pouta_blueprints.models import db, Blueprint, BlueprintTemplate, Plugin, Gr
 from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth
 from pouta_blueprints.views.blueprint_templates import blueprint_schemaform_config
-from pouta_blueprints.views.blueprints import get_full_blueprint_config, set_blueprint_fields_from_full_config
 from pouta_blueprints.utils import requires_admin, requires_group_manager_or_admin
 from pouta_blueprints.rules import apply_rules_export_blueprints
 from pouta_blueprints.forms import BlueprintImportForm, BlueprintTemplateImportForm
@@ -134,8 +133,6 @@ class ImportExportBlueprints(restful.Resource):
         blueprint.template_id = template.id
         blueprint.group_id = group.id
         blueprint.config = form.config.data
-        blueprint.full_config = get_full_blueprint_config(blueprint)
-        blueprint = set_blueprint_fields_from_full_config(blueprint)
 
         db.session.add(blueprint)
         db.session.commit()

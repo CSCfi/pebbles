@@ -24,6 +24,7 @@ class ModelsTestCase(BaseTestCase):
         t1.name = 'EnabledTestTemplate'
         t1.plugin = p1.id
         t1.is_enabled = True
+        t1.allowed_attrs = ['cost_multiplier']
         db.session.add(t1)
         self.known_template_id = t1.id
 
@@ -31,7 +32,10 @@ class ModelsTestCase(BaseTestCase):
         b1.name = "TestBlueprint"
         b1.template_id = t1.id
         b1.group_id = g.id
-        b1.cost_multiplier = 1.5
+        # b1.cost_multiplier = 1.5
+        b1.config = {
+            'cost_multiplier': '1.5'
+        }
         self.known_blueprint = b1
         db.session.add(b1)
 

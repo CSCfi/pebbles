@@ -460,6 +460,11 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_403(response)
         # Admin
+        invalid_response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/groups/%s' % self.system_default_group_id
+        )
+        self.assertStatus(invalid_response, 422)  # Cannot delete default system group
         response = self.make_authenticated_admin_request(
             method='DELETE',
             path='/api/v1/groups/%s' % g.id
@@ -1013,7 +1018,7 @@ class FlaskApiTestCase(BaseTestCase):
         data = {
             'name': 'test_blueprint_2',
             'config': {
-                "name": "foo",
+                "name": "foo_modify",
                 "maximum_lifetime": '0d2h30m',
                 "cost_multiplier": '0.1',
                 "preallocated_credits": "true",
@@ -1052,6 +1057,27 @@ class FlaskApiTestCase(BaseTestCase):
             response = self.make_authenticated_admin_request(
                 method='POST',
                 path='/api/v1/blueprints',
+                data=json.dumps(data))
+            self.assertStatus(response, 422)
+
+    def test_create_blueprint_template_admin_invalid_data(self):
+        invalid_form_data = [
+            {'name': '', 'config': 'foo: bar'},
+            {'name': 'test_template_2', 'config': ''},
+            {'name': 'test_template_2', 'config': 'foo: bar'},
+            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": ' '}},
+            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '10 100'}},
+            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '1hh'}},
+            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '-1m'}},
+            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '-10h'}},
+            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '2d -10h'}},
+            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '30s'}},
+            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}}
+        ]
+        for data in invalid_form_data:
+            response = self.make_authenticated_admin_request(
+                method='POST',
+                path='/api/v1/blueprint_templates',
                 data=json.dumps(data))
             self.assertStatus(response, 422)
 
@@ -1280,11 +1306,14 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_user_request(path='/api/v1/instances?show_deleted=true')
         self.assert_200(response)
         self.assertEqual(len(response.json), 3)
-
+        # Group Manager (His own instance + other instances from his managed groups)
+        response = self.make_authenticated_group_owner_request(path='/api/v1/instances')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 3)
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/instances')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 3)
+        self.assertEqual(len(response.json), 4)
         response = self.make_authenticated_admin_request(path='/api/v1/instances?show_only_mine=1')
         self.assert_200(response)
         self.assertEqual(len(response.json), 1)
@@ -1298,6 +1327,79 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/instances/%s' % self.known_instance_id)
+        self.assert_200(response)
+
+    def test_delete_instance(self):
+        blueprint = Blueprint.query.filter_by(id=self.known_blueprint_id).first()
+        user = User.query.filter_by(id=self.known_user_id).first()
+        i1 = Instance(blueprint, user)
+        db.session.add(i1)
+        db.session.commit()
+        # Anonymous
+        response = self.make_request(
+            method='DELETE',
+            path='/api/v1/instances/%s' % i1.id
+        )
+        self.assert_401(response)
+        # Authenticated User of the instance
+        response = self.make_authenticated_user_request(
+            method='DELETE',
+            path='/api/v1/instances/%s' % i1.id
+        )
+        self.assert_200(response)
+
+        i2 = Instance(blueprint, user)
+        db.session.add(i2)
+        db.session.commit()
+        # Authenticated Group Owner of the instance
+        response = self.make_authenticated_group_owner_request(
+            method='DELETE',
+            path='/api/v1/instances/%s' % i2.id
+        )
+        self.assert_200(response)
+
+        i3 = Instance(blueprint, user)
+        db.session.add(i3)
+        db.session.commit()
+        # Authenticated Group Manager of the instance
+        response = self.make_authenticated_group_owner2_request(
+            method='DELETE',
+            path='/api/v1/instances/%s' % i3.id
+        )
+        self.assert_200(response)
+
+        i4 = Instance(blueprint, user)
+        db.session.add(i4)
+        db.session.commit()
+        # Admin
+        response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/instances/%s' % i4.id
+        )
+        self.assert_200(response)
+
+        blueprint2 = Blueprint.query.filter_by(id=self.known_blueprint_id_g2).first()
+        user2 = User.query.filter_by(id=self.known_group_owner_id_2).first()
+        i5 = Instance(blueprint2, user2)
+        db.session.add(i5)
+        db.session.commit()
+        # User is not part of the group
+        response = self.make_authenticated_user_request(
+            method='DELETE',
+            path='/api/v1/instances/%s' % i5.id
+        )
+        self.assert_404(response)
+        # Is just a Normal user of the group who didn't spawn the instance
+        response = self.make_authenticated_group_owner_request(
+            method='DELETE',
+            path='/api/v1/instances/%s' % i5.id
+        )
+        self.assert_403(response)
+        # Authenticated Group Owner of the group
+        response = self.make_authenticated_group_owner2_request(
+            method='DELETE',
+            path='/api/v1/instances/%s' % i5.id
+        )
         self.assert_200(response)
 
     def test_get_activation_url(self):
@@ -1860,7 +1962,7 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/stats')
         self.assertStatus(response, 200)
 
-        self.assertEqual(len(response.json['blueprints']), 2)  # 2 items as the instances are running across two blueprints
+        self.assertEqual(len(response.json['blueprints']), 3)  # 2 items as the instances are running across three blueprints
         for blueprint in response.json['blueprints']:
             # Tests for blueprint b2 EnabledTestBlueprint'
             if blueprint['name'] == 'EnabledTestBlueprint':
@@ -1868,12 +1970,17 @@ class FlaskApiTestCase(BaseTestCase):
                 self.assertEqual(blueprint['launched_instances'], 1)
                 self.assertEqual(blueprint['running_instances'], 1)
             # Tests for blueprint b3 EnabledTestBlueprintClientIp
-            else:
+            elif blueprint['name'] == 'EnabledTestBlueprintClientIp':
                 self.assertEqual(blueprint['users'], 2)
                 self.assertEqual(blueprint['launched_instances'], 3)
                 self.assertEqual(blueprint['running_instances'], 2)
+            # b4 EnabledTestBlueprintOtherGroup
+            else:
+                self.assertEqual(blueprint['users'], 1)
+                self.assertEqual(blueprint['launched_instances'], 1)
+                self.assertEqual(blueprint['running_instances'], 1)
 
-        self.assertEqual(response.json['overall_running_instances'], 3)
+        self.assertEqual(response.json['overall_running_instances'], 4)
 
     def test_user_fetch_instance_usage_stats(self):
         response = self.make_authenticated_user_request(

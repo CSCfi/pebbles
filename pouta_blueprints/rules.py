@@ -7,19 +7,19 @@ import itertools
 # import logging
 
 
-def apply_rules_blueprint_templates(user, args={}):
+def apply_rules_blueprint_templates(user, args=None):
 
     q = BlueprintTemplate.query
     if not user.is_admin:
         query_exp = BlueprintTemplate.is_enabled == true()
         q = q.filter(query_exp)
-    if args.get('template_id'):
+    if args is not None and 'template_id' in args:
         q = q.filter_by(id=args.get('template_id'))
 
     return q
 
 
-def apply_rules_blueprints(user, args={}):
+def apply_rules_blueprints(user, args=None):
 
     q = Blueprint.query
     if not user.is_admin:
@@ -41,13 +41,13 @@ def apply_rules_blueprints(user, args={}):
         query_exp = or_(query_exp, managed_group_ids_exp)
         q = q.filter(query_exp)
 
-    if args.get('blueprint_id'):
+    if args is not None and 'blueprint_id' in args:
         q = q.filter_by(id=args.get('blueprint_id'))
 
     return q
 
 
-def apply_rules_export_blueprints(user, args={}):
+def apply_rules_export_blueprints(user):
     q = Blueprint.query
     if not user.is_admin:
         managed_group_ids = [managed_group_item.id for managed_group_item in user.managed_groups]
@@ -67,23 +67,27 @@ def get_group_blueprint_ids_for_instances(groups):
     return group_blueprints_id
 
 
-def apply_rules_instances(user, args={}):
+def apply_rules_instances(user, args=None):
 
     q = Instance.query
-    if is_group_manager(user):  # Show only the instances of the blueprints which the group manager holds
-        groups = user.managed_groups
-        group_blueprints_id = get_group_blueprint_ids_for_instances(groups)
-        q1 = q.filter(Instance.blueprint_id.in_(group_blueprints_id))
-        q2 = q.filter_by(user_id=user.id)
-        q = q1.union(q2)
-    if args.get('instance_id'):
-        q = q.filter_by(id=args.get('instance_id'))
-    if not user.is_admin and not is_group_manager(user) or args.get('show_only_mine'):
-        q = q.filter_by(user_id=user.id)
-    if not args.get('show_deleted'):
+    if not user.is_admin:
+        q1 = q.filter_by(user_id=user.id)
+        if is_group_manager(user):  # Show only the instances of the blueprints which the group manager holds
+            groups = user.managed_groups
+            group_blueprints_id = get_group_blueprint_ids_for_instances(groups)
+            q2 = q.filter(Instance.blueprint_id.in_(group_blueprints_id))
+            q = q1.union(q2)
+        else:
+            q = q1
+    if args is None or not args.get('show_deleted'):
         q = q.filter(Instance.state != Instance.STATE_DELETED)
-    if args.get('offset'):
-        q = q.offset(args.get('offset'))
-    if args.get('limit'):
-        q = q.limit(args.get('limit'))
+    if args is not None:
+        if 'instance_id' in args:
+            q = q.filter_by(id=args.get('instance_id'))
+        if args.get('show_only_mine'):
+            q = q.filter_by(user_id=user.id)
+        if 'offset' in args:
+            q = q.offset(args.get('offset'))
+        if 'limit' in args:
+            q = q.limit(args.get('limit'))
     return q

@@ -10,6 +10,10 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             }
         };
 
+        $scope.isAdmin = function() {
+            return AuthService.isAdmin();
+        };
+
         if (AuthService.isGroupOwnerOrAdmin()) {
             var groups = Restangular.all('groups');
             groups.getList().then(function (response) {
@@ -47,7 +51,6 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                     "placeholder": "Details of the group"
                 }
             ]
-            //$scope.groupsSF = groupsSF;
 
             $scope.openCreateGroupDialog=function() {
                 $uibModal.open({
@@ -94,7 +97,20 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             };
 
         }
-    }]);
+
+    $scope.deleteGroup=function(group) {
+        group.remove().then(function () {
+            groups.getList().then(function (response) {
+                        $scope.groups = response;
+                     });
+            }, function(response) {
+                   if ('error' in response.data){
+                   error_message = response.data.error;
+                   }
+                   $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger'});
+            });
+    }
+ }]);
 
 app.controller('ModalCreateGroupController', function($scope, $modalInstance, groupsSF, groups) {
 

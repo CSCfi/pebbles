@@ -59,7 +59,7 @@ def primary_test_setup(namespace):
     g1.owner_id = u3.id
     g1.users.append(u2)
     g1.managers.append(u3)  # The owner is always a manager
-    g1.managers.append(u4)  # Add extra owner
+    g1.managers.append(u4)  # Add extra manager
     g2.id = 'g2'
     g2.owner_id = u4.id
     g2.users.append(u3)
@@ -73,6 +73,7 @@ def primary_test_setup(namespace):
     namespace.known_group_id_3 = g3.id
     namespace.known_banned_group_join_id = g3.join_code
     namespace.known_group_join_id = g4.join_code
+    namespace.system_default_group_id = g5.id
     db.session.add(g1)
     db.session.add(g2)
     db.session.add(g3)
@@ -114,7 +115,6 @@ def primary_test_setup(namespace):
         'cost_multiplier': '1.0',
         'maximum_lifetime': '1h',
         'memory_limit': '512m',
-        'preallocated_credits': 'false',
         'allow_update_client_connectivity': False
     }
     t2.allowed_attrs = [
@@ -199,6 +199,11 @@ def primary_test_setup(namespace):
 
     i4 = Instance(
         Blueprint.query.filter_by(id=b3.id).first(),
-        User.query.filter_by(email="admin@example.org").first())
+        User.query.filter_by(email="group_owner@example.org").first())
     db.session.add(i4)
+
+    i5 = Instance(
+        Blueprint.query.filter_by(id=b4.id).first(),
+        User.query.filter_by(email="admin@example.org").first())
+    db.session.add(i5)
     db.session.commit()

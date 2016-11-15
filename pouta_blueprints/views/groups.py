@@ -50,7 +50,6 @@ class GroupList(restful.Resource):
             group = group_users_add(group, user_config)
         except KeyError:
             abort(422)
-        # group.user_config = user_config
         db.session.add(group)
         db.session.commit()
 
@@ -92,7 +91,6 @@ class GroupView(restful.Resource):
             abort(422)
         except RuntimeError as e:
             return {"error": "{}".format(e)}, 422
-        # group.user_config = user_config
 
         db.session.add(group)
         db.session.commit()
@@ -101,6 +99,9 @@ class GroupView(restful.Resource):
     @requires_admin
     def delete(self, group_id):
         group = Group.query.filter_by(id=group_id).first()
+        if group.name == 'System.default':
+            logging.warn("cannot delete the default system group")
+            return {"error": "Cannot delete the default system group"}, 422
         if not group:
             logging.warn("trying to delete non-existing group")
             abort(404)
@@ -181,11 +182,6 @@ class GroupJoin(restful.Resource):
             logging.warn("user %s already exists in group", user.id)
             return {"error": "User already in the group"}, 422
         group.users.append(user)
-        user_config = group.user_config
-        if 'users' not in user_config:
-            user_config['users'] = []
-        user_config['users'].append({'id': user.id})
-        group.user_config = user_config
         db.session.add(group)
         db.session.commit()
 

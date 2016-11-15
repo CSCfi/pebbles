@@ -11,10 +11,9 @@ import uuid
 from pouta_blueprints.models import db, Blueprint, Instance, User
 from pouta_blueprints.forms import InstanceForm, UserIPForm
 from pouta_blueprints.server import app, restful
-from pouta_blueprints.utils import requires_admin, memoize, is_group_manager
+from pouta_blueprints.utils import requires_admin, memoize, is_group_manager, get_full_blueprint_config
 from pouta_blueprints.tasks import run_update, update_user_connectivity
 from pouta_blueprints.views.commons import auth
-from pouta_blueprints.views.blueprints import get_full_blueprint_config
 from pouta_blueprints.rules import apply_rules_instances, get_group_blueprint_ids_for_instances
 
 instances = FlaskBlueprint('instances', __name__)

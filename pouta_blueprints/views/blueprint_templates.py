@@ -9,7 +9,7 @@ from pouta_blueprints.models import db, BlueprintTemplate, Plugin
 from pouta_blueprints.forms import BlueprintTemplateForm
 from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth
-from pouta_blueprints.utils import requires_admin, requires_group_manager_or_admin
+from pouta_blueprints.utils import requires_admin, requires_group_manager_or_admin, parse_maximum_lifetime
 from pouta_blueprints.rules import apply_rules_blueprint_templates
 
 blueprint_templates = FlaskBlueprint('blueprint_templates', __name__)
@@ -64,6 +64,12 @@ class BlueprintTemplateList(restful.Resource):
         config = form.config.data
         config.pop('name', None)
         blueprint_template.config = config
+        try:
+            validate_max_lifetime_template(config)  # Validate the maximum lifetime from config
+        except ValueError:
+            timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
+            return timeformat_error, 422
+
         if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
             blueprint_template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']
             blueprint_template = blueprint_schemaform_config(blueprint_template)
@@ -102,6 +108,11 @@ class BlueprintTemplateView(restful.Resource):
         config = form.config.data
         config.pop('name', None)
         blueprint_template.config = config
+        try:
+            validate_max_lifetime_template(config)  # Validate the maximum lifetime from config
+        except ValueError:
+            timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
+            return timeformat_error, 422
         if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
             blueprint_template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']
             blueprint_template = blueprint_schemaform_config(blueprint_template)
@@ -136,3 +147,10 @@ def blueprint_schemaform_config(blueprint_template):
     blueprint_template.blueprint_model = blueprint_model
 
     return blueprint_template
+
+
+def validate_max_lifetime_template(config):
+    if 'maximum_lifetime' in config:
+        max_life_str = str(config['maximum_lifetime'])
+        if max_life_str:
+            parse_maximum_lifetime(max_life_str)

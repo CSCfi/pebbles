@@ -147,3 +147,47 @@ def parse_port_range(port_range):
             raise ValueError('Port range invalid')
     else:
         raise ValueError('No port range found')
+
+
+def get_full_blueprint_config(blueprint):
+
+    template = blueprint.template
+    allowed_attrs = template.allowed_attrs
+    allowed_attrs = ['name', 'description'] + allowed_attrs
+    full_config = template.config
+    bp_config = blueprint.config
+    for attr in allowed_attrs:
+        if attr in bp_config:
+            full_config[attr] = bp_config[attr]
+    return full_config
+
+
+def get_blueprint_fields_from_config(blueprint, field_name):
+
+    full_config = get_full_blueprint_config(blueprint)
+
+    if field_name == 'preallocated_credits':
+        preallocated_credits = False  # Default value
+        if 'preallocated_credits' in full_config:
+            try:
+                preallocated_credits = bool(full_config['preallocated_credits'])
+            except:
+                pass
+        return preallocated_credits
+
+    if field_name == 'maximum_lifetime':
+        maximum_lifetime = 3600  # Default value of 1 hour
+        if 'maximum_lifetime' in full_config:
+            max_life_str = str(full_config['maximum_lifetime'])
+            if max_life_str:
+                maximum_lifetime = parse_maximum_lifetime(max_life_str)
+        return maximum_lifetime
+
+    if field_name == 'cost_multiplier':
+        cost_multiplier = 1.0  # Default value
+        if 'cost_multiplier' in full_config:
+            try:
+                cost_multiplier = float(full_config['cost_multiplier'])
+            except:
+                pass
+        return cost_multiplier

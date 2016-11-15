@@ -28,6 +28,9 @@
             <td>
                 <button ng-click="openModifyGroupDialog(group)" type="submit" class="btn btn-default">Modify</button>
             </td>
+            <td ng-show="isAdmin()">
+               <button ng-confirm-click="Delete this group?" ng-click="deleteGroup(group)" class="btn btn-danger">Delete</button>
+            </td>
         </tr>
         </tbody>
     </table>

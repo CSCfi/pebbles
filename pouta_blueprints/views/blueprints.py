@@ -8,7 +8,7 @@ from pouta_blueprints.models import db, Blueprint, BlueprintTemplate, Group
 from pouta_blueprints.forms import BlueprintForm
 from pouta_blueprints.server import restful
 from pouta_blueprints.views.commons import auth
-from pouta_blueprints.utils import requires_group_manager_or_admin, parse_maximum_lifetime
+from pouta_blueprints.utils import requires_group_manager_or_admin, parse_maximum_lifetime, get_full_blueprint_config
 from pouta_blueprints.rules import apply_rules_blueprints
 
 blueprints = FlaskBlueprint('blueprints', __name__)
@@ -87,9 +87,8 @@ class BlueprintList(restful.Resource):
         if 'name' in form.config.data:
             form.config.data.pop('name', None)
         blueprint.config = form.config.data
-        blueprint.full_config = get_full_blueprint_config(blueprint)
         try:
-            blueprint = set_blueprint_fields_from_full_config(blueprint)
+            validate_max_lifetime_blueprint(blueprint)  # Validate the maximum lifetime from config
         except ValueError:
             timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
             return timeformat_error, 422
@@ -102,12 +101,14 @@ class BlueprintView(restful.Resource):
     @marshal_with(blueprint_fields)
     def get(self, blueprint_id):
         args = {'blueprint_id': blueprint_id}
-        query = apply_rules_blueprints(g.user, args)
+        user = g.user
+        query = apply_rules_blueprints(user, args)
         blueprint = query.first()
         if not blueprint:
             abort(404)
-        blueprint.full_config = get_full_blueprint_config(blueprint)
         blueprint.plugin = blueprint.template.plugin
+        if user.is_admin or blueprint.group in user.managed_groups:
+            blueprint.full_config = get_full_blueprint_config(blueprint)
         return blueprint
 
     @auth.login_required
@@ -134,54 +135,25 @@ class BlueprintView(restful.Resource):
         if 'name' in form.config.data:
             form.config.data.pop('name', None)
         blueprint.config = form.config.data
-        blueprint.full_config = get_full_blueprint_config(blueprint)
-        blueprint = set_blueprint_fields_from_full_config(blueprint)
 
         if form.is_enabled.raw_data:
             blueprint.is_enabled = form.is_enabled.raw_data[0]
         else:
             blueprint.is_enabled = False
-
+        try:
+            validate_max_lifetime_blueprint(blueprint)  # Validate the maximum lifetime from config
+        except ValueError:
+            timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
+            return timeformat_error, 422
         db.session.add(blueprint)
         db.session.commit()
 
 
-def get_full_blueprint_config(blueprint):
-
+def validate_max_lifetime_blueprint(blueprint):
     template = BlueprintTemplate.query.filter_by(id=blueprint.template_id).first()
-    allowed_attrs = template.allowed_attrs
-    logging.warn(allowed_attrs)
-    allowed_attrs = ['name', 'description'] + allowed_attrs
-    full_config = template.config
-    bp_config = blueprint.config
-    for attr in allowed_attrs:
-        if attr in bp_config:
-            full_config[attr] = bp_config[attr]
-    return full_config
-
-
-def set_blueprint_fields_from_full_config(blueprint):
-
-    full_config = blueprint.full_config
-
-    if 'preallocated_credits' in full_config:
-        try:
-            blueprint.preallocated_credits = bool(full_config['preallocated_credits'])
-        except:
-            pass
-
+    blueprint.template = template
+    full_config = get_full_blueprint_config(blueprint)
     if 'maximum_lifetime' in full_config:
         max_life_str = str(full_config['maximum_lifetime'])
         if max_life_str:
-            maximum_lifetime = parse_maximum_lifetime(max_life_str)
-            blueprint.maximum_lifetime = maximum_lifetime
-        else:
-            blueprint.maximum_lifetime = 3600  # Default value if not provided anything by user
-
-    if 'cost_multiplier' in full_config:
-        try:
-            blueprint.cost_multiplier = float(full_config['cost_multiplier'])
-        except:
-            pass
-
-    return blueprint
+            parse_maximum_lifetime(max_life_str)
