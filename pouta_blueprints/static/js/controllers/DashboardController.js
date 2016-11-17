@@ -1,6 +1,6 @@
 /* global app */
-app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService', 'Restangular', 'isUserDashboard',
-                              function ($q,   $scope,   $interval,   AuthService,   Restangular,   isUserDashboard) {
+app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard',
+                              function ($q,   $scope,   $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard) {
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
         var LIMIT_DEFAULT = 100, OFFSET_DEFAULT=0;
 
@@ -21,6 +21,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
         $scope.limit = LIMIT_DEFAULT;
         $scope.offset = OFFSET_DEFAULT;
 
+        var markedInstances = {};
 
         $scope.updateInstanceList = function() {
             var queryParams = {};
@@ -95,7 +96,56 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             instance.state = 'deleting';
             instance.error_msg = '';
             instance.remove();
+            if (instance.id in markedInstances){
+                delete markedInstances[instance.id];
+            }
         };
+
+
+        $scope.openDestroyDialog = function(instance) {
+            $uibModal.open({
+                templateUrl: '/partials/modal_destroy_instance.html',
+                controller: 'ModalDestroyInstanceController',
+                resolve: {
+                    instance: function(){
+                       return instance;
+                    }
+               }
+            })
+        };
+
+       $scope.markInstance = function(marked, instance) {
+           if (marked){
+               markedInstances[instance.id] = instance;
+           }
+           else{
+               delete markedInstances[instance.id];
+           }
+       };
+
+       $scope.markAll = function(checkAll) {
+           if (checkAll){
+               var scoped_instances = $scope.instances;
+               for (i_index in scoped_instances){
+                   if(isNaN(parseInt(i_index))){
+                       continue;
+                   }
+                   instance = scoped_instances[i_index]
+                   markedInstances[instance.id] = instance;
+               }
+           }
+           else{
+               markedInstances = {};
+           }
+       }
+
+       $scope.destroySelected = function() {
+           for (mi_index in markedInstances){
+               $scope.deprovision(markedInstances[mi_index]);
+               delete markedInstances[mi_index];
+           }
+           $scope.checkAll = false;
+       };
 
         $scope.isAdmin = function() {
             return AuthService.isAdmin();
@@ -144,3 +194,17 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
         $scope.startPolling();
     }]);
 
+app.controller('ModalDestroyInstanceController', function($scope, $modalInstance, instance) {
+    $scope.instance = instance;
+
+    $scope.deprovision = function(instance){
+         instance.state = 'deleting';
+         instance.error_msg = '';
+         instance.remove();
+         $modalInstance.close(true);
+    }
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});
