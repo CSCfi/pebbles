@@ -2,11 +2,11 @@ from flask.ext.restful import marshal_with, reqparse
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 import logging
-from pouta_blueprints.models import db, Group, User
+from pouta_blueprints.models import db, Group, User, GroupUserAssociation
 from pouta_blueprints.forms import GroupForm
 from pouta_blueprints.server import restful
-from pouta_blueprints.views.commons import auth, group_fields, user_fields
-from pouta_blueprints.utils import requires_admin, requires_group_owner_or_admin, requires_group_manager_or_admin
+from pouta_blueprints.views.commons import auth, group_fields, user_fields, requires_group_manager_or_admin, is_group_manager
+from pouta_blueprints.utils import requires_admin, requires_group_owner_or_admin
 import re
 
 groups = FlaskBlueprint('groups', __name__)
@@ -18,38 +18,49 @@ class GroupList(restful.Resource):
     @marshal_with(group_fields)
     def get(self):
         user = g.user
+        group_user_query = GroupUserAssociation.query
         results = []
         if not user.is_admin:
-            groups = user.managed_groups
+            group_manager_objs = group_user_query.filter_by(user_id=user.id, manager=True).all()
+            manager_groups = [group_manager_obj.group for group_manager_obj in group_manager_objs]
+            groups = manager_groups
         else:
             query = Group.query
             groups = query.all()
 
         for group in groups:
-            if user.is_admin or (group.owner_id == user.id):
+            group_owner_obj = group_user_query.filter_by(group_id=group.id, owner=True).first()
+            owner = User.query.filter_by(id=group_owner_obj.user_id).first()
+            if user.is_admin or user.id == owner.id:
                 group.config = {"name": group.name, "join_code": group.join_code, "description": group.description}
                 group.user_config = generate_user_config(group)
+                group.owner_email = owner.email
+                group.admin_group = owner.is_admin
             else:
                 group.config = {}
                 group.user_config = {}
             results.append(group)
+
+        if not user.is_admin:
+            results = sorted(results, key=lambda group: group.name)
+        else:  # For admins, the admin groups should be first
+            results = sorted(results, key=lambda group: (-group.admin_group, group.owner_email, group.name))
         return results
 
     @auth.login_required
     @requires_group_owner_or_admin
     def post(self):
+        user = g.user
         form = GroupForm()
         if not form.validate_on_submit():
             logging.warn("validation error on creating group")
             return form.errors, 422
         group = Group(form.name.data)
         group.description = form.description.data
-        group.owner_id = g.user.id
-        user_config = {'banned_users': [], 'managers': []}
-        try:
-            group = group_users_add(group, user_config)
-        except KeyError:
-            abort(422)
+
+        group_owner_obj = GroupUserAssociation(user=user, group=group, manager=True, owner=True)
+        group.users.append(group_owner_obj)
+
         db.session.add(group)
         db.session.commit()
 
@@ -77,7 +88,9 @@ class GroupView(restful.Resource):
         group = Group.query.filter_by(id=group_id).first()
         if not group:
             abort(404)
-        if not user.is_admin and group not in user.owned_groups:
+        group_owner_obj = GroupUserAssociation.query.filter_by(group_id=group.id, owner=True).first()
+        owner = group_owner_obj.user
+        if not user.is_admin and user.id != owner.id:
             abort(403)
         if group.name != form.name.data:
             group.name = form.name.data
@@ -86,7 +99,7 @@ class GroupView(restful.Resource):
 
         user_config = form.user_config.data
         try:
-            group = group_users_add(group, user_config)
+            group = group_users_add(group, user_config, owner)
         except KeyError:
             abort(422)
         except RuntimeError as e:
@@ -109,7 +122,17 @@ class GroupView(restful.Resource):
         db.session.commit()
 
 
-def group_users_add(group, user_config):
+def group_users_add(group, user_config, owner):
+    # Generate a 'set' of Group Managers
+    managers_list = []
+    managers_list.append(owner)  # Owner is always a manager
+    managers_list.append(g.user)  # always add the user creating/modifying the group
+    if 'managers' in user_config:
+        managers = user_config['managers']
+        for manager_item in managers:
+            manager_id = manager_item['id']
+            managers_list.append(manager_id)
+    managers_set = set(managers_list)  # use this set to check if a user was appointed as a manager
     # Add Banned users
     banned_users_final = []
     if 'banned_users' in user_config:
@@ -119,36 +142,24 @@ def group_users_add(group, user_config):
             banned_user = User.query.filter_by(id=banned_user_id).first()
             if not banned_user:
                 logging.warn("user %s does not exist", banned_user_id)
-                raise RuntimeError('User to be banned, does not exist')
+                raise RuntimeError("User to be banned, does not exist")
+            if banned_user_id in managers_set:
+                logging.warn("user %s is a manager, cannot ban" % banned_user_id)
+                raise RuntimeError("User is a manager, demote to normal status first")
             banned_users_final.append(banned_user)
     group.banned_users = banned_users_final  # setting a new list adds and also removes relationships
-    # Add Group Managers
-    managers_final = []
-    managers_final.append(g.user)  # Always add the user creating/modifying the group
-    if 'managers' in user_config:
-        managers = user_config['managers']
-        for manager_item in managers:
-            manager_id = manager_item['id']
-            manager = User.query.filter_by(id=manager_id).first()
-            if not manager:
-                logging.warn("trying to add non-existent manager %s", manager_id)
-                raise RuntimeError('User to be added as manager not found')
-            if manager in banned_users_final:  # Check if the user is not banned
-                logging.warn("user %s is banned, cannot add as a manager", manager_id)
-                raise RuntimeError('Cannot ban a manager')
-            managers_final.append(manager)
-    group.managers = managers_final
-    # Check status of users
+    # add the users
     users_final = []
     if group.users:
-        for user in group.users:
-            if user in banned_users_final:
-                logging.warn('user %s is banned, cannot add', user.id)
+        for group_user_obj in group.users:  # Association object
+            if group_user_obj.user in banned_users_final:
+                logging.warn("user %s is banned, cannot add", group_user_obj.user.id)
                 continue
-            if user in managers_final:
-                logging.warn('user %s is a manager, not adding as normal user', user.id)
-                continue
-            users_final.append(user)
+            if group_user_obj.user.id in managers_set:  # if user is a manager
+                group_user_obj.manager = True
+            elif not group_user_obj.owner:  # if the user is not an owner then keep all users to non manager status
+                group_user_obj.manager = False
+            users_final.append(group_user_obj)
     group.users = users_final
 
     return group
@@ -160,10 +171,11 @@ def generate_user_config(group):
     if group.banned_users:
         for banned_user in group.banned_users:
             user_config['banned_users'].append({'id': banned_user.id})
-    if group.managers:
-        for manager in group.managers:
-            if manager.id != group.owner_id:
-                user_config['managers'].append({'id': manager.id})
+    group_manager_objs = GroupUserAssociation.query.filter_by(group_id=group.id, manager=True, owner=False).all()
+    if group_manager_objs:
+        for group_manager_obj in group_manager_objs:
+            manager = group_manager_obj.user
+            user_config['managers'].append({'id': manager.id})
     return user_config
 
 
@@ -178,10 +190,11 @@ class GroupJoin(restful.Resource):
         if user in group.banned_users:
             logging.warn("user banned from the group with code %s", join_code)
             return {"error": "You are banned from this group, please contact the concerned person"}, 403
-        if user in group.users:
+        if user in [group_user_obj.user for group_user_obj in group.users]:
             logging.warn("user %s already exists in group", user.id)
             return {"error": "User already in the group"}, 422
-        group.users.append(user)
+        group_user_obj = GroupUserAssociation(user=user, group=group)
+        group.users.append(group_user_obj)
         db.session.add(group)
         db.session.commit()
 
@@ -192,12 +205,23 @@ class GroupListExit(restful.Resource):
     def get(self):
         user = g.user
         results = []
-        groups = user.groups + user.managed_groups
-        for group in groups:
+        group_user_query = (
+            GroupUserAssociation.query
+            .filter_by(user_id=user.id, owner=False)
+            .order_by(GroupUserAssociation.manager.desc())
+        )
+        group_user_objs = group_user_query.all()
+        for group_user_obj in group_user_objs:
+            group = group_user_obj.group
             if re.match('^System.+', group.name):  # Do not show system level groups
                 continue
             group.config = {}
             group.user_config = {}
+
+            role = 'user'
+            if is_group_manager(user, group):
+                role = 'manager'
+            group.role = role
             results.append(group)
         return results
 
@@ -210,16 +234,19 @@ class GroupExit(restful.Resource):
         if not group:
             logging.warn("no group with id %s", group_id)
             abort(404)
-        if user.id == group.owner_id:
+        if re.match('^System.+', group.name):  # Do not allow exiting system level groups
+            abort(403)
+
+        group_user_filtered_query = GroupUserAssociation.query.filter_by(group_id=group.id, user_id=user.id)
+        user_is_owner = group_user_filtered_query.filter_by(owner=True).first()
+        if user_is_owner:
             logging.warn("cannot exit the owned group %s", group_id)
             return {"error": "Cannot exit the group which is owned by you"}, 422
-        if user not in group.users and user not in group.managers:
+        user_in_group = group_user_filtered_query.first()
+        if not user_in_group:
             logging.warn("user %s is not a part of the group", user.id)
             abort(403)
-        if user in group.users:
-            group.users.remove(user)
-        elif user in group.managers:
-            group.managers.remove(user)
+        group.users.remove(user_in_group)
         db.session.add(group)
         db.session.commit()
 
@@ -235,20 +262,31 @@ class GroupUsersList(restful.Resource):
         args = self.parser.parse_args()
         banned_list = args.banned_list
         user = g.user
-        owned_groups = user.owned_groups.all()
         group = Group.query.filter_by(id=group_id).first()
         if not group:
             logging.warn('group %s does not exist', group_id)
             abort(404)
-        if not user.is_admin and group not in owned_groups:
+
+        group_user_query = GroupUserAssociation.query
+        user_is_owner = group_user_query.filter_by(group_id=group.id, user_id=user.id, owner=True).first()
+        if not user.is_admin and not user_is_owner:
             logging.warn('Group %s not owned, cannot see users', group_id)
             abort(403)
-        users = group.users.all()
+
         total_users = None
         if banned_list:
             banned_users = group.banned_users.all()
+            group_user_objs = group_user_query.filter_by(
+                group_id=group.id,
+                manager=False
+            ).all()
+            users = [group_user_obj.user for group_user_obj in group_user_objs]
             total_users = users + banned_users
         else:
-            managers = group.managers.filter(User.id != group.owner_id).all()
-            total_users = users + managers
+            group_user_objs = group_user_query.filter_by(
+                group_id=group.id,
+                owner=False
+            ).all()
+            total_users = [group_user_obj.user for group_user_obj in group_user_objs]
+
         return total_users

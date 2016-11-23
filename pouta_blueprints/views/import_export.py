@@ -5,9 +5,9 @@ import logging
 
 from pouta_blueprints.models import db, Blueprint, BlueprintTemplate, Plugin, Group
 from pouta_blueprints.server import restful
-from pouta_blueprints.views.commons import auth
+from pouta_blueprints.views.commons import auth, requires_group_manager_or_admin
 from pouta_blueprints.views.blueprint_templates import blueprint_schemaform_config
-from pouta_blueprints.utils import requires_admin, requires_group_manager_or_admin
+from pouta_blueprints.utils import requires_admin
 from pouta_blueprints.rules import apply_rules_export_blueprints
 from pouta_blueprints.forms import BlueprintImportForm, BlueprintTemplateImportForm
 

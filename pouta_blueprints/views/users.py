@@ -39,9 +39,15 @@ class UserList(restful.Resource):
     @marshal_with(user_fields)
     def get(self):
         if g.user.is_admin:
-            return User.query.all()
-        # if g.user.is_group_owner:
-        #    return User.query.filter_by(is_admin=False).all()
+            user_query = (
+                User.query
+                .order_by(User.is_admin.desc())
+                .order_by(User.is_group_owner.desc())
+                .order_by(User.is_active)
+                .order_by(User.is_blocked)
+                .order_by(User.is_blocked)
+            )
+            return user_query.all()
         return [g.user]
 
     @auth.login_required

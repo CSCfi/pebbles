@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.schema import MetaData
+from sqlalchemy.orm import backref
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import logging
 import uuid
@@ -80,7 +81,7 @@ class User(db.Model):
     latest_seen_notification_ts = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
-    owned_groups = db.relationship('Group', backref='owner', lazy='dynamic')
+    groups = db.relationship("GroupUserAssociation", back_populates="user", lazy="dynamic")
 
     def __init__(self, email, password=None, is_admin=False):
         self.id = uuid.uuid4().hex
@@ -135,6 +136,14 @@ class User(db.Model):
     def can_login(self):
         return not self.is_deleted and self.is_active and not self.is_blocked
 
+    @hybrid_property
+    def managed_groups(self):
+        groups = []
+        group_user_objs = GroupUserAssociation.query.filter_by(user_id=self.id, manager=True).all()
+        for group_user_obj in group_user_objs:
+            groups.append(group_user_obj.group)
+        return groups
+
     def unseen_notifications(self):
         q = Notification.query
         if self.latest_seen_notification_ts:
@@ -159,23 +168,21 @@ class User(db.Model):
         return hash(self.email)
 
 
-group_user = db.Table(
-    'groups_users',
-    db.Column('group_id', db.String(32), db.ForeignKey('groups.id')),
-    db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'user_id')
-)
-
-group_banned_user = db.Table(
+group_banned_user = db.Table(  # Secondary Table for many-to-many mapping
     'groups_banned_users',
     db.Column('group_id', db.String(32), db.ForeignKey('groups.id')),
     db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'user_id')
 )
 
-group_manager = db.Table(
-    'groups_managers',
-    db.Column('group_id', db.String(32), db.ForeignKey('groups.id')),
-    db.Column('manager_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'manager_id')
-)
+
+class GroupUserAssociation(db.Model):  # Association Object for many-to-many mapping
+    __tablename__ = 'groups_users_association'
+    group_id = db.Column(db.String(32), db.ForeignKey('groups.id'), primary_key=True)
+    user_id = db.Column(db.String(32), db.ForeignKey('users.id'), primary_key=True)
+    manager = db.Column(db.Boolean, default=False)
+    owner = db.Column(db.Boolean, default=False)
+    user = db.relationship("User", back_populates="groups")
+    group = db.relationship("Group", back_populates="users")
 
 
 class Group(db.Model):
@@ -185,10 +192,8 @@ class Group(db.Model):
     name = db.Column(db.String(32))
     _join_code = db.Column(db.String(64))
     description = db.Column(db.Text)
-    owner_id = db.Column(db.String(32), db.ForeignKey('users.id'))
-    users = db.relationship('User', secondary=group_user, backref='groups', lazy='dynamic')
-    banned_users = db.relationship('User', secondary=group_banned_user, backref='banned_groups', lazy='dynamic')
-    managers = db.relationship('User', secondary=group_manager, backref='managed_groups', lazy='dynamic')
+    users = db.relationship("GroupUserAssociation", back_populates="group", lazy='dynamic', cascade="all, delete-orphan")
+    banned_users = db.relationship('User', secondary=group_banned_user, backref=backref('banned_groups', lazy="dynamic"), lazy='dynamic')
     blueprints = db.relationship('Blueprint', backref='group', lazy='dynamic')
 
     def __init__(self, name):
@@ -202,7 +207,7 @@ class Group(db.Model):
 
     @join_code.setter
     def join_code(self, name):
-        self._join_code = name.replace(' ', '').lower() + uuid.uuid4().hex
+        self._join_code = name.replace(' ', '').lower() + '-' + uuid.uuid4().hex
 
 
 class Notification(db.Model):
@@ -431,8 +436,6 @@ class Instance(db.Model):
 
         if not duration:
             duration = self.runtime
-
-        # self.blueprint = set_blueprint_fields_from_full_config(self.blueprint)
 
         if self.blueprint.preallocated_credits:
             duration = self.blueprint.maximum_lifetime

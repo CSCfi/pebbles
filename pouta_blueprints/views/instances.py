@@ -11,9 +11,9 @@ import uuid
 from pouta_blueprints.models import db, Blueprint, Instance, User
 from pouta_blueprints.forms import InstanceForm, UserIPForm
 from pouta_blueprints.server import app, restful
-from pouta_blueprints.utils import requires_admin, memoize, is_group_manager, get_full_blueprint_config
+from pouta_blueprints.utils import requires_admin, memoize, get_full_blueprint_config
 from pouta_blueprints.tasks import run_update, update_user_connectivity
-from pouta_blueprints.views.commons import auth
+from pouta_blueprints.views.commons import auth, is_group_manager
 from pouta_blueprints.rules import apply_rules_instances, get_group_blueprint_ids_for_instances
 
 instances = FlaskBlueprint('instances', __name__)
@@ -76,6 +76,7 @@ class InstanceList(restful.Resource):
         user = g.user
         args = self.parser.parse_args()
         q = apply_rules_instances(user, args)
+        q = q.order_by(Instance.provisioned_at)
         instances = q.all()
 
         get_blueprint = memoize(query_blueprint)
@@ -111,7 +112,7 @@ class InstanceList(restful.Resource):
             return form.errors, 422
 
         blueprint_id = form.blueprint.data
-        allowed_blueprint_ids = get_group_blueprint_ids_for_instances(user.groups + user.managed_groups)
+        allowed_blueprint_ids = get_group_blueprint_ids_for_instances(user)
         if not user.is_admin and blueprint_id not in allowed_blueprint_ids:
             abort(403)
         blueprint = Blueprint.query.filter_by(id=blueprint_id, is_enabled=True).first()
@@ -202,7 +203,8 @@ class InstanceView(restful.Resource):
         instance = query.first()
         if not instance:
             abort(404)
-        if is_group_manager(user) and instance.blueprint.group not in user.managed_groups and instance.user_id != user.id:
+        group = instance.blueprint.group
+        if not user.is_admin and not is_group_manager(user, group) and instance.user_id != user.id:
             abort(403)
         instance.to_be_deleted = True
         instance.state = Instance.STATE_DELETING

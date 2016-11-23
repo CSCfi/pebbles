@@ -1,7 +1,7 @@
 # Test fixture methods to be called from app context so we can access the db
 
 from pouta_blueprints.models import (
-    User, Group, BlueprintTemplate, Blueprint,
+    User, Group, GroupUserAssociation, BlueprintTemplate, Blueprint,
     Plugin, Notification, Instance)
 from pouta_blueprints.tests.base import db
 
@@ -56,17 +56,28 @@ def primary_test_setup(namespace):
     g5 = Group('System.default')
 
     g1.id = 'g1'
-    g1.owner_id = u3.id
-    g1.users.append(u2)
-    g1.managers.append(u3)  # The owner is always a manager
-    g1.managers.append(u4)  # Add extra manager
+    g1u2 = GroupUserAssociation(user=u2)
+    g1u3 = GroupUserAssociation(user=u3, manager=True, owner=True)
+    g1u4 = GroupUserAssociation(user=u4, manager=True)
+    g1.users.append(g1u2)
+    g1.users.append(g1u3)
+    g1.users.append(g1u4)
     g2.id = 'g2'
-    g2.owner_id = u4.id
-    g2.users.append(u3)
+    g2u3 = GroupUserAssociation(user=u3)
+    g2u4 = GroupUserAssociation(user=u4, owner=True)
+    g2.users.append(g2u3)
+    g2.users.append(g2u4)
     g3.id = 'g3'
-    g3.owner_id = u4.id
+    g3u4 = GroupUserAssociation(user=u4, owner=True)
+    g3.users.append(g3u4)
     g3.banned_users.append(u2)
     g3.banned_users.append(u3)
+    g4.id = 'g4'
+    g4u1 = GroupUserAssociation(user=u1, owner=True)
+    g4.users.append(g4u1)
+    g5.id = 'g5'
+    g5u1 = GroupUserAssociation(user=u1, owner=True)
+    g5.users.append(g5u1)
 
     namespace.known_group_id = g1.id
     namespace.known_group_id_2 = g2.id

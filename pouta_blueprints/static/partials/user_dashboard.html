@@ -1,14 +1,6 @@
 <div id="user-dashboard">
     <h1>Blueprints</h1>
     <div class="row">
-      <table class="table table-hover table-striped goup">
-                                <tr>
-                                    <th class="col-md-1"><center><h4>If you already have a joining code for a group / course, Please click:</h4></center></th>
-                                    <th class="col-md-1"> <button ng-click="openGroupJoinModal()" type="submit" class="btn btn-primary">Join Group</button></th>
-                                </tr>
-     </table>
-    </div>
-    <div class="row">
         <div class="alert alert-warning" ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
             No blueprints available
         </div>

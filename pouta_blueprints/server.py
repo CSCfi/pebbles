@@ -11,7 +11,7 @@ except:
 from pouta_blueprints.app import app
 from pouta_blueprints.models import db, User
 
-from pouta_blueprints.views.commons import create_user
+from pouta_blueprints.views.commons import create_user, is_group_manager
 from pouta_blueprints.views.blueprint_templates import blueprint_templates, BlueprintTemplateList, BlueprintTemplateView
 from pouta_blueprints.views.blueprints import blueprints, BlueprintList, BlueprintView
 from pouta_blueprints.views.plugins import plugins, PluginList, PluginView
@@ -28,7 +28,6 @@ from pouta_blueprints.views.variables import variables, VariableList, VariableVi
 from pouta_blueprints.views.locks import locks, LockView
 from pouta_blueprints.views.stats import stats, StatsList
 from pouta_blueprints.views.import_export import import_export, ImportExportBlueprintTemplates, ImportExportBlueprints
-from pouta_blueprints.utils import is_group_manager
 
 api = restful.Api(app)
 api_root = '/api/v1'

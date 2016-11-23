@@ -13,17 +13,18 @@
         <thead>
         <tr>
             <td><label>Name</label></td>
+            <td ng-show="isAdmin()"><label>Owner</label></td>
             <td><label>Join Code</label></td>
             <td><label>Description</label></td>
             <td></td>
+            <td ng-show="isAdmin()"></td>
         </tr>
         </thead>
         <tbody>
             <tr ng-repeat="group in groups | filter:includeRow">
             <td>{{group.name}}</td>
-            <td>
-                {{group.join_code}}
-            </td>
+            <td ng-show="isAdmin()">{{group.owner_email}}</td>
+            <td>{{group.join_code}}</td>
             <td>{{group.description}}</td>
             <td>
                 <button ng-click="openModifyGroupDialog(group)" type="submit" class="btn btn-default">Modify</button>

@@ -1,10 +1,12 @@
 from flask.ext.restful import fields
 from flask.ext.httpauth import HTTPBasicAuth
-from flask import g, render_template
+from flask import g, render_template, abort
 import logging
-from pouta_blueprints.models import db, ActivationToken, User, Group
+from pouta_blueprints.models import db, ActivationToken, User, Group, GroupUserAssociation
 from pouta_blueprints.server import app
 from pouta_blueprints.tasks import send_mails
+from functools import wraps
+
 
 user_fields = {
     'id': fields.String,
@@ -24,7 +26,9 @@ group_fields = {
     'join_code': fields.String,
     'description': fields.Raw,
     'config': fields.Raw,
-    'user_config': fields.Raw
+    'user_config': fields.Raw,
+    'owner_email': fields.String,
+    'role': fields.String
 }
 
 auth = HTTPBasicAuth()
@@ -90,13 +94,35 @@ def invite_user(email, password=None, is_admin=False):
 
 def create_system_groups(admin):
     system_default_group = Group('System.default')
-    system_default_group.owner_id = admin.id
+    group_admin_obj = GroupUserAssociation(group=system_default_group, user=admin, owner=True)
+    system_default_group.users.append(group_admin_obj)
     db.session.add(system_default_group)
     db.session.commit()
 
 
 def add_user_to_default_group(user):
     system_default_group = Group.query.filter_by(name='System.default').first()
-    system_default_group.users.append(user)
+    group_user_obj = GroupUserAssociation(group=system_default_group, user=user)
+    system_default_group.users.append(group_user_obj)
     db.session.add(system_default_group)
     db.session.commit()
+
+
+def requires_group_manager_or_admin(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not g.user.is_admin and not g.user.is_group_owner and not is_group_manager(g.user):
+            abort(403)
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+def is_group_manager(user, group=None):
+    if group:
+        match = GroupUserAssociation.query.filter_by(user_id=user.id, group_id=group.id, manager=True).first()
+    else:
+        match = GroupUserAssociation.query.filter_by(user_id=user.id, manager=True).first()
+    if match:
+        return True
+    return False

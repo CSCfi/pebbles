@@ -8,8 +8,8 @@ import logging
 from pouta_blueprints.models import db, BlueprintTemplate, Plugin
 from pouta_blueprints.forms import BlueprintTemplateForm
 from pouta_blueprints.server import restful
-from pouta_blueprints.views.commons import auth
-from pouta_blueprints.utils import requires_admin, requires_group_manager_or_admin, parse_maximum_lifetime
+from pouta_blueprints.views.commons import auth, requires_group_manager_or_admin
+from pouta_blueprints.utils import requires_admin, parse_maximum_lifetime
 from pouta_blueprints.rules import apply_rules_blueprint_templates
 
 blueprint_templates = FlaskBlueprint('blueprint_templates', __name__)
@@ -36,6 +36,7 @@ class BlueprintTemplateList(restful.Resource):
     def get(self):
         user = g.user
         query = apply_rules_blueprint_templates(user)
+        query = query.order_by(BlueprintTemplate.name)
         results = []
         for blueprint_template in query.all():
             plugin = Plugin.query.filter_by(id=blueprint_template.plugin).first()

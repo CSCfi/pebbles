@@ -6,7 +6,7 @@ import logging
 from pouta_blueprints.models import User
 from pouta_blueprints.forms import SessionCreateForm
 from pouta_blueprints.server import app, restful
-from pouta_blueprints.utils import is_group_manager
+from pouta_blueprints.views.commons import is_group_manager  # changed
 
 sessions = FlaskBlueprint('sessions', __name__)
 

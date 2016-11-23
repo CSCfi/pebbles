@@ -7,8 +7,8 @@ import logging
 from pouta_blueprints.models import db, Blueprint, BlueprintTemplate, Group
 from pouta_blueprints.forms import BlueprintForm
 from pouta_blueprints.server import restful
-from pouta_blueprints.views.commons import auth
-from pouta_blueprints.utils import requires_group_manager_or_admin, parse_maximum_lifetime, get_full_blueprint_config
+from pouta_blueprints.views.commons import auth, requires_group_manager_or_admin, is_group_manager
+from pouta_blueprints.utils import parse_maximum_lifetime, get_full_blueprint_config
 from pouta_blueprints.rules import apply_rules_blueprints
 
 blueprints = FlaskBlueprint('blueprints', __name__)
@@ -39,7 +39,8 @@ class BlueprintList(restful.Resource):
     def get(self):
         user = g.user
         query = apply_rules_blueprints(user)
-        query = query.join(Group, Blueprint.group).order_by(Group.name)
+        # sort the results based on the group name first and then by blueprint name
+        query = query.join(Group, Blueprint.group).order_by(Group.name).order_by(Blueprint.name)
         results = []
         for blueprint in query.all():
             template = blueprint.template
@@ -49,13 +50,12 @@ class BlueprintList(restful.Resource):
             # Issue #444 in github
             blueprint_config = blueprint.config
             blueprint.full_config = get_full_blueprint_config(blueprint)
-
             blueprint_config['name'] = blueprint.name
             blueprint.config = blueprint_config
 
             blueprint.template_name = template.name
             blueprint.group_name = blueprint.group.name
-            if user.is_admin or blueprint.group in user.managed_groups:
+            if user.is_admin or is_group_manager(user, blueprint.group):
                 blueprint.manager = True
 
             results.append(blueprint)
@@ -80,7 +80,7 @@ class BlueprintList(restful.Resource):
         group = Group.query.filter_by(id=group_id).first()
         if not group:
             abort(422)
-        if not user.is_admin and group not in user.managed_groups:
+        if not user.is_admin and not is_group_manager(user, group):
             logging.warn("invalid group for the user")
             abort(403)
         blueprint.group_id = group_id
@@ -123,11 +123,11 @@ class BlueprintView(restful.Resource):
         blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
         if not blueprint:
             abort(404)
-        group_id = form.group_id.data
-        group = Group.query.filter_by(id=group_id).first()
-        if not group:
-            abort(422)
-        if not user.is_admin and (blueprint.group not in user.managed_groups or group not in user.managed_groups):
+        # group_id = form.group_id.data
+        # group = Group.query.filter_by(id=group_id).first()
+        # if not group:
+        #    abort(422)
+        if not user.is_admin and not is_group_manager(user, blueprint.group):
             logging.warn("invalid group for the user")
             abort(403)
 

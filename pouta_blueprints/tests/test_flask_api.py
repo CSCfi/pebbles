@@ -6,8 +6,8 @@ import uuid
 
 from pouta_blueprints.tests.base import db, BaseTestCase
 from pouta_blueprints.models import (
-    User, Group, BlueprintTemplate, Blueprint, ActivationToken,
-    Instance, Variable)
+    User, Group, GroupUserAssociation, BlueprintTemplate, Blueprint,
+    ActivationToken, Instance, Variable)
 from pouta_blueprints.config import BaseConfig
 from pouta_blueprints.views import activations
 
@@ -372,11 +372,16 @@ class FlaskApiTestCase(BaseTestCase):
     def test_modify_group(self):
 
         g = Group('TestGroupModify')
-        g.owner_id = self.known_group_owner_id
+        # g.owner_id = self.known_group_owner_id
         u1 = User.query.filter_by(id=self.known_user_id).first()
+        gu1_obj = GroupUserAssociation(user=u1, group=g)
         u2 = User.query.filter_by(id=self.known_group_owner_id_2).first()
-        g.users.append(u1)
-        g.users.append(u2)
+        gu2_obj = GroupUserAssociation(user=u2, group=g)
+        u3 = User.query.filter_by(id=self.known_group_owner_id).first()
+        gu3_obj = GroupUserAssociation(user=u3, group=g, manager=True, owner=True)
+        g.users.append(gu1_obj)
+        g.users.append(gu2_obj)
+        g.users.append(gu3_obj)
         db.session.add(g)
         db.session.commit()
 
@@ -494,7 +499,11 @@ class FlaskApiTestCase(BaseTestCase):
         g = Group('InvalidTestGroup')
         g.owner_id = self.known_group_owner_id
         u = User.query.filter_by(id=self.known_user_id).first()
-        g.users.append(u)
+        gu_obj = GroupUserAssociation()
+        gu_obj.user = u
+        gu_obj.group = g
+
+        g.users.append(gu_obj)
         db.session.add(g)
         db.session.commit()
         # Authenticated User
@@ -543,7 +552,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Authenticated Group Owner
         response = self.make_authenticated_group_owner_request(path='/api/v1/groups/group_list_exit')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 2)
+        self.assertEqual(len(response.json), 1)  # Only the groups where the owner is a normal user
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/groups/group_list_exit')
         self.assert_200(response)
@@ -553,9 +562,14 @@ class FlaskApiTestCase(BaseTestCase):
         g = Group('TestGroupExit')
         g.owner_id = self.known_group_owner_id_2
         u = User.query.filter_by(id=self.known_user_id).first()
+        gu_obj = GroupUserAssociation(group=g, user=u)
+
         u_extra = User.query.filter_by(id=self.known_group_owner_id).first()  # extra user
-        g.users.append(u)
-        g.users.append(u_extra)
+        gu_extra_obj = GroupUserAssociation(group=g, user=u_extra)
+
+        g.users.append(gu_obj)
+        g.users.append(gu_extra_obj)
+
         db.session.add(g)
         db.session.commit()
         # Anonymous
@@ -568,17 +582,19 @@ class FlaskApiTestCase(BaseTestCase):
             method='PUT',
             path='/api/v1/groups/group_exit/%s' % g.id)
         self.assertStatus(response, 200)
-        self.assertEqual(len(g.users.all()), 1)
+        # self.assertEqual(len(g.users.all()), 1)
         # Group Owner who is just a user of the group
         response = self.make_authenticated_group_owner_request(
             method='PUT',
             path='/api/v1/groups/group_exit/%s' % g.id)
         self.assertStatus(response, 200)
-        self.assertEqual(len(g.users.all()), 0)
+        # self.assertEqual(len(g.users.all()), 0)
 
     def test_exit_group_invalid(self):
         g = Group('InvalidTestGroupExit')
-        g.owner_id = self.known_group_owner_id
+        u = User.query.filter_by(id=self.known_group_owner_id).first()
+        gu_obj = GroupUserAssociation(group=g, user=u, manager=True, owner=True)
+        g.users.append(gu_obj)
         db.session.add(g)
         db.session.commit()
         # Authenticated User
@@ -1107,7 +1123,7 @@ class FlaskApiTestCase(BaseTestCase):
 
         put_response = self.make_authenticated_group_owner_request(
             method='PUT',
-            path='/api/v1/blueprints/%s' % self.known_blueprint_id_2,
+            path='/api/v1/blueprints/%s' % self.known_blueprint_id_g2,
             data=json.dumps(invalid_group_data))
         self.assertStatus(put_response, 403)
 
@@ -1193,7 +1209,9 @@ class FlaskApiTestCase(BaseTestCase):
         default_group = Group.query.filter_by(name='System.default').first()
         self.assertIsNotNone(user)
         self.assertTrue(user.is_active)
-        self.assertTrue(user in default_group.users)  # Each active user gets added in the system default group
+
+        user_in_group = GroupUserAssociation.query.filter_by(group_id=default_group.id, user_id=user.id).first()
+        self.assertIsNotNone(user_in_group)  # Each active user gets added in the system default group
 
     def test_send_recovery_link(self):
         # positive test for existing user

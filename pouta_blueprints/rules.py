@@ -1,5 +1,5 @@
-from pouta_blueprints.models import Blueprint, BlueprintTemplate, Instance
-from pouta_blueprints.utils import is_group_manager
+from pouta_blueprints.models import Blueprint, BlueprintTemplate, Instance, GroupUserAssociation
+from pouta_blueprints.views.commons import is_group_manager
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
@@ -23,10 +23,10 @@ def apply_rules_blueprints(user, args=None):
 
     q = Blueprint.query
     if not user.is_admin:
-        group_ids = [group_item.id for group_item in user.groups]
-        banned_group_ids = [banned_group_item.id for banned_group_item in user.banned_groups]
-        managed_group_ids = [managed_group_item.id for managed_group_item in user.managed_groups]
-        allowed_group_ids = set(group_ids) - set(banned_group_ids)  # do not allow the banned users
+        group_user_objs = GroupUserAssociation.query.filter_by(user_id=user.id, manager=False).all()
+        user_group_ids = [group_user_obj.group.id for group_user_obj in group_user_objs]
+        banned_group_ids = [banned_group_item.id for banned_group_item in user.banned_groups.all()]
+        allowed_group_ids = set(user_group_ids) - set(banned_group_ids)  # do not allow the banned users
 
         # Start building query expressions based on the condition that :
         # a group manager can see all of his blueprints and only enabled ones of other groups
@@ -35,10 +35,12 @@ def apply_rules_blueprints(user, args=None):
         if allowed_group_ids:
             allowed_group_ids_exp = Blueprint.group_id.in_(allowed_group_ids)
         query_exp = and_(allowed_group_ids_exp, query_exp)
-        managed_group_ids_exp = None
-        if managed_group_ids:
-            managed_group_ids_exp = Blueprint.group_id.in_(managed_group_ids)
-        query_exp = or_(query_exp, managed_group_ids_exp)
+
+        manager_group_ids = get_manager_group_ids(user)
+        manager_group_ids_exp = None
+        if manager_group_ids:
+            manager_group_ids_exp = Blueprint.group_id.in_(manager_group_ids)
+        query_exp = or_(query_exp, manager_group_ids_exp)
         q = q.filter(query_exp)
 
     if args is not None and 'blueprint_id' in args:
@@ -50,21 +52,12 @@ def apply_rules_blueprints(user, args=None):
 def apply_rules_export_blueprints(user):
     q = Blueprint.query
     if not user.is_admin:
-        managed_group_ids = [managed_group_item.id for managed_group_item in user.managed_groups]
+        manager_group_ids = get_manager_group_ids(user)
         query_exp = None
-        if managed_group_ids:
-            query_exp = Blueprint.group_id.in_(managed_group_ids)
+        if manager_group_ids:
+            query_exp = Blueprint.group_id.in_(manager_group_ids)
         q = q.filter(query_exp)
     return q
-
-
-def get_group_blueprint_ids_for_instances(groups):
-
-    # loading only id column rest will be deferred
-    group_blueprints = [group_item.blueprints.options(load_only("id")).all() for group_item in groups]
-    group_blueprints_flat = list(itertools.chain.from_iterable(group_blueprints))  # merge the list of lists into one list
-    group_blueprints_id = [blueprint_item.id for blueprint_item in group_blueprints_flat]  # Get the ids in a list
-    return group_blueprints_id
 
 
 def apply_rules_instances(user, args=None):
@@ -72,9 +65,8 @@ def apply_rules_instances(user, args=None):
     q = Instance.query
     if not user.is_admin:
         q1 = q.filter_by(user_id=user.id)
-        if is_group_manager(user):  # Show only the instances of the blueprints which the group manager holds
-            groups = user.managed_groups
-            group_blueprints_id = get_group_blueprint_ids_for_instances(groups)
+        if is_group_manager(user):  # show only the instances of the blueprints which the group manager holds
+            group_blueprints_id = get_group_blueprint_ids_for_instances(user, manager=True)
             q2 = q.filter(Instance.blueprint_id.in_(group_blueprints_id))
             q = q1.union(q2)
         else:
@@ -91,3 +83,28 @@ def apply_rules_instances(user, args=None):
         if 'limit' in args:
             q = q.limit(args.get('limit'))
     return q
+
+
+# all the helper functions for the rules go here
+
+
+def get_manager_group_ids(user):
+    # the result shall contain the owners of the groups too as they are managers by default
+    group_manager_objs = GroupUserAssociation.query.filter_by(user_id=user.id, manager=True).all()
+    manager_group_ids = [group_manager_obj.group.id for group_manager_obj in group_manager_objs]
+    return manager_group_ids
+
+
+def get_group_blueprint_ids_for_instances(user, manager=None):
+
+    group_user_query = GroupUserAssociation.query
+    if manager:  # if we require only managed groups
+        group_user_objs = group_user_query.filter_by(user_id=user.id, manager=True).all()
+    else:  # get the normal user groups
+        group_user_objs = group_user_query.filter_by(user_id=user.id).all()
+    groups = [group_user_obj.group for group_user_obj in group_user_objs]
+    # loading only id column rest will be deferred
+    group_blueprints = [group_item.blueprints.options(load_only("id")).all() for group_item in groups]
+    group_blueprints_flat = list(itertools.chain.from_iterable(group_blueprints))  # merge the list of lists into one list
+    group_blueprints_id = [blueprint_item.id for blueprint_item in group_blueprints_flat]  # Get the ids in a list
+    return group_blueprints_id

@@ -226,12 +226,13 @@ app.controller('ModalCreateBlueprintController', function($scope, $modalInstance
 
 app.controller('ModalReconfigureBlueprintController', function($scope, $modalInstance, blueprint, groups_list) {
     $scope.blueprint = blueprint;
-    $scope.groups = groups_list;
-    $scope.groupModel =  _.filter(groups_list, {'id': blueprint.group_id})[0];
-    $scope.updateBlueprint = function(form, model, groupModel) {
+    //$scope.groups = groups_list;
+    //$scope.groupModel =  _.filter(groups_list, {'id': blueprint.group_id})[0];
+    //$scope.updateBlueprint = function(form, model, groupModel) {
+    $scope.updateBlueprint = function(form, model) {
         if (form.$valid) {
             $scope.blueprint.config = model;
-            $scope.blueprint.group_id = groupModel.id;
+            //$scope.blueprint.group_id = groupModel.id;
             $scope.blueprint.put().then(function () {
                 $modalInstance.close(true);
             }, function(response) {
