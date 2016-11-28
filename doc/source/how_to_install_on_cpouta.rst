@@ -33,7 +33,8 @@ Create a security group for the server
   * https: port 443, CIDR: like above
 
 * At this point keep the firewall as restricted as possible. Once the installation is complete, you can open the
- https-access to all your users.
+  https-access to all your users.
+
 
 Boot the server
 ---------------
@@ -77,30 +78,30 @@ Download machine to machine OpenStack RC -file
 Part 2: Install software
 ==============================================
 
-Open ssh connection to the server:
+Open ssh connection to the server::
 
     $ ssh cloud-user@<public ip of the server>
 
-Update the server packages (we'll boot it later):
+Update the server packages (we'll boot it later)::
 
     $ sudo yum update -y
     
-Clone the repository from GitHub:
+Clone the repository from GitHub::
 
     $ sudo yum install -y git
     $ git clone --branch v3.0.4 https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
 
 Run the install script once - you will asked to log out and in again to make unix group changes effective. Here is a 
-good time to reboot the server after the updates:
+good time to reboot the server after the updates::
 
     $ ./pouta-blueprints/scripts/install_pb.bash
     $ sudo reboot
 
-Wait while for the server to reboot and copy the m2m OpenStack RC file to the server:
+Wait while for the server to reboot and copy the m2m OpenStack RC file to the server::
 
-    $ scp path/to/your/saved/rc-file.bash cloud-user@<public ip of the server>:
+    $ scp path/to/your/saved/rc-file.bash cloud-user@<public ip of the server>
 
-SSH in again, source your m2m OpenStack credentials (use your m2m password when asked for) and continue installation:
+SSH in again, source your m2m OpenStack credentials (use your m2m password when asked for) and continue installation::
 
     $ ssh cloud-user@<public ip of the server>
     $ source your-openrc.bash
@@ -112,7 +113,6 @@ Part 3: Quick start using the software
 
 Here is list of tasks for a quick start. 
 
-Link to more comprehensive Admin Guide: TBA
 
 Set admin credentials
 ---------------------   

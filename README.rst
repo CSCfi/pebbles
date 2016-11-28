@@ -29,8 +29,9 @@ hyperlink to new docs.
 Documentation
 =============
 
-The system comes with Sphinx documentation under doc/. It's a work in progress
-to figure out where the documentation will be hosted.::
+The system comes with Sphinx RST documentation under doc/. Convention is to have
+as much as possible as docstrings close to the code that implements. Generic
+things like system descriptions may also be under doc/source. ::
 
         $ mkvirtualenv pb-doc
         (pb-doc) $ pip install -r requirements.txt
@@ -39,6 +40,14 @@ to figure out where the documentation will be hosted.::
 Will build the html documentation under doc/build. There is a requirement of
 graphviz for creating system structure graphs.
 
+The documentation is hosted in GitHub pages and built using `Travis-Sphinx`_.
+
+        $ workon pb-doc
+        (pb-doc)$ travis-sphinx --branches=doc/sphinx --source=doc/source build
+
+Can save you a lot of trouble.
+
 .. _OpenStack driver: pouta_blueprints/drivers/provisioning/openstack_driver.py
 .. _Docker driver: pouta_blueprints/drivers/provisioning/README_docker_driver.md 
 .. _Pouta Virtualcluster: https://github.com/CSC-IT-Center-for-Science/pouta-virtualcluster
+.. _Travis Sphinx: https://github.com/Syntaf/travis-sphinx

@@ -9,9 +9,12 @@ from pouta_blueprints.models import Instance
 
 
 class DummyDriver(base_driver.ProvisioningDriverBase):
-    """ Dummy driver mostly pretends to be a real driver for system testing purposes.
+    """ Dummy driver mostly pretends to be a real driver for system testing
+    and development purposes.
 
-        ToDo: read code document what exactly it does
+    It runs a time-consuming process (ping) using run_logged_process, writes the public SSH
+    key to the user for the user to a file and logs from the ping to the right places.
+    It reports a random IP address.
     """
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.dummy_driver_config import CONFIG

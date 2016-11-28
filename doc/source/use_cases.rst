@@ -1,9 +1,7 @@
-.. _use-cases:
-
 Use Cases
 ---------
 
-The current major use cases revolve around setting up simple environments for
+The current main use cases revolve around setting up simple environments for
 teaching and/or ad-hoc data analysis. 
 
 Notebooks in containers

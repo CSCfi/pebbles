@@ -38,11 +38,32 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
         return default
 
 
+# For the reviewer: is this an elegant way to handle documenting automatically
+# generated properties?
+CONFIG_VALUE_DOCSTRINGS = {
+    "BRAND_IMAGE": "Sets or unsets the debug mode.",
+    "DEBUG": "Sets or unsets the debug mode.",
+    "PLUGIN_WHITELIST": (
+        "A whitespace-separated case-sensitive"
+        " list of all configuration variables"
+    ),
+}
+
+
+def _resolve_config_docstring(name):
+    return CONFIG_VALUE_DOCSTRINGS.get(
+        name,
+        ""  # return empty string so no entry is created
+    )
+
+
 def fields_to_properties(cls):
     for k, default in vars(cls).items():
         if not k.startswith('_') and k.isupper():
             resolvef = functools.partial(resolve_configuration_value, k, default)
-            setattr(cls, k, property(resolvef))
+            doc_ = _resolve_config_docstring(k)
+            prop = property(resolvef, doc=doc_)
+            setattr(cls, k, prop)
     return cls
 
 
@@ -60,6 +81,7 @@ class BaseConfig(object):
     PUBLIC_IPV4 = '127.0.0.1'
     BASE_URL = 'https://localhost:8888'
     MAX_CONTENT_LENGTH = 1024 * 1024
+    # ToDo: what uses the below? -jyrsa 2016-11-28
     FAKE_PROVISIONING = False
     SENDER_EMAIL = 'sender@example.org'
     MAIL_SERVER = 'smtp.example.org'

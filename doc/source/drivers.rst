@@ -7,9 +7,33 @@ Drivers
 Overview
 ========
 
+.. automodule:: pouta_blueprints.drivers.provisioning
+
+Base Driver
+===========
+
 .. automodule:: pouta_blueprints.drivers.provisioning.base_driver
 
 .. autoclass:: pouta_blueprints.drivers.provisioning.base_driver.ProvisioningDriverBase
+
+OpenStack Driver
+================
+.. automodule:: pouta_blueprints.drivers.provisioning.openstack_driver
+
+.. autoclass:: pouta_blueprints.drivers.provisioning.openstack_driver.OpenStackDriver
+
+
+Docker Driver
+=============
+.. automodule:: pouta_blueprints.drivers.provisioning.docker_driver
+
+.. autoclass:: pouta_blueprints.drivers.provisioning.docker_driver.DockerDriver
+
+
+OpenShift Driver
+================
+Coming soon
+
 
 Dummy Driver
 ============
@@ -17,16 +41,3 @@ Dummy Driver
 .. autoclass:: pouta_blueprints.drivers.provisioning.dummy_driver.DummyDriver
 
 
-OpenStack Driver
-================
-.. automodule:: pouta_blueprints.drivers.provisioning.
-
-.. autoclass:: pouta_blueprints.drivers.provisioning.base_driver.ProvisioningDriverBase
-
-
-Docker Driver
-=============
-
-
-OpenShift Driver
-================

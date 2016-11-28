@@ -13,6 +13,8 @@ local_config = BaseConfig()
 
 
 def get_token():
+    """ returns a session token from te internal API.
+    """
     auth_url = '%s/sessions' % local_config['INTERNAL_API_BASE_URL']
     auth_credentials = {'email': 'worker@pouta_blueprints',
                         'password': local_config['SECRET_KEY']}
@@ -24,6 +26,9 @@ def get_token():
 
 
 def do_get(token, object_url):
+    """ wrapper to use the GET method with authentication token against the
+    internal api url.
+    """
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
@@ -33,6 +38,9 @@ def do_get(token, object_url):
 
 
 def do_post(token, api_path, data):
+    """ wrapper to use the POST method with uthentication token against the
+    internal api url.
+    """
     auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
@@ -55,6 +63,7 @@ def get_config():
 
 
 # tune requests to give less spam in development environment with self signed certificate
+# TODO: Should we disable this when not in development environment then? -jyrsa 2016-11-28
 requests.packages.urllib3.disable_warnings()
 logging.getLogger("requests").setLevel(logging.WARNING)
 

@@ -12,6 +12,16 @@ from pouta_blueprints.tasks.celery_app import celery_app
 
 @celery_app.task(name="pouta_blueprints.tasks.periodic_update")
 def periodic_update():
+    """ Runs periodic updates.
+
+    In particular sets old instances up for deprovisioning after they are past
+    their maximum_lifetime and sets instances up for up updates.
+
+    Both deletion and update events are not guaranteed to take place
+    immediately. If there are more than 10 instances a random sample of 10
+    updates and deletions will take place to ensure task is safe to run and
+    won't slow down other tasks.
+    """
     token = get_token()
     pbclient = PBClient(token, local_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
     instances = pbclient.get_instances()
@@ -31,6 +41,7 @@ def periodic_update():
         elif instance.get('state') not in [Instance.STATE_FAILED]:
             update_list.append(instance)
 
+    # ToDo: refactor magic number to variable
     if len(deprovision_list) > 10:
         deprovision_list = random.sample(deprovision_list, 10)
     for instance in deprovision_list:
@@ -46,6 +57,8 @@ def periodic_update():
 
 @celery_app.task(name="pouta_blueprints.tasks.send_mails")
 def send_mails(users):
+    """ ToDo: document. apparently sends activation emails.
+    """
     config = get_config()
     j2_env = jinja2.Environment(loader=jinja2.PackageLoader('pouta_blueprints', 'templates'))
     base_url = config['BASE_URL'].strip('/')

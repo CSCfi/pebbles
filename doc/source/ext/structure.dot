@@ -1,6 +1,5 @@
 digraph G {
         node [color=blue shape=box style=filled fillcolor=white];
-        #angular [label="Angular Frontend"];
         color=black;
         edge [arrowhead=none];
         subgraph cluster_frontend{
@@ -30,7 +29,7 @@ digraph G {
                 }
         subgraph cluster_sql {
                 bgcolor="gray";
-                # cylinder shape is in devel but not in mainstream
+                // cylinder shape is in devel but not in mainstream
                 PostgreSQL [shape=diamond color=red]; 
                 label = "DB";
                 }
@@ -41,13 +40,11 @@ digraph G {
         }
 
         flask_backend->PostgreSQL;
-#        angular -> nginx;
         nginx->gunicorn;
         edge [weight=0 color=darkgreen arrowhead=none];
         nginx->worker_ [label="proxy configuration directives"];
         worker_->flask_backend [label="provision logging"];
         nginx->redis [label="proxy config updates"];
-#        {rank=same; cluster_SSO, cluster_frontend}A
         edge [weight=0 color=darkgreen arrowhead=none, style=dotted];
         nginx->shibboleth;
         shibboleth->gunicorn;

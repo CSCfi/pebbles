@@ -5,24 +5,27 @@ Welcome to Pebbles's documentation!
 ===================================
 
 Pebbles is a tool developed at CSC_ for simple provisioning of resources.
-To understand what this means see :ref:`use-cases`
+Pebbles_ is the name of the open source project and the installations should
+individual names.
+
+
+.. include:: use_cases.rst
 
 .. _CSC: http://www.csc.fi/
+.. _Pebbles: https://github.com/CSC-IT-Center-for-Science/pouta-blueprints
 
-Contents:
+Group owners
+------------
 
-.. toctree::
-   :maxdepth: 2
-   
-   use_cases
-   group_owners_guide
-   system_architecture
-   drivers
-   dev_environment
-   how_to_install_on_cpouta
-   README_docker_driver
-   database_migrations
-   
+Documentation relevant to group owners is gathered under
+:doc:`group_owners_guide`
+
+Administrators and Developers
+-----------------------------
+
+Documentation relevant to system administrators and developers is under
+:doc:`admin_guide`
+
 
 Indices and tables
 ==================

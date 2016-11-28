@@ -21,7 +21,7 @@ Provided Vagrantfile can be used to start a new **Pouta Blueprints** instance
 
         vagrant up
 
-    or
+or
 
 .. code-block:: sh
 
@@ -36,7 +36,7 @@ Local set-up
 
 To set up a development environment you'll obviously need python 2.7.x, with X
 preferably being the latest version. Py3 support pends on Py3 support in
-Ansible that we use internally.
+Ansible that parts of the system use internally.
 
 It's a good idea to have a relatively new pip and possibly build essentials
 for your platform. Too old versions sometimes handle requirement resolution

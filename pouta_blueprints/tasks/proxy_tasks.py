@@ -8,6 +8,8 @@ RUNTIME_PATH = '/webapps/pouta_blueprints/run/proxy_conf.d'
 
 @celery_app.task(name="pouta_blueprints.tasks.proxy_add_route")
 def proxy_add_route(route_key, target, options):
+    """ adds a route to nginx configs for access to e.g. a container
+    """
     logger.info('proxy_add_route(%s, %s)' % (route_key, target))
 
     # generate a location snippet for nginx proxy config
@@ -41,6 +43,8 @@ def proxy_add_route(route_key, target, options):
 
 @celery_app.task(name="pouta_blueprints.tasks.proxy_remove_route")
 def proxy_remove_route(route_key):
+    """ removes a route from nginx config e.g. when removing a resource.
+    """
     logger.info('proxy_remove_route(%s)' % route_key)
 
     path = '%s/route_key-%s' % (RUNTIME_PATH, route_key)
@@ -53,6 +57,9 @@ def proxy_remove_route(route_key):
 
 
 def refresh_nginx_config():
+    """ writes all the individual route-key- -files into one proxy.conf that
+    is read by nginx.
+    """
     config = []
     nroutes = 0
     pattern = '%s/route_key-*' % RUNTIME_PATH

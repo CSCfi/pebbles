@@ -23,11 +23,13 @@ default)::
 
     docker save rocker/rstudio > /var/lib/pb/docker_images/rocker.rstudio.img
 
-NOTE: Images from the image directory are pushed to notebook hosts only when they are being
+.. note::
+      Images from the image directory are pushed to notebook hosts only when they are being
       prepared. This limitation will be removed in the future, see
       https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/issues/358
 
-NOTE: All images are pushed to each notebook host (which may host several
+.. note::
+      All images are pushed to each notebook host (which may host several
       containers) when host is prepared. This means that less is more in the
       number of images.
 
@@ -42,13 +44,9 @@ Change the following configuration variables in the web configuration page visib
 Once you enable the driver, you can take a look at the tmux status window mentioned in how_to_install_on_cpouta.md, 
 window number 2 (CTRL-b 2) how the provisioning of notebook hosts in the pool is coming along.
 
-Open port 8443 in your security group
--------------------------------------
+There is a PREFIX setting that sets the prefix to use when generating pool
+hosts.
 
-The notebook connections from clients to the backing docker containers are proxied through port 8443 on the server. 
-Make sure that is open to the networks you want to expose the system to.
-
-*Note*: newer versions have this already set.
 
 Create a test blueprint
 =======================
@@ -69,6 +67,9 @@ Save and activate, go to 'Dashboard' and launch an instance. Once the instance i
 Shutting down the server
 ========================
 
+.. DANGER::
+    DockerDriver needs to be in shutdown mode before shutting down the system. Otherwise there is a risk of leaving zombie servers!
+
 Because DockerDriver maintains a pool of VMs to host the containers, you will have to shut it down in an orderly
 fashion for all the allocated resources to be deleted/released. Before shutting down the main server, simply set::
  
@@ -76,6 +77,7 @@ fashion for all the allocated resources to be deleted/released. Before shutting 
     
 and the driver will delete the resources in the pool. In case there is an runaway container and the hosts are not
 empty, you will have to manually delete the VM, security group and volume from OpenStack.
+
 
 Custom blueprints
 =================
