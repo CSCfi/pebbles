@@ -127,7 +127,7 @@ class BlueprintTemplateView(restful.Resource):
 
 
 def blueprint_schemaform_config(blueprint_template):
-
+    """Generates config,schema and model objects used in schemaform ui component for blueprints"""
     plugin = Plugin.query.filter_by(id=blueprint_template.plugin).first()
     schema = plugin.schema
     blueprint_schema = {'type': 'object', 'title': 'Comment', 'description': 'Description', 'required': ['name', 'description'], 'properties': {}}
@@ -135,14 +135,28 @@ def blueprint_schemaform_config(blueprint_template):
     blueprint_model = {}
 
     allowed_attrs = blueprint_template.allowed_attrs
+    blueprint_form = allowed_attrs
     allowed_attrs = ['name', 'description'] + allowed_attrs
     for attr in allowed_attrs:
         blueprint_schema['properties'][attr] = schema['properties'][attr]
         if attr in ('name', 'description'):
-            blueprint_model[attr] = 'your value'
+            blueprint_model[attr] = ''
         else:
             blueprint_model[attr] = config[attr]
-    blueprint_form = allowed_attrs
+
+    blueprint_form = blueprint_form + [
+        {
+            "key": "name",
+            "type": "textfield",
+            "placeholder": "Blueprint group"
+        },
+        {
+            "key": "description",
+            "type": "textarea",
+            "placeholder": "Blueprint details"
+        }
+    ]
+
     blueprint_template.blueprint_schema = blueprint_schema
     blueprint_template.blueprint_form = blueprint_form
     blueprint_template.blueprint_model = blueprint_model
@@ -151,6 +165,7 @@ def blueprint_schemaform_config(blueprint_template):
 
 
 def validate_max_lifetime_template(config):
+    """Checks if the maximum lifetime has a valid pattern"""
     if 'maximum_lifetime' in config:
         max_life_str = str(config['maximum_lifetime'])
         if max_life_str:

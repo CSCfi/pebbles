@@ -31,7 +31,6 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                     "maxLength": 32,
                     "pattern": "^(?!(?:SYSTEM|System|system)).+",  // No case sensitive flag in schemaform
                     "validationMessage": "Required Field! Max length 32 chars",
-                    "default": "mygroup"
                     },
                 "description": {
                     "title": "Group Description",
@@ -44,7 +43,11 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
 
             }
             groupsSF.form = [
-                "name",
+                {
+                    "key": "name",
+                    "type": "textfield",
+                    "placeholder": "Group name"
+                },
                 {
                     "key": "description",
                     "type": "textarea",

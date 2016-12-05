@@ -201,13 +201,58 @@ class FlaskApiTestCase(BaseTestCase):
         user = User.query.filter_by(id=u.id).first()
         self.assertTrue(user.email != email)
 
+    def test_make_group_owner(self):
+        email = "test_owner@example.org"
+        u = User(email, "testuser", is_admin=False)
+        db.session.add(u)
+        db.session.commit()
+        # Anonymous
+        response = self.make_request(
+            method='PUT',
+            path='/api/v1/users/%s/user_group_owner' % u.id,
+            data=json.dumps({'make_group_owner': True})
+        )
+        self.assert_401(response)
+        # Authenticated
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/users/%s/user_group_owner' % u.id,
+            data=json.dumps({'make_group_owner': True})
+        )
+        self.assert_403(response)
+        # Group Owner
+        response = self.make_authenticated_group_owner_request(
+            method='PUT',
+            path='/api/v1/users/%s/user_group_owner' % u.id,
+            data=json.dumps({'make_group_owner': True})
+        )
+        self.assert_403(response)
+        # Admin
+        # Make Group Owner
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/users/%s/user_group_owner' % u.id,
+            data=json.dumps({'make_group_owner': True})
+        )
+        self.assert_200(response)
+        user = User.query.filter_by(id=u.id).first()
+        self.assertTrue(user.is_group_owner)
+        # Remove Group Owner
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/users/%s/user_group_owner' % u.id,
+            data=json.dumps({'make_group_owner': False})
+        )
+        self.assert_200(response)
+        user = User.query.filter_by(id=u.id).first()
+        self.assertFalse(user.is_group_owner)
+
     def test_block_user(self):
         email = "test@example.org"
         u = User(email, "testuser", is_admin=False)
-        # Anonymous
         db.session.add(u)
         db.session.commit()
-
+        # Anonymous
         response = self.make_request(
             method='PUT',
             path='/api/v1/users/%s/user_blacklist' % u.id,
@@ -215,6 +260,12 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_401(response)
         # Authenticated
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/users/%s/user_blacklist' % u.id,
+            data=json.dumps({'block': True})
+        )
+        self.assert_403(response)
         response = self.make_authenticated_user_request(
             method='PUT',
             path='/api/v1/users/%s/user_blacklist' % u.id,
@@ -743,6 +794,35 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/blueprint_templates')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
+
+    def test_get_blueprint_template(self):
+        # Existing blueprint
+        # Anonymous
+        response = self.make_request(path='/api/v1/blueprint_templates/%s' % self.known_blueprint_id)
+        self.assert_401(response)
+        # Authenticated User
+        response = self.make_authenticated_user_request(path='/api/v1/blueprint_templates/%s' % self.known_template_id)
+        self.assert_403(response)
+        # Group Owner
+        response = self.make_authenticated_group_owner_request(path='/api/v1/blueprint_templates/%s' % self.known_template_id)
+        self.assert_200(response)
+        # Admin
+        response = self.make_authenticated_admin_request(path='/api/v1/blueprint_templates/%s' % self.known_template_id)
+        self.assert_200(response)
+
+        # non-existing blueprint
+        # Anonymous
+        response = self.make_request(path='/api/v1/blueprint_templates/%s' % uuid.uuid4().hex)
+        self.assert_401(response)
+        # Authenticated User
+        response = self.make_authenticated_user_request(path='/api/v1/blueprint_templates/%s' % uuid.uuid4().hex)
+        self.assert_403(response)
+        # Group Owner
+        response = self.make_authenticated_group_owner_request(path='/api/v1/blueprint_templates/%s' % uuid.uuid4().hex)
+        self.assert_404(response)
+        # Admin
+        response = self.make_authenticated_admin_request(path='/api/v1/blueprint_templates/%s' % uuid.uuid4().hex)
+        self.assert_404(response)
 
     def test_create_blueprint_template(self):
         # Anonymous

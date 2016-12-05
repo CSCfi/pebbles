@@ -123,10 +123,7 @@ class BlueprintView(restful.Resource):
         blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
         if not blueprint:
             abort(404)
-        # group_id = form.group_id.data
-        # group = Group.query.filter_by(id=group_id).first()
-        # if not group:
-        #    abort(422)
+
         if not user.is_admin and not is_group_manager(user, blueprint.group):
             logging.warn("invalid group for the user")
             abort(403)
@@ -150,6 +147,7 @@ class BlueprintView(restful.Resource):
 
 
 def validate_max_lifetime_blueprint(blueprint):
+    """Checks if the maximum lifetime for blueprint has a valid pattern"""
     template = BlueprintTemplate.query.filter_by(id=blueprint.template_id).first()
     blueprint.template = template
     full_config = get_full_blueprint_config(blueprint)

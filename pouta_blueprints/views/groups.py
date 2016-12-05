@@ -31,6 +31,7 @@ class GroupList(restful.Resource):
         for group in groups:
             group_owner_obj = group_user_query.filter_by(group_id=group.id, owner=True).first()
             owner = User.query.filter_by(id=group_owner_obj.user_id).first()
+            # config and user_config dicts are required by schemaform and multiselect in the groups modify ui modal
             if user.is_admin or user.id == owner.id:
                 group.config = {"name": group.name, "join_code": group.join_code, "description": group.description}
                 group.user_config = generate_user_config(group)
@@ -123,6 +124,7 @@ class GroupView(restful.Resource):
 
 
 def group_users_add(group, user_config, owner):
+    """Validate and add the managers, banned users and normal users in a group"""
     # Generate a 'set' of Group Managers
     managers_list = []
     managers_list.append(owner)  # Owner is always a manager
@@ -166,7 +168,7 @@ def group_users_add(group, user_config, owner):
 
 
 def generate_user_config(group):
-
+    """Generates the user_config object used in multiselect ui component on groups modify modal"""
     user_config = {'banned_users': [], 'managers': []}
     if group.banned_users:
         for banned_user in group.banned_users:

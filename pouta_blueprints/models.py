@@ -207,7 +207,9 @@ class Group(db.Model):
 
     @join_code.setter
     def join_code(self, name):
-        self._join_code = name.replace(' ', '').lower() + '-' + uuid.uuid4().hex
+        name = name.replace(' ', '').lower()
+        ascii_name = name.encode('ascii', 'ignore').decode()
+        self._join_code = ascii_name + '-' + uuid.uuid4().hex
 
 
 class Notification(db.Model):

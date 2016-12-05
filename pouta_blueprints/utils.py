@@ -82,7 +82,6 @@ def memoize(func):
 
 
 def parse_maximum_lifetime(max_life_str):
-
     m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)??$', max_life_str)
     if m:
         days = hours = mins = 0
@@ -100,7 +99,6 @@ def parse_maximum_lifetime(max_life_str):
 
 
 def parse_ports_string(ports_str):
-
     ports_list = []
     ports_str = ports_str.replace(',', ' ')
     ports = ports_str.split(' ')
@@ -123,7 +121,6 @@ def parse_ports_string(ports_str):
 
 
 def parse_port_range(port_range):
-
     m = re.match(r'(\d+):(\d+)', port_range)
     if m:
         if int(m.group(1)) < int(m.group(2)):
@@ -135,7 +132,7 @@ def parse_port_range(port_range):
 
 
 def get_full_blueprint_config(blueprint):
-
+    """Get the full config for blueprint from blueprint template for allowed attributes"""
     template = blueprint.template
     allowed_attrs = template.allowed_attrs
     allowed_attrs = ['name', 'description'] + allowed_attrs
@@ -148,7 +145,7 @@ def get_full_blueprint_config(blueprint):
 
 
 def get_blueprint_fields_from_config(blueprint, field_name):
-
+    """Hybrid fields for Blueprint model which need processing"""
     full_config = get_full_blueprint_config(blueprint)
 
     if field_name == 'preallocated_credits':

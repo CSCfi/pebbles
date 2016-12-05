@@ -8,7 +8,6 @@ import itertools
 
 
 def apply_rules_blueprint_templates(user, args=None):
-
     q = BlueprintTemplate.query
     if not user.is_admin:
         query_exp = BlueprintTemplate.is_enabled == true()
@@ -20,7 +19,6 @@ def apply_rules_blueprint_templates(user, args=None):
 
 
 def apply_rules_blueprints(user, args=None):
-
     q = Blueprint.query
     if not user.is_admin:
         group_user_objs = GroupUserAssociation.query.filter_by(user_id=user.id, manager=False).all()
@@ -61,7 +59,6 @@ def apply_rules_export_blueprints(user):
 
 
 def apply_rules_instances(user, args=None):
-
     q = Instance.query
     if not user.is_admin:
         q1 = q.filter_by(user_id=user.id)
@@ -89,6 +86,7 @@ def apply_rules_instances(user, args=None):
 
 
 def get_manager_group_ids(user):
+    """Return the group ids for the user's managed groups"""
     # the result shall contain the owners of the groups too as they are managers by default
     group_manager_objs = GroupUserAssociation.query.filter_by(user_id=user.id, manager=True).all()
     manager_group_ids = [group_manager_obj.group.id for group_manager_obj in group_manager_objs]
@@ -96,7 +94,7 @@ def get_manager_group_ids(user):
 
 
 def get_group_blueprint_ids_for_instances(user, manager=None):
-
+    """Return the valid blueprint ids based on user's groups to be used in instances view"""
     group_user_query = GroupUserAssociation.query
     if manager:  # if we require only managed groups
         group_user_objs = group_user_query.filter_by(user_id=user.id, manager=True).all()
