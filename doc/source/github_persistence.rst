@@ -33,3 +33,10 @@ your use case.
     * when asked for password give your access token instead
 7. Commit files to git as you would
     * you'll need to access token to push to the remote repository
+
+You may need to export this
+
+.. code-block:: sh
+
+        export GIT_COMMITTER_NAME=username
+        export GIT_COMMITTER_EMAIL=username@example.org

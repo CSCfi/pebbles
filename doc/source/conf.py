@@ -22,7 +22,12 @@
 
 import os
 import sys
-import ConfigParser
+try:
+# py2
+    from ConfigParser import ConfigParser
+except ImportError:
+# py3
+    from configparser import ConfigParser
 
 import semver
 
@@ -73,7 +78,7 @@ author = u'CSC - Center for Scientific Computing Ltd.'
 #
 
 #HackHack: read version from setup.cfg to have it in one place
-cfparser = ConfigParser.ConfigParser()
+cfparser = ConfigParser()
 cfparser.read("../../setup.cfg")
 release = cfparser.get("metadata", "version")
 version_info = semver.parse_version_info(release)

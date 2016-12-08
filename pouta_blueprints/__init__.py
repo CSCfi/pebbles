@@ -11,9 +11,16 @@ from a pool of hosts that Pebbles maintains.
 Virtual machines can and typically do have their own IP address and for
 containers a port can be forwarded for communication with software running on
 the container.  Jupyter Notebooks or RStudio Server are good candidates for
-inside a container. Currently no authentication is done on the forwarded port.
-Anyone can scan the ports and access notebooks on a Pebbles instance and this
-is something to keep in mind when contemplating handling secure data.
+inside a container.
+
+.. NOTE:: Currently no authentication is done when accessing a container via a
+    forwarded URL.  Anyone who knows the URL for a notebook can access it, the
+    connection is not authenticated.  This is something to keep in mind as it has
+    security implications. Scanning for all possible URLs may be difficult but in
+    the current implementation confidentiality of data in notebooks is not
+    guaranteed.  The upside is that many parties can access the same container
+    if the URL is shared.
+
 
 The resources are abstracted on two levels as Bluperint Templates and Blueprints:
   * **Blueprint templates** are created by system administrators who maintain the
