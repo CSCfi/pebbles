@@ -36,4 +36,4 @@ travis-sphinx==1.4.2
 selenium==2.53.6
 alembic==0.8.8
 graphviz==0.5.1
-Sphinx==1.4.6
+Sphinx==1.5
