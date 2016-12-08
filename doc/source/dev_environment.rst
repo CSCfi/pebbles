@@ -1,7 +1,6 @@
 Devevelopment environment
 *************************
 
-
 Which development set-up?
 =========================
 
