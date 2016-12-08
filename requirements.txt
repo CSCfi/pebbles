@@ -37,3 +37,4 @@ selenium==2.53.6
 alembic==0.8.8
 graphviz==0.5.1
 Sphinx==1.5
+semver==2.7.2
