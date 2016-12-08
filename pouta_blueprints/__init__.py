@@ -1,0 +1,84 @@
+"""
+================
+Pebbles overview
+================
+
+Pebbles is about provisioning cloud resources with a simple end-user
+experience. Currently supported provisioning back-end is OpenStack. It's
+possible to provision either full Virtual Machines or merely Docker containers
+from a pool of hosts that Pebbles maintains.
+
+Virtual machines can and typically do have their own IP address and for
+containers a port can be forwarded for communication with software running on
+the container.  Jupyter Notebooks or RStudio Server are good candidates for
+inside a container. Currently no authentication is done on the forwarded port.
+Anyone can scan the ports and access notebooks on a Pebbles instance and this
+is something to keep in mind when contemplating handling secure data.
+
+The resources are abstracted on two levels as Bluperint Templates and Blueprints:
+  * **Blueprint templates** are created by system administrators who maintain the
+    system.
+  * **Blueprints** can be created based on an existing Blueprint templates by
+    users with elevated but non-administrator rights. Regular users can then
+    provision and access resources based on these blueprints.
+
+The purpose of this divide is to let system administrators create types of
+resource packages with limited freedom to modify the parameters delegated to
+lower level elevated priviledge users.
+
+.. NOTE:: All disk storage in Pebbles is more or less ephemeral. You are
+   responsible for your data persistence!
+
+User Types in Pebbles
+---------------------
+
+There are broadly four roles in a Pebbles instance:
+
+1. Admin - Which is supposed to be the superuser of the system. Ability to
+    invite new users, appoint group owners, create blueprint templates,
+    blueprints, system and normal groups. System level priviledges : Access to
+    the backend database, restart or delete running services.
+2. Group Owner - Ability to create groups, appoint group managers , create
+    blueprints and manage instances running in a group
+3. Group Manager - Ability to create blueprints and manage instances
+    running in a group
+4. User - Able to launch instances if belonging to a group with
+    blueprints.
+
+A **group owner** is typically associated with costs tracking, e.g. a
+professor or researcher. The group owner can create groups and promote other
+users to be **group managers** to run basic day-to-day tasks.
+
+Use Cases
+---------
+
+The current main use cases revolve around setting up simple environments for
+teaching and/or ad-hoc data analysis.
+
+Notebooks in containers
++++++++++++++++++++++++
+
+See pb_ for a live example.
+
+1) User navigates to page
+2) User logs in with SSO they already know
+3) User selects appropriate blueprint and clicks a button
+4) System provisions a Docker container from an image
+5) System starts Jupyter/RStudio/similar inside container and forwards a port
+6) User can access the HTML UI from his own browser
+
+Virtual machines in the cloud.
+++++++++++++++++++++++++++++++
+
+1) User navigates to page
+2) User logs in with SSO they already know
+3) User selects appropriate blueprint and clicks a button
+4) System provisions a virtual machine from cPouta_ using a provided base image
+5) User can remote desktop into the IP address of the remote instance
+
+.. _cPouta: https://research.csc.fi/cpouta
+.. _PB: https://pb.csc.fi/
+
+
+
+"""

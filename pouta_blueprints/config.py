@@ -41,12 +41,15 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
 # For the reviewer: is this an elegant way to handle documenting automatically
 # generated properties?
 CONFIG_VALUE_DOCSTRINGS = {
-    "BRAND_IMAGE": "Sets or unsets the debug mode.",
+    "BRAND_IMAGE": "An image URL for branding the installation",
     "DEBUG": "Sets or unsets the debug mode.",
     "PLUGIN_WHITELIST": (
         "A whitespace-separated case-sensitive"
         " list of all configuration variables"
     ),
+    "M2M_CREDENTIAL_STORE": "Where to find the M2M credentials file",
+    "INSTANCE_NAME_PREFIX": ("A string that will prepended to instances"
+                             "spawend by OpenStackService")
 }
 
 
