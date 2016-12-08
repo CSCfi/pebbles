@@ -140,19 +140,24 @@ class DockerClientMock(object):
 class PBClientMock(object):
     def __init__(self):
         self.instance_data = {}
+        config = dict(
+            memory_limit='512m',
+            environment_vars=''
+        )
         self.blueprint_data = {
             'bp-01': dict(
                 id='bp-01',
                 name='test blueprint 01',
-                config=dict(
-                    docker_image='csc/test_image',
-                    internal_port=8888,
-                    consumed_slots=1,
-                    memory_limit='512m',
-                    environment_vars=''
-                ),
+                config=config
             )
         }
+        self.blueprint_data['bp-01']['full_config'] = dict(
+            docker_image='csc/test_image',
+            internal_port=8888,
+            consumed_slots=1,
+            memory_limit=config['memory_limit'],
+            environment_vars=config['environment_vars']
+        )
 
     def add_instance_data(self, instance_id):
         self.instance_data[instance_id] = dict(

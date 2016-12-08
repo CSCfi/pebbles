@@ -39,7 +39,15 @@ class UserList(restful.Resource):
     @marshal_with(user_fields)
     def get(self):
         if g.user.is_admin:
-            return User.query.all()
+            user_query = (
+                User.query
+                .order_by(User.is_admin.desc())
+                .order_by(User.is_group_owner.desc())
+                .order_by(User.is_active)
+                .order_by(User.is_blocked)
+                .order_by(User.is_blocked)
+            )
+            return user_query.all()
         return [g.user]
 
     @auth.login_required
@@ -200,5 +208,29 @@ class UserBlacklist(restful.Resource):
         else:
             logging.info("unblocking user %s", user.email)
             user.is_blocked = False
+        db.session.add(user)
+        db.session.commit()
+
+
+class UserGroupOwner(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('make_group_owner', type=bool, required=True)
+
+    @auth.login_required
+    @requires_admin
+    def put(self, user_id):
+        args = self.parser.parse_args()
+        make_group_owner = args.make_group_owner
+
+        user = User.query.filter_by(id=user_id).first()
+        if not user:
+            logging.warn("user does not exist")
+            abort(404)
+        if make_group_owner:
+            logging.info("making user %s a group owner", user.email)
+            user.is_group_owner = True
+        else:
+            logging.info("removing user %s as a group owner", user.email)
+            user.is_group_owner = False
         db.session.add(user)
         db.session.commit()

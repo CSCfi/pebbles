@@ -6,6 +6,7 @@ from functools import wraps
 from flask import abort, g
 import re
 
+
 KEYPAIR_DEFAULT = {
     'bits': 2048,
 }
@@ -57,6 +58,16 @@ def requires_admin(f):
     return decorated
 
 
+def requires_group_owner_or_admin(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not g.user.is_admin and not g.user.is_group_owner:
+            abort(403)
+        return f(*args, **kwargs)
+
+    return decorated
+
+
 def memoize(func):
     """
     Generic memoization implementation suitable for decorator use
@@ -71,7 +82,6 @@ def memoize(func):
 
 
 def parse_maximum_lifetime(max_life_str):
-
     m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)??$', max_life_str)
     if m:
         days = hours = mins = 0
@@ -89,7 +99,6 @@ def parse_maximum_lifetime(max_life_str):
 
 
 def parse_ports_string(ports_str):
-
     ports_list = []
     ports_str = ports_str.replace(',', ' ')
     ports = ports_str.split(' ')
@@ -112,7 +121,6 @@ def parse_ports_string(ports_str):
 
 
 def parse_port_range(port_range):
-
     m = re.match(r'(\d+):(\d+)', port_range)
     if m:
         if int(m.group(1)) < int(m.group(2)):
@@ -121,3 +129,47 @@ def parse_port_range(port_range):
             raise ValueError('Port range invalid')
     else:
         raise ValueError('No port range found')
+
+
+def get_full_blueprint_config(blueprint):
+    """Get the full config for blueprint from blueprint template for allowed attributes"""
+    template = blueprint.template
+    allowed_attrs = template.allowed_attrs
+    allowed_attrs = ['name', 'description'] + allowed_attrs
+    full_config = template.config
+    bp_config = blueprint.config
+    for attr in allowed_attrs:
+        if attr in bp_config:
+            full_config[attr] = bp_config[attr]
+    return full_config
+
+
+def get_blueprint_fields_from_config(blueprint, field_name):
+    """Hybrid fields for Blueprint model which need processing"""
+    full_config = get_full_blueprint_config(blueprint)
+
+    if field_name == 'preallocated_credits':
+        preallocated_credits = False  # Default value
+        if 'preallocated_credits' in full_config:
+            try:
+                preallocated_credits = bool(full_config['preallocated_credits'])
+            except:
+                pass
+        return preallocated_credits
+
+    if field_name == 'maximum_lifetime':
+        maximum_lifetime = 3600  # Default value of 1 hour
+        if 'maximum_lifetime' in full_config:
+            max_life_str = str(full_config['maximum_lifetime'])
+            if max_life_str:
+                maximum_lifetime = parse_maximum_lifetime(max_life_str)
+        return maximum_lifetime
+
+    if field_name == 'cost_multiplier':
+        cost_multiplier = 1.0  # Default value
+        if 'cost_multiplier' in full_config:
+            try:
+                cost_multiplier = float(full_config['cost_multiplier'])
+            except:
+                pass
+        return cost_multiplier

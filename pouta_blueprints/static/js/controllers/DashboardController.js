@@ -33,7 +33,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             if (offset) {
                 queryParams.offset = $scope.offset;
             }
-            if (AuthService.isAdmin() && isUserDashboard) {
+            if (AuthService.isGroupOwnerOrAdmin() && isUserDashboard) {
                 queryParams.show_only_mine = true;
             }
             instances.getList(queryParams).then(function (response) {
@@ -142,5 +142,5 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
         };
 
         $scope.startPolling();
-    }]);
 
+ }]);

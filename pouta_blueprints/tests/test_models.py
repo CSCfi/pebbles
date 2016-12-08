@@ -1,6 +1,6 @@
 import datetime
 from pouta_blueprints.tests.base import db, BaseTestCase
-from pouta_blueprints.models import User, Blueprint, Plugin, Instance
+from pouta_blueprints.models import User, Group, Blueprint, BlueprintTemplate, Plugin, Instance
 
 
 class ModelsTestCase(BaseTestCase):
@@ -11,15 +11,31 @@ class ModelsTestCase(BaseTestCase):
 
         db.session.add(u)
 
+        g = Group('Group1')
+        self.known_group = g
+        db.session.add(g)
+
         p1 = Plugin()
         p1.name = "TestPlugin"
         self.known_plugin_id = p1.id
         db.session.add(p1)
 
+        t1 = BlueprintTemplate()
+        t1.name = 'EnabledTestTemplate'
+        t1.plugin = p1.id
+        t1.is_enabled = True
+        t1.allowed_attrs = ['cost_multiplier']
+        db.session.add(t1)
+        self.known_template_id = t1.id
+
         b1 = Blueprint()
         b1.name = "TestBlueprint"
-        b1.plugin = p1.id
-        b1.cost_multiplier = 1.5
+        b1.template_id = t1.id
+        b1.group_id = g.id
+        # b1.cost_multiplier = 1.5
+        b1.config = {
+            'cost_multiplier': '1.5'
+        }
         self.known_blueprint = b1
         db.session.add(b1)
 

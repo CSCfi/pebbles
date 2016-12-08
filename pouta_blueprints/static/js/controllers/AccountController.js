@@ -1,13 +1,19 @@
-app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', '$upload', 'Restangular',
-                             function($q,   $scope,   $timeout,   AuthService,   $upload,   Restangular) {
+app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', '$upload', 'Restangular', '$uibModal',
+                             function($q,   $scope,   $timeout,   AuthService,   $upload,   Restangular,    $uibModal) {
     var user = Restangular.one('users', AuthService.getUserId());
     var quota = Restangular.one('quota', AuthService.getUserId());
+    var group_join = Restangular.all('groups').one('group_join');
+
     var key = null;
     var key_url = null;
     var change_password_result = "";
     var upload_ok = null;
 
     $scope.getUserName = AuthService.getUserName;
+
+    $scope.isAdmin = function() {
+        return AuthService.isAdmin();
+    };
 
     quota.get().then(function (response) {
                 $scope.credits_spent = response.credits_spent;
@@ -69,6 +75,25 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
         });
     };
 
+    var group_list_exit = Restangular.all('groups').all('group_list_exit');
+    var refresh_group_list_exit = function(){
+        group_list_exit.getList().then(function (response) {
+            $scope.group_list_exit = response;
+        });
+    };
+
+    refresh_group_list_exit();
+
+    $scope.exit_group = function(group) {
+        var group_exit = Restangular.all('groups').one('group_exit').one(group.id);
+        group_exit.put().then(function () {
+               refresh_group_list_exit();
+            }, function(response) {
+                $.notify({title: 'HTTP ' + response.status, message: response.data.error}, {type: 'danger'});
+            });
+
+     };
+
     $scope.change_password_msg_visible = function() {
         if (change_password_result === "") {
             return false;
@@ -97,4 +122,58 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
             change_password_result = "";
         }, 10000);
     };
+
+    $scope.openGroupJoinModal=function() {
+         $uibModal.open({
+         templateUrl: '/partials/modal_group_join.html',
+         controller: 'ModalGroupJoinController',
+         size: 'sm',
+         resolve: {
+             group_join: function() {
+                 return group_join;
+             }
+         }
+         }).result.then(function() {
+                 refresh_group_list_exit();
+             });
+     };
 }]);
+
+app.controller('ModalGroupJoinController', function($scope, $modalInstance, group_join) {
+
+    var grp_join_sf = {}
+    grp_join_sf.schema = {
+            "type": "object",
+            "title": "Comment",
+            "properties": {
+            "join_code":  {
+                "title": "Joining Code",
+                "type": "string",
+                "description": "The code/password to join your group"
+                }
+            },
+            "required": ["join_code"]
+
+        }
+    grp_join_sf.form = [
+            {"key": "join_code", "type": "textfield", "placeholder": "paste the joining code here"}
+        ]
+    grp_join_sf.model = {}
+    $scope.grp_join_sf = grp_join_sf;
+    $scope.group_join = group_join;
+
+    $scope.joinGroup = function(form, model) {
+     if (form.$valid) {
+            $scope.group_join.one(model.join_code).customPUT().then(function () {
+                $.notify({title: 'Success! ', message: 'Group Joined'}, {type: 'success'});
+                $modalInstance.close(true);
+            }, function(response) {
+                $.notify({title: 'HTTP ' + response.status, message: response.data.error}, {type: 'danger'});
+            });
+        }
+    };
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});

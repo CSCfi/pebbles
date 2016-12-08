@@ -8,7 +8,7 @@
             <div ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }" ng-if="filterOddEven($index, choice)" class="col-md-12">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        <h3 class="panel-title">{{ blueprint.name }}</h3>
+                        <h3 class="panel-title">{{ blueprint.name }} - {{ blueprint.group_name }}</h3>
                     </div>
                     <div class="panel-body specialCollapse sp">
                         <div style="padding: 15px">

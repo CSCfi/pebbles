@@ -219,7 +219,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         # fetch config
         blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
-        blueprint_config = blueprint['config']
+        blueprint_config = blueprint['full_config']
 
         log_uploader.info("selecting host...")
 

@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.schema import MetaData
+from sqlalchemy.orm import backref
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import logging
 import uuid
@@ -13,8 +14,7 @@ import json
 import datetime
 import six
 
-from pouta_blueprints.utils import validate_ssh_pubkey
-
+from pouta_blueprints.utils import validate_ssh_pubkey, get_blueprint_fields_from_config
 
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
@@ -73,6 +73,7 @@ class User(db.Model):
     _email = db.Column('email', db.String(MAX_EMAIL_LENGTH), unique=True)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     is_admin = db.Column(db.Boolean, default=False)
+    is_group_owner = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
     is_blocked = db.Column(db.Boolean, default=False)
@@ -80,6 +81,7 @@ class User(db.Model):
     latest_seen_notification_ts = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
+    groups = db.relationship("GroupUserAssociation", back_populates="user", lazy="dynamic")
 
     def __init__(self, email, password=None, is_admin=False):
         self.id = uuid.uuid4().hex
@@ -134,6 +136,14 @@ class User(db.Model):
     def can_login(self):
         return not self.is_deleted and self.is_active and not self.is_blocked
 
+    @hybrid_property
+    def managed_groups(self):
+        groups = []
+        group_user_objs = GroupUserAssociation.query.filter_by(user_id=self.id, manager=True).all()
+        for group_user_obj in group_user_objs:
+            groups.append(group_user_obj.group)
+        return groups
+
     def unseen_notifications(self):
         q = Notification.query
         if self.latest_seen_notification_ts:
@@ -153,6 +163,53 @@ class User(db.Model):
 
     def __repr__(self):
         return self.email
+
+    def __hash__(self):
+        return hash(self.email)
+
+
+group_banned_user = db.Table(  # Secondary Table for many-to-many mapping
+    'groups_banned_users',
+    db.Column('group_id', db.String(32), db.ForeignKey('groups.id')),
+    db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'user_id')
+)
+
+
+class GroupUserAssociation(db.Model):  # Association Object for many-to-many mapping
+    __tablename__ = 'groups_users_association'
+    group_id = db.Column(db.String(32), db.ForeignKey('groups.id'), primary_key=True)
+    user_id = db.Column(db.String(32), db.ForeignKey('users.id'), primary_key=True)
+    manager = db.Column(db.Boolean, default=False)
+    owner = db.Column(db.Boolean, default=False)
+    user = db.relationship("User", back_populates="groups")
+    group = db.relationship("Group", back_populates="users")
+
+
+class Group(db.Model):
+    __tablename__ = 'groups'
+
+    id = db.Column(db.String(32), primary_key=True)
+    name = db.Column(db.String(32))
+    _join_code = db.Column(db.String(64))
+    description = db.Column(db.Text)
+    users = db.relationship("GroupUserAssociation", back_populates="group", lazy='dynamic', cascade="all, delete-orphan")
+    banned_users = db.relationship('User', secondary=group_banned_user, backref=backref('banned_groups', lazy="dynamic"), lazy='dynamic')
+    blueprints = db.relationship('Blueprint', backref='group', lazy='dynamic')
+
+    def __init__(self, name):
+        self.id = uuid.uuid4().hex
+        self.name = name
+        self.join_code = name
+
+    @hybrid_property
+    def join_code(self):
+        return self._join_code
+
+    @join_code.setter
+    def join_code(self, name):
+        name = name.replace(' ', '').lower()
+        ascii_name = name.encode('ascii', 'ignore').decode()
+        self._join_code = ascii_name + '-' + uuid.uuid4().hex
 
 
 class Notification(db.Model):
@@ -237,17 +294,18 @@ class Plugin(db.Model):
         self._model = json.dumps(value)
 
 
-class Blueprint(db.Model):
-    __tablename__ = 'blueprints'
+class BlueprintTemplate(db.Model):
+    __tablename__ = 'blueprint_templates'
     id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(MAX_NAME_LENGTH))
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     plugin = db.Column(db.String(32), db.ForeignKey('plugins.id'))
-    maximum_lifetime = db.Column(db.Integer, default=3600)
-    preallocated_credits = db.Column(db.Boolean, default=False)
-    cost_multiplier = db.Column(db.Float, default=1.0)
-    instances = db.relationship('Instance', backref='blueprint', lazy='dynamic')
+    blueprints = db.relationship('Blueprint', backref='template', lazy='dynamic')
+    _blueprint_schema = db.Column('blueprint_schema', db.Text)
+    _blueprint_form = db.Column('blueprint_form', db.Text)
+    _blueprint_model = db.Column('blueprint_model', db.Text)
+    _allowed_attrs = db.Column('allowed_attrs', db.Text)
 
     def __init__(self):
         self.id = uuid.uuid4().hex
@@ -260,10 +318,75 @@ class Blueprint(db.Model):
     def config(self, value):
         self._config = json.dumps(value)
 
+    @hybrid_property
+    def blueprint_schema(self):
+        return load_column(self._blueprint_schema)
+
+    @blueprint_schema.setter
+    def blueprint_schema(self, value):
+        self._blueprint_schema = json.dumps(value)
+
+    @hybrid_property
+    def blueprint_form(self):
+        return load_column(self._blueprint_form)
+
+    @blueprint_form.setter
+    def blueprint_form(self, value):
+        self._blueprint_form = json.dumps(value)
+
+    @hybrid_property
+    def blueprint_model(self):
+        return load_column(self._blueprint_model)
+
+    @blueprint_model.setter
+    def blueprint_model(self, value):
+        self._blueprint_model = json.dumps(value)
+
+    @hybrid_property
+    def allowed_attrs(self):
+        return load_column(self._allowed_attrs)
+
+    @allowed_attrs.setter
+    def allowed_attrs(self, value):
+        self._allowed_attrs = json.dumps(value)
+
+
+class Blueprint(db.Model):
+    __tablename__ = 'blueprints'
+    id = db.Column(db.String(32), primary_key=True)
+    name = db.Column(db.String(MAX_NAME_LENGTH))
+    template_id = db.Column(db.String(32), db.ForeignKey('blueprint_templates.id'))
+    _config = db.Column('config', db.Text)
+    is_enabled = db.Column(db.Boolean, default=False)
+    instances = db.relationship('Instance', backref='blueprint', lazy='dynamic')
+    group_id = db.Column(db.String(32), db.ForeignKey('groups.id'))
+
+    def __init__(self):
+        self.id = uuid.uuid4().hex
+
+    @hybrid_property
+    def config(self):
+        return load_column(self._config)
+
+    @config.setter
+    def config(self, value):
+        self._config = json.dumps(value)
+
+    @hybrid_property
+    def maximum_lifetime(self):
+        return get_blueprint_fields_from_config(self, 'maximum_lifetime')
+
+    @hybrid_property
+    def preallocated_credits(self):
+        return get_blueprint_fields_from_config(self, 'preallocated_credits')
+
+    @hybrid_property
+    def cost_multiplier(self):
+        return get_blueprint_fields_from_config(self, 'cost_multiplier')
+
     def cost(self, duration=None):
         if not duration:
             duration = self.maximum_lifetime
-
         return self.cost_multiplier * duration / 3600
 
     def __repr__(self):
@@ -322,9 +445,7 @@ class Instance(db.Model):
         try:
             cost_multiplier = self.blueprint.cost_multiplier
         except:
-            logging.warn("invalid cost_multiplier for blueprint %s, defaulting to 1.0" % self.blueprint_id)
             cost_multiplier = 1.0
-
         return cost_multiplier * duration / 3600
 
     @hybrid_property

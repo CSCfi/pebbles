@@ -1,7 +1,8 @@
 from flask.ext.wtf import Form
 from wtforms_alchemy import model_form_factory
-from wtforms import BooleanField, StringField, FormField, FieldList
-from wtforms.validators import DataRequired, Email, Length, IPAddress
+from wtforms import BooleanField, StringField
+# from wtforms import FormField, FieldList
+from wtforms.validators import DataRequired, Email, Length, IPAddress, Regexp
 
 from pouta_blueprints.models import (
     MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH,
@@ -10,6 +11,7 @@ from pouta_blueprints.models import (
 )
 
 from pouta_blueprints.models import db
+import re
 
 BaseModelForm = model_form_factory(Form)
 
@@ -26,26 +28,48 @@ class UserForm(ModelForm):
     is_admin = BooleanField('is_admin', default=False, false_values=['false', False, ''])
 
 
+class GroupForm(ModelForm):
+    name = StringField('name', validators=[DataRequired(), Regexp('^(?!System).+', re.IGNORECASE, message='name cannot start with System')])
+    description = StringField('description')
+    user_config = StringField('user_config')
+
+
 class NotificationForm(ModelForm):
     subject = StringField('subject', validators=[DataRequired(), Length(max=MAX_NOTIFICATION_SUBJECT_LENGTH)])
     message = StringField('message', validators=[DataRequired()])
 
 
-class BlueprintForm(ModelForm):
+class BlueprintTemplateForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
     config = StringField('config', validators=[DataRequired()])
     plugin = StringField('plugin', validators=[DataRequired()])
+    allowed_attrs = StringField('allowed_attrs')
     is_enabled = BooleanField('is_enabled', default=False)
 
 
-class BlueprintImportFormField(Form):
+class BlueprintForm(ModelForm):
+    name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
+    template_id = StringField('template_id', validators=[DataRequired()])
+    config = StringField('config', validators=[DataRequired()])
+    is_enabled = BooleanField('is_enabled', default=False)
+    group_id = StringField('group_id', validators=[DataRequired()])
+
+
+class BlueprintTemplateImportForm(ModelForm):
     name = StringField('name', validators=[DataRequired()])
     config = StringField('config', validators=[DataRequired()])
     plugin_name = StringField('plugin_name', validators=[DataRequired()])
+    allowed_attrs = StringField('allowed_attrs')
 
 
-class BlueprintImportForm(Form):
-    blueprints = FieldList(FormField(BlueprintImportFormField), min_entries=1)
+class BlueprintImportForm(ModelForm):
+    name = StringField('name', validators=[DataRequired()])
+    config = StringField('config', validators=[DataRequired()])
+    template_name = StringField('template_name', validators=[DataRequired()])
+    group_name = StringField('group_name', validators=[DataRequired()])
+
+# class BlueprintImportForm(Form):
+#    blueprints = FieldList(FormField(BlueprintImportFormField), min_entries=1)
 
 
 class ChangePasswordForm(ModelForm):

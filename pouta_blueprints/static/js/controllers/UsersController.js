@@ -57,6 +57,17 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
 
             };
 
+            $scope.make_group_owner = function(user) {
+                var make_group_owner = !user.is_group_owner
+                var user_group_owner = Restangular.one('users', user.id).all('user_group_owner').customPUT({'make_group_owner': make_group_owner});
+                user_group_owner.then(function () {
+                    users.getList().then(function (response) {
+                        $scope.users = response;
+                    });
+                });
+
+            };
+
             $scope.get_activation_url = function(user) {
                 $uibModal.open({
                     size: 'lg',

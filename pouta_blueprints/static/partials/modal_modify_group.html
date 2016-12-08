@@ -1,0 +1,21 @@
+<div class="modal-header">
+    <button ng-click="cancel()" type="button" class="close"><span aria-hidden="true">&times;</span></button>
+    <h4 class="modal-title">Modify Group</h4>
+</div>
+<div class="modal-body">
+    <form name="ngform2">
+      <div
+          sf-model="group.config"
+          sf-form="groupsSF.form"
+          sf-schema="groupsSF.schema"/>
+
+             <label for="userBanSelect">Select Users to Ban</label>
+             <div id="userBanSelect" ng-dropdown-multiselect="" options="userData" selected-model="group.user_config.banned_users" extra-settings="userSettings"></div>
+             <label for="userOwnerSelect">Add additional group managers (If needed)</label>
+             <div id="userOwnerSelect" ng-dropdown-multiselect="" options="managerData" selected-model="group.user_config.managers" extra-settings="userSettings"></div>
+    </form>
+</div>
+<div class="modal-footer">
+    <button ng-click="modifyGroup(ngform2, group.config, group.user_config)" class="btn btn-primary">Modify</button>
+    <button ng-click="cancel()" class="btn btn-default" >Close</button>
+</div>

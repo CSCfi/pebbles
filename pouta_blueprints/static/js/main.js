@@ -2,7 +2,7 @@
 
 'use strict';
 
-var app = angular.module('PBApp', ['ngRoute', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload', 'schemaForm', 'ui.bootstrap', 'angular-loading-bar']);
+var app = angular.module('PBApp', ['ngRoute', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload', 'schemaForm', 'ui.bootstrap', 'angular-loading-bar', 'angularjs-dropdown-multiselect']);
 
 app.run(function($location, Restangular, AuthService) {
     Restangular.setFullRequestInterceptor(function(element, operation, route, url, headers) {
@@ -69,7 +69,7 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider, confi
 
     var notAuthenticatedP = redirectIf('AuthService', 'isNotAuthenticated', '/');
     var alreadyAuthenticatedP = redirectIf('AuthService', 'isAuthenticated', '/dashboard');
-    var isAdminP = redirectIf('AuthService', 'isAdmin', '/admin-dashboard');
+    var isAdminP = redirectIf('AuthService', 'isGroupManagerOrAdmin', '/admin-dashboard');
     $routeProvider
         .when('/', {
             templateUrl: partialsDir + '/welcome.html',
@@ -119,6 +119,20 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider, confi
         .when('/users', {
             controller: 'UsersController',
             templateUrl: partialsDir + '/users.html',
+            resolve: {
+                redirectIfNotAuthenticated: notAuthenticatedP,
+            }
+        })
+        .when('/groups', {
+            controller: 'GroupsController',
+            templateUrl: partialsDir + '/groups.html',
+            resolve: {
+                redirectIfNotAuthenticated: notAuthenticatedP,
+            }
+        })
+         .when('/blueprints', {
+            controller: 'BlueprintsController',
+            templateUrl: partialsDir + '/blueprints.html',
             resolve: {
                 redirectIfNotAuthenticated: notAuthenticatedP,
             }
