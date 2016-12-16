@@ -40,7 +40,7 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
 
 def fields_to_properties(cls):
     for k, default in vars(cls).items():
-        if type(default) == tuple and len(default) == 2 :
+        if type(default) == tuple and len(default) == 2:
             default, doc_ = default
         else:
             doc_ = ''
