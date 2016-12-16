@@ -1,3 +1,9 @@
+"""Drivers abstract resource provisioning strategies to the system and user.
+
+A driver object can be instantiated to connect to some end point to CRUD
+resources like Docker containers or OpenStack virtual machines.
+"""
+
 import select
 import shlex
 import json
@@ -17,6 +23,8 @@ from pouta_blueprints.models import Instance
 
 @six.add_metaclass(abc.ABCMeta)
 class ProvisioningDriverBase(object):
+    """ This class functions as the base for other classes.
+    """
     config = {}
 
     def __init__(self, logger, config):
@@ -64,6 +72,11 @@ class ProvisioningDriverBase(object):
             ], 'model': {}}
 
     def update(self, token, instance_id):
+        """ an update call  updates the status of an instance.
+
+        If an instance is queued it will be provisioned, if should be deleted,
+        it is.
+        """
         self.logger.debug("update('%s')" % instance_id)
 
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
@@ -115,26 +128,47 @@ class ProvisioningDriverBase(object):
             raise e
 
     def housekeep(self, token):
+        """ called periodically to do housekeeping tasks.
+        """
         self.logger.debug('housekeep')
         self.do_housekeep(token)
 
     @abc.abstractmethod
     def do_housekeep(self, token):
+        """Each plugin must implement this method but it doesn't have to do
+        anything. Can be used to e.g. determine that a system should scale up
+        or down.
+        """
         pass
 
     @abc.abstractmethod
     def do_update_connectivity(self, token, instance_id):
+        """ Each plugin must implement this method but it doesn't have to do
+        anything.
+
+        This can be used to e.g. open holes in firewalls or to update a proxy
+        to route traffic to an instance.
+        """
         pass
 
     @abc.abstractmethod
     def do_provision(self, token, instance_id):
+        """ The steps to take to provision an instance.
+        Probably doesn't make sense not to implement.
+        """
+
         pass
 
     @abc.abstractmethod
     def do_deprovision(self, token, instance_id):
+        """ The steps to take to deprovision an instance.
+        """
         pass
 
     def create_prov_log_uploader(self, token, instance_id, log_type):
+        """ Creates a new logger that will upload the log file via the
+        internal API.
+        """
         uploader = logging.getLogger('%s-%s' % (instance_id, log_type))
         uploader.setLevel(logging.INFO)
         for handler in uploader.handlers:
@@ -153,6 +187,11 @@ class ProvisioningDriverBase(object):
         return uploader
 
     def run_logged_process(self, cmd, cwd='.', shell=False, env=None, log_uploader=None):
+        """ runs a process, sets a selcect.poll to poll the process and writes
+        both stdout and stderr to named files.
+
+        purges the files into log_uploader periodically.
+        """
         if shell:
             args = [cmd]
         else:

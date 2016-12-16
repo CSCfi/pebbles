@@ -1,4 +1,5 @@
-# How to launch Pouta Blueprints server on cPouta
+How to launch Pouta Blueprints server on cPouta
+***********************************************
 
 These are step by step instructions on how to launch a Pouta Blueprints server on 
 cPouta IaaS cloud (https://research.csc.fi/pouta-iaas-cloud). We assume that you are
@@ -7,9 +8,11 @@ familiar with the cPouta service. Horizon web interface will be used as an examp
 First we create a security group, then launch a server and finally install the software
 using ssh interactive session.
 
-# Part 1: Launch the server
+Part 1: Launch the server
+=========================
 
-## Prerequisites
+Prerequisites
+-------------
 
 * First log in to https://pouta.csc.fi
 
@@ -17,7 +20,8 @@ using ssh interactive session.
 
 * Upload public key or create a key pair, if you have not done so already (Access and Security -> Key Pairs)
 
-## Create a security group for the server
+Create a security group for the server
+--------------------------------------
 
 * In case you are a member of multiple projects in cPouta, select the desired project in the project selection 
   drop down box on the top of the page 
@@ -29,9 +33,11 @@ using ssh interactive session.
   * https: port 443, CIDR: like above
 
 * At this point keep the firewall as restricted as possible. Once the installation is complete, you can open the
- https-access to all your users.
+  https-access to all your users.
 
-## Boot the server
+
+Boot the server
+---------------
 
 We'll next create the server VM. It will be based on CentOS-7.0.
 
@@ -51,7 +57,8 @@ We'll next create the server VM. It will be based on CentOS-7.0.
 
 * Post-Creation and Advanced tabs can be skipped
 
-## Assign a public IP
+Assign a public IP
+------------------
 
 * Go to (Instances) and click More on pb_server instance row. Select 'Associate floating IP'
 
@@ -60,57 +67,61 @@ We'll next create the server VM. It will be based on CentOS-7.0.
 * If there are no items in the list, allocate an address with (+). 
  
 
-## Download machine to machine OpenStack RC -file
+Download machine to machine OpenStack RC -file
+----------------------------------------------
 
 * Log out and log in to https://pouta.csc.fi again, this time using your machine to machine credentials
 
 * Go to (Access and Security -> API Access) and click 'Download OpenStack RC File'. Save the file to a known location
   on your local computer
   
-# Part 2: Install software
+Part 2: Install software
+==============================================
 
-Open ssh connection to the server:
+Open ssh connection to the server::
 
     $ ssh cloud-user@<public ip of the server>
 
-Update the server packages (we'll boot it later):
+Update the server packages (we'll boot it later)::
 
     $ sudo yum update -y
     
-Clone the repository from GitHub:
+Clone the repository from GitHub::
 
     $ sudo yum install -y git
     $ git clone --branch v3.0.4 https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
 
 Run the install script once - you will asked to log out and in again to make unix group changes effective. Here is a 
-good time to reboot the server after the updates:
+good time to reboot the server after the updates::
 
     $ ./pouta-blueprints/scripts/install_pb.bash
     $ sudo reboot
 
-Wait while for the server to reboot and copy the m2m OpenStack RC file to the server:
+Wait while for the server to reboot and copy the m2m OpenStack RC file to the server::
 
-    $ scp path/to/your/saved/rc-file.bash cloud-user@<public ip of the server>:
+    $ scp path/to/your/saved/rc-file.bash cloud-user@<public ip of the server>
 
-SSH in again, source your m2m OpenStack credentials (use your m2m password when asked for) and continue installation:
+SSH in again, source your m2m OpenStack credentials (use your m2m password when asked for) and continue installation::
 
     $ ssh cloud-user@<public ip of the server>
     $ source your-openrc.bash
     $ ./pouta-blueprints/scripts/install_pb.bash
 
     
-# Part 3: Quick start using the software
+Part 3: Quick start using the software
+--------------------------------------
 
 Here is list of tasks for a quick start. 
 
-Link to more comprehensive Admin Guide: TBA
 
-## Set admin credentials
+Set admin credentials
+---------------------   
 
 The installation script will print out initialization URL at the end of the installation. Navigate to that, set the
 admin credentials and log in as an admin.
 
-## Configure mail
+Configure mail
+--------------
 
 To configure the outgoing mail settings, go to Configure tab, and change the following:
 
@@ -118,7 +129,8 @@ To configure the outgoing mail settings, go to Configure tab, and change the fol
     MAIL_SERVER: 'server.assigned.to.you.by.csc'
     MAIL_SUPPRESS_SEND: False
 
-## Enable OpenStack Driver
+Enable OpenStack Driver
+-----------------------
 
 By default, only a dummy test driver is enabled. To add more drivers for provisioning different resources, you need 
 to edit the _PLUGIN_WHITELIST_ variable. Change DummyDriver to OpenStackDriver:
@@ -130,7 +142,8 @@ and upload driver configurations to the API server running in 'api' container. I
 the configuration will dynamically include VM images and flavors that are available for the cPouta project. 
 Refresh the page after a minute or two, and the *Plugins* list on top of the page should include OpenStackDriver
 
-## Create a test blueprint
+Create a test blueprint
+-----------------------
 
 Click 'Create Blueprint' next to OpenStackDriver in the plugin list and you are presented by a dialog for configuring 
 the new blueprint. We'll create a blueprint for Ubuntu-14.04 based VM, using standard.tiny flavor, running for 1h maximum. We'll
@@ -154,7 +167,8 @@ Also add a Customization script, just for test purposes:
 
 Save the new blueprint and enable it in the Blueprints list.
 
-## Launch a test instance
+Launch a test instance
+----------------------
 
 Go to 'Dashboard' tab. If you have not uploaded your ssh public key yet, you'll see a notice with a link to do so
 in the Blueprint list. Click the link and upload or generate a public key.
@@ -173,11 +187,12 @@ Check if our boot time customization script worked:
     -rw-r--r-- 1 root root 0 Nov 17 09:47 /tmp/hello_from_blueprint_config
 
 
-## Enable Docker Driver
-
+Enable Docker Driver
+--------------------
 Enabling DockerDriver requires a bit more preparation, see [DockerDriver readme](https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/blob/master/pouta_blueprints/drivers/provisioning/README_docker_driver.md)
 
-# Part 4: Open access to users
+Part 4: Open access to users
+============================
 
 Once you have set the admin credentials and checked that the system works, you can open the firewall to all the users. 
 
@@ -186,7 +201,8 @@ Once you have set the admin credentials and checked that the system works, you c
 * Open https -access either globally by selecting 'Add rule' -> port 443, CIDR 0.0.0.0/0 or if the users of the system 
   should always access it from a certain subnet, use that instead of 0.0.0.0/0
 
-# Part 5: Administrative tasks and troubleshooting
+Part 5: Administrative tasks and troubleshooting
+================================================
 
 (backing up the central database, cleaning misbehaving VMs and other resources, ...)
 
@@ -228,12 +244,14 @@ and multiple panes showing status and logs in each window:
     
 Tmux is terminal multiplexer like screen. Here is a quick survival guide:
 
-Action              | Command
---------------------|--------------------
-navigate the views  | CTRL-b n
-change active pane  | CTRL-b arrow keys
-exit/detach         | CTRL-b d
-new window          | CTRL-b c
-attach              | $ tmux attach (or att)
-list sessions       | $ tmux list-sessions
-kill a session      | $ tmux kill-session -t status
+==================   =============================
+Action               Command
+------------------   -----------------------------
+navigate the views   CTRL-b n
+change active pane   CTRL-b arrow keys
+exit/detach          CTRL-b d
+new window           CTRL-b c
+attach               $ tmux attach (or att)
+list sessions        $ tmux list-sessions
+kill a session       $ tmux kill-session -t status
+==================   =============================

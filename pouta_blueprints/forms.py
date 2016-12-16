@@ -1,3 +1,9 @@
+""" Forms are made with WTForms, which is mostly acceptable but has started to
+cause gray hair.
+
+
+"""
+
 from flask.ext.wtf import Form
 from wtforms_alchemy import model_form_factory
 from wtforms import BooleanField, StringField

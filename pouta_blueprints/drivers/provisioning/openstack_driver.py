@@ -1,3 +1,5 @@
+""" ToDo: document OpenStack driver on user level here.
+"""
 import json
 
 from pouta_blueprints.services.openstack_service import OpenStackService
@@ -11,6 +13,8 @@ POLL_MAX_WAIT = 180
 
 
 class OpenStackDriver(base_driver.ProvisioningDriverBase):
+    """ ToDo: document Openstack driver on developer/sysadmin level here.
+    """
     def get_oss(self):
         return OpenStackService({'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']})
 

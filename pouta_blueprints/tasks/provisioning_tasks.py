@@ -6,6 +6,11 @@ from pouta_blueprints.tasks.celery_app import celery_app
 
 
 def get_provisioning_manager():
+    """ Gets a stevedore provisioning manager which controls access to all the
+    possible drivers.
+
+    Manager is used to call a method on one or more of the drivers.
+    """
     from stevedore import dispatch
 
     config = get_config()
@@ -18,6 +23,8 @@ def get_provisioning_manager():
             invoke_args=(logger, get_config()),
         )
     else:
+        # ahem, load all plugins if string is empty or not available?
+        # is this wise? -jyrsa 2016-11-28
         mgr = dispatch.NameDispatchExtensionManager(
             namespace='pouta_blueprints.drivers.provisioning',
             check_func=lambda x: True,
@@ -31,6 +38,8 @@ def get_provisioning_manager():
 
 
 def get_provisioning_type(token, instance_id):
+    """ gets the name of the plugin (driver) that an instance uses.
+    """
     pbclient = PBClient(token, local_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
     blueprint = pbclient.get_instance_parent_data(instance_id)
@@ -40,6 +49,8 @@ def get_provisioning_type(token, instance_id):
 
 @celery_app.task(name="pouta_blueprints.tasks.run_update")
 def run_update(instance_id):
+    """ calls the update method for the manager of a single instance.
+    """
     logger.info('update triggered for %s' % instance_id)
     token = get_token()
     mgr = get_provisioning_manager()
@@ -51,6 +62,8 @@ def run_update(instance_id):
 
 @celery_app.task(name="pouta_blueprints.tasks.publish_plugins")
 def publish_plugins():
+    """ ToDo: document.
+    """
     logger.info('provisioning plugins queried from worker')
     token = get_token()
     mgr = get_provisioning_manager()
@@ -74,6 +87,8 @@ def publish_plugins():
 
 @celery_app.task(name="pouta_blueprints.tasks.housekeeping")
 def housekeeping():
+    """ calls housekeep for each manager. is run periodically.
+    """
     token = get_token()
     logger.info('provisioning plugins queried from worker')
     mgr = get_provisioning_manager()
@@ -82,6 +97,8 @@ def housekeeping():
 
 @celery_app.task(name="pouta_blueprints.tasks.update_user_connectivity")
 def update_user_connectivity(instance_id):
+    """ updates the connectivity for a single instance.
+    """
     logger.info('updating connectivity for instance %s' % instance_id)
     token = get_token()
     mgr = get_provisioning_manager()

@@ -1,3 +1,7 @@
+""" ToDo: Document user/admin level usage of docker driver here, possibly including
+screenshots and what variables can be set or overriden.
+"""
+
 import json
 import time
 import uuid
@@ -33,6 +37,12 @@ DD_IMAGE_DIRECTORY = '/images'
 
 
 class DockerDriverAccessProxy(object):
+    """
+    ToDo: why is the docker driver split into a proxy and proper?
+    Is it to abstract away the use of OpenStack to provision hosts?
+    -jyrsa
+    2016-11-28
+    """
     @staticmethod
     def save_as_json(data_file, data):
         if os.path.exists(data_file):
@@ -159,6 +169,8 @@ class DockerDriverAccessProxy(object):
 
 
 class DockerDriver(base_driver.ProvisioningDriverBase):
+    """ ToDo: document what the docker driver does for an admin/developer here
+    """
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.docker_driver_config import CONFIG
 

@@ -7,6 +7,10 @@ python:
 # for new container based Travis environment
 sudo: false
 
+addons:
+  apt:
+    packages:
+    - graphviz
 install:
 - pip install -r requirements.txt
 - pip install flake8==3.2.0
@@ -17,7 +21,10 @@ before_script:
 
 script:
 - python manage.py test
+- travis-sphinx --branches=master --source=doc/source build
 
+# Whose tokens are these? In the future document crypted tokens when you add
+# them!
 notifications:
   flowdock:
     secure: VteCDhr47oT0S2kST2s755cYJMVZachfn+utiPAasqxTiaFb+ZpxB7jR9Dt6BTIyPTkxfVYGpfJv8+6sM72ezQNETu6XmwCatQvVIQ8S5jdSb5uW6jv+0bcZbyBfK+D6xzEG/yBjy6UZGdwhYDmf+aUd1RR1GAzl6BBDtvRP3Vk=
@@ -26,3 +33,8 @@ env:
   global:
   - secure: aC1Z9lbous/dOTOCNhGGjz0mrhRFCTTpSwZyqlEQmkheEOkJhclhQRoecyADwsRKlGwOb1CSwmyuz5rjtd1MqbP8dpBKJwbJEgkezGCk75QokIdrPGV+zyNdcVYPvZgBXytiERIRxYmiL/rqVUWOELDvPI35LowolF1b5ENgzlg=
   - secure: FxVF7Khh7biG235ruvv7e5DfoasJM7hZrpzdycO24PqZhbQm5MpEoGEotbhaGxksFj4a0xePmZjFI9/GN87AD1HJ+IRqB8hC1yQXQoPM5UY6dqj9Gm14qr3D+6xUmjFbWdKotYz/mq9alT//tLr9Uf3qFxDHfk0B7o8qr8LpwKs=
+    #Jyry's OAuth token that can access public repositories
+  - secure: kJl3EvJ0SxmDm7DOv27nYSXfgaVmtXEsHVHwkst5+ZDX5ErBpRpLlmJfww1yMRHGllrY5qxNu8453mLhPHePW1j5ovqZdZiTK8Gsp+J9lvkWZa2FUk80IqLW6rb5cufnOwAywmgGiqZHPCusi4LKetEwsb/xKIAqak64FGBfLXw=
+
+after_success:
+- travis-sphinx --branches=master deploy

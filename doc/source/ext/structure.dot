@@ -1,0 +1,51 @@
+digraph G {
+        node [color=blue shape=box style=filled fillcolor=white];
+        color=black;
+        edge [arrowhead=none];
+        subgraph cluster_frontend{
+                bgcolor="gray";
+                nginx [shape=diamond color=red];
+                label = "Frontend";
+                }
+        subgraph cluster_API {
+                bgcolor="gray";
+                gunicorn->flask_backend;
+                gunicorn [shape=diamond color=red];
+                flask_backend [label="Flask Backend"];
+                
+                label = "API";
+                }
+        subgraph cluster_redis {
+                bgcolor="gray";
+                flask_backend -> redis; 
+                redis [shape=diamond color=red];
+                label = "Redis";
+                }
+        subgraph cluster_worker {
+                bgcolor="gray";
+                redis->worker_; 
+                worker_ [label="Celery Worker"];
+                label = "Worker";
+                }
+        subgraph cluster_sql {
+                bgcolor="gray";
+                // cylinder shape is in devel but not in mainstream
+                PostgreSQL [shape=diamond color=red]; 
+                label = "DB";
+                }
+        subgraph cluster_SSO {
+                bgcolor="gray";
+                shibboleth;
+                label = "SSO\n(optional)";
+        }
+
+        flask_backend->PostgreSQL;
+        nginx->gunicorn;
+        edge [weight=0 color=darkgreen arrowhead=none];
+        nginx->worker_ [label="proxy configuration directives"];
+        worker_->flask_backend [label="provision logging"];
+        nginx->redis [label="proxy config updates"];
+        edge [weight=0 color=darkgreen arrowhead=none, style=dotted];
+        nginx->shibboleth;
+        shibboleth->gunicorn;
+}

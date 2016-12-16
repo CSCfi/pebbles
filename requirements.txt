@@ -32,5 +32,9 @@ python-cinderclient==1.3.1
 mock==2.0.0
 six==1.10.0
 terminaltables==2.1.0
+travis-sphinx==1.4.2
 selenium==2.53.6
 alembic==0.8.8
+graphviz==0.5.1
+Sphinx==1.5
+semver==2.7.2
