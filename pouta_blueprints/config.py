@@ -38,46 +38,35 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
         return default
 
 
-# For the reviewer: is this an elegant way to handle documenting automatically
-# generated properties?
-CONFIG_VALUE_DOCSTRINGS = {
-    "BRAND_IMAGE": "An image URL for branding the installation",
-    "DEBUG": "Sets or unsets the debug mode.",
-    "PLUGIN_WHITELIST": (
-        "A whitespace-separated case-sensitive"
-        " list of all configuration variables"
-    ),
-    "M2M_CREDENTIAL_STORE": "Where to find the M2M credentials file",
-    "INSTANCE_NAME_PREFIX": ("A string that will prepended to instances"
-                             "spawend by OpenStackService")
-}
-
-
-def _resolve_config_docstring(name):
-    return CONFIG_VALUE_DOCSTRINGS.get(
-        name,
-        ""  # return empty string so no entry is created
-    )
-
-
 def fields_to_properties(cls):
     for k, default in vars(cls).items():
+        if type(default) == tuple and len(default) == 2 :
+            default, doc_ = default
+        else:
+            doc_ = ''
         if not k.startswith('_') and k.isupper():
             resolvef = functools.partial(resolve_configuration_value, k, default)
-            doc_ = _resolve_config_docstring(k)
             prop = property(resolvef, doc=doc_)
             setattr(cls, k, prop)
     return cls
 
 
+# each config can be documented by making the default value into a (value,
+# docstring) tuple
 @fields_to_properties
 class BaseConfig(object):
-    DEBUG = True
-    SECRET_KEY = "change_me"
+    DEBUG = (
+        True,
+        'Controls debug mode'
+    )
+    SECRET_KEY = 'change_me'
     WTF_CSRF_ENABLED = False
     SSL_VERIFY = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
-    M2M_CREDENTIAL_STORE = '/var/run/pouta_blueprints_m2m'
+    M2M_CREDENTIAL_STORE = (
+        '/var/run/pouta_blueprints_m2m',
+        'Where to find the M2M credentials file'
+    )
     MESSAGE_QUEUE_URI = 'redis://redis:6379/0'
     INSTANCE_DATA_DIR = '/var/spool/pb_instances'
     INTERNAL_API_BASE_URL = 'https://api:1443/api/v1'
@@ -92,15 +81,24 @@ class BaseConfig(object):
     MAIL_USE_TLS = False
     SKIP_TASK_QUEUE = False
     WRITE_PROVISIONING_LOGS = True
-    INSTANCE_NAME_PREFIX = 'pb-'
+    INSTANCE_NAME_PREFIX = (
+        'pb-',
+        'all spawned instance names will have this prefix'
+    )
     DEFAULT_QUOTA = 1.0
     ENABLE_SHIBBOLETH_LOGIN = False
     INSTALLATION_NAME = 'Pouta Blueprints'
     INSTALLATION_DESCRIPTION = ('A tool for provisioning '
                                 'ephemeral private cloud resources.')
-    BRAND_IMAGE = ''
-    PLUGIN_WHITELIST = 'DummyDriver'
-
+    BRAND_IMAGE = (
+        '',
+        'An image URL for branding the installation'
+    )
+    PLUGIN_WHITELIST = (
+        'DummyDriver',
+        'A whitespace-separated case-sensitive'
+        ' list of all configuration variables'
+    )
     DD_SHUTDOWN_MODE = True
     DD_HOST_IMAGE = 'CentOS-7.0'
     DD_MAX_HOSTS = 4
