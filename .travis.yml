@@ -21,7 +21,7 @@ before_script:
 
 script:
 - python manage.py test
-- travis-sphinx --branches=doc/sphinx --source=doc/source build
+- travis-sphinx --branches=master --source=doc/source build
 
 # Whose tokens are these? In the future document crypted tokens when you add
 # them!
@@ -37,4 +37,4 @@ env:
   - secure: kJl3EvJ0SxmDm7DOv27nYSXfgaVmtXEsHVHwkst5+ZDX5ErBpRpLlmJfww1yMRHGllrY5qxNu8453mLhPHePW1j5ovqZdZiTK8Gsp+J9lvkWZa2FUk80IqLW6rb5cufnOwAywmgGiqZHPCusi4LKetEwsb/xKIAqak64FGBfLXw=
 
 after_success:
-- travis-sphinx --branches=doc/sphinx deploy
+- travis-sphinx --branches=master deploy
