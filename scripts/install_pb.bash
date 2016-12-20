@@ -72,7 +72,7 @@ create_creds_file()
     echo
     echo "Testing OpenStack credentials"
     if nova flavor-list; then
-        sudo mkdir -p /run/shm/pouta_blueprints
+        sudo mkdir -p /run/shm/pebbles
         echo "Updating m2m credentials"
         (
 
@@ -86,13 +86,13 @@ create_creds_file()
 }
 END_M2M
 
-        ) | sudo tee /run/shm/pouta_blueprints/creds > /dev/null
+        ) | sudo tee /run/shm/pebbles/creds > /dev/null
         echo "done"
         echo
 
         if [ -f /etc/redhat-release ]; then
             echo "Enabling container access to creds file in SELinux"
-            sudo chcon -Rt svirt_sandbox_file_t /run/shm/pouta_blueprints/creds
+            sudo chcon -Rt svirt_sandbox_file_t /run/shm/pebbles/creds
         fi
 
     else
@@ -138,14 +138,15 @@ END_AI
 
 clone_git_repo()
 {
-    if [ -e pouta-blueprints ]; then
+    if [ -e pebbles ]; then
     echo "-------------------------------------------------------------------------------"
         echo
-        echo "pouta-blueprints directory already exists, skipping git clone"
+        echo "pebbles directory already exists, skipping git clone"
         echo
     else
+        local_name="pebbles"
         if [ "xxx$git_repository" == "xxx" ]; then
-          git_repository="https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git"
+          git_repository="https://github.com/CSC-IT-Center-for-Science/pebbles.git"
         fi
 
         if [ "xxx$git_branch" == "xxx" ]; then
@@ -154,9 +155,9 @@ clone_git_repo()
 
         echo "-------------------------------------------------------------------------------"
         echo
-        echo "Cloning Pouta Blueprints git repository, branch: '$git_branch'"
+        echo "Cloning Pebbles git repository, branch: '$git_branch'"
         echo
-        git clone $git_repository --branch $git_branch
+        git clone $git_repository --branch $git_branch $local_name
     fi
 }
 
@@ -244,7 +245,7 @@ run_ansible()
     echo
     sleep 2
 
-    cd pouta-blueprints
+    cd pebbles
     ansible-playbook -i $HOME/pb_ansible_inventory ansible/playbook.yml\
      -e deploy_mode=docker \
      -e server_type=prod \

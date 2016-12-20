@@ -17,7 +17,7 @@ install:
 - pip install .
 
 before_script:
-- flake8 pouta_blueprints
+- flake8 pebbles
 
 script:
 - python manage.py test

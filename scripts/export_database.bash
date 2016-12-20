@@ -19,4 +19,4 @@ fi
 
 echo "Exporting to $export_file"
 
-docker exec db pg_dump -d pouta_blueprints -U postgres | gzip -c > $export_file
+docker exec db pg_dump -d pebbles -U postgres | gzip -c > $export_file

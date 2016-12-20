@@ -1,0 +1,7 @@
+You've been invited to participate in a Pebbles instance.
+
+Click following activation link to activate your account:
+
+{{ activation_link }}
+
+

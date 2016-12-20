@@ -13,7 +13,7 @@ For debugging use whichever suits your needs.
 Vagrant set-up
 ==============
  
-Provided Vagrantfile can be used to start a new **Pouta Blueprints** instance 
+Provided Vagrantfile can be used to start a new **Pebbles** instance
 (requires VirtualBox or Docker)
 
 .. code-block:: sh
@@ -45,7 +45,7 @@ It's recommended to use virtualenvwrapper.
 
 .. code-block:: sh
 
-         $ cd pouta_blueprints
+         $ cd pebbles
          $ mkvirtualenv pb
          (pb) $ pip install -r requirements.txt # install requirement packages
          (pb) $ python manage.py db upgrade # create and upgrade db

@@ -31,5 +31,5 @@
     group={{ application_group }}
 
 - name: Copy application configuration
-  template: src=etc/pouta_blueprints/app_config.j2
+  template: src=etc/pebbles/app_config.j2
             dest={{ application_config }}

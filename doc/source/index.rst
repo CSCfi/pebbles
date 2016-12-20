@@ -10,10 +10,10 @@ Pebbles_ is the name of the open source project and the installations should
 individual names. The name of the installation at CSC for example will be
 called CSC Notebooks.
 
-.. automodule:: pouta_blueprints
+.. automodule:: pebbles
 
 .. _CSC: http://www.csc.fi/
-.. _Pebbles: https://github.com/CSC-IT-Center-for-Science/pouta-blueprints
+.. _Pebbles: https://github.com/CSC-IT-Center-for-Science/pebbles/
 
 
 
