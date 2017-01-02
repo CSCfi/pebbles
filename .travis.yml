@@ -13,6 +13,8 @@ addons:
     packages:
     - graphviz
 install:
+- pip install --upgrade "pip<8"
+- pip --version
 - pip install -r requirements.txt
 - pip install flake8==3.2.0
 - pip install .
