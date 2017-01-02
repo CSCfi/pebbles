@@ -281,6 +281,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
 
         log_uploader.info("provisioning done for %s\n" % instance_id)
 
+    # noinspection PyTypeChecker
     def _spawn_project_and_a_pod(self, oc, project_name, pod_name, pod_image, port, pod_memory,
                                  volume_mount_point=None, environment_vars=None):
 
