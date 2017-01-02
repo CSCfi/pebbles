@@ -207,6 +207,7 @@ class ProvisionInstance(task.Task):
         logging.debug("provisioning instance %s" % display_name)
         nc = get_openstack_nova_client(config)
         sgs = [security_group]
+        net_ids = [{'net-id': net.id} for net in nc.networks.list()]
         if extra_sec_groups:
             sgs.extend(extra_sec_groups)
         try:
@@ -219,6 +220,7 @@ class ProvisionInstance(task.Task):
                 image.id,
                 flavor.id,
                 key_name=display_name,
+                nics=net_ids,
                 security_groups=sgs,
                 block_device_mapping=bdm,
                 userdata=userdata)
