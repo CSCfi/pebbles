@@ -1,4 +1,4 @@
-describe('Pouta Blueprints', function() {
+describe('Pebbles', function() {
 
   beforeEach(function() {
     browser.get(browser.params.baseURL);

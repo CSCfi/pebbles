@@ -7,6 +7,6 @@ for undocumented configuration options.
 BaseConfig
 ==========
 
-.. autoclass:: pouta_blueprints.config.BaseConfig
+.. autoclass:: pebbles.config.BaseConfig
    :members:
 

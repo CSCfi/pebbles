@@ -14,3 +14,7 @@ doc/build/
 # travis-sphinx builds to ./target by default
 #
 target/
+
+#pycharm folder
+#
+.idea/

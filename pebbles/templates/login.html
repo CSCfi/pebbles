@@ -1,0 +1,30 @@
+<html ng-app="pebblesLoginApp">
+    <head>
+        <script src="/js/vendor/jquery-1.12.4.min.js"></script>
+        <script src="/js/vendor/angular.min.js"></script>
+        <script src="/js/vendor/angular-local-storage.min.js"></script>
+
+
+        <script type="text/javascript">
+            angular.module('pebblessLoginApp', ['LocalStorageModule'])
+            .controller('HakaController', function($location,
+                        localStorageService) {
+                localStorageService.set('userName', '{{ username }}');
+                localStorageService.set('token', btoa('{{ token }}' + ":"));
+                {% if is_admin %}
+                    localStorageService.set('isAdmin', true);
+                {% endif %}
+                {% if is_group_owner %}
+                    localStorageService.set('isGroupOwner', true);
+                {% endif %}
+                {% if is_group_manager %}
+                    localStorageService.set('isGroupManager', true);
+                {% endif %}
+                localStorageService.set('userId', '{{ userid }}');
+                window.location.assign("/");
+            });
+        </script>
+    </head>
+    <body ng-controller="HakaController">
+    </body>
+</html>

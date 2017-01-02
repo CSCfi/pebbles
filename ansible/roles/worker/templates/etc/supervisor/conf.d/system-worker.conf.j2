@@ -1,7 +1,7 @@
 [program:{{ application_name }}-system-worker]
 command = {{ virtualenv_path }}/bin/celery worker
     -n system-worker
-    -A pouta_blueprints.tasks.celery_app
+    -A pebbles.tasks.celery_app
     -Ofair
     --loglevel={{ 'DEBUG' if deploy_mode == 'devel' else 'INFO' }}
     --concurrency=4
@@ -15,7 +15,7 @@ redirect_stderr = true
 
 [program:{{ application_name }}-periodic-worker]
 command = {{ virtualenv_path }}/bin/celery
-    -A pouta_blueprints.tasks.celery_app beat
+    -A pebbles.tasks.celery_app beat
     -s {{ runtime_path }}/celerybeat-schedule
     --pidfile {{ runtime_path }}/celerybeat.pid
     -f {{ celerybeat_log_file }}

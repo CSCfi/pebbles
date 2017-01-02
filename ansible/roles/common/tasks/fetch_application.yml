@@ -13,6 +13,15 @@
   file: src={{ shared_folder_path }} dest={{ application_path }} state=link
   when: deploy_mode == "devel"
 
+- name: Install latest version of pip to avoid weird old dependency issues
+  pip: name=pip state=latest virtualenv={{ virtualenv_path }}
+
+# there's something fishy about installing Sphinx at the same time as building
+# a lot of things that use it: the packages sphinx uses aren't isntalled
+# correctly. Hence install Sphinx first.
+- name: Install latest version of Sphinx
+  pip: name=Sphinx state=latest virtualenv={{ virtualenv_path }}
+
 - name: Install dependencies from requirements.txt
   pip: requirements={{ application_path }}/requirements.txt virtualenv={{ virtualenv_path }}
 

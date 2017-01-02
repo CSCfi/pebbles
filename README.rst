@@ -8,10 +8,10 @@
    :target: https://codeclimate.com/github/CSC-IT-Center-for-Science/pouta-blueprints
    :alt: Test Coverage
 
-Pouta Blueprints
+Pebbles
 ****************
 
-**Pouta Blueprints** is a frontend to manage cloud resources and lightweight user
+**Pebbles** is a frontend to manage cloud resources and lightweight user
 accounts.
 Currently supported resource types are 
 
@@ -47,7 +47,7 @@ The documentation is hosted in GitHub pages and built using `Travis-Sphinx`_.
 
 Can save you a lot of trouble.
 
-.. _OpenStack driver: pouta_blueprints/drivers/provisioning/openstack_driver.py
-.. _Docker driver: pouta_blueprints/drivers/provisioning/README_docker_driver.md 
+.. _OpenStack driver: pebbles/drivers/provisioning/openstack_driver.py
+.. _Docker driver: pebbles/drivers/provisioning/README_docker_driver.md
 .. _Pouta Virtualcluster: https://github.com/CSC-IT-Center-for-Science/pouta-virtualcluster
 .. _Travis Sphinx: https://github.com/Syntaf/travis-sphinx

@@ -1,7 +1,7 @@
-How to launch Pouta Blueprints server on cPouta
+How to launch Pebbles server on cPouta
 ***********************************************
 
-These are step by step instructions on how to launch a Pouta Blueprints server on 
+These are step by step instructions on how to launch a Pebbles server on
 cPouta IaaS cloud (https://research.csc.fi/pouta-iaas-cloud). We assume that you are
 familiar with the cPouta service. Horizon web interface will be used as an example.
 
@@ -89,12 +89,12 @@ Update the server packages (we'll boot it later)::
 Clone the repository from GitHub::
 
     $ sudo yum install -y git
-    $ git clone --branch v3.0.4 https://github.com/CSC-IT-Center-for-Science/pouta-blueprints.git
+    $ git clone --branch v3.0.4 https://github.com/CSC-IT-Center-for-Science/pebbles.git
 
 Run the install script once - you will asked to log out and in again to make unix group changes effective. Here is a 
 good time to reboot the server after the updates::
 
-    $ ./pouta-blueprints/scripts/install_pb.bash
+    $ ./pebbles/scripts/install_pb.bash
     $ sudo reboot
 
 Wait while for the server to reboot and copy the m2m OpenStack RC file to the server::
@@ -105,7 +105,7 @@ SSH in again, source your m2m OpenStack credentials (use your m2m password when 
 
     $ ssh cloud-user@<public ip of the server>
     $ source your-openrc.bash
-    $ ./pouta-blueprints/scripts/install_pb.bash
+    $ ./pebbles/scripts/install_pb.bash
 
     
 Part 3: Quick start using the software
@@ -189,7 +189,7 @@ Check if our boot time customization script worked:
 
 Enable Docker Driver
 --------------------
-Enabling DockerDriver requires a bit more preparation, see [DockerDriver readme](https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/blob/master/pouta_blueprints/drivers/provisioning/README_docker_driver.md)
+Enabling DockerDriver requires a bit more preparation, see [DockerDriver readme](https://github.com/CSC-IT-Center-for-Science/pebbles/blob/master/pouta_blueprints/drivers/provisioning/README_docker_driver.md)
 
 Part 4: Open access to users
 ============================
@@ -229,18 +229,18 @@ Aliases are provided for an easy ssh access:
     
 The api, frontend and worker containers share the git repository that was checked out during installation through a 
 read only shared folder. For other directories shared from the host, see the [Ansible play]
-(https://github.com/CSC-IT-Center-for-Science/pouta-blueprints/blob/master/ansible/roles/single_server_with_docker/tasks/main.yml)
+(https://github.com/CSC-IT-Center-for-Science/pebbles/blob/master/ansible/roles/single_server_with_docker/tasks/main.yml)
 that sets up the container infrastructure. 
 
-To see the server process logs, take a look at /webapps/pouta_blueprints/logs -directory in the container:
+To see the server process logs, take a look at /webapps/pebbles/logs -directory in the container:
 
     $ ssh api
-    $ ls /webapps/pouta_blueprints/logs
+    $ ls /webapps/pebbles/logs
 
 You can also launch a tmux based status session, that will have windows open for the host and each of the containers 
 and multiple panes showing status and logs in each window:
     
-    $ pouta-blueprints/scripts/tmux_status.bash
+    $ pebbles/scripts/tmux_status.bash
     
 Tmux is terminal multiplexer like screen. Here is a quick survival guide:
 

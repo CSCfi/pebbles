@@ -47,7 +47,7 @@ if [ "$?" -eq 1 ]; then
   # Window "api"
   
   tmux send-keys -t status:1.0 '' C-m
-  tmux send-keys -t status:1.0 ssh\ api\ tail\ -F\ /webapps/pouta_blueprints/logs/gunicorn\*.log C-m
+  tmux send-keys -t status:1.0 ssh\ api\ tail\ -F\ /webapps/pebbles/logs/gunicorn\*.log C-m
 
   tmux select-layout -t status:1 even-vertical
 
@@ -56,13 +56,13 @@ if [ "$?" -eq 1 ]; then
   # Window "worker"
   
   tmux send-keys -t status:2.0 '' C-m
-  tmux send-keys -t status:2.0 ssh\ worker\ tail\ -F\ /webapps/pouta_blueprints/logs/celery.log C-m
+  tmux send-keys -t status:2.0 ssh\ worker\ tail\ -F\ /webapps/pebbles/logs/celery.log C-m
 
   tmux splitw -t status:2
   tmux select-layout -t status:2 even-vertical
   
   tmux send-keys -t status:2.1 '' C-m
-  tmux send-keys -t status:2.1 ssh\ worker\ tail\ -F\ /webapps/pouta_blueprints/logs/celery-system.log C-m
+  tmux send-keys -t status:2.1 ssh\ worker\ tail\ -F\ /webapps/pebbles/logs/celery-system.log C-m
 
   tmux splitw -t status:2
   tmux select-layout -t status:2 even-vertical
@@ -77,19 +77,19 @@ if [ "$?" -eq 1 ]; then
   # Window "frontend"
   
   tmux send-keys -t status:3.0 '' C-m
-  tmux send-keys -t status:3.0 ssh\ frontend\ tail\ -F\ /webapps/pouta_blueprints/logs/nginx\*.log C-m
+  tmux send-keys -t status:3.0 ssh\ frontend\ tail\ -F\ /webapps/pebbles/logs/nginx\*.log C-m
 
   tmux splitw -t status:3
   tmux select-layout -t status:3 even-vertical
   
   tmux send-keys -t status:3.1 '' C-m
-  tmux send-keys -t status:3.1 ssh\ frontend\ tail\ -F\ /webapps/pouta_blueprints/logs/celery\*.log C-m
+  tmux send-keys -t status:3.1 ssh\ frontend\ tail\ -F\ /webapps/pebbles/logs/celery\*.log C-m
 
   tmux splitw -t status:3
   tmux select-layout -t status:3 even-vertical
   
   tmux send-keys -t status:3.2 '' C-m
-  tmux send-keys -t status:3.2 ssh\ frontend\ -t\ watch\ -d\ \'echo\ \"number\ of\ proxy\ routes\"\;\ grep\ location\ /webapps/pouta_blueprints/run/proxy_conf.d/proxy.conf\ \|\ wc\ -l\' C-m
+  tmux send-keys -t status:3.2 ssh\ frontend\ -t\ watch\ -d\ \'echo\ \"number\ of\ proxy\ routes\"\;\ grep\ location\ /webapps/pebbles/run/proxy_conf.d/proxy.conf\ \|\ wc\ -l\' C-m
 
   tmux select-layout -t status:3 even-vertical
 
