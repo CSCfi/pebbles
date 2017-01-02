@@ -7,27 +7,27 @@ Drivers
 Overview
 ========
 
-.. automodule:: pouta_blueprints.drivers.provisioning
+.. automodule:: pebbles.drivers.provisioning
 
 Base Driver
 ===========
 
-.. automodule:: pouta_blueprints.drivers.provisioning.base_driver
+.. automodule:: pebbles.drivers.provisioning.base_driver
 
-.. autoclass:: pouta_blueprints.drivers.provisioning.base_driver.ProvisioningDriverBase
+.. autoclass:: pebbles.drivers.provisioning.base_driver.ProvisioningDriverBase
 
 OpenStack Driver
 ================
-.. automodule:: pouta_blueprints.drivers.provisioning.openstack_driver
+.. automodule:: pebbles.drivers.provisioning.openstack_driver
 
-.. autoclass:: pouta_blueprints.drivers.provisioning.openstack_driver.OpenStackDriver
+.. autoclass:: pebbles.drivers.provisioning.openstack_driver.OpenStackDriver
 
 
 Docker Driver
 =============
-.. automodule:: pouta_blueprints.drivers.provisioning.docker_driver
+.. automodule:: pebbles.drivers.provisioning.docker_driver
 
-.. autoclass:: pouta_blueprints.drivers.provisioning.docker_driver.DockerDriver
+.. autoclass:: pebbles.drivers.provisioning.docker_driver.DockerDriver
 
 
 OpenShift Driver
@@ -38,6 +38,6 @@ Coming soon
 Dummy Driver
 ============
 
-.. autoclass:: pouta_blueprints.drivers.provisioning.dummy_driver.DummyDriver
+.. autoclass:: pebbles.drivers.provisioning.dummy_driver.DummyDriver
 
 

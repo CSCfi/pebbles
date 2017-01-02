@@ -7,6 +7,6 @@
       - python-cinderclient
 
 - name: Install driver package to venv
-  command: "{{ virtualenv_path}}/bin/python {{ application_path }}/pouta_blueprints/drivers/provisioning/setup.py install"
+  command: "{{ virtualenv_path}}/bin/python {{ application_path }}/pebbles/drivers/provisioning/setup.py install"
   args:
-    creates: "{{ virtualenv_path}}/lib/python2.7/site-packages/pouta_blueprints_provisioning_extensions-1.0-py2.7.egg"
+    creates: "{{ virtualenv_path}}/lib/python2.7/site-packages/pebbles_provisioning_extensions-1.0-py2.7.egg"

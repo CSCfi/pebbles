@@ -39,8 +39,8 @@
 
 - name: Copy application config
   template:
-    src: etc/nginx/conf.d/pouta-blueprints.conf.j2
-    dest: /etc/nginx/conf.d/pouta-blueprints.conf
+    src: etc/nginx/conf.d/pebbles.conf.j2
+    dest: /etc/nginx/conf.d/pebbles.conf
     backup: yes
     mode: "0755"
   notify: restart nginx

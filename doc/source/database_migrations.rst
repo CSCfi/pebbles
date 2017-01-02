@@ -34,7 +34,7 @@ Then to make sure db is up to date with latest version file, run
 
 .. code-block:: sh
 
-        (env) pouta-blueprints/ $ python manage.py db upgrade
+        (env) pebbles/ $ python manage.py db upgrade
 
 This reads through all the files, introspects the state of your configured db
 (and creates it if it doesn't exist).
@@ -43,7 +43,7 @@ Then to create a new file, run
         
 .. code-block:: sh
 
-        (env) pouta-blueprints/ $ python manage.py db migrate
+        (env) pebbles/ $ python manage.py db migrate
 
 inspect that you have a new .py file under migrations/versions and at the very
 least change the name. Sometimes something doesn't work or the system isn't
@@ -54,7 +54,7 @@ To apply the migration you have created, run
 
 .. code-block:: sh
 
-        (env) pouta-blueprints/ $ python manage.py db upgrade
+        (env) pebbles/ $ python manage.py db upgrade
 
 And the system picks up the new migration, sees that it hasn't been run yet
 and applies it.
@@ -64,7 +64,7 @@ generating the db from scratch you can run
 
 .. code-block:: sh
 
-        (env) pouta-blueprints/ $ python manage.py db downgrade [revision
+        (env) pebbles/ $ python manage.py db downgrade [revision
         identifier]
 
 Notes

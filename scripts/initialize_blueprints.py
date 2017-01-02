@@ -10,14 +10,14 @@ import struct
 import tempfile
 import time
 
-activate_this = '/webapps/pouta_blueprints/venv/bin/activate_this.py'
+activate_this = '/webapps/pebbles/venv/bin/activate_this.py'
 execfile(activate_this, dict(__file__=activate_this))
-sys.path.append("/webapps/pouta_blueprints/source")
+sys.path.append("/webapps/pebbles/source")
 
 import yaml
 from novaclient.v2 import client
 
-config = yaml.load(open('/etc/pouta_blueprints/config.yaml'))
+config = yaml.load(open('/etc/pebbles/config.yaml'))
 m2m_store = config['M2M_CREDENTIAL_STORE']
 
 
@@ -44,7 +44,7 @@ def get_from_env_or_stdin(key, default=None, is_password=False):
             value = input()
     return value
 
-print("Initializing your Pouta Blueprints instance")
+print("Initializing your Pebbles instance")
 print("Setting OpenStack M2M (machine-to-machine) credentials")
 print("Enter OpenStack M2M user")
 os_user = get_from_env_or_stdin('OS_USERNAME')
@@ -68,7 +68,7 @@ _, tmp_abs = tempfile.mkstemp()
 json.dump(m2m_credentials, file(tmp_abs, "w"))
 
 os.popen("sudo cp %s %s" % (tmp_abs, m2m_store))
-os.popen("sudo chown pouta_blueprints %s" % m2m_store)
+os.popen("sudo chown pebbles %s" % m2m_store)
 os.popen("sudo chmod 700 %s" % m2m_store)
 
 nt = client.Client(os_user, os_password, os_tenant_id, os_auth_url, service_type="compute")
@@ -81,11 +81,11 @@ for server_id, server_ips in servers:
         current_server_id = server_id
 
 if not current_server_id:
-    print("This instance of Pouta Blueprints seems not to run on the OpenStack environment associated with the given credentials")
+    print("This instance of Pebbles seems not to run on the OpenStack environment associated with the given credentials")
     sys.exit(1)
 
 print("Creating persistent volume for database")
-volume = nt.volumes.create(50, display_name="Pouta Blueprints DB")
+volume = nt.volumes.create(50, display_name="Pebbles DB")
 
 print("Attaching volume")
 while True:
@@ -110,8 +110,8 @@ os.popen("sudo mkdir /mnt/pb_db")
 print("Creating filesystem on volume")
 os.popen("sudo mkfs.ext4 /dev/vdc")
 os.popen("sudo mount /dev/vdc /mnt/pb_db")
-os.popen("sudo chown -R pouta_blueprints /mnt/pb_db")
-print("Create DB as pouta_blueprints user")
-os.popen("sudo -u pouta_blueprints /webapps/pouta_blueprints/venv/bin/python /webapps/pouta_blueprints/source/manage.py")
+os.popen("sudo chown -R pebbles /mnt/pb_db")
+print("Create DB as pebbles user")
+os.popen("sudo -u pebbles /webapps/pebbles/venv/bin/python /webapps/pebbles/source/manage.py")
 print("Restart services")
 os.popen("sudo supervisorctl restart all")
