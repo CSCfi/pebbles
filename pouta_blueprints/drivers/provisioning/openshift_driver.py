@@ -10,6 +10,11 @@ from six.moves.urllib.parse import urlparse, parse_qs
 from pouta_blueprints.client import PBClient
 from pouta_blueprints.drivers.provisioning import base_driver
 
+# maximum time to wait for pod creation before failing
+MAX_POD_SPAWN_WAIT_TIME_SEC = 600
+# maximum time to wait for pod (down) scaling
+MAX_POD_SCALE_WAIT_TIME_SEC = 60
+
 
 class OpenShiftClient(object):
     def __init__(self, base_url, subdomain, user, password):
@@ -22,6 +27,7 @@ class OpenShiftClient(object):
         self.user = user
         self.password = password
 
+        # token_data caches the token to access the API. See _request_token() for details.
         self.token_data = None
         self._session = requests.session()
 
@@ -84,7 +90,7 @@ class OpenShiftClient(object):
 
         return self.token_data['access_token']
 
-    def _construct_url(self, kubeapi, namespace=None, object_kind=None, object_id=None):
+    def _construct_object_url(self, kubeapi, namespace=None, object_kind=None, object_id=None):
         if kubeapi:
             url_components = [self.kube_base_url]
         else:
@@ -103,7 +109,7 @@ class OpenShiftClient(object):
 
     def make_request(self, method=None, kubeapi=False, verbose=False, namespace=None, object_kind=None, object_id=None,
                      params=None, data=None, raise_on_failure=True):
-        url = self._construct_url(kubeapi, namespace, object_kind, object_id)
+        url = self._construct_object_url(kubeapi, namespace, object_kind, object_id)
         headers = {'Authorization': 'Bearer %s' % self._get_token()}
         if isinstance(data, dict):
             data = json.dumps(data)
@@ -129,7 +135,7 @@ class OpenShiftClient(object):
 
     def make_delete_request(self, kubeapi=False, verbose=False, namespace=None, object_kind=None, object_id=None,
                             raise_on_failure=True):
-        url = self._construct_url(kubeapi, namespace, object_kind, object_id)
+        url = self._construct_object_url(kubeapi, namespace, object_kind, object_id)
         headers = {'Authorization': 'Bearer %s' % self._get_token()}
 
         resp = self._session.delete(url, headers=headers, verify=False)
@@ -171,6 +177,24 @@ class OpenShiftDriverAccessProxy(object):
 
 
 class OpenShiftDriver(base_driver.ProvisioningDriverBase):
+    """ OpenShift Driver allows provisioning instances in an existing OpenShift cluster.
+    It creates a project per user, identified by user email, and optionally a persistent
+    volume claim (PVC) for user data.
+
+    The driver needs credentials for the cluster. The credentials are placed in the same
+    m2m creds file that OpenStack and Docker driver use. The keys are as follows:
+
+    "OSD_[cluster_id]_BASE_URL": "https://oso-cluster-api.example.org:8443",
+    "OSD_[cluster_id]_SUBDOMAIN": "oso-cluster.example.org",
+    "OSD_[cluster_id]_USER": "pebbles-m2m-user",
+    "OSD_[cluster_id]_PASSWORD": "sickritt"
+
+    Replace [cluster_id] with a unique string to a cluster. When creating a blueprint template,
+    refer to the cluster id in the configuration, key 'openshift_cluster_id' .You can have multiple
+    credentials configured in the creds file.
+
+    """
+
     def get_configuration(self):
         from pouta_blueprints.drivers.provisioning.openshift_driver_config import CONFIG
 
@@ -178,7 +202,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
 
         return config
 
-    def _get_ap(self):
+    def _get_access_proxy(self):
         if not getattr(self, '_ap', None):
             m2m_creds = self.get_m2m_credentials()
             self._ap = OpenShiftDriverAccessProxy(m2m_creds)
@@ -196,7 +220,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         return self._do_provision(token, instance_id, int(time.time()))
 
     def _do_provision(self, token, instance_id, cur_ts):
-        ap = self._get_ap()
+        ap = self._get_access_proxy()
 
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
@@ -287,6 +311,8 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
             }
             # calling kubernetes API here
             # https://server:8443/api/v1/namespaces/project/persistentvolumeclaims
+
+            # first check if we already have a PVC
             res = oc.make_request(
                 namespace=project_name,
                 object_kind='persistentvolumeclaims',
@@ -294,6 +320,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
                 kubeapi=True,
                 raise_on_failure=False,
             )
+            # nope, let's create it
             if not res.ok and res.status_code == 404:
                 oc.make_request(
                     namespace=project_name,
@@ -413,9 +440,9 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
 
         oc.make_request(namespace=project_name, object_kind='deploymentconfigs', data=dc_data)
 
-        pod_ready = False
         # wait for pod to become ready
-        for i in range(120):
+        end_ts = time.time() + MAX_POD_SPAWN_WAIT_TIME_SEC
+        while time.time() < end_ts:
             # pods live in kubernetes API
             res = oc.make_request(
                 kubeapi=True,
@@ -440,8 +467,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
 
             self.logger.debug('waiting for pod to be ready %s' % pod_name)
             time.sleep(5)
-
-        if not pod_ready:
+        else:
             raise RuntimeError('Timeout waiting for pod readiness for %s' % pod_name)
 
         # calling kubernetes API here
@@ -508,7 +534,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
     def _do_deprovision(self, token, instance_id):
         self.logger.debug('do_deprovision %s' % instance_id)
 
-        ap = self._get_ap()
+        ap = self._get_access_proxy()
 
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance_description(instance_id)
@@ -612,7 +638,8 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
             raise RuntimeError(res.reason)
 
         # wait for scaling to be complete
-        for i in range(60):
+        end_ts = time.time() + MAX_POD_SCALE_WAIT_TIME_SEC
+        while time.time() < end_ts:
             res = oc.make_request(
                 kubeapi=True,
                 namespace=project,
@@ -620,12 +647,11 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
                 object_id=rc['metadata']['name'],
             )
             rc = res.json()
-            if int(rc['status']['replicas']) == 0:
+            if int(rc['status']['replicas']) == num_replicas:
                 break
-            time.sleep(1)
-
-        if int(rc['status']['replicas']) != 0:
-            raise RuntimeError('Could not scale pods to zero for %s' % rc['metadata']['name'])
+            time.sleep(2)
+        else:
+            raise RuntimeError('Could not scale pods to %d for %s' % (num_replicas, rc['metadata']['name']))
 
     @staticmethod
     def _get_project_name(instance):
@@ -635,4 +661,5 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
             return instance['username'].replace('@', '-at-').replace('.', '-').lower()
 
     def do_housekeep(self, token):
+        # TODO: Implement optional cleaning of the old projects.
         self.logger.info('do_housekeep not implemented')

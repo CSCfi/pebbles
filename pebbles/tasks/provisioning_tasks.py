@@ -47,7 +47,8 @@ def get_provisioning_type(token, instance_id):
     return pbclient.get_plugin_data(plugin_id)['name']
 
 
-@celery_app.task(name="pebbles.tasks.run_update")
+# update tasks are spawned every 60 seconds, expiry is set to avoid task pile up
+@celery_app.task(name="pebbles.tasks.run_update", expires=60)
 def run_update(instance_id):
     """ calls the update method for the manager of a single instance.
     """

@@ -127,7 +127,7 @@ class OpenShiftDriverTestCase(BaseTestCase):
     @responses.activate
     def test_provision_deprovision(self):
         osd = self.create_openshift_driver()
-        osdam = osd._get_ap()
+        osdam = osd._get_access_proxy()
         osc = osdam.get_openshift_client('TEST')
 
         user1_ns = 'user1-at-example-com'
@@ -141,7 +141,7 @@ class OpenShiftDriverTestCase(BaseTestCase):
     @responses.activate
     def test_provision_deprovision_volume(self):
         osd = self.create_openshift_driver()
-        osdam = osd._get_ap()
+        osdam = osd._get_access_proxy()
         osc = osdam.get_openshift_client('TEST')
 
         user1_ns = 'user1-at-example-com'
