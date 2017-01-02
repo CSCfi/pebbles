@@ -33,6 +33,11 @@ class ProvisioningDriverBase(object):
         self._m2m_credentials = {}
 
     def get_m2m_credentials(self):
+        """ Helper to read and parse m2m credentials. The file name
+          is taken from M2M_CREDENTIAL_STORE config key.
+
+        :return: a dict parsed from creds file
+        """
         if getattr(self, '_m2m_credentials', None):
             self.logger.debug('m2m creds: found cached m2m creds')
             return self._m2m_credentials
