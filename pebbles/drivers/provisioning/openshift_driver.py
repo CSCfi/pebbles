@@ -7,8 +7,8 @@ import requests
 # noinspection PyUnresolvedReferences
 from six.moves.urllib.parse import urlparse, parse_qs
 
-from pouta_blueprints.client import PBClient
-from pouta_blueprints.drivers.provisioning import base_driver
+from pebbles.client import PBClient
+from pebbles.drivers.provisioning import base_driver
 
 # maximum time to wait for pod creation before failing
 MAX_POD_SPAWN_WAIT_TIME_SEC = 600
@@ -196,7 +196,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
     """
 
     def get_configuration(self):
-        from pouta_blueprints.drivers.provisioning.openshift_driver_config import CONFIG
+        from pebbles.drivers.provisioning.openshift_driver_config import CONFIG
 
         config = CONFIG.copy()
 

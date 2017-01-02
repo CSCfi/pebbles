@@ -3,8 +3,8 @@ import logging
 
 import responses
 
-import pouta_blueprints.drivers.provisioning.openshift_driver as openshift_driver
-from pouta_blueprints.tests.base import BaseTestCase
+import pebbles.drivers.provisioning.openshift_driver as openshift_driver
+from pebbles.tests.base import BaseTestCase
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
