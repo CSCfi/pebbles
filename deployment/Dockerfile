@@ -23,13 +23,13 @@ RUN chown -R vagrant: /home/vagrant/.ssh
 RUN echo -n 'vagrant:vagrant' | chpasswd
 
 # Enable passwordless sudo for the "vagrant" user
-RUN echo 'vagrant ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+RUN echo 'vagrant ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/vagrant
 
 # faster deployment with packages pre-installed in the base image
 RUN apt-get install -y git python python-pip python-dev python-virtualenv supervisor redis-server \
                        libffi-dev libssl-dev python-yaml libffi-dev libssl-dev lsb-release
 
-
+# fixed ansible version for consistency
 RUN pip install "ansible==1.9.4"
 
 # tools for admistration
