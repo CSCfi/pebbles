@@ -55,7 +55,7 @@ def selenium(failfast=False, pattern='selenium_test*.py', verbosity=1):
 
 
 @manager.command
-def cov():
+def coverage():
     """Runs the unit tests with coverage."""
     import coverage
     import unittest
