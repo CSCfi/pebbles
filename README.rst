@@ -1,5 +1,5 @@
-.. image:: https://travis-ci.org/CSC-IT-Center-for-Science/pouta-blueprints.svg
-   :target: https://travis-ci.org/CSC-IT-Center-for-Science/pouta-blueprints/
+.. image:: https://travis-ci.org/CSC-IT-Center-for-Science/pebbles.svg
+   :target: https://travis-ci.org/CSC-IT-Center-for-Science/pebbles/
    :alt: Build Status
 .. image:: https://codeclimate.com/github/CSC-IT-Center-for-Science/pouta-blueprints/badges/gpa.svg
    :target: https://codeclimate.com/github/CSC-IT-Center-for-Science/pouta-blueprints
@@ -11,9 +11,9 @@
 Pebbles
 ****************
 
-**Pebbles** is a frontend to manage cloud resources and lightweight user
-accounts.
-Currently supported resource types are 
+**Pebbles** (formerly Pouta Blueprints) is a frontend to manage cloud
+resources and lightweight user accounts. Currently supported resource types
+are:
 
 - `OpenStack driver`_,
   which can be used to launch instances on OpenStack cloud.
