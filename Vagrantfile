@@ -41,9 +41,8 @@ Vagrant.configure(2) do |config|
     inline: "echo '127.0.0.1 redis' | sudo tee -a /etc/hosts",
     privileged: false
 
-
   # Enable provisioning with Ansible.
-  config.vm.provision "ansible" do |ansible|
+  config.vm.provision "ansible_local" do |ansible|
     ansible.playbook = "ansible/playbook.yml"
     ansible.groups = {
       "api" => ["api","single"],
@@ -52,6 +51,8 @@ Vagrant.configure(2) do |config|
       "all_groups:children" => ["api", "worker", "frontend"]
     }
     ansible.verbose='vv'
+    ansible.install=false
+    ansible.provisioning_path="/shared_folder"
   end
 
   # history initialization for easy tmux access

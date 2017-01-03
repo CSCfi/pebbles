@@ -1,11 +1,11 @@
 # based on an example by Anatoly Bubenkov "bubenkoff@gmail.com"
 
-FROM    ubuntu:14.04
+FROM ubuntu:14.04
 MAINTAINER Olli Tourunen "olli.tourunen@csc.fi"
 
-# RUN apt-get update
+RUN apt-get update
 
-RUN apt-get install -y openssh-server
+RUN apt-get install -y openssh-server sudo
 
 EXPOSE 22
 
@@ -23,11 +23,14 @@ RUN chown -R vagrant: /home/vagrant/.ssh
 RUN echo -n 'vagrant:vagrant' | chpasswd
 
 # Enable passwordless sudo for the "vagrant" user
-RUN echo 'vagrant ALL=NOPASSWD: ALL' > /etc/sudoers.d/vagrant
+RUN echo 'vagrant ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/vagrant
 
 # faster deployment with packages pre-installed in the base image
 RUN apt-get install -y git python python-pip python-dev python-virtualenv supervisor redis-server \
-                       libffi-dev libssl-dev python-yaml libffi-dev libssl-dev ansible
+                       libffi-dev libssl-dev python-yaml libffi-dev libssl-dev lsb-release
+
+# fixed ansible version for consistency
+RUN pip install "ansible==1.9.4"
 
 # tools for admistration
 RUN apt-get install -y tmux tree dstat lsof bash-completion time vim nano
@@ -35,4 +38,8 @@ RUN apt-get install -y tmux tree dstat lsof bash-completion time vim nano
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN mkdir -p /var/log/supervisor
 
+RUN ln -sf /vagrant /shared_folder
+
+
 CMD ["/usr/bin/supervisord"]
+
