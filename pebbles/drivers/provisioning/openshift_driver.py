@@ -14,6 +14,8 @@ from pebbles.drivers.provisioning import base_driver
 MAX_POD_SPAWN_WAIT_TIME_SEC = 600
 # maximum time to wait for pod (down) scaling
 MAX_POD_SCALE_WAIT_TIME_SEC = 60
+# refresh the token if it is this close to expiration
+TOKEN_REFRESH_DELTA = 600
 
 
 class OpenShiftClient(object):
@@ -42,7 +44,7 @@ class OpenShiftClient(object):
         )
 
     @staticmethod
-    def print_resp(resp):
+    def print_response(resp):
         if resp.ok:
             print('success: %s' % resp.status_code)
             pprint(resp.json())
@@ -85,7 +87,7 @@ class OpenShiftClient(object):
         else:
             if not current_ts:
                 current_ts = int(time.time())
-            if self.token_data['expires_at'] - 600 < current_ts:
+            if self.token_data['expires_at'] - TOKEN_REFRESH_DELTA < current_ts:
                 self.token_data = self._request_token(current_ts)
 
         return self.token_data['access_token']
@@ -126,7 +128,7 @@ class OpenShiftClient(object):
                 raise RuntimeError('Do not know what to do with no data and method %s' % method)
             resp = self._session.get(url, headers=headers, verify=False, params=params)
         if verbose:
-            self.print_resp(resp)
+            self.print_response(resp)
 
         if raise_on_failure and not resp.ok:
             raise RuntimeError(resp.text)
@@ -140,7 +142,7 @@ class OpenShiftClient(object):
 
         resp = self._session.delete(url, headers=headers, verify=False)
         if verbose:
-            self.print_resp(resp)
+            self.print_response(resp)
 
         if raise_on_failure and not resp.ok:
             raise RuntimeError(resp.text)

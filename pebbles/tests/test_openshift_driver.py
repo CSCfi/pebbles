@@ -1,6 +1,7 @@
 import json
 import logging
 
+import requests
 import responses
 
 import pebbles.drivers.provisioning.openshift_driver as openshift_driver
@@ -151,6 +152,18 @@ class OpenShiftDriverTestCase(BaseTestCase):
         self.populate_responses(osc, user1_ns, 'pb-1002')
         osd.do_provision(token='foo', instance_id='1002')
         osd.do_deprovision(token='foo', instance_id='1002')
+
+    @responses.activate
+    def test_print_response(self):
+        url = 'http://example.org/test'
+        # first add provisioning responses
+        responses.add(
+            responses.GET,
+            url,
+            json=dict(items=[dict(foo='bar', foo2='bar2')])
+        )
+        resp = requests.get(url, verify=False)
+        openshift_driver.OpenShiftClient.print_response(resp)
 
     @staticmethod
     def populate_responses(osc, user1_ns, instance_name):
