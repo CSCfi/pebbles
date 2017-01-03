@@ -29,7 +29,9 @@ app.directive('brandImage', ['ConfigurationService', function(ConfigurationServi
         link: function(scope, element, attrs) {
             ConfigurationService.getValue().then(function (data) {
                 if (data[attrs.key]) {
-                    element.html('<img style="margin-top: -10px;" src="'+data[attrs.key]+'">');
+                    element.html('<img style="margin-top: -10px;" src="' + data[attrs.key] + '">');
+                } else if (data[attrs.altKey]) {
+                    element.text(data[attrs.altKey]);
                 } else {
                     element.text(attrs.alt);
                 }
