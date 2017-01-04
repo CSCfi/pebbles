@@ -18,3 +18,7 @@ target/
 #pycharm folder
 #
 .idea/
+
+# coverage related artefacts
+htmlcov/
+.coverage
