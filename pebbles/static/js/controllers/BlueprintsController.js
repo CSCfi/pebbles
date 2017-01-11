@@ -210,6 +210,7 @@ app.controller('ModalCreateBlueprintController', function($scope, $modalInstance
     $scope.template = template;
     $scope.groups = groups_list;
     $scope.createBlueprint = function(form, model, groupModel) {
+    $scope.$broadcast('schemaFormValidate');
         if (form.$valid) {
             blueprints.post({ template_id: $scope.template.id, name: model.name, config: model, group_id:  groupModel}).then(function () {
                 $modalInstance.close(true);
