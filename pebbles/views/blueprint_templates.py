@@ -144,7 +144,7 @@ def blueprint_schemaform_config(blueprint_template):
         else:
             blueprint_model[attr] = config[attr]
 
-    blueprint_form = blueprint_form + [
+    blueprint_form = [
         {
             "key": "name",
             "type": "textfield",
@@ -155,7 +155,7 @@ def blueprint_schemaform_config(blueprint_template):
             "type": "textarea",
             "placeholder": "Blueprint details"
         }
-    ]
+    ] + blueprint_form
 
     blueprint_template.blueprint_schema = blueprint_schema
     blueprint_template.blueprint_form = blueprint_form
