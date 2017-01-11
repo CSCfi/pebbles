@@ -257,6 +257,7 @@ app.controller('ModalImportTemplatesController', function($scope, $modalInstance
 app.controller('ModalCreateTemplateController', function($scope, $modalInstance, plugin, templates) {
     $scope.plugin = plugin;
     var attrsData = Object.keys(plugin.schema.properties);
+    attrsData = attrsData.filter(function(attr){ return !['name', 'description'].includes(attr)});
     $scope.attrsData =  _(attrsData).map(function(attr){ return {'id': attr} }).value(); // Data for angular multiselect
     $scope.attrsModel = []
     $scope.attrsSettings = {displayProp: 'id', scrollable: true, enableSearch: true};
