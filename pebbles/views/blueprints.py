@@ -43,21 +43,7 @@ class BlueprintList(restful.Resource):
         query = query.join(Group, Blueprint.group).order_by(Group.name).order_by(Blueprint.name)
         results = []
         for blueprint in query.all():
-            template = blueprint.template
-            blueprint.schema = template.blueprint_schema
-            blueprint.form = template.blueprint_form
-            # Due to immutable nature of config field, whole dict needs to be reassigned.
-            # Issue #444 in github
-            blueprint_config = blueprint.config
-            blueprint.full_config = get_full_blueprint_config(blueprint)
-            blueprint_config['name'] = blueprint.name
-            blueprint.config = blueprint_config
-
-            blueprint.template_name = template.name
-            blueprint.group_name = blueprint.group.name
-            if user.is_admin or is_group_manager(user, blueprint.group):
-                blueprint.manager = True
-
+            blueprint = process_blueprint(blueprint)
             results.append(blueprint)
         return results
 
@@ -106,9 +92,8 @@ class BlueprintView(restful.Resource):
         blueprint = query.first()
         if not blueprint:
             abort(404)
-        blueprint.plugin = blueprint.template.plugin
-        if user.is_admin or blueprint.group in user.managed_groups:
-            blueprint.full_config = get_full_blueprint_config(blueprint)
+
+        blueprint = process_blueprint(blueprint)
         return blueprint
 
     @auth.login_required
@@ -144,6 +129,27 @@ class BlueprintView(restful.Resource):
             return timeformat_error, 422
         db.session.add(blueprint)
         db.session.commit()
+
+
+def process_blueprint(blueprint):
+    user = g.user
+    template = blueprint.template
+    blueprint.schema = template.blueprint_schema
+    blueprint.form = template.blueprint_form
+    # Due to immutable nature of config field, whole dict needs to be reassigned.
+    # Issue #444 in github
+    blueprint_config = blueprint.config
+    blueprint_config['name'] = blueprint.name
+    blueprint.config = blueprint_config
+
+    blueprint.template_name = template.name
+    blueprint.group_name = blueprint.group.name
+    # rest of the code taken for refactoring from single blueprint GET query
+    blueprint.plugin = blueprint.template.plugin
+    if user.is_admin or is_group_manager(user, blueprint.group):
+        blueprint.manager = True
+        blueprint.full_config = get_full_blueprint_config(blueprint)
+    return blueprint
 
 
 def validate_max_lifetime_blueprint(blueprint):
