@@ -30,7 +30,7 @@ RUN apt-get install -y git python python-pip python-dev python-virtualenv superv
                        libffi-dev libssl-dev python-yaml libffi-dev libssl-dev lsb-release
 
 # fixed ansible version for consistency
-RUN pip install "ansible==1.9.4"
+RUN pip install "ansible==2.2.1"
 
 # tools for admistration
 RUN apt-get install -y tmux tree dstat lsof bash-completion time vim nano

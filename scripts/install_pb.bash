@@ -63,7 +63,7 @@ install_packages()
     fi
 
     sudo -H easy_install pip
-    sudo -H pip install ansible==1.9.0.1
+    sudo -H pip install ansible==2.2.1
 }
 
 create_creds_file()

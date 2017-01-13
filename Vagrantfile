@@ -51,7 +51,7 @@ Vagrant.configure(2) do |config|
       "all_groups:children" => ["api", "worker", "frontend"]
     }
     ansible.verbose='vv'
-    ansible.install=false
+    ansible.install=true
     ansible.provisioning_path="/shared_folder"
   end
 
