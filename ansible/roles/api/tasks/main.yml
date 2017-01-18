@@ -31,13 +31,15 @@
   when: deploy_mode == "docker"
 
 - name: ensure database is created (devel)
-  sudo_user: postgres
+  become: True
+  become_user: postgres
   postgresql_db:
     name: "{{ application_database_name }}"
   when: deploy_mode == "devel"
 
 - name: ensure user has access to database (devel)
-  sudo_user: postgres
+  become: True
+  become_user: postgres
   postgresql_user:
     db: "{{ application_database_name }}"
     name: "{{ application_database_user }}"

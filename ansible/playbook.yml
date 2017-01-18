@@ -1,13 +1,13 @@
 ---
 - hosts:
     - docker_host
-  sudo: True
+  become: True
   roles:
     - docker_host
 
 - hosts:
     - docker_host
-  sudo: True
+  become: True
   roles:
     - single_server_with_docker
   vars:
@@ -17,28 +17,28 @@
     - api
     - worker
     - frontend
-  sudo: True
+  become: True
   roles:
       - cloud_user_with_sudo
       - common
 
 - hosts: frontend
-  sudo: True
+  become: True
   roles:
       - frontend
 
 - hosts: api
-  sudo: True
+  become: True
   roles:
       - api
 
 - hosts: worker
-  sudo: True
+  become: True
   roles:
       - worker
 
 - hosts: sso
-  sudo: True
+  become: True
   roles:
       - sso
       - cloud_user_with_sudo
