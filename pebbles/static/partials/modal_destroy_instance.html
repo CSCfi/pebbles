@@ -1,0 +1,13 @@
+<div class="modal-header">
+    <button ng-click="cancel()" type="button" class="close"><span aria-hidden="true">&times;</span></button>
+    <h4 class="modal-title">Destroy Instance</h4>
+</div>
+<div class="modal-body">
+<h4 ng-show="destroyMultipleInstances(null)">Are you sure, you want to destroy the selected instances?</h4>
+<h4 ng-hide="destroyMultipleInstances()">Are you sure, you want to destoy this instance ?</h4>
+<p ng-hide="destroyMultipleInstances()">By clicking Yes, you understand that destroying the instance deletes all the unsaved data.</p>
+</div>
+<div class="modal-footer">
+    <button ng-click="destroy()" class="btn btn-primary">Yes</button>
+    <button ng-click="cancel()" class="btn btn-default" >No</button>
+</div>

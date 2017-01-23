@@ -100,6 +100,9 @@ class InstanceList(restful.Resource):
             instance.maximum_lifetime = blueprint.maximum_lifetime
             instance.cost_multiplier = blueprint.cost_multiplier
 
+            if instance.to_be_deleted:
+                instance.state = Instance.STATE_DELETING
+
         return instances
 
     @auth.login_required
