@@ -1,4 +1,4 @@
-from flask.ext.restful import marshal_with
+from flask.ext.restful import marshal_with, reqparse
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 from flask.ext.restful import fields
@@ -80,6 +80,9 @@ class BlueprintTemplateList(restful.Resource):
 
 
 class BlueprintTemplateView(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('disable_blueprints', type=bool)
+
     @auth.login_required
     @requires_group_manager_or_admin
     @marshal_with(blueprint_template_fields)
@@ -102,7 +105,6 @@ class BlueprintTemplateView(restful.Resource):
         blueprint_template = BlueprintTemplate.query.filter_by(id=template_id).first()
         if not blueprint_template:
             abort(404)
-
         blueprint_template.name = form.config.data.get('name') or form.name.data
         blueprint_template.plugin = form.plugin.data
 
@@ -118,12 +120,25 @@ class BlueprintTemplateView(restful.Resource):
             blueprint_template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']
             blueprint_template = blueprint_schemaform_config(blueprint_template)
 
-        if form.is_enabled.raw_data:
-            blueprint_template.is_enabled = form.is_enabled.raw_data[0]
-        else:
-            blueprint_template.is_enabled = False
+        args = self.parser.parse_args()
+        blueprint_template = toggle_enable_template(form, args, blueprint_template)
+
         db.session.add(blueprint_template)
         db.session.commit()
+
+
+def toggle_enable_template(form, args, blueprint_template):
+    """Logic for activating and deactivating a blueprint template"""
+    if form.is_enabled.raw_data:
+        blueprint_template.is_enabled = form.is_enabled.raw_data[0]  # WTForms Issue#451
+    else:
+        blueprint_template.is_enabled = False
+        if args.get('disable_blueprints'):
+            # Disable all associated blueprints
+            blueprints = blueprint_template.blueprints
+            for blueprint in blueprints:
+                blueprint.is_enabled = False
+    return blueprint_template
 
 
 def blueprint_schemaform_config(blueprint_template):
