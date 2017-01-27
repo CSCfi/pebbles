@@ -125,6 +125,17 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         };
 
         $scope.deactivate = function (template) {
+            $uibModal.open({
+                templateUrl: '/partials/modal_disable_blueprints.html',
+                controller: 'ModalDisableBlueprintsController',
+                size: 'sm',
+                resolve: {
+                    template: function() {
+                        return template;
+                    }
+                }
+            })
+
             template.is_enabled = undefined;
             template.put();
         };
@@ -334,6 +345,20 @@ app.controller('ModalEditNotificationController', function($scope, $modalInstanc
             $modalInstance.close(true);
         }, function(response) {
             $.notify({title: 'HTTP ' + response.status, message: 'unable to edit notification'}, {type: 'danger'});
+        });
+    };
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});
+
+app.controller('ModalDisableBlueprintsController', function($scope, $modalInstance, template) {
+    $scope.disableBlueprints = function() {
+        template.put({'disable_blueprints': true}).then(function () {
+            $modalInstance.close(true);
+        }, function(response) {
+            $.notify({title: 'HTTP ' + response.status, message: 'unable to deactivate'}, {type: 'danger'});
         });
     };
 
