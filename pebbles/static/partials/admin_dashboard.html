@@ -101,7 +101,7 @@
                 </td>
                 <td><lifetime value="{{ instance.lifetime_left }}" maximum-lifetime="{{ instance.maximum_lifetime }}"/></td>
                 <td>
-                    <button ng-click="openDestroyDialog(instance)" type="submit" class="btn btn-danger" ng-disabled="instance.state=='deleting'" >Destroy</button>
+                    <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger" ng-disabled="instance.state=='deleting'" >Destroy</button>
                 </td>
             </tr>
         </tbody>
