@@ -299,7 +299,6 @@ app.controller('ModalReconfigureTemplateController', function($scope, $modalInst
     $scope.attrsSettings = {displayProp: 'id', scrollable: true, enableSearch: true};
 
     $scope.updateTemplate = function(form, model, attrsModel) {
-        console.log(attrsModel);
         if (form.$valid) {
             $scope.template.config = model;
             attrsModel = _(attrsModel).map(function(attr){ return attr.id }).value();  // Get the data back as an array of attrs
