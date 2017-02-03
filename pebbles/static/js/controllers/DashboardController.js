@@ -114,6 +114,24 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             return false;
         };
 
+        $scope.maxInstanceLimitReached = function(blueprint) {
+            var max_instance_limit = blueprint.full_config['maximum_instances_per_user'];
+            var own_instances = _.filter($scope.instances, {'user_id': AuthService.getUserId()});
+            var instance_counts = _.countBy(own_instances, 'blueprint_id');
+            var running_instances = instance_counts[blueprint.id];
+            if (typeof running_instances == 'undefined') {
+                running_instances = 0;
+            }
+            if (running_instances < max_instance_limit) {
+                return false;
+            }
+            return true;
+        };
+
+        $scope.showMaxInstanceLimitInfo = function() {
+            $.notify({title: 'LAUNCH BUTTON DISABLED : ', message: 'Maximum number of running instances for the selected blueprint reached'}, {type: 'danger'});
+        }
+
         $scope.provision = function (blueprint) {
             instances.post({blueprint: blueprint.id}).then(function (response) {
                 $scope.updateInstanceList();
