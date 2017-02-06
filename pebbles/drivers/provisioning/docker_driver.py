@@ -1,6 +1,8 @@
-""" ToDo: Document user/admin level usage of docker driver here, possibly including
-screenshots and what variables can be set or overriden.
-"""
+# """
+# ToDo: Document user/admin level usage of docker driver here, possibly including
+#
+# screenshots and what variables can be set or overriden.
+# """
 
 import json
 import time
@@ -9,6 +11,7 @@ from docker.errors import APIError
 from docker.tls import TLSConfig
 from docker.utils import parse_bytes
 import os
+import sys
 from requests import ConnectionError
 from requests.exceptions import ReadTimeout
 from pebbles.client import PBClient
@@ -34,6 +37,10 @@ DD_MAX_HOST_ERRORS = 5
 
 DD_RUNTIME_PATH = '/webapps/pebbles/run'
 DD_IMAGE_DIRECTORY = '/images'
+
+DD_CLIENT_TIMEOUT = 180  # seconds
+
+PEBBLES_SSH_KEY_LOCATION = '/home/pebbles/.ssh/id_rsa'
 
 
 class DockerDriverAccessProxy(object):
@@ -61,7 +68,7 @@ class DockerDriverAccessProxy(object):
             #   ca_cert='%s/ca_cert.pem' % DD_RUNTIME_PATH,
             verify=False,
         )
-        docker_client = docker.Client(base_url=docker_url, tls=tls_config)
+        docker_client = docker.Client(base_url=docker_url, tls=tls_config, timeout=DD_CLIENT_TIMEOUT)
 
         return docker_client
 
@@ -83,58 +90,166 @@ class DockerDriverAccessProxy(object):
 
     @staticmethod
     def run_ansible_on_host(host, logger, config):
-        import ansible.runner
-        import ansible.playbook
-        import ansible.inventory
-        from ansible import callbacks
-        from ansible import utils
+        from ansible.plugins.callback import CallbackBase
+        # A rough logger that logs dict messages to standard logger
 
-        # global verbosity for debugging e.g. ssh problems with ansible. ugly.
-        # utils.VERBOSITY = 4
+        class ResultCallback(CallbackBase):
 
-        # set up ansible inventory for the host
-        a_host = ansible.inventory.host.Host(name=host['id'])
-        a_host.set_variable('ansible_ssh_host', host['private_ip'])
+            def __init__(self):
+                super(ResultCallback, self).__init__()
 
-        # the following does not work, have to use the extra_vars instead
-        # a_host.set_variable('notebook_host_block_dev_path', '/dev/vdb')
+            def v2_runner_on_ok(self, result, **kwargs):
+                self.log('ok :' + str(result._result), info=True)
 
-        a_group = ansible.inventory.group.Group(name='notebook_host')
+            def v2_runner_on_failed(self, result, **kwargs):
+                self.log(result._result, info=True)
+
+            def v2_runner_on_skipped(self, result, **kwargs):
+                self.log(result._result, info=True)
+
+            def v2_runner_on_unreachable(self, result, **kwargs):
+                self.log(result._result, info=True)
+
+            def v2_playbook_on_no_hosts_matched(self, *args, **kwargs):
+                self.log('no hosts matched!')
+
+            def v2_playbook_on_no_hosts_remaining(self, *args, **kwargs):
+                self.log('NO MORE HOSTS LEFT')
+
+            def v2_playbook_on_task_start(self, task, **kwargs):
+                self.log('starting task: ' + str(task))
+
+            def v2_playbook_on_start(self, playbook, **kwargs):
+                self.log('starting playbook' + str(playbook), info=True)
+
+            def v2_playbook_on_play_start(self, play, **kwargs):
+                self.log('starting play' + str(play), info=True)
+
+            def v2_playbook_on_stats(self, stats, info=True, **kwargs):
+                self.log('STATS FOR PLAY')
+                hosts = sorted(stats.processed.keys())
+                hosts.extend(stats.failures.keys())
+                hosts.extend(stats.dark.keys())
+                hosts.extend(stats.changed.keys())
+                hosts.extend(stats.skipped.keys())
+                hosts.extend(stats.ok.keys())
+                for h in hosts:
+                    t = stats.summarize(h)
+                    self.log(str(t))
+
+            def log(self, param, info=False):
+                if not info:
+                    logger.debug(str(param))
+                else:
+                    logger.info(str(param))
+
+        from ansible.parsing.dataloader import DataLoader
+        from ansible.inventory import Inventory, Group, Host
+        from ansible.executor import playbook_executor
+        from ansible.vars import VariableManager
+        from collections import namedtuple
+
+        Options = namedtuple(
+            'Options',
+            [
+                'connection',
+                'module_path',
+                'forks',
+                'become',
+                'become_method',
+                'become_user',
+                'check',
+                'ansible_user',
+                'listhosts',
+                'listtasks',
+                'listtags',
+                'syntax',
+                'ssh_private_key_file',
+                'host_key_checking'
+            ]
+        )
+
+        options = Options(
+            connection='ssh',
+            become=True,
+            become_method='sudo',
+            become_user='root',
+            check=False,
+            module_path=None,
+            forks=100,
+            ansible_user='cloud-user',
+            listhosts=False,
+            listtasks=False,
+            listtags=False,
+            syntax=False,
+            ssh_private_key_file=PEBBLES_SSH_KEY_LOCATION,
+            host_key_checking=False
+        )
+
+        variable_manager = VariableManager()
+        loader = DataLoader()
+
+        a_host = Host(name=host['private_ip'])
+        a_host.set_variable('ansible_host', host['private_ip'])
+        a_group = Group(name='notebook_host')
         a_group.add_host(a_host)
-
-        a_inventory = ansible.inventory.Inventory(host_list=[host['private_ip']])
-        a_inventory.add_group(a_group)
-
-        stats = callbacks.AggregateStats()
-        playbook_cb = callbacks.PlaybookCallbacks(verbose=utils.VERBOSITY)
-        runner_cb = callbacks.PlaybookRunnerCallbacks(stats, verbose=utils.VERBOSITY)
-
-        logger.debug("_prepare_host(): running ansible")
-        logger.debug('_prepare_host(): inventory hosts %s' % a_inventory.host_list)
-
+        inventory = Inventory(loader=loader, variable_manager=variable_manager, host_list=[host['private_ip']])
+        inventory.add_group(a_group)
+        variable_manager.set_inventory(inventory)
+        logger.debug('HOST:')
+        logger.debug(a_host.serialize()	)
+        logger.debug('HOSTs from inventory:')
+        # for some reason setting these before adding the host to inventory didn't work so well
+        # ToDo: read up on variable_manager and figure out a more elegant way to set the variables
+        for h_ in inventory.get_hosts():
+            h_.set_variable('ansible_user', 'cloud-user')
+            h_.set_variable('ansible_ssh_common_args', '-o StrictHostKeyChecking=no')
+            h_.set_variable('ansible_ssh_private_key_file', '/home/pebbles/.ssh/id_rsa')
         extra_vars = dict()
+        extra_vars['ansible_ssh_extra_args'] = '-o StrictHostKeyChecking=no'
 
         if 'DD_HOST_DATA_VOLUME_DEVICE' in config:
             extra_vars['notebook_host_block_dev_path'] = config['DD_HOST_DATA_VOLUME_DEVICE']
 
-        pb = ansible.playbook.PlayBook(
-            playbook="/webapps/pebbles/source/ansible/notebook_playbook.yml",
-            stats=stats,
-            callbacks=playbook_cb,
-            runner_callbacks=runner_cb,
-            inventory=a_inventory,
-            remote_user='cloud-user',
-            extra_vars=extra_vars,
+        variable_manager.extra_vars = extra_vars
+        pb_executor = playbook_executor.PlaybookExecutor(
+            playbooks=['/webapps/pebbles/source/ansible/notebook_playbook.yml'],
+            inventory=inventory,
+            variable_manager=variable_manager,
+            loader=loader,
+            options=options,
+            passwords=None
         )
+        rescb = ResultCallback()
+        pb_executor._tqm._stdout_callback = rescb
 
-        pb_res = pb.run()
-
-        logger.debug(json.dumps(pb_res, sort_keys=True, indent=4, separators=(',', ': ')))
-
-        for host_name in pb_res.keys():
-            host_data = pb_res[host_name]
-            if host_data.get('unreachable', 0) + host_data.get('failures', 0) > 0:
-                raise RuntimeError('run_ansible_on_host(%s) failed' % host['id'])
+        logger.info('_prepare_host(): running ansible')
+        logger.info('_prepare_host(): inventory hosts')
+        for h_ in inventory.get_hosts():
+            logger.info(h_.serialize())
+            logger.info(h_.get_vars())
+        pb_executor.run()
+        stats = pb_executor._tqm._stats
+        run_success = True
+        hosts_list = sorted(stats.processed.keys())
+        if len(hosts_list) == 0:
+            logger.debug('no hosts handled')
+        for h in hosts_list:
+            t = stats.summarize(h)
+            logger.debug(t)
+            logger.debug(h)
+            if t['unreachable'] > 0 or t['failures'] > 0:
+                run_success = False
+        if run_success:
+                logger.debug('_prepare_host(): run successfull')
+        else:
+                logger.debug('_prepare_host(): run failed')
+        if getattr(pb_executor, '_unreachable_hosts', False):
+            logger.debug('UNREACHABLE HOSTS ' + str(pb_executor._unreachable_hosts))
+        if getattr(pb_executor, '_failed_hosts', False):
+            logger.debug('FAILED_HOSTS ' + str(pb_executor._failed_hosts))
+            raise RuntimeError('run_ansible_on_host(%s) failed' % host['id'])
+        logger.debug('_prepare_host():  done running ansible')
 
     @staticmethod
     def proxy_add_route(route_id, target_url, options):
@@ -484,7 +599,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 host['state'] = DD_STATE_ACTIVE
                 self.logger.info('do_housekeep(): host %s now active' % host['id'])
             except Exception as e:
-                self.logger.info('do_housekeep(): preparing host %s failed, %s' % (host['id'], e))
+                self.logger.info('do_housekeep(): preparing host %s failed, %s, on line %d' % (host['id'], e, sys.exc_info()[-1].tb_lineno))
+                self.logger.error(e)
                 host['error_count'] = host.get('error_count', 0) + 1
                 if host['error_count'] > DD_MAX_HOST_ERRORS:
                     self.logger.warn('do_housekeep(): maximum error count exceeded for host %s' % host['id'])

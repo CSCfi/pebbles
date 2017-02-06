@@ -4,6 +4,7 @@ import logging
 from celery import Celery
 from kombu import Queue
 from celery.schedules import crontab
+from celery.signals import worker_process_init
 import requests
 from celery.utils.log import get_task_logger
 from pebbles.client import PBClient
@@ -146,3 +147,11 @@ class TaskRouter(object):
             return {'queue': 'proxy_tasks'}
 
         return {'queue': 'celery'}
+
+
+@worker_process_init.connect
+def fix_multiprocessing(**kwargs):
+    # don't be a daemon, so we can create new subprocesses
+    # see https://github.com/celery/celery/issues/1709#issuecomment-261710839
+    from multiprocessing import current_process
+    current_process().daemon = False
