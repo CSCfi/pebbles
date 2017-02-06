@@ -227,6 +227,14 @@ app.controller('ModalCreateBlueprintController', function($scope, $modalInstance
 
 app.controller('ModalReconfigureBlueprintController', function($scope, $modalInstance, blueprint, groups_list) {
     $scope.blueprint = blueprint;
+    var config_mismatch = false;
+    blueprint.get().then(function(response){
+        if(!_.isEqual($scope.blueprint['config'], response['config'])){  // Object equality check
+            alert('Blueprint configuration has been changed from the previous configuration');
+            $scope.blueprint = response;
+            config_mismatch = true; //Concurrency
+        }
+    });
     //$scope.groups = groups_list;
     //$scope.groupModel =  _.filter(groups_list, {'id': blueprint.group_id})[0];
     //$scope.updateBlueprint = function(form, model, groupModel) {
@@ -244,6 +252,9 @@ app.controller('ModalReconfigureBlueprintController', function($scope, $modalIns
 
     
     $scope.cancel = function() {
-        $modalInstance.dismiss('cancel');
+        if(config_mismatch){
+            $modalInstance.close(true);  // launches the result section of modal
+        }
+        $modalInstance.dismiss('cancel');  // does not launch the result of modal
     };
 });
