@@ -14,7 +14,7 @@ import json
 import datetime
 import six
 
-from pebbles.utils import validate_ssh_pubkey, get_blueprint_fields_from_config
+from pebbles.utils import validate_ssh_pubkey, get_full_blueprint_config, get_blueprint_fields_from_config
 
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
@@ -371,6 +371,11 @@ class Blueprint(db.Model):
     @config.setter
     def config(self, value):
         self._config = json.dumps(value)
+
+    # 'full_config' property of Blueprint model will take the template attributes into account too
+    @hybrid_property
+    def full_config(self):
+        return get_full_blueprint_config(self)
 
     @hybrid_property
     def maximum_lifetime(self):

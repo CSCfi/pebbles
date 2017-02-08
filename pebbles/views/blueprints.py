@@ -8,7 +8,7 @@ from pebbles.models import db, Blueprint, BlueprintTemplate, Group
 from pebbles.forms import BlueprintForm
 from pebbles.server import restful
 from pebbles.views.commons import auth, requires_group_manager_or_admin, is_group_manager
-from pebbles.utils import parse_maximum_lifetime, get_full_blueprint_config
+from pebbles.utils import parse_maximum_lifetime
 from pebbles.rules import apply_rules_blueprints
 
 blueprints = FlaskBlueprint('blueprints', __name__)
@@ -148,7 +148,6 @@ def process_blueprint(blueprint):
     blueprint.plugin = blueprint.template.plugin
     if user.is_admin or is_group_manager(user, blueprint.group):
         blueprint.manager = True
-        blueprint.full_config = get_full_blueprint_config(blueprint)
     return blueprint
 
 
@@ -156,7 +155,7 @@ def validate_max_lifetime_blueprint(blueprint):
     """Checks if the maximum lifetime for blueprint has a valid pattern"""
     template = BlueprintTemplate.query.filter_by(id=blueprint.template_id).first()
     blueprint.template = template
-    full_config = get_full_blueprint_config(blueprint)
+    full_config = blueprint.full_config
     if 'maximum_lifetime' in full_config:
         max_life_str = str(full_config['maximum_lifetime'])
         if max_life_str:

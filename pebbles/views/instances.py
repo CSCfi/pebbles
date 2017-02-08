@@ -11,7 +11,7 @@ import uuid
 from pebbles.models import db, Blueprint, Instance, User
 from pebbles.forms import InstanceForm, UserIPForm
 from pebbles.server import app, restful
-from pebbles.utils import requires_admin, memoize, get_full_blueprint_config
+from pebbles.utils import requires_admin, memoize
 from pebbles.tasks import run_update, update_user_connectivity
 from pebbles.views.commons import auth, is_group_manager
 from pebbles.rules import apply_rules_instances, get_group_blueprint_ids_for_instances
@@ -121,7 +121,6 @@ class InstanceList(restful.Resource):
         blueprint = Blueprint.query.filter_by(id=blueprint_id, is_enabled=True).first()
         if not blueprint:
             abort(404)
-        blueprint.full_config = get_full_blueprint_config(blueprint)  # Get the additional fields from the blueprint template
         if user.quota_exceeded():
             return {'error': 'USER_OVER_QUOTA'}, 409
 
@@ -179,7 +178,6 @@ class InstanceView(restful.Resource):
             abort(404)
 
         blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
-        blueprint.full_config = get_full_blueprint_config(blueprint)
         instance.blueprint_id = blueprint.id
         instance.username = instance.user
         instance.logs = InstanceLogs.get_logfile_urls(instance.id)
@@ -229,7 +227,6 @@ class InstanceView(restful.Resource):
             abort(404)
 
         blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
-        blueprint.full_config = get_full_blueprint_config(blueprint)
         if 'allow_update_client_connectivity' in blueprint.full_config \
                 and blueprint.full_config['allow_update_client_connectivity']:
             instance.client_ip = form.client_ip.data
