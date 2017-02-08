@@ -1,7 +1,7 @@
 <div id="user-dashboard">
     <h1>Blueprints</h1>
     <div class="row">
-        <div class="alert alert-warning" ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
+        <div class="alert alert-warning" ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
             No blueprints available
         </div>
         <div ng-repeat="choice in oddEvenRange()" class="col-md-6">
@@ -44,9 +44,21 @@
                                         </div>
                                     </small></td>
                                     <td>
-                                        <button ng-click="deprovision(instance)" type="submit" class="btn btn-xs btn-danger" ng-disabled="instance.state=='deleting'" >
+                                        <button ng-click="openDestroyDialog(instance)"
+                                            class="btn btn-danger" ng-disabled="instance.state=='deleting'">
                                             <span class="glyphicon glyphicon-remove"></span> Destroy
                                         </button>
+                                        <p ng-show="showDelete">
+                                        I understand that destroying the
+                                                  instance deletes unsaved
+                                                  data: <input type="checkbox"
+                                        ng-model="deleteChecked" aria-label="Toggle
+                                        nghide"><br/>
+
+                                        <button ng-show="deleteChecked"
+                                                ng-click="deprovision(instance)"
+                                                  type="button", class="btn
+                                                  btn-danger">Destroy</button>
                                     </td>
                                 </tr>
                             </tbody>

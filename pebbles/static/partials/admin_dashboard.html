@@ -11,7 +11,7 @@
             </tr>
         </thead>
         <tbody>
-            <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
+            <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
                 <td colspan="4">No blueprints</td>
             </tr>
             <tr ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }">
@@ -41,6 +41,7 @@
                         <input id="query" class="form-control" ng-model="query" placeholder="Filter instance list"/>
                         <span class="input-group-btn">
                             <button class="btn btn-primary" ng-click="toggleAdvancedOptions()" type="button">{{ showAdvancedOptions ? "Hide" : "Show" }}  advanced options</button>
+                            <button class="btn btn-danger" ng-click="openDestroyDialog(null)" ng-disabled="noMarkedInstances()" type="button">Destroy selected instances</button>
                         </span>
                     </div>
                 </div>
@@ -69,6 +70,7 @@
     <table class="table table-striped">
         <thead>
         <tr>
+            <td><input type="checkbox" ng-model="checkAll" ng-change="markAll()"></td>
             <td>Name</td>
             <td>State</td>
             <td>Blueprint</td>
@@ -83,6 +85,7 @@
                 <td colspan="7">No instances</td>
             </tr>
             <tr ng-repeat="instance in instances | filter:query">
+                <td><input type="checkbox" ng-init='marked=false' ng-model='marked' ng-checked="checkAll || isMarked(instance)" ng-disabled="instance.state=='deleting'" ng-click="markInstance(marked, instance)"></td>
                 <td><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></td>
                 <td>{{instance.state}} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>
                 <td>{{instance.blueprint}}</td>
