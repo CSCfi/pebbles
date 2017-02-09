@@ -4,11 +4,7 @@ A driver object can be instantiated to connect to some end point to CRUD
 resources like Docker containers or OpenStack virtual machines.
 """
 
-import select
-import shlex
 import json
-import subprocess
-import time
 import datetime
 import os
 import logging
@@ -190,62 +186,6 @@ class ProvisioningDriverBase(object):
                     ssl_verify=self.config['SSL_VERIFY']))
 
         return uploader
-
-    def run_logged_process(self, cmd, cwd='.', shell=False, env=None, log_uploader=None):
-        """ runs a process, sets a selcect.poll to poll the process and writes
-        both stdout and stderr to named files.
-
-        purges the files into log_uploader periodically.
-        """
-        if shell:
-            args = [cmd]
-        else:
-            args = shlex.split(cmd)
-
-        p = subprocess.Popen(
-            args, cwd=cwd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
-        )
-        poller = select.poll()
-        poller.register(p.stdout)
-        poller.register(p.stderr)
-        log_buffer = []
-        last_upload = time.time()
-        with open('%s/instance_stdout.log' % cwd, 'a') as stdout:
-            with open('%s/instance__stderr.log' % cwd, 'a') as stderr:
-                stdout_open = stderr_open = True
-                while stdout_open or stderr_open:
-                    poll_results = poller.poll(500)
-                    for fd, mask in poll_results:
-                        if fd == p.stdout.fileno():
-                            if mask & select.POLLIN > 0:
-                                line = p.stdout.readline()
-                                self.logger.debug('STDOUT: ' + line.strip('\n'))
-                                stdout.write(line)
-                                stdout.flush()
-                                log_buffer.append('STDOUT %s' % line)
-                            elif mask & select.POLLHUP > 0:
-                                stdout_open = False
-
-                        elif fd == p.stderr.fileno():
-                            if mask & select.POLLIN > 0:
-                                line = p.stderr.readline()
-                                self.logger.info('STDERR: ' + line.strip('\n'))
-                                stderr.write(line)
-                                stderr.flush()
-                                if log_uploader:
-                                    log_buffer.append('STDERR %s' % line)
-
-                            elif mask & select.POLLHUP > 0:
-                                stderr_open = False
-
-                    if log_uploader and (last_upload < time.time() - 10 or len(log_buffer) > 100):
-                        if len(log_buffer) > 0:
-                            log_uploader.info(''.join(log_buffer))
-                            log_buffer = []
-                            last_upload = time.time()
-
-        if log_uploader and len(log_buffer) > 0:
-            log_uploader.info(''.join(log_buffer))
 
     def create_openstack_env(self):
         m2m_creds = self.get_m2m_credentials()
