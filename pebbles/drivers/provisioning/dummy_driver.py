@@ -2,6 +2,7 @@ import json
 from random import randint
 
 import os
+import time
 
 from pebbles.drivers.provisioning import base_driver
 from pebbles.client import PBClient
@@ -49,11 +50,12 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         with open(user_key_file, 'w') as kf:
             kf.write(key_data[0]['public_key'])
 
-        uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
+        log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
 
         self.logger.info('faking provisioning')
-        cmd = 'time ping -c 10 localhost'
-        self.run_logged_process(cmd=cmd, cwd=instance_dir, shell=True, log_uploader=uploader)
+        log_uploader.info('dummy provisioning for 5 seconds\n')
+        time.sleep(5)
+        log_uploader.info('dummy provisioning completed\n')
         public_ip = '%s.%s.%s.%s' % (randint(1, 254), randint(1, 254), randint(1, 254), randint(1, 254))
         instance_data = {
             'endpoints': [
@@ -76,14 +78,12 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
 
         instance_dir = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], cluster_name)
 
-        uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
+        log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
 
-        self.logger.info('faking deprovisioning')
-        if os.path.isdir(instance_dir):
-            cmd = 'time ping -c 5 localhost'
-            self.run_logged_process(cmd=cmd, cwd=instance_dir, shell=True, log_uploader=uploader)
-        else:
-            self.logger.info('no instance dir found, assuming instance was never provisioned')
+        self.logger.info('faking deprovisioning\n')
+        log_uploader.info('dummy deprovisioning for 5 seconds\n')
+        time.sleep(5)
+        log_uploader.info('dummy deprovisioning completed\n')
 
         # use instance id as a part of the name to make tombstones always unique
         if os.path.isdir(instance_dir):
