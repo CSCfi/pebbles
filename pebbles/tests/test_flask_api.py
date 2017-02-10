@@ -3,6 +3,7 @@ import datetime
 import base64
 import json
 import uuid
+import time
 
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.models import (
@@ -1499,6 +1500,34 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/instances/%s' % i5.id
         )
         self.assert_200(response)
+
+    def test_instance_logs(self):
+        epoch_time = time.time()
+        log_record_json = json.dumps({
+            'log_level': 'INFO',
+            'log_type': 'provisioning',
+            'timestamp': epoch_time,
+            'message': 'log testing'
+        })
+        response_patch = self.make_authenticated_admin_request(
+            method='PATCH',
+            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            data=json.dumps({'log_record_json': log_record_json})
+        )
+        self.assert_200(response_patch)
+
+        response_get = self.make_authenticated_user_request(
+            method='GET',
+            path='/api/v1/instances/%s/logs' % self.known_instance_id
+        )
+        self.assert_200(response_get)
+        self.assertEquals(response_get.json[0]['timestamp'], epoch_time)
+
+        response_instance_get = self.make_authenticated_user_request(
+            path='/api/v1/instances/%s' % self.known_instance_id
+        )
+        self.assert_200(response_instance_get)
+        self.assertEquals(response_instance_get.json['logs'][0]['timestamp'], epoch_time)
 
     def test_get_activation_url(self):
 

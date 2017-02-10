@@ -11,10 +11,10 @@
         <dd>{{ instance.provisioned_at }}</dd>
         <dt>Lifetime left:</dt>
         <dd>
-            <lifetime seconds="{{ instance.lifetime_left }}"></lifetime>
+            <lifetime value="{{ instance.lifetime_left }}"></lifetime>
         </dd>
         <dt>User:</dt>
-        <dd>{{ instance.owner }}</dd>
+        <dd>{{ instance.username }}</dd>
         <dt>Public IP:</dt>
         <dd>{{ instance.public_ip }}</dd>
 
@@ -35,10 +35,8 @@
         </dd>
     </dl>
 
-    <div ng-repeat="log in instance.logs">
-        <label>Latest entries in {{ log.type }} log</label>
-        <pre><logview url="{{ log.url }}" nlines="20"></logview></pre>
-        <a href="{{ log.url }}">Full log</a>
-    </div>
+    <label>Latest entries in provisioning log</label>
+    <pre>{{ getLogs(instance) }}</pre>
+
 
 </div>
