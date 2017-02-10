@@ -31,7 +31,6 @@ setup(
     entry_points={
         'pebbles.drivers.provisioning': [
             'DummyDriver = pebbles.drivers.provisioning.dummy_driver:DummyDriver',
-            'PvcCmdLineDriver = pebbles.drivers.provisioning.pvc_cmdline_driver:PvcCmdLineDriver',
             'OpenStackDriver = pebbles.drivers.provisioning.openstack_driver:OpenStackDriver',
             'DockerDriver = pebbles.drivers.provisioning.docker_driver:DockerDriver',
             'OpenShiftDriver = pebbles.drivers.provisioning.openshift_driver:OpenShiftDriver',
