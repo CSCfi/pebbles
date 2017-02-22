@@ -36,3 +36,6 @@
   file:
     name=/images
     state=directory
+
+- name: Make a base directory for state files of the provisioned instances
+  file: name={{ instance_data_dir }} state=directory owner={{ application_user }}

@@ -4,11 +4,9 @@ from flask import Blueprint as FlaskBlueprint
 
 import datetime
 import logging
-import os
 import json
-import uuid
 
-from pebbles.models import db, Blueprint, Instance, User
+from pebbles.models import db, Blueprint, Instance, InstanceLog, User
 from pebbles.forms import InstanceForm, UserIPForm
 from pebbles.server import app, restful
 from pebbles.utils import requires_admin, memoize
@@ -40,6 +38,15 @@ instance_fields = {
     'public_ip': fields.String,
     'client_ip': fields.String(default='not set'),
     'logs': fields.Raw,
+}
+
+instance_log_fields = {
+    'id': fields.String,
+    'instance_id': fields.String,
+    'log_type': fields.String,
+    'log_level': fields.String,
+    'timestamp': fields.Float,
+    'message': fields.String
 }
 
 
@@ -82,7 +89,8 @@ class InstanceList(restful.Resource):
         get_blueprint = memoize(query_blueprint)
         get_user = memoize(query_user)
         for instance in instances:
-            instance.logs = InstanceLogs.get_logfile_urls(instance.id)
+            instance_logs = get_logs_from_db(instance.id)
+            instance.logs = marshal(instance_logs, instance_log_fields)
 
             user = get_user(instance.user_id)
             if user:
@@ -180,7 +188,8 @@ class InstanceView(restful.Resource):
         blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
         instance.blueprint_id = blueprint.id
         instance.username = instance.user
-        instance.logs = InstanceLogs.get_logfile_urls(instance.id)
+        instance_logs = get_logs_from_db(instance.id)
+        instance.logs = marshal(instance_logs, instance_log_fields)
 
         if 'allow_update_client_connectivity' in blueprint.full_config \
                 and blueprint.full_config['allow_update_client_connectivity']:
@@ -277,41 +286,16 @@ class InstanceView(restful.Resource):
 
 class InstanceLogs(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('type', type=str)
-    parser.add_argument('text', type=str)
+    parser.add_argument('log_record_json', type=str)
 
-    @staticmethod
-    def get_base_dir_and_filename(instance_id, log_type, create_missing_filename=False):
-        log_dir = '/webapps/pebbles/provisioning_logs/%s' % instance_id
-
-        if not app.dynamic_config.get('WRITE_PROVISIONING_LOGS'):
-            return None, None
-
-        # make sure the directory for this instance exists
-        if not os.path.isdir(log_dir):
-            os.mkdir(log_dir, 0o755)
-
-        # check if we already have a file with the correct extension
-        log_file_name = None
-        for filename in os.listdir(log_dir):
-            if filename.endswith('.' + log_type + '.txt'):
-                log_file_name = filename
-        if not log_file_name and create_missing_filename:
-            log_file_name = '%s.%s.txt' % (uuid.uuid4().hex, log_type)
-
-        return log_dir, log_file_name
-
-    @staticmethod
-    def get_logfile_urls(instance_id):
-        res = []
-        for log_type in ['provisioning', 'deprovisioning']:
-            log_dir, log_file_name = InstanceLogs.get_base_dir_and_filename(instance_id, log_type)
-            if log_file_name:
-                res.append({
-                    'url': '/provisioning_logs/%s/%s' % (instance_id, log_file_name),
-                    'type': log_type
-                })
-        return res
+    @auth.login_required
+    @marshal_with(instance_log_fields)
+    def get(self, instance_id):
+        instance = Instance.query.filter_by(id=instance_id).first()
+        if not instance:
+            abort(404)
+        instance_logs = get_logs_from_db(instance_id)
+        return instance_logs
 
     @auth.login_required
     @requires_admin
@@ -320,18 +304,27 @@ class InstanceLogs(restful.Resource):
         instance = Instance.query.filter_by(id=instance_id).first()
         if not instance:
             abort(404)
-
-        log_type = args['type']
-        if not log_type:
+        log_record_json = args['log_record_json']
+        if not log_record_json:
             abort(403)
+        log_record = json.loads(log_record_json)
 
-        if log_type in ('provisioning', 'deprovisioning'):
-            log_dir, log_file_name = self.get_base_dir_and_filename(
-                instance_id, log_type, create_missing_filename=True)
+        instance_log = InstanceLog(instance_id)
+        instance_log.log_type = log_record['log_type']
+        instance_log.log_level = log_record['log_level']
+        instance_log.timestamp = float(log_record['timestamp'])
+        instance_log.message = log_record['message']
 
-            with open('%s/%s' % (log_dir, log_file_name), 'a') as logfile:
-                logfile.write(args['text'])
-        else:
-            abort(403)
+        db.session.add(instance_log)
+        db.session.commit()
 
         return 'ok'
+
+
+def get_logs_from_db(instance_id):
+    logs_query = InstanceLog.query\
+        .filter_by(instance_id=instance_id)\
+        .order_by(InstanceLog.timestamp)
+
+    logs = logs_query.all()
+    return logs

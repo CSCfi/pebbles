@@ -489,6 +489,20 @@ class Instance(db.Model):
         return '%s%s-the-%s' % (prefix, names.get_first_name().lower(), random.choice(NAME_ADJECTIVES))
 
 
+class InstanceLog(db.Model):
+    __tablename__ = 'instance_logs'
+    id = db.Column(db.String(32), primary_key=True)
+    instance_id = db.Column(db.String(32), db.ForeignKey('instances.id'), index=True, unique=False)
+    log_level = db.Column(db.String(8))
+    log_type = db.Column(db.String(64))
+    timestamp = db.Column(db.Float)
+    message = db.Column(db.Text)
+
+    def __init__(self, instance_id):
+        self.id = uuid.uuid4().hex
+        self.instance_id = instance_id
+
+
 class Lock(db.Model):
     __tablename__ = 'locks'
 
