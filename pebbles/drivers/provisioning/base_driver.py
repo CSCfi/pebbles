@@ -12,7 +12,7 @@ import logging
 import abc
 import six
 
-from pebbles.logger import PBInstanceLogHandler
+from pebbles.logger import PBInstanceLogHandler, PBInstanceLogFormatter
 from pebbles.client import PBClient
 from pebbles.models import Instance
 
@@ -178,12 +178,14 @@ class ProvisioningDriverBase(object):
         if not self.config.get('TEST_MODE', False):
             # check if the custom handler is already there
             if len(uploader.handlers) == 0:
-                uploader.addHandler(PBInstanceLogHandler(
+                log_handler = PBInstanceLogHandler(
                     self.config['INTERNAL_API_BASE_URL'],
                     instance_id,
                     token,
-                    log_type,
-                    ssl_verify=self.config['SSL_VERIFY']))
+                    ssl_verify=self.config['SSL_VERIFY'])
+                formatter = PBInstanceLogFormatter(log_type)
+                log_handler.setFormatter(formatter)
+                uploader.addHandler(log_handler)
 
         return uploader
 

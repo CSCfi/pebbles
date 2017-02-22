@@ -29,27 +29,19 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
                     $scope.instance = instance;
                 });
             }
-            angular.forEach(instance.logs, function (log) {
-                $http(
-                    {
-                        method: "GET",
-                        url: log.url,
-                        log_type: log.type,
-                        headers: {
-                            token: AuthService.getToken(),
-                            Authorization: "Basic " + AuthService.getToken()
-                        }
-                    }
-                ).success(function (data, status, headers, config) {
-                        var log_type = config.log_type;
-                        if (!$scope.logs) {
-                            $scope.logs = {};
-                        }
-                        $scope.logs[log_type] = data;
-                    }
-                );
-            });
         };
+
+        $scope.getLogs = function(instance) {
+            var full_log_text = "";
+            if (instance) {
+                for (var log_index in instance['logs']) {
+                    var log = instance['logs'][log_index];
+                    var datetime = new Date(log.timestamp * 1000);  // Multiplication for milliseconds
+                    full_log_text += "[" + datetime.toLocaleString('en-GB') + "]:" + log.log_level + ":" + log.message;
+                }
+            }
+            return full_log_text;
+        }
 
         $scope.get_my_ip = function () {
             $http(

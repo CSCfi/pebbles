@@ -6,7 +6,6 @@ import time
 
 from pebbles.drivers.provisioning import base_driver
 from pebbles.client import PBClient
-from pebbles.models import Instance
 
 
 class DummyDriver(base_driver.ProvisioningDriverBase):
@@ -28,34 +27,13 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
     def do_provision(self, token, instance_id):
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
-        instance = pbclient.get_instance_description(instance_id)
-        cluster_name = instance['name']
-
-        instance_dir = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], cluster_name)
-
-        # will fail if there is already a directory for this instance
-        os.makedirs(instance_dir)
-
-        # fetch config for this cluster
-        # config = self.get_blueprint_description(token, instance['blueprint_id'])
-
-        # fetch user public key and save it
-        key_data = pbclient.get_user_key_data(instance['user_id']).json()
-        user_key_file = '%s/userkey.pub' % instance_dir
-        if not key_data:
-            error_body = {'state': Instance.STATE_FAILED, 'error_msg': 'user\'s public key is missing'}
-            pbclient.do_instance_patch(instance_id, error_body)
-            raise RuntimeError("User's public key missing")
-
-        with open(user_key_file, 'w') as kf:
-            kf.write(key_data[0]['public_key'])
-
         log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
 
         self.logger.info('faking provisioning')
         log_uploader.info('dummy provisioning for 5 seconds\n')
         time.sleep(5)
         log_uploader.info('dummy provisioning completed\n')
+
         public_ip = '%s.%s.%s.%s' % (randint(1, 254), randint(1, 254), randint(1, 254), randint(1, 254))
         instance_data = {
             'endpoints': [
