@@ -30,6 +30,9 @@ def proxy_add_route(route_key, target, options):
         config.append('proxy_redirect %s $scheme://$host:%d/notebooks/%s;' % (target, external_https_port, route_key))
     if 'set_host_header' in options:
         config.append('proxy_set_header Host $host;')
+    if 'enable_token_authentication' in options:
+        instance_id = options['enable_token_authentication']
+        config.append('proxy_set_header Authorization "token %s";' % (instance_id))
 
     config.append('}')
     path = '%s/route_key-%s' % (RUNTIME_PATH, route_key)
