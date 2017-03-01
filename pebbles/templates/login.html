@@ -6,7 +6,7 @@
 
 
         <script type="text/javascript">
-            angular.module('pebblessLoginApp', ['LocalStorageModule'])
+            angular.module('pebblesLoginApp', ['LocalStorageModule'])
             .controller('HakaController', function($location,
                         localStorageService) {
                 localStorageService.set('userName', '{{ username }}');
