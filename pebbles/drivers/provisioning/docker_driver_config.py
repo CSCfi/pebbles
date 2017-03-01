@@ -56,6 +56,11 @@ CONFIG = {
                 'title': 'Needs ssh-keys to access',
                 'default': False,
             },
+            'show_password': {
+                'type': 'boolean',
+                'title': 'Show the required password (if any), to the user',
+                'default': True,
+            },
             'proxy_options': {
                 'type': 'object',
                 'title': 'Proxy Options',
@@ -86,7 +91,7 @@ CONFIG = {
                 'type': 'string',
                 'title': 'environment variables for docker, separated by space',
                 'default': '',
-            },
+            }
         }
     },
     'form': [
@@ -100,6 +105,7 @@ CONFIG = {
         'internal_port',
         'launch_command',
         'environment_vars',
+        'show_password',
         'memory_limit',
         'consumed_slots',
         'maximum_instances_per_user',
