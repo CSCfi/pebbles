@@ -95,7 +95,7 @@
                 <td>{{instance.username}}</td>
                 <td>
                     <a ng-show="['http', 'https'].indexOf(instance.instance_data['endpoints'][0]['name']) >= 0"
-                       href="{{instance.instance_data['endpoints'][0].access}}" target="_blank">
+                       ng-click="openInBrowser(instance)" href="">
                         Open in browser
                     </a>
                     <div ng-show="instance.instance_data['endpoints'][0]['name']=='SSH'">
