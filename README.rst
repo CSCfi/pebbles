@@ -1,3 +1,6 @@
+.. image:: https://badge.waffle.io/CSC-IT-Center-for-Science/pebbles.png?label=ready&title=Ready 
+ :target: https://waffle.io/CSC-IT-Center-for-Science/pebbles
+ :alt: 'Stories in Ready'
 .. image:: https://travis-ci.org/CSC-IT-Center-for-Science/pebbles.svg
    :target: https://travis-ci.org/CSC-IT-Center-for-Science/pebbles/
    :alt: Build Status
