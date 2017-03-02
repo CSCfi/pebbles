@@ -36,7 +36,7 @@
                                     <td><small><lifetime value="{{ instance.lifetime_left }}" maximum-lifetime="{{ instance.maximum_lifetime }}"/></small></td>
                                     <td><small>
                                         <a ng-show="['http', 'https'].indexOf(instance.instance_data['endpoints'][0]['name']) >= 0 && instance.state=='running'"
-                                            href="{{instance.instance_data['endpoints'][0].access}}" target="_blank">
+                                            ng-click="openInBrowser(instance)" href="">
                                             Open in browser
                                         </a>
                                         <div ng-show="instance.instance_data['endpoints'][0]['name']=='SSH' && instance.state=='running'">

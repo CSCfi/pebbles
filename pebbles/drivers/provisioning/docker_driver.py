@@ -375,6 +375,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'host_config': host_config,
             'environment': blueprint_config['environment_vars'].split(),
         }
+        config['environment'].append(format('INSTANCE_ID=%s' % instance_id))
+
         if len(blueprint_config.get('launch_command', '')):
             launch_command = blueprint_config.get('launch_command').format(
                 proxy_path='/%s' % proxy_route
@@ -415,6 +417,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'docker_host_id': selected_host['id'],
             'proxy_route': proxy_route,
         }
+        if 'show_password' in blueprint_config and blueprint_config['show_password']:
+            instance_data['password'] = instance_id
 
         pbclient.do_instance_patch(
             instance_id,
@@ -432,6 +436,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             proxy_rewrite = proxy_options.get('proxy_rewrite')
             proxy_redirect = proxy_options.get('proxy_redirect')
             set_host_header = proxy_options.get('set_host_header')
+            enable_token_authentication = proxy_options.get('enable_token_authentication')
 
             if proxy_rewrite:
                 options['proxy_rewrite'] = proxy_rewrite
@@ -439,13 +444,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 options['proxy_redirect'] = proxy_redirect
             if set_host_header:
                 options['set_host_header'] = set_host_header
+            if enable_token_authentication:
+                options['enable_token_authentication'] = instance_id  # rather than a boolean value, send the instance id
 
         ap.proxy_add_route(
             proxy_route,
             'http://%s:%s' % (selected_host['private_ip'], public_port),
             options
         )
-
         log_uploader.info("provisioning done for %s\n" % instance_id)
 
     def do_deprovision(self, token, instance_id):

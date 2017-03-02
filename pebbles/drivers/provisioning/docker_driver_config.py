@@ -56,6 +56,11 @@ CONFIG = {
                 'title': 'Needs ssh-keys to access',
                 'default': False,
             },
+            'show_password': {
+                'type': 'boolean',
+                'title': 'Show the required password (if any), to the user',
+                'default': True,
+            },
             'proxy_options': {
                 'type': 'object',
                 'title': 'Proxy Options',
@@ -74,6 +79,11 @@ CONFIG = {
                         'type': 'boolean',
                         'title': 'Set host header',
                         'default': False,
+                    },
+                    'enable_token_authentication': {
+                        'type': 'boolean',
+                        'title': 'Enable Token Authentication',
+                        'default': False,
                     }
                 }
             },
@@ -81,7 +91,7 @@ CONFIG = {
                 'type': 'string',
                 'title': 'environment variables for docker, separated by space',
                 'default': '',
-            },
+            }
         }
     },
     'form': [
@@ -95,6 +105,7 @@ CONFIG = {
         'internal_port',
         'launch_command',
         'environment_vars',
+        'show_password',
         'memory_limit',
         'consumed_slots',
         'maximum_instances_per_user',
@@ -114,7 +125,8 @@ CONFIG = {
         'proxy_options': {
             'proxy_rewrite': True,
             'proxy_redirect': True,
-            'set_host_header': False
+            'set_host_header': False,
+            'enable_token_authentication': False
         }
     }
 }
