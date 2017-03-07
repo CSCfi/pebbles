@@ -74,6 +74,11 @@ CONFIG = {
                         'type': 'boolean',
                         'title': 'Set host header',
                         'default': False,
+                    },
+                    'enable_token_authentication': {
+                        'type': 'boolean',
+                        'title': 'Enable Token Authentication',
+                        'default': False,
                     }
                 }
             },
@@ -114,7 +119,8 @@ CONFIG = {
         'proxy_options': {
             'proxy_rewrite': True,
             'proxy_redirect': True,
-            'set_host_header': False
+            'set_host_header': False,
+            'enable_token_authentication': False
         }
     }
 }
