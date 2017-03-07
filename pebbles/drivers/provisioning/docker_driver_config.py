@@ -58,7 +58,7 @@ CONFIG = {
             },
             'show_password': {
                 'type': 'boolean',
-                'title': 'Show the required password (if any), to the user',
+                'title': 'Show the required password/token (if any), to the user',
                 'default': True,
             },
             'proxy_options': {
@@ -80,9 +80,9 @@ CONFIG = {
                         'title': 'Set host header',
                         'default': False,
                     },
-                    'enable_token_authentication': {
+                    'bypass_token_authentication': {
                         'type': 'boolean',
-                        'title': 'Enable Token Authentication',
+                        'title': 'Bypass Token Authentication (Jupyter Notebooks)',
                         'default': False,
                     }
                 }
@@ -126,7 +126,7 @@ CONFIG = {
             'proxy_rewrite': True,
             'proxy_redirect': True,
             'set_host_header': False,
-            'enable_token_authentication': False
+            'bypass_token_authentication': False
         }
     }
 }

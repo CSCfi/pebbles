@@ -436,7 +436,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             proxy_rewrite = proxy_options.get('proxy_rewrite')
             proxy_redirect = proxy_options.get('proxy_redirect')
             set_host_header = proxy_options.get('set_host_header')
-            enable_token_authentication = proxy_options.get('enable_token_authentication')
+            bypass_token_authentication = proxy_options.get('bypass_token_authentication')
 
             if proxy_rewrite:
                 options['proxy_rewrite'] = proxy_rewrite
@@ -444,8 +444,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 options['proxy_redirect'] = proxy_redirect
             if set_host_header:
                 options['set_host_header'] = set_host_header
-            if enable_token_authentication:
-                options['enable_token_authentication'] = instance_id  # rather than a boolean value, send the instance id
+            if bypass_token_authentication:
+                options['bypass_token_authentication'] = instance_id  # rather than a boolean value, send the instance id
 
         ap.proxy_add_route(
             proxy_route,
