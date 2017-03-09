@@ -103,6 +103,26 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         };
 
 
+        $scope.copyTemplate = function(template) {
+            var template_copy = Restangular.all('blueprint_templates').one('template_copy', template.id).put();
+            template_copy.then(function () {
+                templates.getList().then(function (response) {
+                      $.notify({
+                          title: 'Success: ',
+                          message: 'A copy of the blueprint template was made'
+                          }, {type: 'success'});
+                    $scope.templates = response;
+                });
+            });
+        }, function (response) {
+               $.notify({
+                   title: 'HTTP ' + response.status,
+                   message: 'Could not copy blueprint template'
+               }, {type: 'danger'});
+
+        };
+
+
         $scope.deleteNotification = function(notification) {
             notification.remove().then(function() {
                 updateNotificationList();

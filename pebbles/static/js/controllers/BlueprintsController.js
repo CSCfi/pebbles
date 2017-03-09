@@ -100,6 +100,24 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
             });
         };
 
+        $scope.copyBlueprint = function(blueprint) {
+            var blueprint_copy = Restangular.all('blueprints').one('blueprint_copy', blueprint.id).put();
+            blueprint_copy.then(function () {
+                blueprints.getList().then(function (response) {
+                      $.notify({
+                          title: 'Success: ',
+                          message: 'A copy of the blueprint was made'
+                          }, {type: 'success'});
+                    $scope.blueprints = response;
+                });
+            });
+        }, function (response) {
+               $.notify({
+                   title: 'HTTP ' + response.status,
+                   message: 'Could not copy blueprint'
+               }, {type: 'danger'});
+
+        }
 
         $scope.deleteNotification = function(notification) {
             notification.remove().then(function() {

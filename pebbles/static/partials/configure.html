@@ -46,6 +46,7 @@
                     <button ng-hide="template.is_enabled" ng-click="activate(template)" class="btn btn-primary">Activate</button>
                     <button ng-show="template.is_enabled" ng-click="deactivate(template)" class="btn btn-default">Deactivate</button>
                     <button ng-click="openReconfigureTemplateDialog(template)" class="btn btn-default">Reconfigure</button>
+                    <button ng-click="copyTemplate(template)" class="btn btn-default">Copy</button>
                 </td>
             </tr>
         </tbody>

@@ -1,8 +1,10 @@
 from flask.ext.restful import marshal_with, fields
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
+from sqlalchemy.orm.session import make_transient
 
 import logging
+import uuid
 
 from pebbles.models import db, Blueprint, BlueprintTemplate, Group
 from pebbles.forms import BlueprintForm
@@ -127,6 +129,26 @@ class BlueprintView(restful.Resource):
         except ValueError:
             timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
             return timeformat_error, 422
+        db.session.add(blueprint)
+        db.session.commit()
+
+
+class BlueprintCopy(restful.Resource):
+    @auth.login_required
+    @requires_group_manager_or_admin
+    def put(self, blueprint_id):
+        user = g.user
+        blueprint = Blueprint.query.get_or_404(blueprint_id)
+
+        if not user.is_admin and not is_group_manager(user, blueprint.group):
+            logging.warn("user is {} not group manager for blueprint {}".format(user.id,
+                                                                                blueprint.group.id))
+            abort(403)
+
+        db.session.expunge(blueprint)
+        make_transient(blueprint)
+        blueprint.id = uuid.uuid4().hex
+        blueprint.name = format("%s - %s" % (blueprint.name, 'Copy'))
         db.session.add(blueprint)
         db.session.commit()
 
