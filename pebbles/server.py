@@ -12,8 +12,8 @@ from pebbles.app import app
 from pebbles.models import db, User
 
 from pebbles.views.commons import create_user, is_group_manager
-from pebbles.views.blueprint_templates import blueprint_templates, BlueprintTemplateList, BlueprintTemplateView
-from pebbles.views.blueprints import blueprints, BlueprintList, BlueprintView
+from pebbles.views.blueprint_templates import blueprint_templates, BlueprintTemplateList, BlueprintTemplateView, BlueprintTemplateCopy
+from pebbles.views.blueprints import blueprints, BlueprintList, BlueprintView, BlueprintCopy
 from pebbles.views.plugins import plugins, PluginList, PluginView
 from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserGroupOwner, KeypairList, CreateKeyPair, UploadKeyPair
 from pebbles.views.groups import groups, GroupList, GroupView, GroupJoin, GroupListExit, GroupExit, GroupUsersList
@@ -53,8 +53,10 @@ api.add_resource(ActivationList, api_root + '/activations')
 api.add_resource(ActivationView, api_root + '/activations/<string:token_id>')
 api.add_resource(BlueprintTemplateList, api_root + '/blueprint_templates')
 api.add_resource(BlueprintTemplateView, api_root + '/blueprint_templates/<string:template_id>')
+api.add_resource(BlueprintTemplateCopy, api_root + '/blueprint_templates/template_copy/<string:template_id>')
 api.add_resource(BlueprintList, api_root + '/blueprints')
 api.add_resource(BlueprintView, api_root + '/blueprints/<string:blueprint_id>')
+api.add_resource(BlueprintCopy, api_root + '/blueprints/blueprint_copy/<string:blueprint_id>')
 api.add_resource(InstanceList, api_root + '/instances')
 api.add_resource(
     InstanceView,

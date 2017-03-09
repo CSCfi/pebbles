@@ -2,8 +2,10 @@ from flask.ext.restful import marshal_with, reqparse
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 from flask.ext.restful import fields
+from sqlalchemy.orm.session import make_transient
 
 import logging
+import uuid
 
 from pebbles.models import db, BlueprintTemplate, Plugin
 from pebbles.forms import BlueprintTemplateForm
@@ -124,6 +126,20 @@ class BlueprintTemplateView(restful.Resource):
         blueprint_template = toggle_enable_template(form, args, blueprint_template)
 
         db.session.add(blueprint_template)
+        db.session.commit()
+
+
+class BlueprintTemplateCopy(restful.Resource):
+    @auth.login_required
+    @requires_admin
+    def put(self, template_id):
+        template = BlueprintTemplate.query.get_or_404(template_id)
+
+        db.session.expunge(template)
+        make_transient(template)
+        template.id = uuid.uuid4().hex
+        template.name = format("%s - %s" % (template.name, 'Copy'))
+        db.session.add(template)
         db.session.commit()
 
 

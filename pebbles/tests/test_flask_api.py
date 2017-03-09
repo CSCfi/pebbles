@@ -918,6 +918,24 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(data))
         self.assert_200(response)
 
+    def test_copy_blueprint_template(self):
+
+        # Authenticated User
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/blueprint_templates/template_copy/%s' % self.known_template_id)
+        self.assert_403(response)
+        # Authenticated Group Owner
+        response = self.make_authenticated_group_owner_request(
+            method='PUT',
+            path='/api/v1/blueprint_templates/template_copy/%s' % self.known_template_id)
+        self.assert_403(response)
+        # Admin
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/blueprint_templates/template_copy/%s' % self.known_template_id)
+        self.assert_200(response)
+
     def test_get_blueprints(self):
         # Anonymous
         response = self.make_request(path='/api/v1/blueprints')
@@ -1207,6 +1225,24 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/blueprints/%s' % self.known_blueprint_id_g2,
             data=json.dumps(invalid_group_data))
         self.assertStatus(put_response, 403)
+
+    def test_copy_blueprints(self):
+
+        # Authenticated User
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/blueprints/blueprint_copy/%s' % self.known_blueprint_id)
+        self.assert_403(response)
+        # Authenticated Group Owner
+        response = self.make_authenticated_group_owner_request(
+            method='PUT',
+            path='/api/v1/blueprints/blueprint_copy/%s' % self.known_blueprint_id)
+        self.assert_200(response)
+        # Admin
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/blueprints/blueprint_copy/%s' % self.known_blueprint_id)
+        self.assert_200(response)
 
     def test_anonymous_invite_user(self):
         data = {'email': 'test@example.org', 'password': 'test', 'is_admin': True}
