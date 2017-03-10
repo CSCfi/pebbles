@@ -1,5 +1,23 @@
 <div ng-show="users">
     <h1>Users</h1>
+    <div class="row div-bottom default">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input name="email" class="form-control" type="email" ng-model="new_user" placeholder="Email" required />
+                <span class="input-group-btn">
+                    <button ng-click="add_user(new_user)" type="submit" class="btn btn-default">Invite</button>
+                </span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <button type="button" class="btn btn-default" data-toggle="modal" ng-click="open_invite_users_dialog()">
+              Invite multiple...
+            </button>
+            <button type="button" class="btn btn-default" ng-click="open_quota_dialog([])">
+              Update quotas...
+            </button>
+        </div>
+    </div>
     <form>
         <div class="row">
             <div class="col-md-12">
@@ -49,23 +67,4 @@
         </tr>
         </tbody>
     </table>
-    <div class="row">
-        <div class="col-md-6">
-            <div class="input-group">
-                <input name="email" class="form-control" type="email" ng-model="new_user" placeholder="Email" required />
-                <span class="input-group-btn">
-                    <button ng-click="add_user(new_user)" type="submit" class="btn btn-default">Invite</button>
-                </span>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <button type="button" class="btn btn-default" data-toggle="modal" ng-click="open_invite_users_dialog()">
-              Invite multiple...
-            </button>
-
-            <button type="button" class="btn btn-default" ng-click="open_quota_dialog([])">
-              Update quotas...
-            </button>
-        </div>
-    </div>
 </div>
