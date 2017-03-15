@@ -28,8 +28,8 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
 
             $scope.new_user = '';
             $scope.add_user = function(email) {
-                var user_parameters = {email: email};
-                if (email) {
+                if ($scope.add_user_form.$valid){
+                    var user_parameters = {email: email};
                     users.post(user_parameters).then(function() {
                         users.getList().then(function (response) {
                             $scope.users = response;
@@ -178,6 +178,18 @@ app.controller('ModalInviteUsersController', function($scope, $modalInstance, us
     $scope.invite_users = function(invitedUsers) {
         var params = {addresses: invitedUsers};
         users.patch(params).then(function() {
+            $modalInstance.close(true);
+        }, function(response) {
+                incorrect_addresses_array = response.data;
+                incorrect_addresses = incorrect_addresses_array.join('<br>');
+                $.notify({
+                     title: 'HTTP ' + response.status,
+                     message: '<b>The following emails could not be added:</b> <br>' + incorrect_addresses
+                     },
+                     {
+                         type: 'warning',
+                         delay: 8000
+                     });
             $modalInstance.close(true);
         });
     };
