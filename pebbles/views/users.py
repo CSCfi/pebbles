@@ -19,7 +19,7 @@ users = FlaskBlueprint('users', __name__)
 class UserList(restful.Resource):
     @staticmethod
     def address_list(value):
-        return set(x for x in re.split(r",| |\n|\t", value) if x and '@' in x)
+        return set(x for x in re.split(r",| |\n|\t", value) if x)
 
     parser = reqparse.RequestParser()
     parser.add_argument('addresses')
@@ -52,7 +52,7 @@ class UserList(restful.Resource):
 
     @auth.login_required
     @requires_admin
-    @marshal_with(user_fields)
+    # @marshal_with(user_fields)
     def patch(self):
         try:
             args = self.parser.parse_args()
@@ -60,12 +60,16 @@ class UserList(restful.Resource):
             abort(422)
             return
         addresses = self.address_list(args.addresses)
+        incorrect_addresses = []
         for address in addresses:
             try:
                 invite_user(address)
             except:
                 logging.exception("cannot add user %s" % address)
-        return User.query.all()
+                incorrect_addresses.append(address)
+
+        if incorrect_addresses:
+            return incorrect_addresses, 422
 
 
 class UserView(restful.Resource):

@@ -6,6 +6,7 @@ from pebbles.models import db, ActivationToken, User, Group, GroupUserAssociatio
 from pebbles.server import app
 from pebbles.tasks import send_mails
 from functools import wraps
+import re
 
 
 user_fields = {
@@ -65,6 +66,9 @@ def create_user(email, password, is_admin=False):
 
 
 def invite_user(email, password=None, is_admin=False):
+    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+    if not re.match(email_regex, email):
+        raise RuntimeError("Incorrect email")
     user = User.query.filter_by(email=email).first()
     if user:
         logging.warn("user %s already exists" % email)

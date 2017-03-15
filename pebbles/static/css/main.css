@@ -49,3 +49,11 @@ body {
     padding-bottom: 20px;
 
 }
+
+.ng-invalid-email, .ng-invalid-match {
+    border-color: #dca7a7;
+}
+
+.initial-input {
+    margin-bottom: 5px;
+}
