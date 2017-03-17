@@ -22,19 +22,23 @@ are:
   which can be used to launch instances on OpenStack cloud.
 - `Docker driver`_,
   for running web notebook instances in Docker containers on a pool of virtual machines. 
-- `Pouta Virtualcluster`_ ,
-  which can be used to launch clusters on `cPouta <https://research.csc.fi/pouta-iaas-cloud>`_.
-
     
-Additional resources can be added by implementing the driver interface. ToDo:
-hyperlink to new docs.
+Additional resources can be added by implementing the driver interface. 
 
 Documentation
 =============
 
-The system comes with Sphinx RST documentation under doc/. Convention is to have
-as much as possible as docstrings close to the code that implements. Generic
-things like system descriptions may also be under doc/source. ::
+`Documentation hosted on GitHub
+<http://csc-it-center-for-science.github.io/pebbles/>`_.
+
+The documentation is generated from Sphinx RST documentation under doc/ and
+inline in the code.. Convention is to have as much as possible as docstrings
+close to the code that implements said functionality. Module level docstrings
+can be used to give end-user readable generic description of system parts.
+Things that aren't naturally tied to a code module or artefact can be created
+under doc/source. 
+
+Building the documentation can be one as follows ::
 
         $ mkvirtualenv pb-doc
         (pb-doc) $ pip install -r requirements.txt
