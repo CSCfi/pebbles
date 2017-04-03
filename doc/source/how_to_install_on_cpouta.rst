@@ -88,8 +88,7 @@ Update the server packages (we'll boot it later)::
     
 Clone the repository from GitHub::
 
-    $ sudo yum install -y git
-    $ git clone https://github.com/CSC-IT-Center-for-Science/pebbles.git
+    $ git clone https://github.com/CSCfi/pebbles.git
 
 Run the install script once - you will asked to log out and in again to make unix group changes effective. Here is a 
 good time to reboot the server after the updates::
@@ -189,7 +188,7 @@ Check if our boot time customization script worked:
 
 Enable Docker Driver
 --------------------
-Enabling DockerDriver requires a bit more preparation, see [DockerDriver readme](https://github.com/CSC-IT-Center-for-Science/pebbles/blob/master/pouta_blueprints/drivers/provisioning/README_docker_driver.md)
+Enabling DockerDriver requires a bit more preparation, see [DockerDriver readme](https://github.com/CSCfi/pebbles/blob/master/pouta_blueprints/drivers/provisioning/README_docker_driver.md)
 
 Part 4: Open access to users
 ============================
@@ -229,7 +228,7 @@ Aliases are provided for an easy ssh access:
     
 The api, frontend and worker containers share the git repository that was checked out during installation through a 
 read only shared folder. For other directories shared from the host, see the [Ansible play]
-(https://github.com/CSC-IT-Center-for-Science/pebbles/blob/master/ansible/roles/single_server_with_docker/tasks/main.yml)
+(https://github.com/CSCfi/pebbles/blob/master/ansible/roles/single_server_with_docker/tasks/main.yml)
 that sets up the container infrastructure. 
 
 To see the server process logs, take a look at /webapps/pebbles/logs -directory in the container:

@@ -1,14 +1,14 @@
-.. image:: https://badge.waffle.io/CSC-IT-Center-for-Science/pebbles.png?label=ready&title=Ready 
- :target: https://waffle.io/CSC-IT-Center-for-Science/pebbles
+.. image:: https://badge.waffle.io/CSCfi/pebbles.png?label=ready&title=Ready
+ :target: https://waffle.io/CSCfi/pebbles
  :alt: 'Stories in Ready'
-.. image:: https://travis-ci.org/CSC-IT-Center-for-Science/pebbles.svg
-   :target: https://travis-ci.org/CSC-IT-Center-for-Science/pebbles/
+.. image:: https://travis-ci.org/CSCfi/pebbles.svg
+   :target: https://travis-ci.org/CSCfi/pebbles/
    :alt: Build Status
-.. image:: https://codeclimate.com/github/CSC-IT-Center-for-Science/pouta-blueprints/badges/gpa.svg
-   :target: https://codeclimate.com/github/CSC-IT-Center-for-Science/pouta-blueprints
+.. image:: https://codeclimate.com/github/CSCfi/pouta-blueprints/badges/gpa.svg
+   :target: https://codeclimate.com/github/CSCfi/pouta-blueprints
    :alt: Code Climate
-.. image:: https://codeclimate.com/github/CSC-IT-Center-for-Science/pouta-blueprints/badges/coverage.svg
-   :target: https://codeclimate.com/github/CSC-IT-Center-for-Science/pouta-blueprints
+.. image:: https://codeclimate.com/github/CSCfi/pouta-blueprints/badges/coverage.svg
+   :target: https://codeclimate.com/github/CSCfi/pouta-blueprints
    :alt: Test Coverage
 
 Pebbles
@@ -29,7 +29,7 @@ Documentation
 =============
 
 `Documentation hosted on GitHub
-<http://csc-it-center-for-science.github.io/pebbles/>`_.
+<http://cscfi.github.io/pebbles/>`_.
 
 The documentation is generated from Sphinx RST documentation under doc/ and
 inline in the code.. Convention is to have as much as possible as docstrings
@@ -56,5 +56,6 @@ Can save you a lot of trouble.
 
 .. _OpenStack driver: pebbles/drivers/provisioning/openstack_driver.py
 .. _Docker driver: pebbles/drivers/provisioning/README_docker_driver.md
-.. _Pouta Virtualcluster: https://github.com/CSC-IT-Center-for-Science/pouta-virtualcluster
+.. _Pouta Virtualcluster: https://github.com/CSCfi/pouta-virtualcluster
 .. _Travis Sphinx: https://github.com/Syntaf/travis-sphinx
+

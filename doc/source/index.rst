@@ -13,7 +13,7 @@ called CSC Notebooks.
 .. automodule:: pebbles
 
 .. _CSC: http://www.csc.fi/
-.. _Pebbles: https://github.com/CSC-IT-Center-for-Science/pebbles/
+.. _Pebbles: https://github.com/CSCfi/pebbles/
 
 
 

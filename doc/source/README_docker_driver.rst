@@ -29,7 +29,7 @@ SELinux labels are created properly.
 .. note::
       Images from the image directory are pushed to notebook hosts only when they are being
       prepared. This limitation will be removed in the future, see
-      https://github.com/CSC-IT-Center-for-Science/pebbles/issues/358
+      https://github.com/CSCfi/pebbles/issues/358
 
 .. note::
       All images are pushed to each notebook host (which may host several
