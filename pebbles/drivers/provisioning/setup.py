@@ -9,7 +9,7 @@ setup(
     author='Olli Tourunen',
     author_email='olli.tourunen@csc.fi',
 
-    url='https://github.com/CSC-IT-Center-for-Science/pebbles',
+    url='https://github.com/CSCfi/pebbles',
 
     classifiers=[
         'Development Status :: 3 - Alpha',

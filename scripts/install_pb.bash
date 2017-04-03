@@ -146,7 +146,7 @@ clone_git_repo()
     else
         local_name="pebbles"
         if [ "xxx$git_repository" == "xxx" ]; then
-          git_repository="https://github.com/CSC-IT-Center-for-Science/pebbles.git"
+          git_repository="https://github.com/CSCfi/pebbles.git"
         fi
 
         if [ "xxx$git_branch" == "xxx" ]; then

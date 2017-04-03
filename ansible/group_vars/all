@@ -10,7 +10,7 @@ deploy_mode: "devel"
 #   prod: Gunicorn HTTP server
 server_type: "devel"
 
-git_repository: "https://github.com/CSC-IT-Center-for-Science/pebbles.git"
+git_repository: "https://github.com/CSCfi/pebbles.git"
 git_version: "master"
 
 #apt_repository_url: "http://www.nic.funet.fi/pub/mirrors/archive.ubuntu.com/"
