@@ -4,11 +4,11 @@
 .. image:: https://travis-ci.org/CSCfi/pebbles.svg
    :target: https://travis-ci.org/CSCfi/pebbles/
    :alt: Build Status
-.. image:: https://codeclimate.com/github/CSCfi/pouta-blueprints/badges/gpa.svg
-   :target: https://codeclimate.com/github/CSCfi/pouta-blueprints
+.. image:: https://codeclimate.com/github/CSCfi/pebbles/badges/gpa.svg
+   :target: https://codeclimate.com/github/CSCfi/pebbles/
    :alt: Code Climate
-.. image:: https://codeclimate.com/github/CSCfi/pouta-blueprints/badges/coverage.svg
-   :target: https://codeclimate.com/github/CSCfi/pouta-blueprints
+.. image:: https://codeclimate.com/github/CSCfi/pebbles/badges/coverage.svg
+   :target: https://codeclimate.com/github/CSCfi/pebbles/
    :alt: Test Coverage
 
 Pebbles
