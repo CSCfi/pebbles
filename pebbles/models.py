@@ -624,3 +624,27 @@ class Variable(db.Model):
 
     def __repr__(self):
         return self.__str__()
+
+
+class NamespacedKeyValue(db.Model):
+    """ Stores key/value pair data, separated by namespaces
+    """
+    __tablename__ = 'namespaced_keyvalues'
+
+    namespace = db.Column(db.String(32), primary_key=True)
+    key = db.Column(db.String(128), primary_key=True)
+    _value = db.Column(db.Text)
+    created_ts = db.Column(db.Float)
+    updated_ts = db.Column(db.Float)
+
+    def __init__(self, namespace, key):
+        self.namespace = namespace
+        self.key = key
+
+    @hybrid_property
+    def value(self):
+        return self._value  # Return the json string itself, as the UI has a textfield for modifying it
+
+    @value.setter
+    def value(self, val):
+        self._value = json.dumps(val)

@@ -6,7 +6,7 @@ cause gray hair.
 
 from flask.ext.wtf import Form
 from wtforms_alchemy import model_form_factory
-from wtforms import BooleanField, StringField
+from wtforms import BooleanField, StringField, FloatField
 # from wtforms import FormField, FieldList
 from wtforms.validators import DataRequired, Email, Length, IPAddress, Regexp
 
@@ -121,3 +121,10 @@ class VariableForm(ModelForm):
         'key', validators=[DataRequired(), Length(max=MAX_VARIABLE_KEY_LENGTH)])
     value = StringField(
         'value', validators=[Length(max=MAX_VARIABLE_VALUE_LENGTH)])
+
+
+class NamespacedKeyValueForm(ModelForm):
+    namespace = StringField('namespace', validators=[DataRequired()])
+    key = StringField('key', validators=[DataRequired()])
+    value = StringField('value', validators=[DataRequired()])
+    updated_version_ts = FloatField('updated_version_ts')
