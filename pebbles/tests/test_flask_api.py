@@ -8,7 +8,7 @@ import time
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.models import (
     User, Group, GroupUserAssociation, BlueprintTemplate, Blueprint,
-    ActivationToken, Instance, Variable)
+    ActivationToken, Instance, Variable, NamespacedKeyValue)
 from pebbles.config import BaseConfig
 from pebbles.views import activations
 
@@ -2150,6 +2150,166 @@ class FlaskApiTestCase(BaseTestCase):
             method='GET',
             path='/api/v1/stats')
         self.assertStatus(response, 403)
+
+    def test_create_namespaced_data(self):
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/namespaced_keyvalues',
+            data=json.dumps({'namespace': 'MockDriver', 'key': 'test_pool_vm_0', 'value': {"attr": "val"}})
+        )
+        self.assert_200(response)
+
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/namespaced_keyvalues',
+            data=json.dumps({'namespace': 'TestDriver', 'key': 'test_pool_vm_1', 'value': {"attr": "val"}})
+        )
+        self.assert_200(response)
+
+        get_response = self.make_authenticated_admin_request(
+            method='GET',
+            path='/api/v1/namespaced_keyvalues',
+            data=json.dumps({})
+        )
+        self.assert_200(get_response)
+        self.assertEqual(len(get_response.json), 2)
+
+        get_response = self.make_authenticated_admin_request(
+            method='GET',
+            path='/api/v1/namespaced_keyvalues',
+            data=json.dumps({'namespace': 'TestDriver'})
+        )
+        self.assert_200(get_response)
+        self.assertEqual(len(get_response.json), 1)
+
+    def test_create_duplicate_namespaced_data(self):
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/namespaced_keyvalues',
+            data=json.dumps({'namespace': 'TestDriver', 'key': 'test_pool_vm_2', 'value': {"attr": "val"}})
+        )
+        self.assert_200(response)
+
+        # The combination of namespace and key has to be unique
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/namespaced_keyvalues',
+            data=json.dumps({'namespace': 'TestDriver', 'key': 'test_pool_vm_2', 'value': {"attr": "new_val"}})
+        )
+        self.assertStatus(response, 422)
+
+    def test_update_namespaced_data(self):
+        ns = "TestDriver"
+        key = "pool_vm_test_3"
+        ns_kv = NamespacedKeyValue(ns, key)
+        ns_kv.value = {'attr': 'val'}
+        ts = 1000000000
+        ns_kv.created_ts = ts
+        ns_kv.updated_ts = ts
+        db.session.add(ns_kv)
+        db.session.commit()
+
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/namespaced_keyvalues/%s/%s' % (ns, key),
+            data=json.dumps({'namespace': ns, 'key': key, 'value': {"attr": "NEW_VAL"}, 'updated_version_ts': ts})
+        )
+        self.assert_200(response)
+
+    def test_invalid_create_update_namespaced_data(self):
+        invalid_response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/namespaced_keyvalues',
+            data=json.dumps({'namespace': 'TestDriver', 'key': 0, 'value': {"attr": "val"}})
+        )
+        self.assertStatus(invalid_response, 422)
+
+        invalid_response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/namespaced_keyvalues',
+            data=json.dumps({'namespace': '', 'key': 'test_pool_vm_4', 'value': {"attr": "val"}})
+        )
+        self.assertStatus(invalid_response, 422)
+
+        ns = "TestDriver"
+        key = "pool_vm_test_4"
+        ns_kv = NamespacedKeyValue(ns, key)
+        ns_kv.value = {'attr': 'val'}
+        ts = 1000000000
+        ns_kv.created_ts = ts
+        ns_kv.updated_ts = ts
+        db.session.add(ns_kv)
+        db.session.commit()
+        # Invalid update time
+        invalid_response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/namespaced_keyvalues/%s/%s' % (ns, key),
+            data=json.dumps({'namespace': ns, 'key': key, 'value': {"attr": "val"}, 'updated_version_ts': 'bogusx10'})
+        )
+        self.assertStatus(invalid_response, 422)
+        # namespace and key cannot change
+        invalid_response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/namespaced_keyvalues/%s/%s' % (ns, key),
+            data=json.dumps({'namespace': ns, 'key': 'bogus_key', 'value': {"attr": "val"}, 'updated_version_ts': ts})
+        )
+        self.assertStatus(invalid_response, 422)
+
+        invalid_response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/namespaced_keyvalues/%s/%s' % (ns, key),
+            data=json.dumps({'namespace': 'Bogus', 'key': 'bogus_key', 'value': {"attr": "val"}, 'updated_version_ts': ts})
+        )
+        self.assertStatus(invalid_response, 422)
+
+    def test_concurrent_update_namespaced_data(self):
+        namespace = "TestDriver"
+        key = "test_pool_vm_5"
+        namespace_keyvalue_obj = NamespacedKeyValue(namespace, key)
+        namespace_keyvalue_obj.value = {'attribute': 'value'}
+        ts = 1000000000
+        namespace_keyvalue_obj.created_ts = ts
+        namespace_keyvalue_obj.updated_ts = ts
+        db.session.add(namespace_keyvalue_obj)
+        db.session.commit()
+
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/namespaced_keyvalues/%s/%s' % (namespace, key),
+            data=json.dumps({'namespace': namespace, 'key': key, 'value': {"attr": "val"}, 'updated_version_ts': ts})
+        )
+        self.assert_200(response)
+
+        # Concurrent Modification
+        invalid_response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/namespaced_keyvalues/%s/%s' % (namespace, key),
+            data=json.dumps({'namespace': namespace, 'key': key, 'value': {"another_attr": "another_val"}, 'updated_version_ts': ts})
+        )
+        self.assertStatus(invalid_response, 409)
+
+    def test_delete_namespaced_data(self):
+        namespace = "TestDriver"
+        key = "test_pool_vm_6"
+        namespace_keyvalue_obj = NamespacedKeyValue(namespace, key)
+        namespace_keyvalue_obj.value = {'attribute': 'value'}
+        ts = 1000000000
+        namespace_keyvalue_obj.created_ts = ts
+        namespace_keyvalue_obj.updated_ts = ts
+        db.session.add(namespace_keyvalue_obj)
+        db.session.commit()
+
+        response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/namespaced_keyvalues/%s/%s' % (namespace, key)
+        )
+        self.assert_200(response)
+
+        invalid_response = self.make_authenticated_admin_request(
+            method='GET',
+            path='/api/v1/namespaced_keyvalues/%s/%s' % ('TestDriver', 'test_pool_vm_6')
+        )
+        self.assertStatus(invalid_response, 404)
 
 
 if __name__ == '__main__':

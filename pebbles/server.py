@@ -28,6 +28,7 @@ from pebbles.views.variables import variables, VariableList, VariableView, Publi
 from pebbles.views.locks import locks, LockView
 from pebbles.views.stats import stats, StatsList
 from pebbles.views.import_export import import_export, ImportExportBlueprintTemplates, ImportExportBlueprints
+from pebbles.views.namespaced_keyvalues import namespaced_keyvalues, NamespacedKeyValueList, NamespacedKeyValueView
 
 api = restful.Api(app)
 api_root = '/api/v1'
@@ -78,6 +79,8 @@ api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
 api.add_resource(ImportExportBlueprintTemplates, api_root + '/import_export/blueprint_templates')
 api.add_resource(ImportExportBlueprints, api_root + '/import_export/blueprints')
 api.add_resource(StatsList, api_root + '/stats')
+api.add_resource(NamespacedKeyValueList, api_root + '/namespaced_keyvalues')
+api.add_resource(NamespacedKeyValueView, api_root + '/namespaced_keyvalues/<string:namespace>/<string:key>')
 
 app.register_blueprint(blueprint_templates)
 app.register_blueprint(blueprints)
@@ -94,6 +97,7 @@ app.register_blueprint(quota)
 app.register_blueprint(locks)
 app.register_blueprint(import_export)
 app.register_blueprint(stats)
+app.register_blueprint(namespaced_keyvalues)
 
 if app.config['ENABLE_SHIBBOLETH_LOGIN']:
     sso = SSO(app=app)
