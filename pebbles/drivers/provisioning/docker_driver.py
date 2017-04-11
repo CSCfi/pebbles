@@ -42,23 +42,15 @@ DD_CLIENT_TIMEOUT = 180  # seconds
 
 PEBBLES_SSH_KEY_LOCATION = '/home/pebbles/.ssh/id_rsa'
 
+NAMESPACE = "DockerDriver"
+KEY_PREFIX = "pool_vm"
+
 
 class DockerDriverAccessProxy(object):
     """
-    ToDo: why is the docker driver split into a proxy and proper?
-    Is it to abstract away the use of OpenStack to provision hosts?
-    -jyrsa
-    2016-11-28
+    An abstract layer for executing external processes by docker driver.
+    This also helps in unit testing of the driver with mock objects.
     """
-    @staticmethod
-    def save_as_json(data_file, data):
-        if os.path.exists(data_file):
-            ts = int(time.time())
-            os.rename(data_file, '%s.%s' % (data_file, ts - ts % 3600))
-
-        with open(data_file, 'w') as df:
-            json.dump(data, df)
-
     @staticmethod
     def get_docker_client(docker_url):
         # TODO: figure out why server verification does not work (crls?)
@@ -73,20 +65,54 @@ class DockerDriverAccessProxy(object):
         return docker_client
 
     @staticmethod
-    def load_json(data_file, default):
-        if os.path.exists(data_file):
-            with open(data_file, 'r') as df:
-                return json.load(df)
-        else:
-            return default
-
-    @staticmethod
     def get_openstack_service(config):
         return OpenStackService(config)
 
     @staticmethod
     def get_pb_client(token, api_base_url, ssl_verify):
+        """
+        Get a custom client for interacting with external REST APIs
+        Parameters:
+        token - the authentication token required by the api
+        api_base_url - the base url for the api
+        ssl_verify . flag to check SSL certificates on the api requests
+        """
         return PBClient(token, api_base_url, ssl_verify)
+
+    @classmethod
+    def load_records(cls, token, url):
+        """ Loads the pool vm host state from the database through REST API
+        """
+        pbclient = cls.get_pb_client(token, url, ssl_verify=False)
+        namespaced_records = pbclient.get_namespaced_keyvalues({'namespace': NAMESPACE})
+        hosts = []
+        for ns_record in namespaced_records:
+            ns_record['value']['updated_ts'] = ns_record['updated_ts']
+            hosts.append(ns_record['value'])
+        return hosts
+
+    @classmethod
+    def save_records(cls, token, url, hosts):
+        """Saves the pool vm host state in the database via REST API
+        """
+        pbclient = cls.get_pb_client(token, url, ssl_verify=False)
+        for host in hosts:
+            _key = '%s_%s' % (KEY_PREFIX, host['id'])
+            payload = {
+                'namespace': NAMESPACE,
+                'key': _key
+            }
+            if host.get('state') == DD_STATE_SPAWNED:  # POST
+                payload['value'] = json.dumps(host)  # WTForms doesn't understand JSON object
+                pbclient.create_namespaced_keyvalue(payload)
+            elif host.get('state') == DD_STATE_REMOVED:  # DELETE
+                pbclient.delete_namespaced_keyvalue(NAMESPACE, _key)
+            else:  # PUT
+                updated_version_ts = host['updated_ts']
+                del host['updated_ts']
+                payload['value'] = json.dumps(host)
+                payload['updated_version_ts'] = updated_version_ts
+                pbclient.modify_namespaced_keyvalue(NAMESPACE, _key, payload)
 
     @staticmethod
     def run_ansible_on_host(host, logger, config):
@@ -350,7 +376,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         log_uploader.info("selecting host...")
 
-        docker_hosts = self._select_hosts(blueprint_config['consumed_slots'], cur_ts)
+        docker_hosts = self._select_hosts(blueprint_config['consumed_slots'], token, cur_ts)
         selected_host = docker_hosts[0]
 
         docker_client = ap.get_docker_client(selected_host['docker_url'])
@@ -558,7 +584,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             self.logger.info('do_housekeep(): in shutdown mode')
 
         # fetch host data
-        hosts = self._get_hosts(cur_ts)
+        hosts = self._get_hosts(token, cur_ts)
 
         self._update_host_lifetimes(hosts, shutdown_mode, cur_ts)
 
@@ -594,7 +620,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             self.logger.debug('do_housekeep(): inactivate action taken')
 
         # save host state in the end
-        self._save_host_state(hosts, cur_ts)
+        self._save_host_state(hosts, token, cur_ts)
 
     def _activate_spawned_hosts(self, hosts, cur_ts):
         spawned_hosts = [x for x in hosts if x['state'] == DD_STATE_SPAWNED]
@@ -621,7 +647,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             if host['num_reserved_slots'] == 0:
                 self.logger.info('do_housekeep(): removing host %s' % host['id'])
                 self._remove_host(host)
-                hosts.remove(host)
+                # hosts.remove(host)
+                host['state'] = DD_STATE_REMOVED
                 return True
             else:
                 self.logger.debug('do_housekeep(): inactive host %s still has %d reserved slots' %
@@ -686,8 +713,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             host['lifetime_left'] = lifetime
             self.logger.debug('do_housekeep(): host %s has lifetime %d' % (host['id'], lifetime))
 
-    def _select_hosts(self, slots, cur_ts):
-        hosts = self._get_hosts(cur_ts)
+    def _select_hosts(self, slots, token, cur_ts):
+        """ Select pool vm host for provisioning a container.
+            First, oldest active hosts and then the fresh hosts
+        """
+        hosts = self._get_hosts(token, cur_ts)
         active_hosts = self.get_active_hosts(hosts)
 
         # first try to use the oldest active host with space and lifetime left
@@ -713,13 +743,12 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                                                                              len(selected_hosts)))
         return selected_hosts
 
-    def _get_hosts(self, cur_ts):
+    def _get_hosts(self, token, cur_ts):
+        """ Loads the state of the pool vm host through access proxy
+        """
         ap = self._get_ap()
 
-        data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
-
-        hosts = ap.load_json(data_file, [])
-
+        hosts = ap.load_records(token, self.config['INTERNAL_API_BASE_URL'])
         # populate hosts with container data
         for host in hosts:
             if host['state'] not in (DD_STATE_ACTIVE, DD_STATE_INACTIVE):
@@ -747,10 +776,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         return hosts
 
-    def _save_host_state(self, hosts, cur_ts):
+    def _save_host_state(self, hosts, token, cur_ts):
+        """Saves the state of the pool vm host in the database via access proxy
+        """
         ap = self._get_ap()
-        data_file = '%s/%s' % (self.config['INSTANCE_DATA_DIR'], 'docker_driver.json')
-        ap.save_as_json(data_file, hosts)
+        ap.save_records(token, self.config['INTERNAL_API_BASE_URL'], hosts)
 
     def _spawn_host(self, cur_ts, ramp_up=False):
         instance_name = 'pb_dd_%s' % uuid.uuid4().hex

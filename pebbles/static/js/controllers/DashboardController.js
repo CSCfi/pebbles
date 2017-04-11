@@ -4,6 +4,21 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
         var LIMIT_DEFAULT = 100, OFFSET_DEFAULT=0;
 
+        $scope.currentView = "default";
+
+        $scope.toggleClass = function(view){
+            if ($scope.currentView == view){
+                return "active";
+            }
+            return undefined;
+        }
+        $scope.isCurrentView = function(view){
+            if ($scope.currentView == view){
+                return true;
+            }
+            return false;
+        }
+
         var blueprints = Restangular.all('blueprints');
         blueprints.getList().then(function (response) {
             $scope.blueprints = response;
@@ -200,6 +215,40 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             });
         };
 
+        var poolConfigs = Restangular.all('namespaced_keyvalues');
+
+        var fetchPoolConfig = function(){
+            poolConfigs.getList({'namespace': 'DockerDriver'}).then(function (response) {
+                $scope.poolConfigs = response;
+            });
+        };
+
+        fetchPoolConfig();
+
+        $scope.refreshPoolConfig = function() {
+            fetchPoolConfig();
+            $.notify({title: 'HTTP 200', message: 'Pool configs successfully refreshed'}, {type: 'success'});
+        }
+
+        $scope.updateConfig = function(poolConfig) {
+            poolConfigs.one(poolConfig.namespace).one(poolConfig.key).customPUT({
+                 'namespace': poolConfig.namespace,
+                 'key': poolConfig.key,
+                 'value': poolConfig.value,
+                 'updated_version_ts': poolConfig.updated_ts
+               }).then(
+               function(){
+                   $.notify({title: 'HTTP 200', message: 'Config changed successfully'}, {type: 'success'});
+            }, function(response) {
+                   if (response.status == 409) {
+                       $.notify({title: 'HTTP ' + response.status, message: 'Trying to modify an outdated version of config'}, {type: 'danger'});
+                   }
+                   else{
+                       $.notify({title: 'HTTP ' + response.status, message: 'Unknown error'}, {type: 'danger'});
+                   } 
+               });
+                      
+        }
 
         $scope.isAdmin = function() {
             return AuthService.isAdmin();

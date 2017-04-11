@@ -2,7 +2,7 @@
 
 'use strict';
 
-var app = angular.module('PBApp', ['ngRoute', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload', 'schemaForm', 'ui.bootstrap', 'angular-loading-bar', 'angularjs-dropdown-multiselect']);
+var app = angular.module('PBApp', ['ngRoute', 'ngAnimate', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload', 'schemaForm', 'ui.bootstrap', 'angular-loading-bar', 'angularjs-dropdown-multiselect']);
 
 app.run(function($location, Restangular, AuthService) {
     Restangular.setFullRequestInterceptor(function(element, operation, route, url, headers) {

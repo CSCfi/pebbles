@@ -57,3 +57,11 @@ body {
 .initial-input {
     margin-bottom: 5px;
 }
+
+/* Hack for bootstrap errors
+ */
+.form-control-feedback-hack{
+    position: relative;
+    display: inline;
+
+}

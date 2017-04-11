@@ -14,6 +14,7 @@
         <link rel="stylesheet" href="/css/bootstrap-theme.min.css">
         <link rel="stylesheet" href="/css/font-awesome.min.css">
         <link rel="stylesheet" href="/css/loading-bar.min.css">
+        <link rel="stylesheet" href="/css/animations.css">
         <link rel="stylesheet" href="/css/main.css">
 
         <script src="/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
@@ -39,9 +40,9 @@
       </div>
     </nav>
 
-    <div class="container main-view">
-      <pb-notifications></pb-notifications>
-      <div ng-view></div>
+    <div class="container">
+       <pb-notifications></pb-notifications>
+       <div ng-view class="view-animate"></div>
     </div>
 
     <script src="/js/vendor/jquery-1.12.4.min.js"></script>
@@ -55,6 +56,7 @@
     <script src="/js/vendor/angular-upload.min.js"></script>
     <script src="/js/vendor/ObjectPath.js"></script>
     <script src="/js/vendor/angular-sanitize.js"></script>
+    <script src="/js/vendor/angular-animate.min.js"></script>
     <script src="/js/vendor/schema-form.min.js"></script>
     <script src="/js/vendor/tv4.js"></script>
     <script src="/js/vendor/bootstrap-decorator.js"></script>
@@ -85,6 +87,7 @@
     <script type="text/javascript" src="/js/directives/InstanceStatusDirective.js"></script>
     <script type="text/javascript" src="/js/directives/NotificationDirective.js"></script>
     <script type="text/javascript" src="/js/directives/ng-confirm-click.js"></script>
+    <script type="text/javascript" src="/js/directives/JsonValidatorDirective.js"></script>
 
   </body>
 </html>
