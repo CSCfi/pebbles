@@ -70,7 +70,11 @@ class BaseConfig(object):
     MESSAGE_QUEUE_URI = 'redis://redis:6379/0'
     INSTANCE_DATA_DIR = '/var/spool/pb_instances'
     INTERNAL_API_BASE_URL = 'https://api:1443/api/v1'
-    PUBLIC_IPV4 = '127.0.0.1'
+    PUBLIC_IPV4 = (
+        '127.0.0.1',
+        'used by Docker Driver to create access urls'
+        ' so FQDN is actually ok in production'
+    )
     BASE_URL = 'https://localhost:8888'
     MAX_CONTENT_LENGTH = 1024 * 1024
     # ToDo: what uses the below? -jyrsa 2016-11-28
@@ -97,7 +101,7 @@ class BaseConfig(object):
     PLUGIN_WHITELIST = (
         'DummyDriver',
         'A whitespace-separated case-sensitive'
-        ' list of all configuration variables'
+        ' list of all enabled plugins'
     )
     DD_SHUTDOWN_MODE = True
     DD_HOST_IMAGE = 'CentOS-7.0'
@@ -107,11 +111,18 @@ class BaseConfig(object):
     DD_HOST_FLAVOR_SLOTS_SMALL = 6
     DD_HOST_FLAVOR_NAME_LARGE = 'standard.xlarge'
     DD_HOST_FLAVOR_SLOTS_LARGE = 24
-    DD_HOST_MASTER_SG = 'pb_server'
+    DD_HOST_MASTER_SG = (
+        'pb_server',
+        ' openstack security group attached to instances'
+    )
+
     DD_HOST_EXTRA_SGS = ''
     DD_HOST_ROOT_VOLUME_SIZE = 0
     DD_HOST_DATA_VOLUME_FACTOR = 4
-    DD_HOST_DATA_VOLUME_DEVICE = '/dev/vdb'
+    DD_HOST_DATA_VOLUME_DEVICE = (
+        '/dev/vdb',
+        'an optional ephemeral local volume on vm flavor'
+    )
     DD_HOST_DATA_VOLUME_TYPE = ''
 
     PRESERVE_CONTEXT_ON_EXCEPTION = False
