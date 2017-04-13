@@ -32,8 +32,10 @@ Docker Driver
 
 OpenShift Driver
 ================
-Coming soon
 
+.. automodule:: pebbles.drivers.provisioning.openshift_driver
+
+.. autoclass:: pebbles.drivers.provisioning.openshift_driver.OpenShiftDriver
 
 Dummy Driver
 ============
