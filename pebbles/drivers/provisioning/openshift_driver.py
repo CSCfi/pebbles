@@ -1,3 +1,23 @@
+"""
+To set up the OpenShift driver you need
+
+* a workin OpenShift instance
+* a user in the OpenShift instance (a separate machine to machine account is
+  recommended)
+
+1. Start by adding the url, username, password and subdomain in the creds
+file. names are "OSO_XXX_URL", where XXX is the name of your installation
+(there can be multiple installations)
+2. Restart Pebbles
+3. Check out https://github.com/cscfi/notebook-images/
+4. Log in as the M2M user using the *oc* command line utility
+5. run build_openshift.sh to build and publish images to the OpenShift Docker registry
+6. Enable OpenShiftDriver in the Admin UI
+
+
+
+"""
+
 import base64
 import json
 import time

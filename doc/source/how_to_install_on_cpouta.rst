@@ -18,22 +18,24 @@ Prerequisites
 
 * Check that quota on the first page looks ok.
 
-* Upload public key or create a key pair, if you have not done so already (Access and Security -> Key Pairs)
+* Upload public key or create a key pair, if you have not done so already
+  (Access and Security -> Key Pairs)
 
 Create a security group for the server
 --------------------------------------
 
-* In case you are a member of multiple projects in cPouta, select the desired project in the project selection 
-  drop down box on the top of the page 
+* In case you are a member of multiple projects in cPouta, select the desired
+  project in the project selection drop down box on the top of the page 
 
-* Create a security group called 'pb_server' for the server (Access and Security -> Create Security Group)
+* Create a security group called 'pb_server' for the server (Access and
+  Security -> Create Security Group)
 
-* Add ssh and https -access to your workstation IP/subnet (Manage rules -> Add rule) 
-  * ssh: port 22, CIDR: your ip/32 (you can check your ip with e.g. http://www.whatismyip.com/)
-  * https: port 443, CIDR: like above
+* Add ssh and https -access to your workstation IP/subnet (Manage rules -> Add
+  rule) * ssh: port 22, CIDR: your ip/32 (you can check your ip with e.g.
+  http://www.whatismyip.com/) * https: port 443, CIDR: like above
 
-* At this point keep the firewall as restricted as possible. Once the installation is complete, you can open the
-  https-access to all your users.
+* At this point keep the firewall as restricted as possible. Once the
+  installation is complete, you can open the https-access to all your users.
 
 
 Boot the server
@@ -70,10 +72,11 @@ Assign a public IP
 Download machine to machine OpenStack RC -file
 ----------------------------------------------
 
-* Log out and log in to https://pouta.csc.fi again, this time using your machine to machine credentials
+* Log out and log in to https://pouta.csc.fi again, this time using your
+  machine to machine credentials
 
-* Go to (Access and Security -> API Access) and click 'Download OpenStack RC File'. Save the file to a known location
-  on your local computer
+* Go to (Access and Security -> API Access) and click 'Download OpenStack RC
+  File'. Save the file to a known location on your local computer
   
 Part 2: Install software
 ==============================================
@@ -90,8 +93,9 @@ Clone the repository from GitHub::
 
     $ git clone https://github.com/CSCfi/pebbles.git
 
-Run the install script once - you will asked to log out and in again to make unix group changes effective. Here is a 
-good time to reboot the server after the updates::
+Run the install script once - you will asked to log out and in again to make
+unix group changes effective. Here is a good time to reboot the server after
+the updates::
 
     $ ./pebbles/scripts/install_pb.bash
     $ sudo reboot
@@ -100,7 +104,8 @@ Wait while for the server to reboot and copy the m2m OpenStack RC file to the se
 
     $ scp path/to/your/saved/rc-file.bash cloud-user@<public ip of the server>
 
-SSH in again, source your m2m OpenStack credentials (use your m2m password when asked for) and continue installation::
+SSH in again, source your m2m OpenStack credentials (use your m2m password
+when asked for) and continue installation::
 
     $ ssh cloud-user@<public ip of the server>
     $ source your-openrc.bash
@@ -108,7 +113,7 @@ SSH in again, source your m2m OpenStack credentials (use your m2m password when 
 
     
 Part 3: Quick start using the software
---------------------------------------
+======================================
 
 Here is list of tasks for a quick start. 
 
@@ -116,38 +121,49 @@ Here is list of tasks for a quick start.
 Set admin credentials
 ---------------------   
 
-The installation script will print out initialization URL at the end of the installation. Navigate to that, set the
-admin credentials and log in as an admin.
+The installation script will print out initialization URL at the end of the
+installation. Navigate to that, set the admin credentials and log in as an
+admin. If you're using the ansible script you won't see the url, it is of the
+format https://pebbles.example.org/#/initialize .
 
-Configure mail
---------------
+Configure essentials
+--------------------
 
-To configure the outgoing mail settings, go to Configure tab, and change the following:
+One should change at least the following settings
 
-    SENDER_EMAIL: 'your.valid.email@example.org'
-    MAIL_SERVER: 'server.assigned.to.you.by.csc'
-    MAIL_SUPPRESS_SEND: False
+.. autoclass:: pebbles.config.BaseConfig
+   :members: BASE_URL, BRAND_IMAGE, MAIL_SERVER, MAIL_SUPPRESS_SEND, SENDER_EMAIL
+   :undoc-members:
+   :noindex:
 
-Enable OpenStack Driver
------------------------
+See  :py:class:`pebbles.config.BaseConfig`  for all the options.
 
-By default, only a dummy test driver is enabled. To add more drivers for provisioning different resources, you need 
-to edit the _PLUGIN_WHITELIST_ variable. Change DummyDriver to OpenStackDriver:
 
-    PLUGIN_WHITELIST: OpenStackDriver
+Enable a driver
+----------------
 
-The plugin infrastructure running in 'worker' container will periodically check the plugin whitelist
-and upload driver configurations to the API server running in 'api' container. In the case of OpenStackDriver,
-the configuration will dynamically include VM images and flavors that are available for the cPouta project. 
-Refresh the page after a minute or two, and the *Plugins* list on top of the page should include OpenStackDriver
+By default, only a dummy test driver is enabled. To add more drivers for
+provisioning different resources, you need to edit the _PLUGIN_WHITELIST_
+variable. Change this variable to e.g.
+
+    PLUGIN_WHITELIST: OpenStackDriver DummyDriver
+
+The plugin infrastructure running in 'worker' container will periodically
+check the plugin whitelist and upload driver configurations to the API server
+running in 'api' container. In the case of OpenStackDriver, the configuration
+will dynamically include VM images and flavors that are available for the
+cPouta project.  Refresh the page after a minute or two, and the *Plugins*
+list on top of the page should include the driver of your choice.
 
 Create a test blueprint
 -----------------------
 
-Click 'Create Blueprint' next to OpenStackDriver in the plugin list and you are presented by a dialog for configuring 
-the new blueprint. We'll create a blueprint for Ubuntu-14.04 based VM, using standard.tiny flavor, running for 1h maximum. We'll
-also test running a custom command as part of the boot process and allow user to open ssh access to the instance from 
-an arbitrary address
+Click 'Create Blueprint' next to OpenStackDriver in the plugin list and you
+are presented by a dialog for configuring the new blueprint. We'll create a
+blueprint for Ubuntu-14.04 based VM, using standard.tiny flavor, running for
+1h maximum. We'll also test running a custom command as part of the boot
+process and allow user to open ssh access to the instance from an arbitrary
+address
  
 * Name: Ubuntu-14.04 test
 * Description: Test blueprint for launching a single core Ubuntu-14.04 VM in cPouta
@@ -169,14 +185,17 @@ Save the new blueprint and enable it in the Blueprints list.
 Launch a test instance
 ----------------------
 
-Go to 'Dashboard' tab. If you have not uploaded your ssh public key yet, you'll see a notice with a link to do so
-in the Blueprint list. Click the link and upload or generate a public key.
+Go to 'Dashboard' tab. If you have not uploaded your ssh public key yet,
+you'll see a notice with a link to do so in the Blueprint list. Click the link
+and upload or generate a public key.
 
-Go back to 'Dashboard' and launch an instance. You'll notice the new instance in the Instance list. Click on the 
-instance name, that will take you to the detailed view, where you can see the provisioning logs and update access to
-your IP once the instance is up and running. Click on 'Query client IP' to let the system take an educated guess 
-of your IP and then 'Change client IP'. Now the instance firewall is open to that given IP. Copy the ssh -command from 
-the Access field above and paste that to a terminal (or an ssh-client):
+Go back to 'Dashboard' and launch an instance. You'll notice the new instance
+in the Instance list. Click on the instance name, that will take you to the
+detailed view, where you can see the provisioning logs and update access to
+your IP once the instance is up and running. Click on 'Query client IP' to let
+the system take an educated guess of your IP and then 'Change client IP'. Now
+the instance firewall is open to that given IP. Copy the ssh -command from the
+Access field above and paste that to a terminal (or an ssh-client):
 
     $ ssh cloud-user@86.50.xxx.xxx
 
@@ -188,34 +207,49 @@ Check if our boot time customization script worked:
 
 Enable Docker Driver
 --------------------
-Enabling DockerDriver requires a bit more preparation, see [DockerDriver readme](https://github.com/CSCfi/pebbles/blob/master/pouta_blueprints/drivers/provisioning/README_docker_driver.md)
+Enabling DockerDriver requires a bit more preparation, see `Docker driver
+documentation <http://cscfi.github.io/pebbles/README_docker_driver.html>`_
+
+Enable OpenShift Driver
+-----------------------
+
+An OpenShift driver exists, but it's documentation is still incomplete. ToDo:
+a list to the documentation when it is done.
+
+
+
 
 Part 4: Open access to users
 ============================
 
-Once you have set the admin credentials and checked that the system works, you can open the firewall to all the users. 
+Once you have set the admin credentials and checked that the system works, you
+can open the firewall to all the users. 
 
-* Go to pouta.csc.fi -> Access and Security -> Security Groups and select Manage Rules on 'pb_server' group  
+* Go to pouta.csc.fi -> Access and Security -> Security Groups and select
+  Manage Rules on 'pb_server' group  
 
-* Open https -access either globally by selecting 'Add rule' -> port 443, CIDR 0.0.0.0/0 or if the users of the system 
-  should always access it from a certain subnet, use that instead of 0.0.0.0/0
+* Open https -access either globally by selecting 'Add rule' -> port 443, CIDR
+  0.0.0.0/0 or if the users of the system should always access it from a
+  certain subnet, use that instead of 0.0.0.0/0
 
 Part 5: Administrative tasks and troubleshooting
 ================================================
 
-(backing up the central database, cleaning misbehaving VMs and other resources, ...)
-
-TBA 
-
 # Notes on container based deployment
 
-The default installation with the provided script makes a Docker container based deployment. Since the system will have
-OpenStack credentials for the project it is serving and also be exposed to internet, we want to have an extra layer of 
-isolation between http server and provisioning processes holding the credentials. The database (PosgreSQL) and message 
-queue backend (Redis) also run in their own containers, using official vanilla images.
+The default installation with the provided script makes a Docker container
+based deployment. Since the system will have OpenStack credentials for the
+project it is serving and also be exposed to internet, we want to have an
+extra layer of isolation between http server and provisioning processes
+holding the credentials. The database (PosgreSQL) and message queue backend
+(Redis) also run in their own containers, using official vanilla images.
 
-The containers are: api, worker, frontend, db and redis (plus possibly sso, if you enable shibboleth authentication). 
-You can list the status with:
+The connections between containers are as follows:
+
+.. graphviz:: ./ext/structure.dot
+
+The containers are: api, worker, frontend, db and redis (plus possibly sso, if
+you enable shibboleth authentication).  You can list the status with:
 
     $ docker ps
     $ docker ps -a
@@ -226,18 +260,21 @@ Aliases are provided for an easy ssh access:
     $ ssh api
     $ ssh frontend
     
-The api, frontend and worker containers share the git repository that was checked out during installation through a 
-read only shared folder. For other directories shared from the host, see the [Ansible play]
+The api, frontend and worker containers share the git repository that was
+checked out during installation through a read only shared folder. For other
+directories shared from the host, see the [Ansible play]
 (https://github.com/CSCfi/pebbles/blob/master/ansible/roles/single_server_with_docker/tasks/main.yml)
 that sets up the container infrastructure. 
 
-To see the server process logs, take a look at /webapps/pebbles/logs -directory in the container:
+To see the server process logs, take a look at /webapps/pebbles/logs
+-directory in the container:
 
     $ ssh api
     $ ls /webapps/pebbles/logs
 
-You can also launch a tmux based status session, that will have windows open for the host and each of the containers 
-and multiple panes showing status and logs in each window:
+You can also launch a tmux based status session, that will have windows open
+for the host and each of the containers and multiple panes showing status and
+logs in each window:
     
     $ pebbles/scripts/tmux_status.bash
     
