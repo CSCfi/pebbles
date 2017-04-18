@@ -1,4 +1,4 @@
-"""empty message
+"""Add namespaced keyvalues.
 
 Revision ID: 1fa2b55f58bb
 Revises: 5b9110dd4ffd
