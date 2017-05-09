@@ -44,15 +44,17 @@
   command: swapon /dev/mapper/vg_ephemeral-swap
   when: swap_configured|failed
 
-# TODO: in Ansible 2.0, we could use lvol + opts
 - name: Check for docker thin pool
   command: lvdisplay vg_ephemeral/docker
   register: test_lv_docker
   ignore_errors: yes
 
-# TODO: in Ansible 2.0, we could use lvol + opts
 - name: Create docker thin pool
-  command: lvcreate --extents 100%FREE --poolmetadatasize 1G -T vg_ephemeral/docker
+  lvol:
+    vg: vg_ephemeral
+    lv: docker
+    size: 100%FREE
+    opts: --poolmetadatasize 1G -T
   when: test_lv_docker|failed
 
 - name: Upload custom docker storage configuration
