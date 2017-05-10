@@ -125,16 +125,21 @@ class DockerDriverAccessProxy(object):
                 super(ResultCallback, self).__init__()
 
             def v2_runner_on_ok(self, result, **kwargs):
-                self.log('ok :' + str(result._result), info=True)
+                self.log('ok :' + str(result._result))
 
             def v2_runner_on_failed(self, result, **kwargs):
-                self.log(result._result, info=True)
+                warnings = result._result['warnings']
+                error = result._result['stderr']
+                if warnings:
+                    self.log('warning : ' + str(result._result))
+                elif error:
+                    self.log('error : ' + str(result._result), info=True)
 
             def v2_runner_on_skipped(self, result, **kwargs):
-                self.log(result._result, info=True)
+                self.log('skipped : ' + str(result._result))
 
             def v2_runner_on_unreachable(self, result, **kwargs):
-                self.log(result._result, info=True)
+                self.log('unreachable : ' + str(result._result), info=True)
 
             def v2_playbook_on_no_hosts_matched(self, *args, **kwargs):
                 self.log('no hosts matched!')
@@ -629,7 +634,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             try:
                 self._prepare_host(host)
                 host['state'] = DD_STATE_ACTIVE
-                self.logger.info('do_housekeep(): host %s now active' % host['id'])
+                self.logger.info('do_housekeep(): host %s now ACTIVE' % host['id'])
             except Exception as e:
                 self.logger.info('do_housekeep(): preparing host %s failed, %s, on line %d' % (host['id'], e, sys.exc_info()[-1].tb_lineno))
                 self.logger.error(e)
@@ -645,7 +650,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         inactive_hosts = [x for x in hosts if x['state'] == DD_STATE_INACTIVE]
         for host in inactive_hosts:
             if host['num_reserved_slots'] == 0:
-                self.logger.info('do_housekeep(): removing host %s' % host['id'])
+                self.logger.info('do_housekeep(): REMOVING host %s' % host['id'])
                 self._remove_host(host)
                 # hosts.remove(host)
                 host['state'] = DD_STATE_REMOVED
@@ -671,7 +676,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                     ramp_up = False
                 self.logger.debug('do_housekeep(): too few free slots, spawning, ramp_up=%s' % ramp_up)
                 new_host = self._spawn_host(cur_ts, ramp_up)
-                self.logger.info('do_housekeep(): spawned a new host %s' % new_host['id'])
+                self.logger.info('do_housekeep(): SPAWNED a new host %s' % new_host['id'])
                 hosts.append(new_host)
                 return True
             else:
@@ -683,7 +688,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         active_hosts = self.get_active_hosts(hosts)
         for host in active_hosts:
             if host['lifetime_left'] == 0 and host['num_reserved_slots'] == 0:
-                self.logger.info('do_housekeep(): making host %s inactive' % host['id'])
+                self.logger.info('do_housekeep(): making host %s INACTIVE' % host['id'])
                 host['state'] = DD_STATE_INACTIVE
                 return True
             if host.get('error_count') > DD_MAX_HOST_ERRORS:
