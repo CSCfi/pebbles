@@ -23,6 +23,18 @@ def favicon():
     return app.send_static_file('favicon.ico')
 
 
+@app.after_request
+def add_header(r):
+    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    r.headers["Pragma"] = "no-cache"
+    r.headers["Expires"] = "0"
+    r.headers['Strict-Transport-Security'] = 'max-age=31536000'
+    # does not work without unsafe-inline / unsafe-eval
+    r.headers['Content-Security-Policy'] = "img-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' wss://{{ domain_name }} ; style-src 'self' 'unsafe-inline'; default-src 'self'"
+
+    return r
+
+
 test_run = set(['test', 'covtest']).intersection(set(sys.argv))
 
 if test_run:
@@ -45,7 +57,7 @@ bcrypt.init_app(app)
 db.init_app(app)
 
 
-def run_things_in_context(test_run):
+def run_things_in_context(is_test_run):
     # This is only split into a function so we can easily test some of it's
     # behavior.
     with app.app_context():
@@ -54,7 +66,7 @@ def run_things_in_context(test_run):
         # in the future
         if os.environ.get("DB_AUTOMIGRATION", None) and \
            os.environ.get("DB_AUTOMIGRATION", None) not in ["0", 0] and \
-           not test_run:
+           not is_test_run:
             flask_upgrade_db_to_head()
 
 

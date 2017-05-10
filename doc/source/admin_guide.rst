@@ -14,6 +14,7 @@ Contents:
    
    system_architecture
    how_to_install_on_cpouta
+   how_to_deploy_on_openshift
    database_migrations
    configuring
    drivers

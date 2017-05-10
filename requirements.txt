@@ -107,3 +107,7 @@ WTForms==2.1
 WTForms-Alchemy==0.13.0
 WTForms-Components==0.9.9
 python-neutronclient==6.1.1
+
+# for s2i
+psycopg2==2.7.1
+gunicorn==19.7.1
