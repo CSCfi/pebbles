@@ -1,0 +1,2 @@
+DEBUG: True
+SECRET_KEY: do_not_use_me_in_production
