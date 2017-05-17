@@ -54,6 +54,7 @@ class PBClientMock(object):
             id='%s' % instance_id,
             name='pb-%s' % instance_id,
             username='user1@example.com',
+            user_id='1111-1111-1111-1111',
             state='starting',
             blueprint_id=blueprint_id
         )
@@ -131,7 +132,7 @@ class OpenShiftDriverTestCase(BaseTestCase):
         osdam = osd._get_access_proxy()
         osc = osdam.get_openshift_client('TEST')
 
-        user1_ns = 'user1-at-example-com'
+        user1_ns = 'user1-at-example-com-1111'
 
         # spawn a simple instance and destroy it
         osdam.pbc_mock.add_instance_data('1001')
@@ -145,7 +146,7 @@ class OpenShiftDriverTestCase(BaseTestCase):
         osdam = osd._get_access_proxy()
         osc = osdam.get_openshift_client('TEST')
 
-        user1_ns = 'user1-at-example-com'
+        user1_ns = 'user1-at-example-com-1111'
 
         # spawn an instance with a volume
         osdam.pbc_mock.add_instance_data('1002', blueprint_id='bp-02')

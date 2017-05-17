@@ -61,6 +61,11 @@ CONFIG = {
                 'title': 'Autodownload file name',
                 'default': '',
             },
+            'show_password': {
+                'type': 'boolean',
+                'title': 'Show the required password/token (if any), to the user',
+                'default': True,
+            },
         }
     },
     'form': [
@@ -77,6 +82,7 @@ CONFIG = {
         'environment_vars',
         'autodownload_url',
         'autodownload_filename',
+        'show_password',
         'memory_limit',
         'maximum_instances_per_user',
         'maximum_lifetime',
