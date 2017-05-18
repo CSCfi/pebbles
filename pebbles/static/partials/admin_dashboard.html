@@ -1,4 +1,11 @@
 <div id="admin-dashboard">
+  <div>
+    <ul class="nav nav-pills">
+      <li ng-class="toggleClass('default')"><a href="" ng-click="currentView='default'">Blueprints/Instances</a></li>
+      <li ng-class="toggleClass('pools')"><a href="" ng-click="currentView='pools'">Driver Hosts</a></li>
+    </ul>
+  </div>
+  <div id="default" class="dashbox" ng-show="isCurrentView('default')">
     <h1>Blueprints</h1>
     <table class="table table-striped">
         <thead>
@@ -112,6 +119,31 @@
     <div class="pull-right">
         <small><a href="/#/user-dashboard"><span class="glyphicon glyphicon-th-large"></span> view as user</a></small> 
     </div>
+</div>
 
-
+  <div id="pools" class="dashbox" ng-show="isCurrentView('pools')">
+        <h1> Pool VMs </h1>
+        <p>
+          <button type="button" class="btn btn-default" ng-click="refreshPoolConfig()" ng-disabled="poolConfigs == undefined || !poolConfigs.length">
+              <span class="glyphicon glyphicon-refresh"></span> Refresh All
+          </button>
+        </p>
+        <form name="poolForm">
+        <div ng-repeat="poolConfig in poolConfigs">
+        <div ng-class="{true: 'form-group has-error', false: 'form-group'}[poolForm.poolJsonConfig_{{$index}}.$dirty && poolForm.poolJsonConfig_{{$index}}.$invalid]">
+            <label class="form-control-label">Pool VM Config - Namespace: {{poolConfig.namespace}} | Key: {{poolConfig.key}}</label>
+            <textarea name="poolJsonConfig_{{$index}}" class="form-control" rows="15" cols="100" ng-model="poolConfig.value" required json-validate>
+            </textarea>
+            <span class="form-control-feedback form-control-feedback-hack" ng-show="poolForm.poolJsonConfig_{{$index}}.$dirty && poolForm.poolJsonConfig_{{$index}}.$invalid">
+                <span ng-show="poolForm.poolJsonConfig_{{$index}}.$error.required">Config is empty!</span>
+                <span ng-show="poolForm.poolJsonConfig_{{$index}}.$error.jsonValid">Invalid Json</span>
+            </span>
+        </div>
+        <p>
+        <input class="btn btn-primary" type="button" value="Update Config" ng-click="updateConfig(poolConfig)"
+            ng-disabled="poolForm.poolJsonConfig_{{$index}}.$pristine || poolForm.poolJsonConfig_{{$index}}.$dirty && poolForm.poolJsonConfig_{{$index}}.$invalid">
+        </p>
+        </div>
+        </form>
+  </div>
 </div>
