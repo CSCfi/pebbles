@@ -3,10 +3,11 @@ import logging
 import docker.errors
 import pebbles.drivers.provisioning.docker_driver as docker_driver
 from pebbles.tests.base import BaseTestCase
-from pebbles.drivers.provisioning.docker_driver import DD_STATE_ACTIVE, DD_STATE_INACTIVE, DD_STATE_SPAWNED
+from pebbles.drivers.provisioning.docker_driver import DD_STATE_ACTIVE, DD_STATE_INACTIVE, DD_STATE_SPAWNED, DD_STATE_REMOVED, NAMESPACE, KEY_PREFIX
 import mock
 from sys import version_info
 import docker.utils
+import time
 
 if version_info.major == 2:
     import __builtin__ as builtins
@@ -158,6 +159,7 @@ class PBClientMock(object):
             memory_limit=config['memory_limit'],
             environment_vars=config['environment_vars']
         )
+        self.namespaced_records = []
 
     def add_instance_data(self, instance_id):
         self.instance_data[instance_id] = dict(
@@ -179,6 +181,36 @@ class PBClientMock(object):
         if 'instance_data' in data.keys() and isinstance(data['instance_data'], str):
             data['instance_data'] = json.loads(data['instance_data'])
 
+    def _filter_namespaced_records(self, namespace, key=None):
+        filters = [lambda x: x['namespace'] == namespace]
+        if key:
+            filters.append(lambda x: x['key'] == key)
+
+        filtered_record = filter(
+            lambda record: all(f(record) for f in filters),
+            self.namespaced_records
+        )
+        return list(filtered_record)
+
+    def get_namespaced_keyvalues(self, payload=None):
+        filtered_records = self._filter_namespaced_records(payload['namespace'])
+        return filtered_records
+
+    def create_namespaced_keyvalue(self, payload):
+        if not self._filter_namespaced_records(payload['namespace'], payload['key']):
+            payload['updated_ts'] = time.time()
+            self.namespaced_records.append(payload)
+
+    def modify_namespaced_keyvalue(self, namespace, key, payload):
+        filtered_record = self._filter_namespaced_records(payload['namespace'], payload['key'])
+        filtered_record[0]['value'] = payload['value']
+        filtered_record[0]['updated_ts'] = time.time()
+
+    def delete_namespaced_keyvalue(self, namespace, key):
+        filtered_record = self._filter_namespaced_records(namespace, key)
+        if filtered_record:
+            self.namespaced_records.remove(filtered_record[0])
+
 
 # noinspection PyUnusedLocal
 class DockerDriverAccessMock(object):
@@ -190,11 +222,32 @@ class DockerDriverAccessMock(object):
         self.shutdown_mode = False
         self.failure_mode = False
 
-    def load_json(self, data_file, default):
-        return self.json_data.get(data_file, default)
+    def load_records(self, token=None, url=None):
+        namespaced_records = self.pbc_mock.get_namespaced_keyvalues({'namespace': NAMESPACE})
+        hosts = []
+        for ns_record in namespaced_records:
+            ns_record['value']['updated_ts'] = ns_record['updated_ts']
+            hosts.append(ns_record['value'])
+        return hosts
 
-    def save_as_json(self, data_file, data):
-        self.json_data[data_file] = data
+    def save_records(self, token, url, hosts):
+        for host in hosts:
+            _key = '%s_%s' % (KEY_PREFIX, host['id'])
+            payload = {
+                'namespace': NAMESPACE,
+                'key': _key
+            }
+            if host.get('state') == DD_STATE_SPAWNED:
+                payload['value'] = host
+                self.pbc_mock.create_namespaced_keyvalue(payload)
+            elif host.get('state') == DD_STATE_REMOVED:
+                self.pbc_mock.delete_namespaced_keyvalue(NAMESPACE, _key)
+            else:
+                updated_version_ts = host['updated_ts']
+                del host['updated_ts']
+                payload['value'] = host
+                payload['updated_version_ts'] = updated_version_ts
+                self.pbc_mock.modify_namespaced_keyvalue(NAMESPACE, _key, payload)
 
     def get_docker_client(self, docker_url):
         if docker_url not in self.dc_mocks.keys():
@@ -223,7 +276,7 @@ class DockerDriverAccessMock(object):
 
     def __repr__(self):
         res = dict(
-            json_data=self.json_data,
+            hosts_data=self.hosts_data,
             oss_mock='%s' % self.oss_mock
         )
         return json.dumps(res)
@@ -281,7 +334,7 @@ class DockerDriverTestCase(BaseTestCase):
         cur_ts = 1000000
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 1)
-        hosts_data = ddam.json_data['/tmp/docker_driver.json']
+        hosts_data = ddam.load_records()
         host = hosts_data[0]
         self.assertEquals(host['state'], DD_STATE_SPAWNED)
         self.assertEquals(host['spawn_ts'], cur_ts)
@@ -290,7 +343,7 @@ class DockerDriverTestCase(BaseTestCase):
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 1)
-        hosts_data = ddam.json_data['/tmp/docker_driver.json']
+        hosts_data = ddam.load_records()
         host = hosts_data[0]
         self.assertEquals(host['state'], DD_STATE_ACTIVE)
 
@@ -324,39 +377,39 @@ class DockerDriverTestCase(BaseTestCase):
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 1)
-        host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
+        hosts_data = ddam.load_records()
+        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE})
 
         # manipulate the host data a bit so that the host is marked as used
-        host_file_data[0]['lifetime_tick_ts'] = cur_ts
+        hosts_data[0]['lifetime_tick_ts'] = cur_ts
 
         # fast forward time past host lifetime, should have one active and one spawned
         cur_ts += 60 + docker_driver.DD_HOST_LIFETIME
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 2)
-        host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE, DD_STATE_SPAWNED})
+        hosts_data = ddam.load_records()
+        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE, DD_STATE_SPAWNED})
 
         # next tick: should have two active
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 2)
-        host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE, DD_STATE_ACTIVE})
+        hosts_data = ddam.load_records()
+        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE, DD_STATE_ACTIVE})
 
         # next tick: should have one inactive, one active
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 2)
-        host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_INACTIVE, DD_STATE_ACTIVE})
+        hosts_data = ddam.load_records()
+        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_INACTIVE, DD_STATE_ACTIVE})
 
         # last tick: should have one active
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         self.assertEquals(len(ddam.oss_mock.servers), 1)
-        host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
+        hosts_data = ddam.load_records()
+        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE})
 
     @mock_open_context
     def test_provision_deprovision(self):
@@ -515,24 +568,24 @@ class DockerDriverTestCase(BaseTestCase):
 
         # change the state to inactive under the hood (this is possible due to a race
         # between housekeep() and provision())
-        host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        host_file_data[0]['state'] = DD_STATE_INACTIVE
+        hosts_data = ddam.load_records()
+        hosts_data[0]['state'] = DD_STATE_INACTIVE
 
         for i in range(5):
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
-
+        hosts_data = ddam.load_records()
         self.assertEquals(len(ddam.oss_mock.servers), 2)
-        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_INACTIVE, DD_STATE_ACTIVE})
+        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_INACTIVE, DD_STATE_ACTIVE})
 
         # remove the instance and check that the host is removed also
         dd._do_deprovision(token='foo', instance_id='1000')
         for i in range(5):
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
-
+        hosts_data = ddam.load_records()
         self.assertEquals(len(ddam.oss_mock.servers), 1)
-        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
+        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE})
 
     @mock_open_context
     def test_prepare_failing(self):
@@ -547,14 +600,15 @@ class DockerDriverTestCase(BaseTestCase):
         ddam.failure_mode = True
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_SPAWNED})
+        hosts_data = ddam.load_records()
+        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_SPAWNED})
 
         # recover
         ddam.failure_mode = False
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
+        hosts_data = ddam.load_records()
+        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE})
 
     @mock_open_context
     def test_prepare_failing_max_retries(self):
@@ -571,19 +625,20 @@ class DockerDriverTestCase(BaseTestCase):
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        host_file_data = ddam.json_data['/tmp/docker_driver.json']
-        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_INACTIVE})
+        hosts_data = ddam.load_records()
+        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_INACTIVE})
 
         ddam.failure_mode = False
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        self.assertEqual(len(host_file_data), 0)
+        hosts_data = ddam.load_records()  # Load the hosts_data each time to get the latest updates
+        self.assertEqual(len(hosts_data), 0)
 
         for i in range(2):
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
-
-        self.assertSetEqual({x['state'] for x in host_file_data}, {DD_STATE_ACTIVE})
+        hosts_data = ddam.load_records()
+        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE})
 
     @mock_open_context
     def test_docker_comm_probs(self):

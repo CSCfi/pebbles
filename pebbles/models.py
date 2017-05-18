@@ -643,7 +643,7 @@ class NamespacedKeyValue(db.Model):
 
     @hybrid_property
     def value(self):
-        return self._value  # Return the json string itself, as the UI has a textfield for modifying it
+        return load_column(self._value)  # Return the json string itself, as the UI has a textfield for modifying it
 
     @value.setter
     def value(self, val):

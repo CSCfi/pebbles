@@ -6,7 +6,7 @@ cause gray hair.
 
 from flask.ext.wtf import Form
 from wtforms_alchemy import model_form_factory
-from wtforms import BooleanField, StringField, FloatField
+from wtforms import BooleanField, FloatField, StringField
 # from wtforms import FormField, FieldList
 from wtforms.validators import DataRequired, Email, Length, IPAddress, Regexp
 

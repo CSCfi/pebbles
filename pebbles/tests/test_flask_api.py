@@ -2155,14 +2155,14 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/namespaced_keyvalues',
-            data=json.dumps({'namespace': 'MockDriver', 'key': 'test_pool_vm_0', 'value': {"attr": "val"}})
+            data=json.dumps({'namespace': 'MockDriver', 'key': 'test_pool_vm_0', 'value': json.dumps({"attr": "val"})})
         )
         self.assert_200(response)
 
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/namespaced_keyvalues',
-            data=json.dumps({'namespace': 'TestDriver', 'key': 'test_pool_vm_1', 'value': {"attr": "val"}})
+            data=json.dumps({'namespace': 'TestDriver', 'key': 'test_pool_vm_1', 'value': json.dumps({"attr": "val"})})
         )
         self.assert_200(response)
 
@@ -2186,7 +2186,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/namespaced_keyvalues',
-            data=json.dumps({'namespace': 'TestDriver', 'key': 'test_pool_vm_2', 'value': {"attr": "val"}})
+            data=json.dumps({'namespace': 'TestDriver', 'key': 'test_pool_vm_2', 'value': json.dumps({"attr": "val"})})
         )
         self.assert_200(response)
 
@@ -2194,7 +2194,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/namespaced_keyvalues',
-            data=json.dumps({'namespace': 'TestDriver', 'key': 'test_pool_vm_2', 'value': {"attr": "new_val"}})
+            data=json.dumps({'namespace': 'TestDriver', 'key': 'test_pool_vm_2', 'value': json.dumps({"attr": "new_val"})})
         )
         self.assertStatus(response, 422)
 
@@ -2212,7 +2212,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/namespaced_keyvalues/%s/%s' % (ns, key),
-            data=json.dumps({'namespace': ns, 'key': key, 'value': {"attr": "NEW_VAL"}, 'updated_version_ts': ts})
+            data=json.dumps({'namespace': ns, 'key': key, 'value': json.dumps({"attr": "NEW_VAL"}), 'updated_version_ts': ts})
         )
         self.assert_200(response)
 
@@ -2244,21 +2244,21 @@ class FlaskApiTestCase(BaseTestCase):
         invalid_response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/namespaced_keyvalues/%s/%s' % (ns, key),
-            data=json.dumps({'namespace': ns, 'key': key, 'value': {"attr": "val"}, 'updated_version_ts': 'bogusx10'})
+            data=json.dumps({'namespace': ns, 'key': key, 'value': json.dumps({"attr": "val"}), 'updated_version_ts': 'bogusx10'})
         )
         self.assertStatus(invalid_response, 422)
         # namespace and key cannot change
         invalid_response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/namespaced_keyvalues/%s/%s' % (ns, key),
-            data=json.dumps({'namespace': ns, 'key': 'bogus_key', 'value': {"attr": "val"}, 'updated_version_ts': ts})
+            data=json.dumps({'namespace': ns, 'key': 'bogus_key', 'value': json.dumps({"attr": "val"}), 'updated_version_ts': ts})
         )
         self.assertStatus(invalid_response, 422)
 
         invalid_response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/namespaced_keyvalues/%s/%s' % (ns, key),
-            data=json.dumps({'namespace': 'Bogus', 'key': 'bogus_key', 'value': {"attr": "val"}, 'updated_version_ts': ts})
+            data=json.dumps({'namespace': 'Bogus', 'key': 'bogus_key', 'value': json.dumps({"attr": "val"}), 'updated_version_ts': ts})
         )
         self.assertStatus(invalid_response, 422)
 
@@ -2276,7 +2276,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/namespaced_keyvalues/%s/%s' % (namespace, key),
-            data=json.dumps({'namespace': namespace, 'key': key, 'value': {"attr": "val"}, 'updated_version_ts': ts})
+            data=json.dumps({'namespace': namespace, 'key': key, 'value': json.dumps({"attr": "val"}), 'updated_version_ts': ts})
         )
         self.assert_200(response)
 
@@ -2284,7 +2284,7 @@ class FlaskApiTestCase(BaseTestCase):
         invalid_response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/namespaced_keyvalues/%s/%s' % (namespace, key),
-            data=json.dumps({'namespace': namespace, 'key': key, 'value': {"another_attr": "another_val"}, 'updated_version_ts': ts})
+            data=json.dumps({'namespace': namespace, 'key': key, 'value': json.dumps({"another_attr": "another_val"}), 'updated_version_ts': ts})
         )
         self.assertStatus(invalid_response, 409)
 
