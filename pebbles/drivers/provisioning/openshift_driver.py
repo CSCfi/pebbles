@@ -31,7 +31,7 @@ from pebbles.client import PBClient
 from pebbles.drivers.provisioning import base_driver
 
 # maximum time to wait for pod creation before failing
-MAX_POD_SPAWN_WAIT_TIME_SEC = 600
+MAX_POD_SPAWN_WAIT_TIME_SEC = 120
 # maximum time to wait for pod (down) scaling
 MAX_POD_SCALE_WAIT_TIME_SEC = 60
 # refresh the token if it is this close to expiration
@@ -39,7 +39,19 @@ TOKEN_REFRESH_DELTA = 600
 
 
 class OpenShiftClient(object):
+    """
+    An abstraction of accessing an OpenShift cluster
+    """
+
     def __init__(self, base_url, subdomain, user, password):
+        """
+        Constructor
+
+        :param base_url: url to access the api, like https://oso.example.org:8443/
+        :param subdomain: the subdomain for creating the routes, like osoapps.example.org
+        :param user:
+        :param password:
+        """
         if base_url[-1] == '/':
             base_url = base_url[:-1]
         self.base_url = base_url
@@ -72,6 +84,12 @@ class OpenShiftClient(object):
             print('error in response: %s %s %s' % (resp.status_code, resp.reason, resp.text))
 
     def _request_token(self, current_ts=None):
+        """
+        Requests an access token for the cluster
+
+        :param current_ts: current timestamp
+        :return: dict containing access_token, lifetime and expiry time
+        """
         url = self.base_url + '/oauth/authorize'
         auth_encoded = base64.b64encode(bytes('%s:%s' % (self.user, self.password)))
 
@@ -101,7 +119,9 @@ class OpenShiftClient(object):
         }
 
     def _get_token(self, current_ts=None):
-
+        """
+        Caching version of _request_token
+        """
         if not self.token_data:
             self.token_data = self._request_token(current_ts)
         else:
@@ -113,6 +133,14 @@ class OpenShiftClient(object):
         return self.token_data['access_token']
 
     def _construct_object_url(self, kubeapi, namespace=None, object_kind=None, object_id=None):
+        """
+        Create a url string for given object
+        :param kubeapi: whether plain k8s or oso api is used
+        :param namespace: namespace for the object
+        :param object_kind: type of the object
+        :param object_id: id of the object
+        :return: url string, like 'https://oso.example.org:8443/api/v1/my-project/pods/18hfgy1'
+        """
         if kubeapi:
             url_components = [self.kube_base_url]
         else:
@@ -131,6 +159,20 @@ class OpenShiftClient(object):
 
     def make_request(self, method=None, kubeapi=False, verbose=False, namespace=None, object_kind=None, object_id=None,
                      params=None, data=None, raise_on_failure=True):
+        """
+        Makes a request to OpenShift API
+
+        :param method: GET, PUT, POST
+        :param kubeapi: whether plain k8s or oso api is used
+        :param verbose: debugging on
+        :param namespace: namespace for the object
+        :param object_kind: type of the object
+        :param object_id: id of the object
+        :param params: request parameters
+        :param data: request data
+        :param raise_on_failure: should we raise a RuntimeError on failure
+        :return: response object from requests session
+        """
         url = self._construct_object_url(kubeapi, namespace, object_kind, object_id)
         headers = {'Authorization': 'Bearer %s' % self._get_token()}
         if isinstance(data, dict):
@@ -157,6 +199,17 @@ class OpenShiftClient(object):
 
     def make_delete_request(self, kubeapi=False, verbose=False, namespace=None, object_kind=None, object_id=None,
                             raise_on_failure=True):
+        """
+        Makes a delete request to OpenShift API
+
+        :param kubeapi: whether plain k8s or oso api is used
+        :param verbose: debugging on
+        :param namespace: namespace for the object
+        :param object_kind: type of the object
+        :param object_id: id of the object
+        :param raise_on_failure: should we raise a RuntimeError on failure
+        :return: response object from requests session
+        """
         url = self._construct_object_url(kubeapi, namespace, object_kind, object_id)
         headers = {'Authorization': 'Bearer %s' % self._get_token()}
 
@@ -170,6 +223,15 @@ class OpenShiftClient(object):
         return resp
 
     def search_by_label(self, kubeapi=False, namespace=None, object_kind=None, params=None):
+        """
+        Performs a search by label(s)
+
+        :param kubeapi: k8s api instead of openshift
+        :param namespace:
+        :param object_kind:
+        :param params: a dict containing search criteria, like {'labelSelector': 'app=my-app'}
+        :return: search results as json
+        """
         res = self.make_request(
             kubeapi=kubeapi,
             namespace=namespace,
@@ -181,6 +243,10 @@ class OpenShiftClient(object):
 
 
 class OpenShiftDriverAccessProxy(object):
+    """
+    Abstraction layer for isolating driver from real world to enable mocking in unit tests
+    """
+
     def __init__(self, m2m_creds):
         self._m2m_creds = m2m_creds
 
@@ -242,6 +308,13 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         return self._do_provision(token, instance_id, int(time.time()))
 
     def _do_provision(self, token, instance_id, cur_ts):
+        """
+        Provisions a new instance on OpenShift.
+
+        :param token: token to access the API with
+        :param instance_id: instance that should be provisioned
+        :param cur_ts: current time
+        """
         ap = self._get_access_proxy()
 
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
@@ -264,6 +337,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         # create a dict out of space separated list of VAR=VAL entries
         env_var_array = blueprint_config.get('environment_vars', '').split()
         env_vars = {k: v for k, v in [x.split('=') for x in env_var_array]}
+        env_vars['INSTANCE_ID'] = instance_id
 
         # merge the autodownload vars into environment
         for var_suffix in ('url', 'filename'):
@@ -294,6 +368,9 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
             'spawn_ts': cur_ts
         }
 
+        if 'show_password' in blueprint_config and blueprint_config['show_password']:
+            instance_data['password'] = instance_id
+
         pbclient.do_instance_patch(
             instance_id,
             {
@@ -306,7 +383,20 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
     # noinspection PyTypeChecker
     def _spawn_project_and_a_pod(self, oc, project_name, pod_name, pod_image, port, pod_memory,
                                  volume_mount_point=None, environment_vars=None):
+        """
+        Creates an OpenShift project (if needed) and launches a pod in it. If a volume mount point is requested,
+        a volume is allocated (if needed) and mounted to the pod. A secure route is also created.
 
+        :param oc: openshift client to use
+        :param project_name: namespace/project name
+        :param pod_name: pod name
+        :param pod_image: image to use for pod
+        :param port: the port to expose
+        :param pod_memory: amount of memory to reserve
+        :param volume_mount_point: where the persistent data should be mounted in the pod
+        :param environment_vars: environment vars to set in the pod
+        :return: dict with key 'route' set to the provisioned route to the instance
+        """
         # https://server:8443/oapi/v1/projectrequests
         project_data = oc.make_base_kube_object('ProjectRequest', project_name)
 
@@ -555,6 +645,21 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         return self._do_deprovision(token, instance_id)
 
     def _do_deprovision(self, token, instance_id):
+        """
+        Deprovisions an instance. It removes
+        - DeploymentConfig (DC)
+        - ReplicationController (RC)
+        - Service
+        - Route
+
+        DC is removed first, then RC is scaled down to get rid of Pods. When the Pods are gone, RC is removed.
+        Then Service and Route are removed.
+
+        Any volumes attached to the instance are left intact, as well as the project the instance is running in.
+
+        :param token: token to access API
+        :param instance_id: the instance to delete
+        """
         self.logger.debug('do_deprovision %s' % instance_id)
 
         ap = self._get_access_proxy()
@@ -576,17 +681,6 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         name = instance['name']
         project = self._get_project_name(instance)
 
-        # first set replicas to 0 and let pods die
-        params = dict(labelSelector='run=%s' % name)
-        rc_list = oc.search_by_label(
-            kubeapi=True,
-            namespace=project,
-            object_kind='replicationcontrollers',
-            params=params
-        )
-        for rc in rc_list:
-            self._scale_rc(oc, project, rc, 0)
-
         # remove dc
         res = oc.make_delete_request(
             namespace=project,
@@ -599,6 +693,18 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
                 self.logger.warning('do_deprovision: DC not found, assuming deleted: %s' % name)
             else:
                 raise RuntimeError(res.reason)
+
+        # find rc
+        params = dict(labelSelector='run=%s' % name)
+        rc_list = oc.search_by_label(
+            kubeapi=True,
+            namespace=project,
+            object_kind='replicationcontrollers',
+            params=params
+        )
+        # then set replicas to 0 and let pods die
+        for rc in rc_list:
+            self._scale_rc(oc, project, rc, 0)
 
         # remove rc
         for rc in rc_list:
@@ -646,7 +752,15 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
 
     @staticmethod
     def _scale_rc(oc, project, rc, num_replicas):
+        """
+        Scale a ReplicationController and wait for the amount of replicas to catch up. The maximum waiting time
+        is taken from MAX_POD_SCALE_WAIT_TIME_SEC
 
+        :param oc: the openshift client to use
+        :param project: project name
+        :param rc: ReplicationController name
+        :param num_replicas: new number of replicas
+        """
         # scale the pods down
         rc['spec']['replicas'] = num_replicas
         res = oc.make_request(
@@ -678,10 +792,20 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
 
     @staticmethod
     def _get_project_name(instance):
+        """
+        Generate a project name from instance data. If the instance data already has 'project_name' attribute,
+        use that.
+
+        :param instance: dict containing instance data
+        :return: project name based on username and first 4 characters of user id
+        """
         if 'instance_data' in instance and 'project_name' in instance['instance_data']:
             return instance['instance_data']['project_name']
         else:
-            return instance['username'].replace('@', '-at-').replace('.', '-').lower()
+            # create a project name based on username and userid
+            name = ('%s-%s' % (instance['username'], instance['user_id'][:4]))
+            name = name.replace('@', '-at-').replace('.', '-').lower()
+            return name
 
     def do_housekeep(self, token):
         # TODO: Implement optional cleaning of the old projects.
