@@ -46,6 +46,11 @@ CONFIG = {
                 'pattern': '^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?$',
                 'validationMessage': 'Value should be in format [days]d [hours]h [minutes]m'
             },
+            'cost_multiplier': {
+                'type': 'number',
+                'title': 'Cost multiplier',
+                'default': 0.0,
+            },
             'environment_vars': {
                 'type': 'string',
                 'title': 'environment variables for docker, separated by space',
@@ -86,10 +91,12 @@ CONFIG = {
         'memory_limit',
         'maximum_instances_per_user',
         'maximum_lifetime',
+        'cost_multiplier'
     ],
     'model': {
         'name': 'openshift_testing',
         'description': 'openshift testing template',
+        'cost_multiplier': 0.0,
         'port': 8888,
         'image': '',
         'memory_limit': '512M',
