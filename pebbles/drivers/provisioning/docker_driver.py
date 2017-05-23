@@ -239,9 +239,9 @@ class DockerDriverAccessProxy(object):
         extra_vars = dict()
         extra_vars['ansible_ssh_extra_args'] = '-o StrictHostKeyChecking=no'
 
+        logger.debug('Setting config....')
         if 'DD_HOST_DATA_VOLUME_DEVICE' in config:
             extra_vars['notebook_host_block_dev_path'] = config['DD_HOST_DATA_VOLUME_DEVICE']
-
         variable_manager.extra_vars = extra_vars
         pb_executor = playbook_executor.PlaybookExecutor(
             playbooks=['/webapps/pebbles/source/ansible/notebook_playbook.yml'],

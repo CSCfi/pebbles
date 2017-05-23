@@ -13,10 +13,8 @@ from selenium.webdriver.common.keys import Keys
 
 from pebbles.server import app
 from pebbles.models import db
-from pebbles.config import BaseConfig
 from pebbles.config import TestConfig
 from pebbles.config import LiveTestConfig
-from pebbles.models import Variable
 
 
 class BaseTestCase(TestCase):
@@ -67,7 +65,6 @@ class SeleniumBaseTestCase(LiveServerTestCase):
             self.db.drop_all()
             self.db.create_all()
         primary_test_setup(self)
-        Variable.sync_local_config_to_db(BaseConfig, self.config)
         self.drivers = [webdriver.Firefox()]
 
     def tearDown(self):

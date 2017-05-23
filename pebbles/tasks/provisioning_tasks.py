@@ -1,7 +1,7 @@
 import json
 
 from pebbles.client import PBClient
-from pebbles.tasks.celery_app import get_token, get_config, do_post, local_config, logger
+from pebbles.tasks.celery_app import get_token, do_post, logger, local_config, get_dynamic_config
 from pebbles.tasks.celery_app import celery_app
 
 
@@ -13,14 +13,14 @@ def get_provisioning_manager():
     """
     from stevedore import dispatch
 
-    config = get_config()
-    if config.get('PLUGIN_WHITELIST', ''):
-        plugin_whitelist = config.get('PLUGIN_WHITELIST').split()
+    dynamic_config = get_dynamic_config()
+    if dynamic_config.get('PLUGIN_WHITELIST'):
+        plugin_whitelist = dynamic_config.get('PLUGIN_WHITELIST').split()
         mgr = dispatch.NameDispatchExtensionManager(
             namespace='pebbles.drivers.provisioning',
             check_func=lambda x: x.name in plugin_whitelist,
             invoke_on_load=True,
-            invoke_args=(logger, get_config()),
+            invoke_args=(logger, dynamic_config),
         )
     else:
         # ahem, load all plugins if string is empty or not available?
@@ -29,7 +29,7 @@ def get_provisioning_manager():
             namespace='pebbles.drivers.provisioning',
             check_func=lambda x: True,
             invoke_on_load=True,
-            invoke_args=(logger, get_config()),
+            invoke_args=(logger, dynamic_config),
         )
 
     logger.debug('provisioning manager loaded, extensions: %s ' % mgr.names())

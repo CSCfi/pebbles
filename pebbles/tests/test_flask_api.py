@@ -8,8 +8,7 @@ import time
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.models import (
     User, Group, GroupUserAssociation, BlueprintTemplate, Blueprint,
-    ActivationToken, Instance, Variable, NamespacedKeyValue)
-from pebbles.config import BaseConfig
+    ActivationToken, Instance, NamespacedKeyValue)
 from pebbles.views import activations
 
 from pebbles.tests.fixtures import primary_test_setup
@@ -31,8 +30,7 @@ class FlaskApiTestCase(BaseTestCase):
         }
         db.create_all()
         primary_test_setup(self)
-        conf = BaseConfig()
-        Variable.sync_local_config_to_db(BaseConfig, conf)
+        # conf = BaseConfig()
 
     def make_request(self, method='GET', path='/', headers=None, data=None):
         assert method in self.methods
@@ -1741,78 +1739,6 @@ class FlaskApiTestCase(BaseTestCase):
     def test_what_is_my_ip(self):
         response = self.make_authenticated_user_request(path='/api/v1/what_is_my_ip')
         self.assert_200(response)
-
-    def test_get_variables(self):
-        # Anonymous
-        response = self.make_request(path='/api/v1/variables')
-        self.assert_401(response)
-        # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/variables')
-        self.assert_403(response)
-        # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/variables')
-        self.assert_200(response)
-
-    def test_get_variable(self):
-        # Anonymous
-        response = self.make_request(path='/api/v1/variables/DEBUG')
-        self.assert_401(response)
-        # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/variables/DEBUG')
-        self.assert_403(response)
-        # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/variables/DEBUG')
-        self.assert_200(response)
-
-    def test_get_blacklisted_variable(self):
-        # Anonymous
-        response = self.make_request(path='/api/v1/variables/SECRET_KEY')
-        self.assert_401(response)
-        # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/variables/SECRET_KEY')
-        self.assert_403(response)
-        # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/variables/SECRET_KEY')
-        self.assert_404(response)
-
-    def test_anonymous_set_variable(self):
-        response = self.make_request(
-            method='PUT',
-            path='/api/v1/variables/DEBUG',
-            data=json.dumps({'key': 'DEBUG', 'value': True})
-        )
-        self.assert_401(response)
-
-    def test_user_set_variable(self):
-        response = self.make_authenticated_user_request(
-            method='PUT',
-            path='/api/v1/variables/DEBUG',
-            data=json.dumps({'key': 'DEBUG', 'value': True})
-        )
-        self.assert_403(response)
-
-    def test_admin_set_variable(self):
-        var_data = self.make_authenticated_admin_request(path='/api/v1/variables/DEBUG').json
-        response = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/variables/%s' % var_data['id'],
-            data=json.dumps({'key': 'DEBUG', 'value': str(not var_data['value'])})
-        )
-        self.assert_200(response)
-        new_var_data = self.make_authenticated_admin_request(path='/api/v1/variables/DEBUG').json
-        self.assertNotEquals(new_var_data['value'], var_data['value'])
-
-    def test_admin_set_ro_variable(self):
-        var_data = self.make_authenticated_admin_request(path='/api/v1/variables/MESSAGE_QUEUE_URI').json
-
-        response = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/variables/%s' % var_data['id'],
-            data=json.dumps({'key': 'MESSAGE_QUEUE_URI', 'value': 'foo'})
-        )
-        self.assertEquals(response.status_code, 409)
-        new_var_data = self.make_authenticated_admin_request(path='/api/v1/variables/MESSAGE_QUEUE_URI').json
-        self.assertEquals(new_var_data['value'], var_data['value'])
 
     def test_admin_acquire_lock(self):
         unique_id = 'abc123'

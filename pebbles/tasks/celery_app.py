@@ -7,7 +7,6 @@ from celery.schedules import crontab
 from celery.signals import worker_process_init
 import requests
 from celery.utils.log import get_task_logger
-from pebbles.client import PBClient
 from pebbles.config import BaseConfig
 
 local_config = BaseConfig()
@@ -50,17 +49,13 @@ def do_post(token, api_path, data):
     return resp
 
 
-def get_config():
-    """
-    Retrieve dynamic config over ReST API. Config object from Flask is unable to resolve variables from
-    database if containers are used. In order to use the ReST API some configuration items
-    (Variable.filtered_variables) are required. These are read from Flask config object, as these values
-    cannot be modified during the runtime.
-    """
-    token = get_token()
-    pbclient = PBClient(token, local_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+def get_dynamic_config():
 
-    return dict([(x['key'], x['value']) for x in pbclient.do_get('variables').json()])
+    """ Get the dynamic config by using the environment vars, config YAML file,
+        default values in config.py, In that order of precedence
+    """
+
+    return BaseConfig()
 
 
 # tune requests to give less spam in development environment with self signed certificate

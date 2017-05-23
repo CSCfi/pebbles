@@ -1,6 +1,6 @@
 import glob
 import os
-from pebbles.tasks.celery_app import logger, get_config
+from pebbles.tasks.celery_app import logger, get_dynamic_config
 from pebbles.tasks.celery_app import celery_app
 
 RUNTIME_PATH = '/webapps/pebbles/run/proxy_conf.d'
@@ -23,7 +23,8 @@ def proxy_add_route(route_key, target, options):
         'proxy_read_timeout 86400;'
     ]
 
-    external_https_port = get_config()['EXTERNAL_HTTPS_PORT']
+    dynamic_config = get_dynamic_config()
+    external_https_port = dynamic_config['EXTERNAL_HTTPS_PORT']
     if 'proxy_rewrite' in options:
         config.append('rewrite ^/notebooks/%s/(.*)$ /$1 break;' % (route_key))
     if 'proxy_redirect' in options:

@@ -15,10 +15,6 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             $scope.templates = response;
         });
 
-        var variables = Restangular.all('variables');
-        variables.getList().then(function (response) {
-            $scope.variables = response;
-        });
 
         var notifications = Restangular.all('notifications');
         var updateNotificationList = function() {
@@ -158,22 +154,6 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 
             template.is_enabled = undefined;
             template.put();
-        };
-
-        $scope.updateVariable = function(variable) {
-            variable.put().then(function() {
-                // refresh list to see server side applied transformations (for ex. 'dsfg' -> False)
-                variables.getList().then(function (response) {
-                    $scope.variables = response;
-                });
-            }).catch(function(response) {
-                if (response.status == 409) {
-                    $.notify({title: 'HTTP ' + response.status, message: response.data.error}, {type: 'danger'});
-                }
-                variables.getList().then(function (response) {
-                    $scope.variables = response;
-                });
-            });
         };
 
         $scope.openCreateNotification= function() {

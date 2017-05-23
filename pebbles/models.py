@@ -5,15 +5,12 @@ import names
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
-from sqlalchemy.exc import OperationalError
 from sqlalchemy.schema import MetaData
 from sqlalchemy.orm import backref
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-import logging
 import uuid
 import json
 import datetime
-import six
 
 from pebbles.utils import validate_ssh_pubkey, get_full_blueprint_config, get_blueprint_fields_from_config
 
@@ -514,118 +511,6 @@ class Lock(db.Model):
     def __init__(self, lock_id):
         self.lock_id = lock_id
         self.acquired_at = datetime.datetime.utcnow()
-
-
-class Variable(db.Model):
-    """ Represents a variable stored in the db.
-
-        Variables can be initialized from a file but once a DB entry exists
-        for a key, it becomes the definitive source.
-
-        Readonly variables are expected to be constant throughout the lifetime
-        of the installation. If you want to change them you must do so
-        manually from the shell.
-
-        All variables are stored as strings, so
-    """
-    __tablename__ = 'variables'
-
-    id = db.Column(db.String(32), primary_key=True)
-    key = db.Column(db.String(MAX_VARIABLE_KEY_LENGTH), unique=True)
-    _value = db.Column('value', db.String(MAX_VARIABLE_VALUE_LENGTH))
-    # readonly variables are expected to stay the same throuhgout
-    readonly = db.Column(db.Boolean, default=False)
-    t = db.Column(db.String(16))
-
-    def __init__(self, k, v):
-        self.id = uuid.uuid4().hex
-        self.key = k
-        if self.key in self.filtered_variables:
-            self.readonly = True
-
-        if type(v) in (int,):
-            self.t = 'int'
-        elif type(v) in (bool,):
-            self.t = 'bool'
-        else:
-            self.t = 'str'
-
-        self.value = v
-
-    @classmethod
-    def sync_local_config_to_db(cls, config_cls, config, force_sync=False):
-        """
-        Synchronizes keys from given config object to current database
-        """
-
-        try:
-            # Prevent over-writing old entries in DB by accident
-            if Variable.query.count() and not force_sync:
-                return
-        except OperationalError:
-            logging.warn("Database structure not present! Run migrations or"
-                         " configure db access!")
-            return
-        for k in vars(config_cls).keys():
-            if not k.startswith("_") and k.isupper() and k not in cls.blacklisted_variables:
-                variable = Variable.query.filter_by(key=k).first()
-                if not variable:
-                    variable = Variable(k, config[k])
-                    db.session.add(variable)
-                else:
-                    variable.key = k
-                    variable.value = config[k]
-        db.session.commit()
-
-    @classmethod
-    def string_to_bool(cls, v):
-        if not v:
-            return False
-        return (v.lower() in ('true', u'true', '1'))
-
-    @hybrid_property
-    def value(self):
-        if self.t == "str":
-            return self._value
-        elif self.t == 'bool':
-            return Variable.string_to_bool(self._value)
-        elif self.t == 'int':
-            return int(self._value)
-
-    @value.setter
-    def value(self, v):
-        if self.t == 'bool':
-            try:
-                if type(v) in (six.text_type, ):
-                    self._value = Variable.string_to_bool(v)
-                else:
-                    self._value = bool(v)
-            except Exception:
-                logging.warn("invalid variable value for type %s: %s" % (self.t, v))
-        elif self.t == 'int':
-            try:
-                self._value = int(v)
-            except:
-                logging.warn("invalid variable value for type %s: %s" % (self.t, v))
-        else:
-            self._value = v
-
-        logging.debug('set %s to %s from input %s of type %s' % (self.key, self._value, v, type(v)))
-
-    filtered_variables = (
-        'SECRET_KEY', 'INTERNAL_API_BASE_URL', 'SQLALCHEMY_DATABASE_URI', 'WTF_CSRF_ENABLED',
-        'MESSAGE_QUEUE_URI', 'SSL_VERIFY', 'ENABLE_SHIBBOLETH_LOGIN', 'PROVISIONING_NUM_WORKERS')
-
-    blacklisted_variables = ('SECRET_KEY', 'SQLALCHEMY_DATABASE_URI')
-
-    def __unicode__(self):
-        return u"<Variable(%s, %s)>" % (self.key, self.value)
-
-    def __str__(self):
-        return "<Variable(%s, %s)>" % (self.key, self.value)
-
-    def __repr__(self):
-        return self.__str__()
 
 
 class NamespacedKeyValue(db.Model):
