@@ -179,7 +179,7 @@ def blueprint_schemaform_config(blueprint_template):
         {
             "key": "name",
             "type": "textfield",
-            "placeholder": "Blueprint group"
+            "placeholder": "Blueprint name"
         },
         {
             "key": "description",
