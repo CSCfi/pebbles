@@ -72,6 +72,7 @@ class StatsList(restful.Resource):
         for blueprint_id in per_blueprint_results:
             results.append(per_blueprint_results[blueprint_id])
 
+        results.sort(key=lambda results_entry: (results_entry["launched_instances"], results_entry["users"]), reverse=True)
         final = {"blueprints": results, "overall_running_instances": overall_running_instances}
 
         return final
