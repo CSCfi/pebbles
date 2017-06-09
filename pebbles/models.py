@@ -1,3 +1,4 @@
+import string
 import random
 from flask.ext.bcrypt import Bcrypt
 import names
@@ -209,7 +210,8 @@ class Group(db.Model):
     def join_code(self, name):
         name = name.replace(' ', '').lower()
         ascii_name = name.encode('ascii', 'ignore').decode()
-        self._join_code = ascii_name + '-' + uuid.uuid4().hex
+        random_chars = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(5))
+        self._join_code = ascii_name + '-' + random_chars
 
 
 class Notification(db.Model):
