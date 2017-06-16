@@ -14,6 +14,8 @@ app.controller('ActivationController', ['$q', '$scope', '$routeParams', '$locati
         promise.then(function(response) {
             activation_success = true;
             $scope.activated_user = response.email;
+	    $.notify({message: 'You have successfully activated your account: ' + response.email + '. Please login with your email and password'}, {type: 'success'});
+	    $location.path("/");
         }, function(response) {
             activation_success = false;
             if (response.status === 422) {
