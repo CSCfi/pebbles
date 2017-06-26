@@ -15,6 +15,10 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
         return AuthService.isAdmin();
     };
 
+    $scope.isGroupManagerOrAdmin = function() {
+        return AuthService.isGroupManagerOrAdmin();
+    };
+
     quota.get().then(function (response) {
                 $scope.credits_spent = response.credits_spent;
                 $scope.credits_quota = response.credits_quota;

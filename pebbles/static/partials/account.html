@@ -20,8 +20,10 @@
         <tr>
             <td>Name</td>
             <td>Role</td>
-            <td>Details</td>
-            <td></td>
+	    <td ng-show="isGroupManagerOrAdmin()">Join Code</td>
+	    <td>Details</td>
+	    <td></td>
+
         </tr>
         </thead>
         <tbody>
@@ -34,7 +36,9 @@
                 <td>
                     <span ng-class="{user:'label label-default', manager:'label label-primary', owner:'label label-success'}[group.role]">{{group.role}}</span>
                 </td>
-                <td>{{group.description}}</td>
+	        <td ng-hide="group.role=='user' || !isGroupManagerOrAdmin()">{{group.join_code}}</td>
+		<td ng-show="group.role=='user' && isGroupManagerOrAdmin()">-</td>
+		<td>{{group.description}}</td>
                 <td>
                     <button ng-click="exit_group(group)" class="btn btn-danger">
                       Exit Group
