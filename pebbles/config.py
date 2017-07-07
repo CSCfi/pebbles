@@ -125,7 +125,6 @@ class BaseConfig(object):
     PROVISIONING_NUM_WORKERS = 1
 
     # enable access by []
-
     def __getitem__(self, item):
         return getattr(self, item)
 

@@ -4,6 +4,7 @@ from flask_migrate import MigrateCommand, Migrate
 from werkzeug.contrib.profiler import ProfilerMiddleware
 import getpass
 from pebbles import models
+from pebbles.config import BaseConfig
 from pebbles.server import app
 from pebbles.views.commons import create_user, create_worker
 from pebbles.models import db
@@ -26,6 +27,16 @@ def _make_context():
 manager.add_command("shell", Shell(make_context=_make_context, use_bpython=True))
 manager.add_command("runserver", Server())
 manager.add_command("db", MigrateCommand)
+
+
+@manager.command
+def configvars():
+    """ Displays the currently used config vars in the system """
+    config_vars = vars(BaseConfig)
+    dynamic_config = BaseConfig()
+    for var in config_vars:
+        if not var.startswith('__') and var.isupper():
+            print("%s : %s" % (var, dynamic_config[var]))
 
 
 @manager.command
