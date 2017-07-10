@@ -65,3 +65,19 @@ body {
     display: inline;
 
 }
+
+.left-align {
+   position: absolute;
+   margin-left: -15vw;
+   left: 17vw;
+   right: 17vw;
+   margin-right: -15vw;
+}
+
+#pad-with-container {
+    padding-left: 15px;
+}
+
+#align-with-container {
+    margin-left: 30px;
+}

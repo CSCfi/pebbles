@@ -1,8 +1,10 @@
 <div>
-    <h1>Instance &quot;{{ instance.name }}&quot;</h1>
+    <h2>Technical details</h2>
     <dl>
         <dt>ID:</dt>
         <dd>{{ instance.id }}</dd>
+	<dt>Instance name:</dt>
+	<dd>&quot;{{ instance.name }}&quot;</dd>
         <dt>Blueprint:</dt>
         <dd>{{ blueprint.name }}</dd>
         <dt>State:</dt>
@@ -37,6 +39,9 @@
 
     <label>Latest entries in provisioning log</label>
     <pre>{{ getLogs(instance) }}</pre>
-
-
+    <br>
+    <br>
+    <div>
+       <a href="#/dashboard/" class ="btn btn-primary">Back</a>
+    </div>
 </div>

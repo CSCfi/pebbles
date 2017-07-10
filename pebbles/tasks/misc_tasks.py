@@ -64,7 +64,7 @@ def send_mails(users):
     base_url = dynamic_config['BASE_URL'].strip('/')
     for email, token in users:
         activation_url = '%s/#/activate/%s' % (base_url, token)
-        msg = MIMEText(j2_env.get_template('invitation.txt').render(activation_link=activation_url))
+        msg = MIMEText(j2_env.get_template('invitation.txt').render(activation_link=activation_url, instance_name=dynamic_config['INSTALLATION_NAME'], instance_description=dynamic_config['INSTALLATION_DESCRIPTION']))
         msg['Subject'] = 'Pebbles account activation'
         msg['To'] = email
         msg['From'] = dynamic_config['SENDER_EMAIL']
