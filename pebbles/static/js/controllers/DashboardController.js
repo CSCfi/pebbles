@@ -215,40 +215,6 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             });
         };
 
-        var poolConfigs = Restangular.all('namespaced_keyvalues');
-
-        var fetchPoolConfig = function(){
-            poolConfigs.getList({'namespace': 'DockerDriver'}).then(function (response) {
-                $scope.poolConfigs = response;
-            });
-        };
-
-        fetchPoolConfig();
-
-        $scope.refreshPoolConfig = function() {
-            fetchPoolConfig();
-            $.notify({title: 'HTTP 200', message: 'Pool configs successfully refreshed'}, {type: 'success'});
-        }
-
-        $scope.updateConfig = function(poolConfig) {
-            poolConfigs.one(poolConfig.namespace).one(poolConfig.key).customPUT({
-                 'namespace': poolConfig.namespace,
-                 'key': poolConfig.key,
-                 'value': poolConfig.value,
-                 'updated_version_ts': poolConfig.updated_ts
-               }).then(
-               function(){
-                   $.notify({title: 'HTTP 200', message: 'Config changed successfully'}, {type: 'success'});
-            }, function(response) {
-                   if (response.status == 409) {
-                       $.notify({title: 'HTTP ' + response.status, message: 'Trying to modify an outdated version of config'}, {type: 'danger'});
-                   }
-                   else{
-                       $.notify({title: 'HTTP ' + response.status, message: 'Unknown error'}, {type: 'danger'});
-                   } 
-               });
-                      
-        }
 
         $scope.isAdmin = function() {
             return AuthService.isAdmin();
@@ -354,3 +320,90 @@ app.controller('ModalDestroyInstanceController', function($scope, $modalInstance
         $modalInstance.dismiss('cancel');
     };
 });
+
+app.controller('DriverConfigController', ['$scope', 'Restangular',
+                              function ($scope,   Restangular) {
+
+        var configService = Restangular.all('namespaced_keyvalues');
+
+        $scope.oneAtATime = true;
+
+        $scope.driverConfigs1 = [
+            {
+                title: 'DockerDriver',
+                content:
+                '<h1>Test</h1>',
+            },
+            {
+                title: 'OpenShift Driver',
+                content: 'Dynamic Group Body - 2',
+            }
+        ];
+
+        $scope.driverConfigs = {"a": "b", "c":"d"}
+
+        var fetchDriverConfigs = function(){
+            configService.getList({'key': 'driver_config'}).then(function (response) {
+                $scope.driverConfigs = response;
+            });
+        };
+
+       $scope.updateVariable = function(key, value) {
+
+            console.log(key, value);
+            if(false){
+            configService.one(driverConfig.namespace).one(driverConfig.key).customPUT({
+                 'namespace': driverConfig.namespace,
+                 'key': driverConfig.key,
+                 'value': driverConfig.value,
+                 'updated_version_ts': driverConfig.updated_ts
+            }).then(
+                function(){
+            }, function(response){
+                console.log('error');
+                fetchDriverConfigs();
+            });
+         }
+
+        };
+}]);
+
+app.controller('PoolConfigController', ['$scope', 'Restangular',
+                              function ($scope,   Restangular) {
+
+
+        var configService = Restangular.all('namespaced_keyvalues');
+
+        var fetchPoolConfig = function(){
+            configService.getList({'namespace': 'DockerDriver'}).then(function (response) {
+                $scope.poolConfigs = response;
+            });
+        };
+
+        fetchPoolConfig();
+
+        $scope.refreshPoolConfig = function() {
+            fetchPoolConfig();
+            $.notify({title: 'HTTP 200', message: 'Pool configs successfully refreshed'}, {type: 'success'});
+        }
+
+        $scope.updateConfig = function(poolConfig) {
+            poolConfigs.one(poolConfig.namespace).one(poolConfig.key).customPUT({
+                 'namespace': poolConfig.namespace,
+                 'key': poolConfig.key,
+                 'value': poolConfig.value,
+                 'updated_version_ts': poolConfig.updated_ts
+               }).then(
+               function(){
+                   $.notify({title: 'HTTP 200', message: 'Config changed successfully'}, {type: 'success'});
+            }, function(response) {
+                   if (response.status == 409) {
+                       $.notify({title: 'HTTP ' + response.status, message: 'Trying to modify an outdated version of config'}, {type: 'danger'});
+                   }
+                   else{
+                       $.notify({title: 'HTTP ' + response.status, message: 'Unknown error'}, {type: 'danger'});
+                   }
+               });
+        }
+}]);
+

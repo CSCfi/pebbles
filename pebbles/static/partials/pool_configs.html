@@ -1,0 +1,23 @@
+       <h1> Pool VMs </h1>
+        <p>
+          <button type="button" class="btn btn-default" ng-click="refreshPoolConfig()" ng-disabled="poolConfigs == undefined || !poolConfigs.length">
+              <span class="glyphicon glyphicon-refresh"></span> Refresh All
+          </button>
+        </p>
+        <form name="poolForm">
+        <div ng-repeat="poolConfig in poolConfigs">
+        <div ng-class="{true: 'form-group has-error', false: 'form-group'}[poolForm.poolJsonConfig_{{$index}}.$dirty && poolForm.poolJsonConfig_{{$index}}.$invalid]">
+            <label class="form-control-label">Pool VM Config - Namespace: {{poolConfig.namespace}} | Key: {{poolConfig.key}}</label>
+            <textarea name="poolJsonConfig_{{$index}}" class="form-control" rows="15" cols="100" ng-model="poolConfig.value" required json-validate>
+            </textarea>
+            <span class="form-control-feedback form-control-feedback-hack" ng-show="poolForm.poolJsonConfig_{{$index}}.$dirty && poolForm.poolJsonConfig_{{$index}}.$invalid">
+                <span ng-show="poolForm.poolJsonConfig_{{$index}}.$error.required">Config is empty!</span>
+                <span ng-show="poolForm.poolJsonConfig_{{$index}}.$error.jsonValid">Invalid Json</span>
+            </span>
+        </div>
+        <p>
+        <input class="btn btn-primary" type="button" value="Update Config" ng-click="updateConfig(poolConfig)"
+            ng-disabled="poolForm.poolJsonConfig_{{$index}}.$pristine || poolForm.poolJsonConfig_{{$index}}.$dirty && poolForm.poolJsonConfig_{{$index}}.$invalid">
+        </p>
+        </div>
+        </form>

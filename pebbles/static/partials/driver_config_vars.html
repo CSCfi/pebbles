@@ -1,0 +1,37 @@
+        <h1> Driver Specific Configs </h1>
+      <div class="checkbox">
+      <label>
+        <input type="checkbox" ng-model="oneAtATime">
+        Open only one at a time
+      </label>
+    </div>
+    <uib-accordion close-others="oneAtATime">
+      <div uib-accordion-group class="panel-default" heading="{{driverConfigs.title}}" ng-repeat="driverConfig1 in driverConfigs1">
+        <table class="table table-striped">
+          <thead>
+          <tr>
+              <td colspan="2"><strong>Click values to edit</strong></td>
+          </tr>
+          </thead>
+          <tbody>
+              <tr ng-repeat="(key, value) in driverConfigs">
+              <td>
+                  {{ key }}
+              </td>
+              <td>
+              <editablefield
+                  model="value"
+                  viewClass="info"
+                  edit-class="form-control"
+                  view-class="info"
+                  on-ready="updateVariable(key, value)">{{ value }}</editablefield>
+              </td>
+          </tr>
+          <tr ng-hide="driverConfigs.length">
+              <td colspan="2">No defined variables</td>
+          </tr>
+          </tbody>
+        </table>
+
+      </div>
+    </uib-accordion>

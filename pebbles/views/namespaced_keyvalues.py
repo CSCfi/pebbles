@@ -25,6 +25,7 @@ namespace_fields = {
 class NamespacedKeyValueList(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('namespace', type=str)
+    parser.add_argument('key', type=str)
 
     @auth.login_required
     @requires_admin
@@ -34,6 +35,8 @@ class NamespacedKeyValueList(restful.Resource):
         namespaced_query = NamespacedKeyValue.query
         if args.get('namespace'):
             namespaced_query = namespaced_query.filter_by(namespace=args.namespace)
+        if args.get('key'):
+            namespaced_query = namespaced_query.filter_by(key=args.key)
 
         return namespaced_query.all()
 

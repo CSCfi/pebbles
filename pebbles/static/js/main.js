@@ -173,4 +173,5 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider, confi
             controller: 'ResetPasswordController',
             templateUrl: partialsDir + '/reset_password.html'
         });
+
 });
