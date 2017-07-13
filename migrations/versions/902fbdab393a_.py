@@ -1,4 +1,4 @@
-"""empty message
+"""refactor group owners and managers to groups_users_association.
 
 Revision ID: 902fbdab393a
 Revises: d09db0106be9

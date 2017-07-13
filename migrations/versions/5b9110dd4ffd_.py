@@ -1,4 +1,4 @@
-"""empty message
+"""add instance logs to db.
 
 Revision ID: 5b9110dd4ffd
 Revises: 902fbdab393a

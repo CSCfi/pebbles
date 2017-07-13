@@ -1,4 +1,4 @@
-"""empty message
+"""Drop variables drom db.
 
 Revision ID: bb7485bc05ba
 Revises: 1fa2b55f58bb
