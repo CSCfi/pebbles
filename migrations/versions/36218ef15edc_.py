@@ -1,4 +1,4 @@
-"""empty message
+"""Add initial groups features.
 
 Revision ID: 36218ef15edc
 Revises: c0732331a3c8
