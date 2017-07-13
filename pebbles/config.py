@@ -1,3 +1,23 @@
+"""
+Pebbles is configured with a number of **variables**.
+
+These variables come, in the order of precedence from
+
+- environment variables
+- a configuration file
+- built-in defaults
+
+Naming convention is `UPPERCASE_WORDS_WITH_UNDERSCORES`.
+
+To see the complete list check out pebbles.config that houses the object.
+Only some have been documented.
+
+The idea is that you could have a single docker container with multiple
+entry points. All containers can (or should) see the same configuration file
+and then at start-up time environment variables can be set to e.g.
+differentiate workers to run a particular driver.
+
+"""
 import os
 import yaml
 import functools
@@ -66,7 +86,7 @@ class BaseConfig(object):
     PUBLIC_IPV4 = (
         '127.0.0.1',
         'used by Docker Driver to create access urls'
-        ' so FQDN is actually ok in production'
+        ' so FQDN is actually expected in production'
     )
     BASE_URL = 'https://localhost:8888'
     MAX_CONTENT_LENGTH = 1024 * 1024
