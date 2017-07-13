@@ -5,7 +5,7 @@ import jinja2
 
 from pebbles.client import PBClient
 from pebbles.models import Instance
-from pebbles.tasks.celery_app import local_config, logger, get_token, get_config
+from pebbles.tasks.celery_app import logger, get_token, local_config, get_dynamic_config
 from pebbles.tasks.provisioning_tasks import run_update
 from pebbles.tasks.celery_app import celery_app
 
@@ -59,20 +59,20 @@ def periodic_update():
 def send_mails(users):
     """ ToDo: document. apparently sends activation emails.
     """
-    config = get_config()
+    dynamic_config = get_dynamic_config()
     j2_env = jinja2.Environment(loader=jinja2.PackageLoader('pebbles', 'templates'))
-    base_url = config['BASE_URL'].strip('/')
+    base_url = dynamic_config['BASE_URL'].strip('/')
     for email, token in users:
         activation_url = '%s/#/activate/%s' % (base_url, token)
         msg = MIMEText(j2_env.get_template('invitation.txt').render(activation_link=activation_url))
         msg['Subject'] = 'Pebbles account activation'
         msg['To'] = email
-        msg['From'] = config['SENDER_EMAIL']
+        msg['From'] = dynamic_config['SENDER_EMAIL']
         logger.info(msg)
 
-        if not config['MAIL_SUPPRESS_SEND']:
-            s = smtplib.SMTP(config['MAIL_SERVER'])
-            if config['MAIL_USE_TLS']:
+        if not dynamic_config['MAIL_SUPPRESS_SEND']:
+            s = smtplib.SMTP(dynamic_config['MAIL_SERVER'])
+            if dynamic_config['MAIL_USE_TLS']:
                 s.starttls()
             s.sendmail(msg['From'], [msg['To']], msg.as_string())
             s.quit()

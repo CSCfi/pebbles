@@ -4,10 +4,10 @@ from flask_migrate import MigrateCommand, Migrate
 from werkzeug.contrib.profiler import ProfilerMiddleware
 import getpass
 from pebbles import models
+from pebbles.config import BaseConfig
 from pebbles.server import app
 from pebbles.views.commons import create_user, create_worker
-from pebbles.models import db, Variable
-from pebbles.config import BaseConfig
+from pebbles.models import db
 from pebbles.tests.fixtures import primary_test_setup
 
 # 2to3 fix for input
@@ -23,9 +23,20 @@ migrate = Migrate(app, models.db)
 def _make_context():
     return dict(app=app, db=db, models=models)
 
+
 manager.add_command("shell", Shell(make_context=_make_context, use_bpython=True))
 manager.add_command("runserver", Server())
 manager.add_command("db", MigrateCommand)
+
+
+@manager.command
+def configvars():
+    """ Displays the currently used config vars in the system """
+    config_vars = vars(BaseConfig)
+    dynamic_config = BaseConfig()
+    for var in config_vars:
+        if not var.startswith('__') and var.isupper():
+            print("%s : %s" % (var, dynamic_config[var]))
 
 
 @manager.command
@@ -85,6 +96,7 @@ def fixtures():
     """
     primary_test_setup(type('', (), {})())
 
+
 @manager.command
 def createuser(email=None, password=None, admin=False):
     """Creates new user"""
@@ -99,12 +111,6 @@ def createuser(email=None, password=None, admin=False):
 def createworker():
     """Creates background worker"""
     create_worker()
-
-
-@manager.command
-def syncconf():
-    """Synchronizes configuration from filesystem to database"""
-    Variable.sync_local_config_to_db(BaseConfig, BaseConfig(), force_sync=True)
 
 
 @manager.command
@@ -132,6 +138,7 @@ def list_routes():
         route_data.append(line)
 
     print(AsciiTable(route_data).table)
+
 
 if __name__ == '__main__':
     manager.run()

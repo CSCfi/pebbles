@@ -1,24 +1,33 @@
+"""
+Pebbles is configured with a number of **variables**.
+
+These variables come, in the order of precedence from
+
+- environment variables
+- a configuration file
+- built-in defaults
+
+Naming convention is `UPPERCASE_WORDS_WITH_UNDERSCORES`.
+
+To see the complete list check out pebbles.config that houses the object.
+Only some have been documented.
+
+The idea is that you could have a single docker container with multiple
+entry points. All containers can (or should) see the same configuration file
+and then at start-up time environment variables can be set to e.g.
+differentiate workers to run a particular driver.
+
+"""
 import os
 import yaml
 import functools
-from pebbles.models import Variable
 
 CONFIG_FILE = '/etc/pebbles/config.yaml'
-LOCAL_CONFIG_FILE = '/etc/pebbles/config.yaml.local'
 
 
 def resolve_configuration_value(key, default=None, *args, **kwargs):
     def get_key_from_config(config_file, key):
         return yaml.load(open(config_file)).get(key)
-
-    # Querying DB will fail during the program initialization as SQLAlchemy is
-    # not yet properly initialized
-    try:
-        variable = Variable.query.filter_by(key=key).first()
-        if variable:
-            return variable.value
-    except:
-        pass
 
     # check environment
     pb_key = 'PB_' + key
@@ -26,13 +35,11 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
     if value is not None:
         return value
 
-    # then check local config file and finally check system
-    # config file and given default
-    for config_file in (LOCAL_CONFIG_FILE, CONFIG_FILE):
-        if os.path.isfile(config_file):
-            value = get_key_from_config(config_file, key)
-            if value is not None:
-                return value
+    # then finally check system config file and given default
+    if os.path.isfile(CONFIG_FILE):
+        value = get_key_from_config(CONFIG_FILE, key)
+        if value is not None:
+            return value
 
     if default is not None:
         return default
@@ -55,6 +62,11 @@ def fields_to_properties(cls):
 # docstring) tuple
 @fields_to_properties
 class BaseConfig(object):
+    """ Stores the default key, value pairs for the system configuration.
+        Rendered with a decorator which considers any environment variables,
+        then the system level config file and finally the default values,
+        in that order of precedence.
+    """
     DEBUG = (
         True,
         'Controls debug mode'
@@ -62,7 +74,8 @@ class BaseConfig(object):
     SECRET_KEY = 'change_me'
     WTF_CSRF_ENABLED = False
     SSL_VERIFY = False
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
+    # SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:KskRu1V_qK1Z._ALGnh6nxFvhM288N2c@localhost/pebbles'
     M2M_CREDENTIAL_STORE = (
         '/var/run/pebbles_m2m',
         'Where to find the M2M credentials file'
@@ -73,7 +86,7 @@ class BaseConfig(object):
     PUBLIC_IPV4 = (
         '127.0.0.1',
         'used by Docker Driver to create access urls'
-        ' so FQDN is actually ok in production'
+        ' so FQDN is actually expected in production'
     )
     BASE_URL = 'https://localhost:8888'
     MAX_CONTENT_LENGTH = 1024 * 1024
@@ -137,6 +150,13 @@ class BaseConfig(object):
 
     def get(self, key):
         return getattr(self, key)
+
+    def __contains__(self, item):
+        try:
+            getattr(self, item)
+        except:
+            return False
+        return True
 
 
 class TestConfig(BaseConfig):

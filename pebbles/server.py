@@ -24,7 +24,7 @@ from pebbles.views.firstuser import firstuser, FirstUserView
 from pebbles.views.myip import myip, WhatIsMyIp
 from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
-from pebbles.views.variables import variables, VariableList, VariableView, PublicVariableList
+from pebbles.views.variables import variables, PublicVariableList
 from pebbles.views.locks import locks, LockView
 from pebbles.views.stats import stats, StatsList
 from pebbles.views.import_export import import_export, ImportExportBlueprintTemplates, ImportExportBlueprints
@@ -69,8 +69,6 @@ api.add_resource(
     methods=['GET', 'PATCH'])
 api.add_resource(PluginList, api_root + '/plugins')
 api.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')
-api.add_resource(VariableList, api_root + '/variables')
-api.add_resource(VariableView, api_root + '/variables/<string:variable_id>')
 api.add_resource(PublicVariableList, api_root + '/config')
 api.add_resource(WhatIsMyIp, api_root + '/what_is_my_ip')
 api.add_resource(Quota, api_root + '/quota')

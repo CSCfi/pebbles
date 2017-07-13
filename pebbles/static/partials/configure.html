@@ -89,48 +89,4 @@
     </table>
     <button class="btn btn-primary" ng-click="openCreateNotification()">Add notification</button>
 
-    <h2>Global variables</h2>
-    <table class="table table-striped">
-        <thead>
-        <tr>
-            <td colspan="2"><strong>Click values to edit</strong></td>
-        </tr>
-        </thead>
-        <tbody>
-            <tr ng-repeat="variable in variables | filter : { readonly: false }">
-            <td>
-                {{ variable.key }}
-            </td>
-            <td>
-            <editablefield
-                model="variable.value"
-                viewClass="info"
-                edit-class="form-control"
-                view-class="info"
-                on-ready="updateVariable(variable)">{{ variable.value }}</editablefield>
-            </td>
-        </tr>
-        <tr ng-hide="variables.length">
-            <td colspan="2">No defined variables, run <code>manage.py syncconf</code> first</td>
-        </tr>
-        </tbody>
-    </table>
-
-    <table class="table table-striped">
-        <thead>
-        <tr>
-            <td colspan="2"><strong>Read-only variables</strong></td>
-        </tr>
-        </thead>
-        <tbody>
-            <tr ng-repeat="variable in variables | filter : { readonly: true }">
-            <td> {{ variable.key }}
-            </td>
-            <td> {{ variable.value }} </td>
-        </tr>
-        <tr ng-hide="variables.length">
-            <td colspan="2">No defined variables, run <code>manage.py syncconf</code> first</td>
-        </tr>
-        </tbody>
-    </table>
 </div>

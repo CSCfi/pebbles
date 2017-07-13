@@ -175,7 +175,7 @@ class ProvisioningDriverBase(object):
         for handler in uploader.handlers:
             uploader.removeHandler(handler)
 
-        if not self.config.get('TEST_MODE', False):
+        if 'TEST_MODE' not in self.config:
             # check if the custom handler is already there
             if len(uploader.handlers) == 0:
                 log_handler = PBInstanceLogHandler(

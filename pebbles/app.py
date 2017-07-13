@@ -5,7 +5,7 @@ from flask import Flask
 from flask_migrate import upgrade as flask_upgrade_db_to_head
 from flask_migrate import Migrate
 
-from pebbles.models import db, bcrypt, Variable
+from pebbles.models import db, bcrypt
 from pebbles.config import BaseConfig, TestConfig
 
 app = Flask(__name__, static_url_path='')
@@ -56,10 +56,6 @@ def run_things_in_context(test_run):
            os.environ.get("DB_AUTOMIGRATION", None) not in ["0", 0] and \
            not test_run:
             flask_upgrade_db_to_head()
-        # Do not populate variables into DB when running tests, as these are
-        # populated during the test case setup phase.
-        if not test_run:
-            Variable.sync_local_config_to_db(BaseConfig, app.dynamic_config)
 
 
 run_things_in_context(test_run)

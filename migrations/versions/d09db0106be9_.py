@@ -1,4 +1,4 @@
-"""empty message
+"""remove cost multipliers.
 
 Revision ID: d09db0106be9
 Revises: 7d8f697053e9

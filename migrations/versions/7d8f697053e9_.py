@@ -1,4 +1,4 @@
-"""empty message
+"""modify groups_managers.
 
 Revision ID: 7d8f697053e9
 Revises: 36218ef15edc
