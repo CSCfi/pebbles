@@ -1,7 +1,7 @@
-You've been invited to participate in a Pebbles instance.
+You have been invited to use {{instance_name}}.
 
 Click following activation link to activate your account:
-
 {{ activation_link }}
 
+{{instance_name}}: {{instance_description}}
 
