@@ -1,4 +1,4 @@
-<div class="jumbotron" ng-controller="NavbarController">
+<div class="jumbotron left-align" ng-controller="NavbarController">
     <div class="row">
         <div class="col-md-6 col-xs-6">
             <h1 name="installation-name"><configurable-value key="INSTALLATION_NAME"></configurable-value></h1>
@@ -6,21 +6,22 @@
                                     key="INSTALLATION_DESCRIPTION"></configurable-value></p>
         </div>
     </div>
-    <div class="row" configurable-show key="ENABLE_SHIBBOLETH_LOGIN"
+    <div class="row" configurable-show key="ENABLE_SHIBBOLETH_LOGIN" 
     name="shibboleth-login">
         <div class="col-md-6 col-xs-6">
             <p>
-                <a href="/login"><img src="/img/haka.gif" alt="Haka login" /></a>
+                <a href="/login"><img src="/img/haka_new.jpg" alt="Haka login" /></a>
             </p>
         </div>
     </div>
     <div class="row" ><div class="col-md-6 col-xs-6" ng-show="!getLoginVisibility()">
+	<hr>
         <p><a href="javascript:;" ng-click="toggleLoginVisibility()"
         name="click-show-login">Click here for alternate login</a></p>
         </div>
     </div>
     <div class="row" ng-show="getLoginVisibility()" name="password-login">
-        <div class="col-md-6 col-xs-6">
+        <div class="col-lg-3 col-md-5 col-sm-5 col-xs-8 ">
             <h2>Login</h2>
             <form ng-submit="login()" >
               <div ng-show="invalidLogin()" class="form-group">
@@ -36,7 +37,7 @@
                 <input type="submit" class="btn btn-success" value="Sign in" />
               </div>
             </form>
-            If you don't have access to your password, you
+            If you do not remember your password, you
             can <a href="#/reset_password">reset it here</a>
         </div>
     </div>

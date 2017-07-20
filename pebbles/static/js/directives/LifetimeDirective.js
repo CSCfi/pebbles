@@ -27,11 +27,16 @@ app.directive('lifetime', function () {
                     if (days == 0 && hours == 0 && minutes == 0) {
                         timeStr = seconds + ' s';
                     }
-                    else if (days == 0 && hours == 0 && minutes < 5) {
-                        timeStr = minutes + 'm ' + seconds + ' s';
+                    else if (days == 0 && hours == 0 && minutes < 5 && minutes > 0) {
+                        timeStr = minutes + 'm ' + seconds + 's';
                     }
                     else {
-                        timeStr = hours + 'h ' + minutes + 'm';
+			if(hours == 0 && minutes > 0)
+                        	timeStr = minutes + 'm ';
+			else if (hours > 0 && minutes == 0)
+				timeStr = hours + 'h ';
+			else 
+				timeStr = hours + 'h ' + minutes + 'm ';
                         if (days) {
                             timeStr = days + 'd ' + timeStr;
                         }
