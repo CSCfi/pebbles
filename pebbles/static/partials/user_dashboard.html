@@ -12,7 +12,9 @@
                     </div>
                     <div class="panel-body specialCollapse sp">
                         <div style="padding: 15px">
-                            <p>{{ blueprint.config.description }}</p>
+                            <p>
+			       <span class="pre-background" ng-bind-html="blueprint.config.description"></span>
+			    </p>
                             <p><b>Lifetime:</b> <lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/> </p>
                         </div>
 			<div class="table-responsive">

@@ -81,3 +81,12 @@ body {
 #align-with-container {
     margin-left: 30px;
 }
+
+.pre-background {
+    background-color: #FFFFFF;
+    white-space: pre-wrap;
+}
+
+#admin-pre-background {
+    white-space: pre-wrap;
+}
