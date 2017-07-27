@@ -11,6 +11,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import uuid
 import json
 import datetime
+import six
 
 from pebbles.utils import validate_ssh_pubkey, get_full_blueprint_config, get_blueprint_fields_from_config
 
@@ -515,23 +516,72 @@ class Lock(db.Model):
 
 class NamespacedKeyValue(db.Model):
     """ Stores key/value pair data, separated by namespaces
+        This model should be initialized by providing namespace and key as mandatory arguments.
+        It is highly recommended to have a schema for the JSON value field,
+        and provide it during model initialization.
     """
     __tablename__ = 'namespaced_keyvalues'
 
     namespace = db.Column(db.String(32), primary_key=True)
     key = db.Column(db.String(128), primary_key=True)
     _value = db.Column(db.Text)
+    _schema = db.Column(db.Text)
     created_ts = db.Column(db.Float)
     updated_ts = db.Column(db.Float)
 
-    def __init__(self, namespace, key):
+    def __init__(self, namespace, key, schema=None):
         self.namespace = namespace
         self.key = key
+        self.schema = schema
+
+    @classmethod
+    def str_to_bool(cls, val):
+        """ Convert the string into boolean.
+            Useful when value comes from UI and becomes True even if False
+            By default, this function shall return False
+        """
+        if val:
+            val = val.lower()
+            if val in ('true', u'true', '1'):
+                return True
+        return False
+
+    @hybrid_property
+    def schema(self):
+        return load_column(self._schema)
+
+    @schema.setter
+    def schema(self, schema):
+        self._schema = json.dumps(schema)
 
     @hybrid_property
     def value(self):
-        return load_column(self._value)  # Return the json string itself, as the UI has a textfield for modifying it
+        return load_column(self._value)
 
     @value.setter
     def value(self, val):
+        if self.schema:
+            try:
+                schema_obj = self.schema['properties']
+                required_fields = self.schema['required']
+            except:
+                raise KeyError('Incorrect Schema')
+            for field in schema_obj:
+                field_type = schema_obj[field]['type']
+                if field not in val:
+                    raise KeyError('Field %s does not exist in value object' % field)
+                if not val[field] and field in required_fields and val[field] not in (0, False):
+                    raise ValueError('Empty value found for required field %s' % field)
+                try:
+                    if field_type == "integer":
+                        val[field] = int(val[field])
+                    elif field_type == "boolean":
+                        if type(val[field]) in (six.text_type, str):
+                            val[field] = NamespacedKeyValue.str_to_bool(val[field])
+                        else:
+                            val[field] = bool(val[field])
+                    else:
+                        val[field] = str(val[field])
+                except:
+                    raise TypeError('Field %s should be of type %s, found %s ' % (field, field_type, type(val[field])))
         self._value = json.dumps(val)

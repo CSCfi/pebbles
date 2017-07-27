@@ -127,4 +127,5 @@ class NamespacedKeyValueForm(ModelForm):
     namespace = StringField('namespace', validators=[DataRequired()])
     key = StringField('key', validators=[DataRequired()])
     value = StringField('value', validators=[DataRequired()])
+    schema = StringField('schema')
     updated_version_ts = FloatField('updated_version_ts')

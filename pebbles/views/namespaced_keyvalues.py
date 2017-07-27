@@ -3,7 +3,6 @@ from flask import abort, Blueprint
 
 import logging
 import time
-import json
 
 from pebbles.models import db, NamespacedKeyValue
 from pebbles.forms import NamespacedKeyValueForm
@@ -50,12 +49,15 @@ class NamespacedKeyValueList(restful.Resource):
 
         namespace = form.namespace.data
         key = form.key.data
-        value = json.loads(form.value.data)
+        schema = form.schema.data
+        value = form.value.data
         ns_check = NamespacedKeyValue.query.filter_by(namespace=namespace, key=key).first()
         if ns_check:
             logging.warn("a combination of namespace %s with key %s already exists" % (namespace, key))
             abort(422)
-        namespaced_keyvalue = NamespacedKeyValue(namespace, key)
+        # Create the object with static (mostly) parameters
+        namespaced_keyvalue = NamespacedKeyValue(namespace, key, schema)
+        # Then value, which is bound to change often
         namespaced_keyvalue.value = value
 
         curr_ts = round(time.time(), 2)
@@ -96,7 +98,8 @@ class NamespacedKeyValueView(restful.Resource):
             )
             abort(422)
 
-        value = json.loads(form.value.data)
+        schema = form.schema.data
+        value = form.value.data
         updated_version_ts = float(form.updated_version_ts.data)
 
         namespaced_keyvalue_query = NamespacedKeyValue.query.filter_by(namespace=namespace, key=key)
@@ -112,6 +115,9 @@ class NamespacedKeyValueView(restful.Resource):
 
         curr_ts = round(time.time(), 2)
         namespaced_keyvalue.updated_ts = curr_ts
+        # If schema changes, assign it first
+        namespaced_keyvalue.schema = schema
+        # the value needs the latest schema to be present
         namespaced_keyvalue.value = value
         db.session.add(namespaced_keyvalue)
         db.session.commit()
