@@ -6,7 +6,8 @@ app.controller('InitializationController', ['$scope', '$location', 'Restangular'
         var params = { email: $scope.user.email,
                        password: $scope.user.password};
         initialize.post(params).then(function(response) {
-            $location.path("/");
+            $.notify({message: 'You have successfully created admin account: ' + response.email + '. Please login with this email and password'}, {type: 'success'});
+	    $location.path("/");
         }, function() {
             initialized = true;
         });
