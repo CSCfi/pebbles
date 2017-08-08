@@ -68,10 +68,10 @@ body {
 
 .left-align {
    position: absolute;
-   margin-left: -15vw;
-   left: 17vw;
-   right: 17vw;
-   margin-right: -15vw;
+   margin-left: -15%;
+   left: 17%;
+   right: 17%;
+   margin-right: -15%;
 }
 
 #pad-with-container {
