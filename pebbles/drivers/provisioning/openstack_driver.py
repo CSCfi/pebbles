@@ -39,7 +39,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
         security_group_id = instance_data['security_group_id']
 
         blueprint_config = pbclient.get_blueprint_description(instance['blueprint_id'])
-        config = blueprint_config['config']
+        config = blueprint_config['full_config']
 
         # Delete all existing rules and add the rules using the input port string
         oss.clear_security_group_rules(security_group_id)
@@ -73,7 +73,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
 
         # fetch config
         blueprint_config = pbclient.get_blueprint_description(instance['blueprint_id'])
-        config = blueprint_config['config']
+        config = blueprint_config['full_config']
 
         log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
         log_uploader.info("Provisioning OpenStack instance (%s)\n" % instance_id)
