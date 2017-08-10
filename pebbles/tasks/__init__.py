@@ -7,6 +7,8 @@ run_update = provisioning_tasks.run_update
 
 update_user_connectivity = provisioning_tasks.update_user_connectivity
 
+fetch_running_instance_logs = provisioning_tasks.fetch_running_instance_logs
+
 proxy_add_route = proxy_tasks.proxy_add_route
 
 proxy_remove_route = proxy_tasks.proxy_remove_route

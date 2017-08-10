@@ -129,7 +129,8 @@ class TaskRouter(object):
 
         if task in (
                 "pebbles.tasks.update_user_connectivity",
-                "pebbles.tasks.run_update"
+                "pebbles.tasks.run_update",
+                "pebbles.tasks.fetch_running_instance_logs"
         ):
             instance_id = args[0]
             return {'queue': self.get_provisioning_queue(instance_id)}

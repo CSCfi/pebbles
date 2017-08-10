@@ -10,7 +10,7 @@ from pebbles.models import db, Blueprint, Instance, InstanceLog, User
 from pebbles.forms import InstanceForm, UserIPForm
 from pebbles.server import app, restful
 from pebbles.utils import requires_admin, memoize
-from pebbles.tasks import run_update, update_user_connectivity
+from pebbles.tasks import run_update, update_user_connectivity, fetch_running_instance_logs
 from pebbles.views.commons import auth, is_group_manager
 from pebbles.rules import apply_rules_instances, get_group_blueprint_ids_for_instances
 
@@ -319,6 +319,11 @@ class InstanceLogs(restful.Resource):
         db.session.commit()
 
         return 'ok'
+
+    @auth.login_required
+    def put(self, instance_id):
+        if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
+            fetch_running_instance_logs(instance_id)
 
 
 def get_logs_from_db(instance_id):

@@ -78,6 +78,10 @@ class ProvisioningDriverBase(object):
         """
         return {}
 
+    def get_running_instance_logs(self, token, instance_id):
+        """ get the logs of an instance which is in running state """
+        pass
+
     def update(self, token, instance_id):
         """ an update call  updates the status of an instance.
 

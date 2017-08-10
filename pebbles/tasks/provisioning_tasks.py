@@ -136,3 +136,15 @@ def update_user_connectivity(instance_id):
     plugin = get_provisioning_type(token, instance_id)
     mgr.map_method([plugin], 'update_connectivity', token, instance_id)
     logger.info('update connectivity for instance %s ready' % instance_id)
+
+
+@celery_app.task(name="pebbles.tasks.fetch_running_instance_logs")
+def fetch_running_instance_logs(instance_id):
+    """ updates the connectivity for a single instance.
+    """
+    logger.info('fetching logs for instance %s' % instance_id)
+    token = get_token()
+    mgr = get_provisioning_manager()
+    plugin = get_provisioning_type(token, instance_id)
+    mgr.map_method([plugin], 'get_running_instance_logs', token, instance_id)
+    logger.info('fetched logs for %s' % instance_id)

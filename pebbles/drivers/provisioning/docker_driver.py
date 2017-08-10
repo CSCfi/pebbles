@@ -365,6 +365,25 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def do_update_connectivity(self, token, instance_id):
         self.logger.warning('do_update_connectivity not implemented')
 
+    def get_running_instance_logs(self, token, instance_id):
+        """ Get the logs of the instance which is in running state """
+        self.logger.debug("getting container logs for instance id %s" % instance_id)
+
+        ap = self._get_ap()
+        pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        instance = pbclient.get_instance(instance_id)
+        container_name = instance['name']
+
+        if 'instance_data' not in instance:
+            self.logger.debug('no instance_data found, cannot fetch logs for %s' % instance_id)
+            raise RuntimeWarning('Cannot fetch logs for %s' % container_name)
+
+        instance_docker_url = instance['instance_data']['docker_url']
+        docker_client = ap.get_docker_client(instance_docker_url)
+        container_logs = docker_client.logs(container_name)
+        self.logger.warning('LOGSSSSSSSSSSSSSSSSSSS')
+        self.logger.warning(container_logs)
+
     def do_provision(self, token, instance_id):
         self._set_driver_backend_config(token)  # set the driver specific config vars from the db
         self.logger.debug("do_provision %s" % instance_id)
