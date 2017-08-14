@@ -1,8 +1,8 @@
 <div id="user-dashboard">
-    <h2 id="pad-with-container">Blueprints</h2>
+    <h2 class="pad-with-container">Environments</h2>
     <div class="row">
         <div id="align-with-container" class="alert alert-warning" ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
-            No blueprints available
+            No environments available
         </div>
         <div ng-repeat="choice in oddEvenRange()" class="col-md-6">
             <div ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }" ng-if="filterOddEven($index, choice)" class="col-md-12">
@@ -89,4 +89,10 @@
             </div>
         </div>
    </div>
+   <br>
+   <br>
+   <div class= "pad-with-container">
+	   <p class= "well well-sm" > The environments you see here are determined by the groups that you are a member of. If you do not see an environment you expect to see, you should join the appropriate group under "Account". </p>
+   </div>
 </div>
+
