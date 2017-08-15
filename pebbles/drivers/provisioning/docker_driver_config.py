@@ -168,7 +168,7 @@ BACKEND_CONFIG = {
     },
     'model': {
         'DD_SHUTDOWN_MODE': True,
-        'DD_HOST_IMAGE': 'CentOS-7.0',
+        'DD_HOST_IMAGE': 'CentOS-7',
         'DD_MAX_HOSTS': 4,
         'DD_FREE_SLOT_TARGET': 4,
         'DD_HOST_FLAVOR_NAME_SMALL': 'standard.medium',

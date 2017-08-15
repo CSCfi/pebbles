@@ -163,7 +163,7 @@ class PBClientMock(object):
             'namespace': 'DockerDriver',
             'key': 'backend_config',
             'value': dict(
-                   DD_HOST_IMAGE='CentOS-7.0',
+                   DD_HOST_IMAGE='CentOS-7',
                    DD_MAX_HOSTS=4,
                    DD_SHUTDOWN_MODE=False,
                    DD_FREE_SLOT_TARGET=4,
