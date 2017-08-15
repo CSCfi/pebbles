@@ -26,7 +26,16 @@
                 <td>{{ blueprint.name }}</td>
                 <td>{{ blueprint.group_name }}</td>
                 <td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
-                <td>{{ blueprint.config.description }}</td>
+		<td>
+		    <div ng-show ="showHtml">
+		        <span id="admin-pre-background" ng-bind-html="blueprint.config.description"></span>
+			<a href ng-click="showHtml=!showHtml">(render PLAINTEXT)</a>
+	            </div>
+		    <div ng-hide ="showHtml">
+		        {{blueprint.config.description}}
+		        <a href ng-click="showHtml=!showHtml">(render HTML)</a>
+		    </div>
+		</td>
                 <td>
                     <a ng-click="provision(blueprint)" class="btn btn-primary" ng-hide="blueprint.config.needs_ssh_keys && !keypair_exists()" ng-disabled="maxInstanceLimitReached(blueprint)">
                         <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch
