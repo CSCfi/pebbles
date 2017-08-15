@@ -3,7 +3,6 @@ from flask import abort, Blueprint
 
 import logging
 import time
-import json
 
 from pebbles.models import db, NamespacedKeyValue
 from pebbles.forms import NamespacedKeyValueForm
@@ -26,6 +25,7 @@ namespace_fields = {
 class NamespacedKeyValueList(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('namespace', type=str)
+    parser.add_argument('key', type=str)
 
     @auth.login_required
     @requires_admin
@@ -35,6 +35,8 @@ class NamespacedKeyValueList(restful.Resource):
         namespaced_query = NamespacedKeyValue.query
         if args.get('namespace'):
             namespaced_query = namespaced_query.filter_by(namespace=args.namespace)
+        if args.get('key'):
+            namespaced_query = namespaced_query.filter(NamespacedKeyValue.key.like("{0}%".format(args.key)))
 
         return namespaced_query.all()
 
@@ -50,12 +52,15 @@ class NamespacedKeyValueList(restful.Resource):
 
         namespace = form.namespace.data
         key = form.key.data
-        value = json.loads(form.value.data)
+        schema = form.schema.data
+        value = form.value.data
         ns_check = NamespacedKeyValue.query.filter_by(namespace=namespace, key=key).first()
         if ns_check:
             logging.warn("a combination of namespace %s with key %s already exists" % (namespace, key))
             abort(422)
-        namespaced_keyvalue = NamespacedKeyValue(namespace, key)
+        # Create the object with static (mostly) parameters
+        namespaced_keyvalue = NamespacedKeyValue(namespace, key, schema)
+        # Then value, which is bound to change often
         namespaced_keyvalue.value = value
 
         curr_ts = round(time.time(), 2)
@@ -96,7 +101,8 @@ class NamespacedKeyValueView(restful.Resource):
             )
             abort(422)
 
-        value = json.loads(form.value.data)
+        schema = form.schema.data
+        value = form.value.data
         updated_version_ts = float(form.updated_version_ts.data)
 
         namespaced_keyvalue_query = NamespacedKeyValue.query.filter_by(namespace=namespace, key=key)
@@ -112,6 +118,9 @@ class NamespacedKeyValueView(restful.Resource):
 
         curr_ts = round(time.time(), 2)
         namespaced_keyvalue.updated_ts = curr_ts
+        # If schema changes, assign it first
+        namespaced_keyvalue.schema = schema
+        # the value needs the latest schema to be present
         namespaced_keyvalue.value = value
         db.session.add(namespaced_keyvalue)
         db.session.commit()
