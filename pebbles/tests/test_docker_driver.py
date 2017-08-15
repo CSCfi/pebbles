@@ -305,7 +305,7 @@ class DockerDriverTestCase(BaseTestCase):
             TEST_MODE=True,
             PUBLIC_IPV4='10.0.0.1',
             EXTERNAL_HTTPS_PORT=443,
-            DD_HOST_IMAGE='CentOS-7.0',
+            DD_HOST_IMAGE='CentOS-7',
             DD_MAX_HOSTS=4,
             DD_SHUTDOWN_MODE=False,
             DD_FREE_SLOT_TARGET=4,
