@@ -41,7 +41,7 @@ Create a security group for the server
 Boot the server
 ---------------
 
-We'll next create the server VM. It will be based on CentOS-7.0.
+We'll next create the server VM. It will be based on CentOS-7.
 
 * Go to (Instances -> Launch Instance)
 
@@ -49,7 +49,7 @@ We'll next create the server VM. It will be based on CentOS-7.0.
   * Instance name: e.g. 'pb_server'
   * Flavor: 'standard.small'
   * Instance boot source: 'boot from image'
-  * Image: 'CentOS-7.0'
+  * Image: 'CentOS-7'
 
 * Access and security tab:
   * Key Pair: your keypair
