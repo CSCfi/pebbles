@@ -3,7 +3,7 @@ import logging
 import docker.errors
 import pebbles.drivers.provisioning.docker_driver as docker_driver
 from pebbles.tests.base import BaseTestCase
-from pebbles.drivers.provisioning.docker_driver import DD_STATE_ACTIVE, DD_STATE_INACTIVE, DD_STATE_SPAWNED, DD_STATE_REMOVED, NAMESPACE, KEY_PREFIX
+from pebbles.drivers.provisioning.docker_driver import DD_STATE_ACTIVE, DD_STATE_INACTIVE, DD_STATE_SPAWNED, DD_STATE_REMOVED, NAMESPACE, KEY_PREFIX_POOL, KEY_CONFIG
 import mock
 from sys import version_info
 import docker.utils
@@ -159,7 +159,27 @@ class PBClientMock(object):
             memory_limit=config['memory_limit'],
             environment_vars=config['environment_vars']
         )
-        self.namespaced_records = []
+        self.namespaced_records = [{
+            'namespace': 'DockerDriver',
+            'key': 'backend_config',
+            'value': dict(
+                   DD_HOST_IMAGE='CentOS-7.0',
+                   DD_MAX_HOSTS=4,
+                   DD_SHUTDOWN_MODE=False,
+                   DD_FREE_SLOT_TARGET=4,
+                   DD_HOST_FLAVOR_NAME_SMALL='standard.tiny',
+                   DD_HOST_FLAVOR_SLOTS_SMALL=4,
+                   DD_HOST_FLAVOR_NAME_LARGE='standard.xlarge',
+                   DD_HOST_FLAVOR_SLOTS_LARGE=16,
+                   DD_HOST_MASTER_SG='pb_server',
+                   DD_HOST_EXTRA_SGS='',
+                   DD_HOST_ROOT_VOLUME_SIZE=0,
+                   DD_HOST_DATA_VOLUME_FACTOR=4,
+                   DD_HOST_DATA_VOLUME_DEVICE='/dev/vdc',
+                   DD_HOST_DATA_VOLUME_TYPE='',
+            ),
+            'updated_ts': 0
+        }]
 
     def add_instance_data(self, instance_id):
         self.instance_data[instance_id] = dict(
@@ -184,7 +204,7 @@ class PBClientMock(object):
     def _filter_namespaced_records(self, namespace, key=None):
         filters = [lambda x: x['namespace'] == namespace]
         if key:
-            filters.append(lambda x: x['key'] == key)
+            filters.append(lambda x: x['key'].startswith(key))  # mocking the 'like' SQL operator
 
         filtered_record = filter(
             lambda record: all(f(record) for f in filters),
@@ -193,8 +213,12 @@ class PBClientMock(object):
         return list(filtered_record)
 
     def get_namespaced_keyvalues(self, payload=None):
-        filtered_records = self._filter_namespaced_records(payload['namespace'])
+        filtered_records = self._filter_namespaced_records(payload['namespace'], payload['key'])
         return filtered_records
+
+    def get_namespaced_keyvalue(self, namespace, key):
+        filtered_record = self._filter_namespaced_records(namespace, key)[0]
+        return filtered_record
 
     def create_namespaced_keyvalue(self, payload):
         if not self._filter_namespaced_records(payload['namespace'], payload['key']):
@@ -223,7 +247,7 @@ class DockerDriverAccessMock(object):
         self.failure_mode = False
 
     def load_records(self, token=None, url=None):
-        namespaced_records = self.pbc_mock.get_namespaced_keyvalues({'namespace': NAMESPACE})
+        namespaced_records = self.pbc_mock.get_namespaced_keyvalues({'namespace': NAMESPACE, 'key': KEY_PREFIX_POOL})
         hosts = []
         for ns_record in namespaced_records:
             ns_record['value']['updated_ts'] = ns_record['updated_ts']
@@ -232,7 +256,7 @@ class DockerDriverAccessMock(object):
 
     def save_records(self, token, url, hosts):
         for host in hosts:
-            _key = '%s_%s' % (KEY_PREFIX, host['id'])
+            _key = '%s_%s' % (KEY_PREFIX_POOL, host['id'])
             payload = {
                 'namespace': NAMESPACE,
                 'key': _key
@@ -248,6 +272,11 @@ class DockerDriverAccessMock(object):
                 payload['value'] = host
                 payload['updated_version_ts'] = updated_version_ts
                 self.pbc_mock.modify_namespaced_keyvalue(NAMESPACE, _key, payload)
+
+    def load_driver_config(self, token, url):
+        namespaced_record = self.pbc_mock.get_namespaced_keyvalue(NAMESPACE, KEY_CONFIG)
+        driver_config = namespaced_record['value']
+        return driver_config
 
     def get_docker_client(self, docker_url):
         if docker_url not in self.dc_mocks.keys():
@@ -305,20 +334,6 @@ class DockerDriverTestCase(BaseTestCase):
             TEST_MODE=True,
             PUBLIC_IPV4='10.0.0.1',
             EXTERNAL_HTTPS_PORT=443,
-            DD_HOST_IMAGE='CentOS-7',
-            DD_MAX_HOSTS=4,
-            DD_SHUTDOWN_MODE=False,
-            DD_FREE_SLOT_TARGET=4,
-            DD_HOST_FLAVOR_NAME_SMALL='standard.tiny',
-            DD_HOST_FLAVOR_SLOTS_SMALL=4,
-            DD_HOST_FLAVOR_NAME_LARGE='standard.xlarge',
-            DD_HOST_FLAVOR_SLOTS_LARGE=16,
-            DD_HOST_MASTER_SG='pb_server',
-            DD_HOST_EXTRA_SGS='',
-            DD_HOST_ROOT_VOLUME_SIZE=0,
-            DD_HOST_DATA_VOLUME_FACTOR=4,
-            DD_HOST_DATA_VOLUME_DEVICE='/dev/vdc',
-            DD_HOST_DATA_VOLUME_TYPE='',
         )
         dd = docker_driver.DockerDriver(logger, config)
         dd._ap = DockerDriverAccessMock(config)
@@ -475,8 +490,8 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         num_slots = (
-            dd.config['DD_HOST_FLAVOR_SLOTS_SMALL'] +
-            dd.config['DD_HOST_FLAVOR_SLOTS_LARGE'] * (dd.config['DD_MAX_HOSTS'] - 1)
+            dd.driver_config['DD_HOST_FLAVOR_SLOTS_SMALL'] +
+            dd.driver_config['DD_HOST_FLAVOR_SLOTS_LARGE'] * (dd.driver_config['DD_MAX_HOSTS'] - 1)
         )
 
         # spawn instances up to the limit
@@ -486,7 +501,7 @@ class DockerDriverTestCase(BaseTestCase):
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        self.assertEquals(len(ddam.oss_mock.servers), dd.config['DD_MAX_HOSTS'])
+        self.assertEquals(len(ddam.oss_mock.servers), dd.driver_config['DD_MAX_HOSTS'])
 
         try:
             ddam.pbc_mock.add_instance_data('999')
@@ -507,8 +522,8 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         num_slots = (
-            dd.config['DD_HOST_FLAVOR_SLOTS_SMALL'] +
-            dd.config['DD_HOST_FLAVOR_SLOTS_LARGE'] * (dd.config['DD_MAX_HOSTS'] - 1)
+            dd.driver_config['DD_HOST_FLAVOR_SLOTS_SMALL'] +
+            dd.driver_config['DD_HOST_FLAVOR_SLOTS_LARGE'] * (dd.driver_config['DD_MAX_HOSTS'] - 1)
         )
 
         # spawn instances up to the limit
@@ -518,7 +533,7 @@ class DockerDriverTestCase(BaseTestCase):
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        self.assertEquals(len(ddam.oss_mock.servers), dd.config['DD_MAX_HOSTS'])
+        self.assertEquals(len(ddam.oss_mock.servers), dd.driver_config['DD_MAX_HOSTS'])
 
         # remove instances
         for i in range(0, num_slots):
@@ -526,7 +541,7 @@ class DockerDriverTestCase(BaseTestCase):
 
         # let logic scale down (3 ticks per host should be enough)
         cur_ts += docker_driver.DD_HOST_LIFETIME
-        for i in range(0, dd.config['DD_MAX_HOSTS'] * 3):
+        for i in range(0, dd.driver_config['DD_MAX_HOSTS'] * 3):
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         self.assertEquals(len(ddam.oss_mock.servers), 1)
@@ -543,7 +558,7 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         # set shutdown mode and see that we have scaled down
-        dd.config['DD_SHUTDOWN_MODE'] = True
+        dd.driver_config['DD_SHUTDOWN_MODE'] = True
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         cur_ts += 60

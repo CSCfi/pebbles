@@ -130,3 +130,56 @@ CONFIG = {
         }
     }
 }
+
+BACKEND_CONFIG = {
+
+    'schema': {
+        'type': 'object',
+        'properties': {
+            'DD_SHUTDOWN_MODE': {'type': 'boolean'},
+            'DD_HOST_IMAGE': {'type': 'string'},
+            'DD_MAX_HOSTS': {'type': 'integer'},
+            'DD_FREE_SLOT_TARGET': {'type': 'integer'},
+            'DD_HOST_FLAVOR_NAME_SMALL': {'type': 'string'},
+            'DD_HOST_FLAVOR_SLOTS_SMALL': {'type': 'integer'},
+            'DD_HOST_FLAVOR_NAME_LARGE': {'type': 'string'},
+            'DD_HOST_FLAVOR_SLOTS_LARGE': {'type': 'integer'},
+            'DD_HOST_MASTER_SG': {'type': 'string'},
+            'DD_HOST_EXTRA_SGS': {'type': 'string'},
+            'DD_HOST_ROOT_VOLUME_SIZE': {'type': 'integer'},
+            'DD_HOST_DATA_VOLUME_FACTOR': {'type': 'integer'},
+            'DD_HOST_DATA_VOLUME_DEVICE': {'type': 'string'},
+            'DD_HOST_DATA_VOLUME_TYPE': {'type': 'string'}
+        },
+        'required': [
+            'DD_SHUTDOWN_MODE',
+            'DD_HOST_IMAGE',
+            'DD_MAX_HOSTS',
+            'DD_FREE_SLOT_TARGET',
+            'DD_HOST_FLAVOR_NAME_SMALL',
+            'DD_HOST_FLAVOR_SLOTS_SMALL',
+            'DD_HOST_FLAVOR_NAME_LARGE',
+            'DD_HOST_FLAVOR_SLOTS_LARGE',
+            'DD_HOST_MASTER_SG',
+            'DD_HOST_ROOT_VOLUME_SIZE',
+            'DD_HOST_DATA_VOLUME_FACTOR',
+            'DD_HOST_DATA_VOLUME_TYPE'
+        ]
+    },
+    'model': {
+        'DD_SHUTDOWN_MODE': True,
+        'DD_HOST_IMAGE': 'CentOS-7.0',
+        'DD_MAX_HOSTS': 4,
+        'DD_FREE_SLOT_TARGET': 4,
+        'DD_HOST_FLAVOR_NAME_SMALL': 'standard.medium',
+        'DD_HOST_FLAVOR_SLOTS_SMALL': 6,
+        'DD_HOST_FLAVOR_NAME_LARGE': 'standard.xlarge',
+        'DD_HOST_FLAVOR_SLOTS_LARGE': 24,
+        'DD_HOST_MASTER_SG': 'pb_server',  # openstack security group attached to instances
+        'DD_HOST_EXTRA_SGS': '',
+        'DD_HOST_ROOT_VOLUME_SIZE': 0,
+        'DD_HOST_DATA_VOLUME_FACTOR': 4,
+        'DD_HOST_DATA_VOLUME_DEVICE': '/dev/vdb',  # an optional ephemeral local volume on vm flavor
+        'DD_HOST_DATA_VOLUME_TYPE': 'standard'
+    }
+}

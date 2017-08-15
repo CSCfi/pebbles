@@ -37,7 +37,7 @@ def do_get(token, object_url):
     return resp
 
 
-def do_post(token, api_path, data):
+def do_post_or_put(token, api_path, data, method='POST'):
     """ wrapper to use the POST method with uthentication token against the
     internal api url.
     """
@@ -45,7 +45,10 @@ def do_post(token, api_path, data):
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
     url = '%s/%s' % (local_config['INTERNAL_API_BASE_URL'], api_path)
-    resp = requests.post(url, data, headers=headers, verify=local_config['SSL_VERIFY'])
+    if method == 'POST':
+        resp = requests.post(url, json=data, headers=headers, verify=local_config['SSL_VERIFY'])
+    elif method == 'PUT':
+        resp = requests.put(url, json=data, headers=headers, verify=local_config['SSL_VERIFY'])
     return resp
 
 
@@ -95,7 +98,7 @@ celery_app.conf.CELERYBEAT_SCHEDULE = {
         'options': {'expires': 60, 'queue': 'system_tasks'},
     },
     'check-plugins-every-minute': {
-        'task': 'pebbles.tasks.publish_plugins',
+        'task': 'pebbles.tasks.publish_plugins_and_configs',
         'schedule': crontab(minute='*/1'),
         'options': {'expires': 60, 'queue': 'system_tasks'},
     },
@@ -119,7 +122,7 @@ class TaskRouter(object):
                 "pebbles.tasks.send_mails",
                 "pebbles.tasks.periodic_update",
                 "pebbles.tasks.send_mails",
-                "pebbles.tasks.publish_plugins",
+                "pebbles.tasks.publish_plugins_and_configs",
                 "pebbles.tasks.housekeeping",
         ):
             return {'queue': 'system_tasks'}

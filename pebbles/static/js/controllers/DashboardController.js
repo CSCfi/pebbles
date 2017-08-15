@@ -324,47 +324,43 @@ app.controller('ModalDestroyInstanceController', function($scope, $modalInstance
 app.controller('DriverConfigController', ['$scope', 'Restangular',
                               function ($scope,   Restangular) {
 
+        $scope.panel_open = false;
+
+        $scope.toggleStatusOpen = function() {
+             if ($scope.panel_open){
+                  $scope.panel_open = false;
+             }
+             else{
+                 $scope.panel_open = true;
+             }
+        }
         var configService = Restangular.all('namespaced_keyvalues');
 
-        $scope.oneAtATime = true;
-
-        $scope.driverConfigs1 = [
-            {
-                title: 'DockerDriver',
-                content:
-                '<h1>Test</h1>',
-            },
-            {
-                title: 'OpenShift Driver',
-                content: 'Dynamic Group Body - 2',
-            }
-        ];
-
-        $scope.driverConfigs = {"a": "b", "c":"d"}
-
         var fetchDriverConfigs = function(){
-            configService.getList({'key': 'driver_config'}).then(function (response) {
+            configService.getList({'key': 'backend_config'}).then(function (response) {
                 $scope.driverConfigs = response;
             });
         };
 
-       $scope.updateVariable = function(key, value) {
-
-            console.log(key, value);
-            if(false){
+       fetchDriverConfigs();
+       $scope.updateVariable = function(var_key, var_value, driverConfig) {
+            driverConfig.value[var_key] = var_value;
             configService.one(driverConfig.namespace).one(driverConfig.key).customPUT({
                  'namespace': driverConfig.namespace,
                  'key': driverConfig.key,
                  'value': driverConfig.value,
+                 'schema': driverConfig.schema,
                  'updated_version_ts': driverConfig.updated_ts
-            }).then(
-                function(){
+            }).then( function(){
+                   fetchDriverConfigs();     
             }, function(response){
-                console.log('error');
-                fetchDriverConfigs();
+                   if (response.status == 409) {
+                        $.notify({title: 'Outdated Config Found:', message: 'Loading the latest config'}, {type: 'danger'});
+                   } else {
+                       console.log('error while updating the driver specific variable');
+                   }
+                  fetchDriverConfigs();
             });
-         }
-
         };
 }]);
 
@@ -375,7 +371,7 @@ app.controller('PoolConfigController', ['$scope', 'Restangular',
         var configService = Restangular.all('namespaced_keyvalues');
 
         var fetchPoolConfig = function(){
-            configService.getList({'namespace': 'DockerDriver'}).then(function (response) {
+            configService.getList({'namespace': 'DockerDriver', 'key': 'pool_vm'}).then(function (response) {
                 $scope.poolConfigs = response;
             });
         };

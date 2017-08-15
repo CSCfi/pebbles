@@ -36,7 +36,7 @@ class NamespacedKeyValueList(restful.Resource):
         if args.get('namespace'):
             namespaced_query = namespaced_query.filter_by(namespace=args.namespace)
         if args.get('key'):
-            namespaced_query = namespaced_query.filter_by(key=args.key)
+            namespaced_query = namespaced_query.filter(NamespacedKeyValue.key.like("{0}%".format(args.key)))
 
         return namespaced_query.all()
 

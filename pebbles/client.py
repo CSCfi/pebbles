@@ -119,22 +119,38 @@ class PBClient(object):
         else:
             raise RuntimeError('Error getting namespaced records: %s' % resp.reason)
 
-    def create_namespaced_keyvalue(self, payload):
-        resp = self.do_post('namespaced_keyvalues', payload)
+    def get_namespaced_keyvalue(self, namespace, key):
+        resp = self.do_get('namespaced_keyvalues/%s/%s' % (namespace, key))
         if resp.status_code == 200:
             return resp.json()
         else:
-            raise RuntimeError('Error creating namespaced record %s' % (resp.reason))
+            raise RuntimeError('Error getting namespaced record: %s' % resp.reason)
+
+    def create_namespaced_keyvalue(self, payload):
+        headers = {'Accept': 'text/plain',
+                   'Authorization': 'Basic %s' % self.auth}
+        url = '%s/%s' % (self.api_base_url, 'namespaced_keyvalues')
+        resp = requests.post(url, json=payload, headers=headers, verify=self.ssl_verify)
+        if resp.status_code == 200:
+            return resp.json()
+        else:
+            raise RuntimeError('Error creating namespaced record %s %s' % (resp.reason, payload))
 
     def modify_namespaced_keyvalue(self, namespace, key, payload):
-        resp = self.do_put('namespaced_keyvalues/%s/%s' % (namespace, key), payload)
+        headers = {'Accept': 'text/plain',
+                   'Authorization': 'Basic %s' % self.auth}
+        url = '%s/%s/%s/%s' % (self.api_base_url, 'namespaced_keyvalues', namespace, key)
+        resp = requests.put(url, json=payload, headers=headers, verify=self.ssl_verify)
         if resp.status_code == 200:
             return resp.json()
         else:
             raise RuntimeError('Error modifying namespaced record: %s %s, %s' % (namespace, key, resp.reason))
 
     def delete_namespaced_keyvalue(self, namespace, key):
-        resp = self.do_delete('namespaced_keyvalues/%s/%s' % (namespace, key))
+        headers = {'Accept': 'text/plain',
+                   'Authorization': 'Basic %s' % self.auth}
+        url = '%s/%s/%s/%s' % (self.api_base_url, 'namespaced_keyvalues', namespace, key)
+        resp = requests.delete(url, headers=headers, verify=self.ssl_verify)
         if resp.status_code == 200:
             return resp.json()
         else:
