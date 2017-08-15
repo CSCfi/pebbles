@@ -43,7 +43,8 @@ DD_CLIENT_TIMEOUT = 180  # seconds
 PEBBLES_SSH_KEY_LOCATION = '/home/pebbles/.ssh/id_rsa'
 
 NAMESPACE = "DockerDriver"
-KEY_PREFIX = "pool_vm"
+KEY_PREFIX_POOL = "pool_vm"
+KEY_CONFIG = "backend_config"
 
 
 class DockerDriverAccessProxy(object):
@@ -82,9 +83,10 @@ class DockerDriverAccessProxy(object):
     @classmethod
     def load_records(cls, token, url):
         """ Loads the pool vm host state from the database through REST API
+            There can be multiple pool vms at a time (in different states)
         """
         pbclient = cls.get_pb_client(token, url, ssl_verify=False)
-        namespaced_records = pbclient.get_namespaced_keyvalues({'namespace': NAMESPACE})
+        namespaced_records = pbclient.get_namespaced_keyvalues({'namespace': NAMESPACE, 'key': KEY_PREFIX_POOL})
         hosts = []
         for ns_record in namespaced_records:
             ns_record['value']['updated_ts'] = ns_record['updated_ts']
@@ -97,25 +99,36 @@ class DockerDriverAccessProxy(object):
         """
         pbclient = cls.get_pb_client(token, url, ssl_verify=False)
         for host in hosts:
-            _key = '%s_%s' % (KEY_PREFIX, host['id'])
+            _key = '%s_%s' % (KEY_PREFIX_POOL, host['id'])
             payload = {
                 'namespace': NAMESPACE,
-                'key': _key
+                'key': _key,
+                'schema': {}
             }
             if host.get('state') == DD_STATE_SPAWNED:  # POST
-                payload['value'] = json.dumps(host)  # WTForms doesn't understand JSON object
+                payload['value'] = host
                 pbclient.create_namespaced_keyvalue(payload)
             elif host.get('state') == DD_STATE_REMOVED:  # DELETE
                 pbclient.delete_namespaced_keyvalue(NAMESPACE, _key)
             else:  # PUT
                 updated_version_ts = host['updated_ts']
                 del host['updated_ts']
-                payload['value'] = json.dumps(host)
+                payload['value'] = host
                 payload['updated_version_ts'] = updated_version_ts
                 pbclient.modify_namespaced_keyvalue(NAMESPACE, _key, payload)
 
+    @classmethod
+    def load_driver_config(cls, token, url):
+        """ Loads the driver config from the database through REST API
+            There will always be one config for the driver
+        """
+        pbclient = cls.get_pb_client(token, url, ssl_verify=False)
+        namespaced_record = pbclient.get_namespaced_keyvalue(NAMESPACE, KEY_CONFIG)
+        driver_config = namespaced_record['value']
+        return driver_config
+
     @staticmethod
-    def run_ansible_on_host(host, logger, config):
+    def run_ansible_on_host(host, logger, driver_config):
         from ansible.plugins.callback import CallbackBase
         # A rough logger that logs dict messages to standard logger
 
@@ -239,9 +252,9 @@ class DockerDriverAccessProxy(object):
         extra_vars = dict()
         extra_vars['ansible_ssh_extra_args'] = '-o StrictHostKeyChecking=no'
 
-        logger.debug('Setting config....')
-        if 'DD_HOST_DATA_VOLUME_DEVICE' in config:
-            extra_vars['notebook_host_block_dev_path'] = config['DD_HOST_DATA_VOLUME_DEVICE']
+        logger.debug('Setting driver config....')
+        if 'DD_HOST_DATA_VOLUME_DEVICE' in driver_config:
+            extra_vars['notebook_host_block_dev_path'] = driver_config['DD_HOST_DATA_VOLUME_DEVICE']
         variable_manager.extra_vars = extra_vars
         pb_executor = playbook_executor.PlaybookExecutor(
             playbooks=['/webapps/pebbles/source/ansible/notebook_playbook.yml'],
@@ -318,6 +331,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     """ ToDo: document what the docker driver does for an admin/developer here
     """
     def get_configuration(self):
+        """ Return the default config values which are needed for the
+            plugin creation (via schemaform)
+        """
         from pebbles.drivers.provisioning.docker_driver_config import CONFIG
 
         config = CONFIG.copy()
@@ -326,22 +342,38 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         return config
 
+    def get_backend_configuration(self):
+        """ Return the default values for the variables
+            which are needed as a part of backend configuration
+        """
+        from pebbles.drivers.provisioning.docker_driver_config import BACKEND_CONFIG
+        backend_config = BACKEND_CONFIG.copy()
+        return backend_config
+
     def _get_ap(self):
         if not getattr(self, '_ap', None):
             self._ap = DockerDriverAccessProxy()
         return self._ap
 
+    def _set_driver_backend_config(self, token):
+        """ Set the driver_config variable for usage in the
+            docker driver (i.e. the current class)
+        """
+        ap = self._get_ap()
+        self.driver_config = ap.load_driver_config(token, self.config['INTERNAL_API_BASE_URL'])
+
     def do_update_connectivity(self, token, instance_id):
         self.logger.warning('do_update_connectivity not implemented')
 
     def do_provision(self, token, instance_id):
+        self._set_driver_backend_config(token)  # set the driver specific config vars from the db
         self.logger.debug("do_provision %s" % instance_id)
         log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
 
         log_uploader.info("Provisioning Docker based instance (%s)\n" % instance_id)
 
         # in shutdown mode we bail out right away
-        if self.config['DD_SHUTDOWN_MODE']:
+        if self.driver_config['DD_SHUTDOWN_MODE']:
             log_uploader.info("system is in shutdown mode, cannot provision new instances\n")
             raise RuntimeWarning('Shutdown mode, no provisioning')
 
@@ -583,8 +615,10 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         return self._do_housekeep(token, int(time.time()))
 
     def _do_housekeep(self, token, cur_ts):
+        self._set_driver_backend_config(token)  # set the driver specific config vars from the db
+
         # in shutdown mode we remove the hosts as soon as no instances are running on them
-        shutdown_mode = self.config['DD_SHUTDOWN_MODE']
+        shutdown_mode = self.driver_config['DD_SHUTDOWN_MODE']
         if shutdown_mode:
             self.logger.info('do_housekeep(): in shutdown mode')
 
@@ -666,8 +700,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         num_projected_free_slots = self.calculate_projected_free_slots(hosts)
         num_allocated_slots = self.calculate_allocated_slots(hosts)
 
-        if num_projected_free_slots < self.config['DD_FREE_SLOT_TARGET']:
-            if len(hosts) < self.config['DD_MAX_HOSTS']:
+        if num_projected_free_slots < self.driver_config['DD_FREE_SLOT_TARGET']:
+            if len(hosts) < self.driver_config['DD_MAX_HOSTS']:
                 # try to figure out if we need to use the larger flavor
                 # if we at some point can get the number of queueing instances that can be used
                 if num_allocated_slots > 0:
@@ -708,7 +742,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             elif host.get('lifetime_tick_ts', 0):
                 lifetime = max(DD_HOST_LIFETIME - (cur_ts - host['lifetime_tick_ts']), 0)
             # if the host is the only one and not smaller flavor, don't leave it waiting
-            elif len(hosts) == 1 and host['num_slots'] != self.config['DD_HOST_FLAVOR_SLOTS_SMALL']:
+            elif len(hosts) == 1 and host['num_slots'] != self.driver_config['DD_HOST_FLAVOR_SLOTS_SMALL']:
                 host['lifetime_tick_ts'] = cur_ts
                 lifetime = DD_HOST_LIFETIME
             # host has not been used
@@ -789,14 +823,14 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     def _spawn_host(self, cur_ts, ramp_up=False):
         instance_name = 'pb_dd_%s' % uuid.uuid4().hex
-        image_name = self.config['DD_HOST_IMAGE']
+        image_name = self.driver_config['DD_HOST_IMAGE']
 
         if ramp_up:
-            flavor_name = self.config['DD_HOST_FLAVOR_NAME_LARGE']
-            flavor_slots = self.config['DD_HOST_FLAVOR_SLOTS_LARGE']
+            flavor_name = self.driver_config['DD_HOST_FLAVOR_NAME_LARGE']
+            flavor_slots = self.driver_config['DD_HOST_FLAVOR_SLOTS_LARGE']
         else:
-            flavor_name = self.config['DD_HOST_FLAVOR_NAME_SMALL']
-            flavor_slots = self.config['DD_HOST_FLAVOR_SLOTS_SMALL']
+            flavor_name = self.driver_config['DD_HOST_FLAVOR_NAME_SMALL']
+            flavor_slots = self.driver_config['DD_HOST_FLAVOR_SLOTS_SMALL']
 
         oss = self._get_ap().get_openstack_service({
             'M2M_CREDENTIAL_STORE': self.config['M2M_CREDENTIAL_STORE']
@@ -808,12 +842,12 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             image_name=image_name,
             flavor_name=flavor_name,
             public_key=open('/home/pebbles/.ssh/id_rsa.pub').read(),
-            master_sg_name=self.config['DD_HOST_MASTER_SG'],
-            extra_sec_groups=[x.strip() for x in self.config['DD_HOST_EXTRA_SGS'].split()],
+            master_sg_name=self.driver_config['DD_HOST_MASTER_SG'],
+            extra_sec_groups=[x.strip() for x in self.driver_config['DD_HOST_EXTRA_SGS'].split()],
             allocate_public_ip=False,
-            root_volume_size=self.config['DD_HOST_ROOT_VOLUME_SIZE'],
-            data_volume_size=flavor_slots * self.config['DD_HOST_DATA_VOLUME_FACTOR'],
-            data_volume_type=self.config['DD_HOST_DATA_VOLUME_TYPE'],
+            root_volume_size=self.driver_config['DD_HOST_ROOT_VOLUME_SIZE'],
+            data_volume_size=flavor_slots * self.driver_config['DD_HOST_DATA_VOLUME_FACTOR'],
+            data_volume_type=self.driver_config['DD_HOST_DATA_VOLUME_TYPE'],
         )
         if 'error' in res.keys():
             raise RuntimeError('Failed to spawn a new host: %s' % res['error'])
@@ -837,7 +871,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def _prepare_host(self, host):
         ap = self._get_ap()
 
-        ap.run_ansible_on_host(host, self.logger, self.config)
+        ap.run_ansible_on_host(host, self.logger, self.driver_config)
 
         docker_client = ap.get_docker_client(host['docker_url'])
 

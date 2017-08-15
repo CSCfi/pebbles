@@ -1,8 +1,8 @@
 import json
 
 from pebbles.client import PBClient
-from pebbles.tasks.celery_app import get_token, do_post, logger, local_config, get_dynamic_config
-from pebbles.tasks.celery_app import celery_app
+from pebbles.tasks.celery_app import celery_app, get_token, do_get, do_post_or_put, logger
+from pebbles.tasks.celery_app import local_config, get_dynamic_config
 
 
 def get_provisioning_manager():
@@ -47,6 +47,26 @@ def get_provisioning_type(token, instance_id):
     return pbclient.get_plugin_data(plugin_id)['name']
 
 
+def update_driver_backend_config(token, plugin, backend_config):
+    default_config = backend_config['model']
+    schema = backend_config['schema']
+    payload = {'namespace': plugin, 'key': 'backend_config', 'schema': schema}
+    try:
+        resp = do_get(token, 'namespaced_keyvalues/%s/%s' % (plugin, 'backend_config')).json()
+        user_config = resp['value']
+        diff_set = set(default_config.keys()) - set(user_config.keys())
+        # compare user_config with default_config
+        if diff_set:
+            for elem in diff_set:
+                user_config['value'][elem] = default_config[elem]
+        payload['value'] = user_config
+        payload['updated_version_ts'] = resp['updated_ts']
+        do_post_or_put(token, 'namespaced_keyvalues/%s/%s' % (plugin, 'backend_config'), payload, 'PUT')
+    except:
+        payload['value'] = default_config
+        do_post_or_put(token, 'namespaced_keyvalues', payload, 'POST')
+
+
 # update tasks are spawned every 60 seconds, expiry is set to avoid task pile up
 @celery_app.task(name="pebbles.tasks.run_update", expires=60)
 def run_update(instance_id):
@@ -61,29 +81,39 @@ def run_update(instance_id):
     logger.info('update done, notifying server')
 
 
-@celery_app.task(name="pebbles.tasks.publish_plugins")
-def publish_plugins():
-    """ ToDo: document.
+@celery_app.task(name="pebbles.tasks.publish_plugins_and_configs")
+def publish_plugins_and_configs():
+    """ Tries to check the PLUGIN_WHITELIST variable for the list of enabled drivers
+        and then creates a plugin object for each of them with a default UI config.
+        Also, a default backend config is created, if needed by the driver on the backend.
     """
     logger.info('provisioning plugins queried from worker')
     token = get_token()
     mgr = get_provisioning_manager()
     for plugin in mgr.names():
         payload = {'plugin': plugin}
-        res = mgr.map_method([plugin], 'get_configuration')
-        if not len(res):
+        res_config = mgr.map_method([plugin], 'get_configuration')
+
+        if not len(res_config):
             logger.warn('plugin returned empty configuration: %s' % plugin)
             continue
-        config = res[0]
-
+        config = res_config[0]
         if not config:
             logger.warn('No config for %s obtained' % plugin)
             continue
-
         for key in ('schema', 'form', 'model'):
             payload[key] = json.dumps(config.get(key, {}))
+        do_post_or_put(token, 'plugins', payload)
 
-        do_post(token, 'plugins', payload)
+        res_backend_config = mgr.map_method([plugin], 'get_backend_configuration')
+        if not len(res_backend_config):
+            logger.warn('plugin returned empty backend configuration: %s' % plugin)
+            continue
+        backend_config = res_backend_config[0]
+        if not backend_config:
+            logger.warn('No backend config for %s obtained' % plugin)
+            continue
+        update_driver_backend_config(token, plugin, backend_config)
 
 
 @celery_app.task(name="pebbles.tasks.housekeeping")

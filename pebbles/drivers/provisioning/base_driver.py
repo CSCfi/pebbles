@@ -72,6 +72,12 @@ class ProvisioningDriverBase(object):
                 {'style': 'btn-info', 'title': 'Create', 'type': 'submit'}
             ], 'model': {}}
 
+    def get_backend_configuration(self):
+        """ This method would return the default values of the backend vars
+            which are specific to a particular driver.
+        """
+        return {}
+
     def update(self, token, instance_id):
         """ an update call  updates the status of an instance.
 
