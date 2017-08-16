@@ -38,12 +38,12 @@
     </dl>
 
     <label>Latest entries in provisioning log</label>
-    <pre>{{ getLogs(instance) }}</pre>
+    <pre>{{ getLogs(instance, "provisioning") }}</pre>
     <br>
     <label>Latest entries in running log</label>
-    <pre>logs appear here</pre>
+    <pre>{{ getLogs(instance, "running") }}</pre>
       <div>
-       <button ng-click="" class="btn btn-primary">Get Logs</button>
+       <button ng-click="fetchRunningLogs(instance)" class="btn btn-primary">Get Logs</button>
     </div>
     <br>
     <br>

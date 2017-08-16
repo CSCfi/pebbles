@@ -31,6 +31,9 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
 
         return config
 
+    def get_running_instance_logs():
+        pass
+
     def do_update_connectivity(self, token, instance_id):
         oss = self.get_oss()
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)

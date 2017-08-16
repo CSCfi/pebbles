@@ -368,8 +368,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
     def get_running_instance_logs(self, token, instance_id):
         """ Get the logs of the instance which is in running state """
         self.logger.debug("getting container logs for instance id %s" % instance_id)
-
         ap = self._get_ap()
+        running_log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='running')
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance(instance_id)
         container_name = instance['name']
@@ -381,8 +381,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         instance_docker_url = instance['instance_data']['docker_url']
         docker_client = ap.get_docker_client(instance_docker_url)
         container_logs = docker_client.logs(container_name)
-        self.logger.warning('LOGSSSSSSSSSSSSSSSSSSS')
-        self.logger.warning(container_logs)
+        running_log_uploader.info(container_logs)
 
     def do_provision(self, token, instance_id):
         self._set_driver_backend_config(token)  # set the driver specific config vars from the db
@@ -458,6 +457,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             'environment': blueprint_config['environment_vars'].split(),
         }
         config['environment'].append(format('INSTANCE_ID=%s' % instance_id))
+        config['environment'].append(format('TZ=%s' % 'Asia/Delhi'))
 
         if len(blueprint_config.get('launch_command', '')):
             launch_command = blueprint_config.get('launch_command').format(

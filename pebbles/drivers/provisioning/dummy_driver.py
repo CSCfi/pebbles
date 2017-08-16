@@ -21,6 +21,9 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
 
         return CONFIG
 
+    def get_running_instance_logs():
+        pass
+
     def do_update_connectivity(self, token, instance_id):
         pass
 

@@ -286,15 +286,21 @@ class InstanceView(restful.Resource):
 
 class InstanceLogs(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('log_record_json', type=str)
+    parser.add_argument('log_record', type=dict)
+    parser.add_argument('log_type', type=str)
+    parser.add_argument('send_log_fetch_task', type=bool)
 
     @auth.login_required
     @marshal_with(instance_log_fields)
     def get(self, instance_id):
+        args = self.parser.parse_args()
         instance = Instance.query.filter_by(id=instance_id).first()
+        logging.warn(instance)
         if not instance:
             abort(404)
-        instance_logs = get_logs_from_db(instance_id)
+        if args.get('log_type'):
+            log_type = args['log_type']
+        instance_logs = get_logs_from_db(instance_id, log_type)
         return instance_logs
 
     @auth.login_required
@@ -304,32 +310,43 @@ class InstanceLogs(restful.Resource):
         instance = Instance.query.filter_by(id=instance_id).first()
         if not instance:
             abort(404)
-        log_record_json = args['log_record_json']
-        if not log_record_json:
-            abort(403)
-        log_record = json.loads(log_record_json)
+        if args.get('send_log_fetch_task'):
+            if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
+                fetch_running_instance_logs.delay(instance_id)
+        logging.warn(args)
+        if args.get('log_record'):
+            log_record = args['log_record']
+            logging.warn('LOG_RECORD')
+            logging.warn(log_record)
+            instance_log = process_logs(instance_id, log_record)
+            logging.warn(instance_log)
+            db.session.add(instance_log)
+            db.session.commit()
 
+        return 'ok'
+
+
+def get_logs_from_db(instance_id, log_type=None):
+    logs_query = InstanceLog.query\
+        .filter_by(instance_id=instance_id)
+    if log_type:
+        logs_query = logs_query.filter_by(log_type=log_type)
+    logs_query = logs_query.order_by(InstanceLog.timestamp)
+    logs = logs_query.all()
+    return logs
+
+
+def process_logs(instance_id, log_record):
+
+    instance_log = get_logs_from_db(instance_id, "running")
+    if not instance_log:
         instance_log = InstanceLog(instance_id)
         instance_log.log_type = log_record['log_type']
         instance_log.log_level = log_record['log_level']
         instance_log.timestamp = float(log_record['timestamp'])
         instance_log.message = log_record['message']
+    else:
+        instance_log.timestamp = float(log_record['timestamp'])
+        instance_log.message = log_record['message']
 
-        db.session.add(instance_log)
-        db.session.commit()
-
-        return 'ok'
-
-    @auth.login_required
-    def put(self, instance_id):
-        if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-            fetch_running_instance_logs(instance_id)
-
-
-def get_logs_from_db(instance_id):
-    logs_query = InstanceLog.query\
-        .filter_by(instance_id=instance_id)\
-        .order_by(InstanceLog.timestamp)
-
-    logs = logs_query.all()
-    return logs
+    return instance_log

@@ -1,7 +1,7 @@
 import base64
 import logging
 import requests
-import json
+# import json
 import time
 
 
@@ -16,17 +16,16 @@ class PBInstanceLogHandler(logging.Handler):
         auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
         self.ssl_verify = ssl_verify
         self.headers = {
-            'Content-type': 'application/x-www-form-urlencoded',
             'Accept': 'text/plain',
             'Authorization': 'Basic %s' % auth}
         self.url = '%s/instances/%s/logs' % (api_base_url, instance_id)
 
     def emit(self, record):
-        log_record_json = self.format(record)
-        payload = {'log_record_json': log_record_json}
+        log_record = self.format(record)
+        payload = {'log_record': log_record}
         try:
             requests.patch(
-                self.url, data=payload, headers=self.headers, verify=self.ssl_verify)
+                self.url, json=payload, headers=self.headers, verify=self.ssl_verify)
         except Exception:
             self.handleError(record)
 
@@ -43,4 +42,4 @@ class PBInstanceLogFormatter(logging.Formatter):
             'log_type': self.log_type,
             'log_level': record.levelname
         }
-        return json.dumps(log_record)
+        return log_record

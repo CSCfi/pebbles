@@ -78,10 +78,6 @@ class ProvisioningDriverBase(object):
         """
         return {}
 
-    def get_running_instance_logs(self, token, instance_id):
-        """ get the logs of an instance which is in running state """
-        pass
-
     def update(self, token, instance_id):
         """ an update call  updates the status of an instance.
 
@@ -160,6 +156,12 @@ class ProvisioningDriverBase(object):
         This can be used to e.g. open holes in firewalls or to update a proxy
         to route traffic to an instance.
         """
+        pass
+
+    @abc.abstractmethod
+    def get_running_instance_logs(self, token, instance_id):
+        """ get the logs of an instance which is in running state """
+        self.logger.warn("ABSTRACTTTTTTTTT METHOD")
         pass
 
     @abc.abstractmethod

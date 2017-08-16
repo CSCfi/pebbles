@@ -31,13 +31,27 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
             }
         };
 
-        $scope.getLogs = function(instance) {
+        $scope.fetchRunningLogs = function(instance){
+            Restangular.one('instances', instance.id).one('logs').customPATCH({'send_log_fetch_task': true}).then(function (response) {
+                $.notify({title: 'HTTP 200', message: 'Fetching running Logs'}, {type: 'info'});
+            },
+               function(error){
+                  $.notify({title: 'HTTP ' + error.status, message: error.message}, {type: 'danger'});
+               });
+        }
+
+        $scope.getLogs = function(instance, log_type) {
             var full_log_text = "";
             if (instance) {
                 for (var log_index in instance['logs']) {
                     var log = instance['logs'][log_index];
-                    var datetime = new Date(log.timestamp * 1000);  // Multiplication for milliseconds
-                    full_log_text += "[" + datetime.toLocaleString('en-GB') + "]:" + log.log_level + ":" + log.message;
+                    if (log.log_type == log_type && log_type == "provisioning"){
+                        var datetime = new Date(log.timestamp * 1000);  // Multiplication for milliseconds
+                        full_log_text += "[" + datetime.toLocaleString('en-GB') + "]:" + log.log_level + ":" + log.message;
+                    }
+                    if (log.log_type == log_type && log_type == "running"){
+                        full_log_text = log.message
+                    }
                 }
             }
             return full_log_text;
