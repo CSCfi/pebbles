@@ -104,6 +104,7 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
             instance_name,
             config['image'],
             config['flavor'],
+            nics=config.get('user_id', 'auto'),
             public_key=key_data[0]['public_key'],
             userdata=config.get('userdata'))
 
