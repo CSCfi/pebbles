@@ -1,8 +1,61 @@
-# """
-# ToDo: Document user/admin level usage of docker driver here, possibly including
-#
-# screenshots and what variables can be set or overriden.
-# """
+"""
+
+DockerDriver maintains a pool of hosts running Docker and starts containers on
+one host.
+
+For safety reasons and to avoid stuck situations the hosts expire after 4
+hours and are respawned after the last container on them has been removed.
+
+An important concept to DD are **slots**. A slot is roughly 512MB of memory
+and it is used to assign containers to **pool hosts**. A pool host has a
+number of slots and the driver won't assign any more containers to a host that
+doesn't have the slots for it.
+
+The system maintains a number of hosts to reach DD_FREE_SLOT_TARGET unless
+DD_SHUTDOWN_MODE is True, in which case it waits for all containers on a host
+to finish and then shuts down the host.
+
+DockerDriver configurations are available via the UI admin dashboard under
+"Driver Configs".
+
++----------------------------+--------------------------------------------------------------+
+| Config                     | Description                                                  |
++----------------------------+--------------------------------------------------------------+
+| DD_FREE_SLOT_TARGET        | Number of "slots" the system should have available           |
++----------------------------+--------------------------------------------------------------+
+| DD_HOST_DATA_VOLUME_DEVICE | ToDo                                                         |
++----------------------------+--------------------------------------------------------------+
+| DD_HOST_DATA_VOLUME_FACTOR | ToDo                                                         |
++----------------------------+--------------------------------------------------------------+
+| DD_HOST_DATA_VOLUME_TYPE   |                                                              |
++----------------------------+--------------------------------------------------------------+
+| DD_HOST_EXTRA_SGS          | Extra security groups (name) to add to the hosts.            |
+|                            | Note that security group must exist in tenant!               |
++----------------------------+--------------------------------------------------------------+
+| DD_HOST_FLAVOR_NAME_LARGE  | OpenStack flavor of a large host.                            |
++----------------------------+--------------------------------------------------------------+
+| DD_HOST_FLAVOR_NAME_SMALL  | OpenStack flavor of a small host.                            |
++----------------------------+--------------------------------------------------------------+
+| DD_HOST_FLAVOR_SLOTS_LARGE | How many slots a large instance provides                     |
++----------------------------+--------------------------------------------------------------+
+| DD_HOST_FLAVOR_SLOTS_SMALL | How many slots a small instance provides                     |
++----------------------------+--------------------------------------------------------------+
+| DD_HOST_IMAGE              | The image a host should have                                 |
++----------------------------+--------------------------------------------------------------+
+| DD_HOST_MASTER_SG          | The security group that the pebbles instance is on.          |
+|                            | A security group rule is created to allow traffic from       |
+|                            | this security group to the pool host.                        |
++----------------------------+--------------------------------------------------------------+
+| DD_HOST_NETWORK            | UUID of the network to which the pool host should be added.  |
+|                            | Can be "auto" if there is only one network in a tenant.      |
++----------------------------+--------------------------------------------------------------+
+| DD_MAX_HOSTS               | Do not spawn more than this many hosts.                      |
++----------------------------+--------------------------------------------------------------+
+| DD_HOST_ROOT_VOLUME_SIZE   | How large a volume to create to the hosts                    |
++----------------------------+--------------------------------------------------------------+
+| DD_SHUTDOWN_MODE           | Stop all hosts when they become free.                        |
++----------------------------+--------------------------------------------------------------+
+"""
 
 import json
 import time
@@ -841,6 +894,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             root_volume_size=self.driver_config['DD_HOST_ROOT_VOLUME_SIZE'],
             data_volume_size=flavor_slots * self.driver_config['DD_HOST_DATA_VOLUME_FACTOR'],
             data_volume_type=self.driver_config['DD_HOST_DATA_VOLUME_TYPE'],
+            nics=self.driver_config.get('DD_HOST_NETWORK', 'auto'),
         )
         if 'error' in res.keys():
             raise RuntimeError('Failed to spawn a new host: %s' % res['error'])

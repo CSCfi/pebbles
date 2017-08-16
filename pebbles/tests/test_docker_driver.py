@@ -54,6 +54,7 @@ class OpenStackServiceMock(object):
                            public_key, extra_sec_groups=None,
                            master_sg_name=None, allocate_public_ip=True,
                            root_volume_size=0, data_volume_size=0, data_volume_type=None,
+                           nics=None,
                            userdata=None
                            ):
         self.spawn_count += 1
