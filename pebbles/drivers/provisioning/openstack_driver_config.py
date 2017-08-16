@@ -77,6 +77,11 @@ CONFIG = {
                 'title': "Needs ssh-keys to access",
                 'default': True,
             },
+            'openstack_net_id': {
+                'type': 'string',
+                'title': "OpenStack network UUID to place instance to or 'auto'",
+                'default': "auto",
+            },
         }
     },
     'form': [
@@ -108,5 +113,6 @@ CONFIG = {
         'image': 'Ubuntu-14.04',
         'firewall_rules': ['tcp 22 22 192.168.1.0/24'],
         'needs_ssh_keys': True,
+        "openstack_net_id": "auto"
     }
 }

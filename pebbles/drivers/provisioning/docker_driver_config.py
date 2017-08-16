@@ -149,7 +149,9 @@ BACKEND_CONFIG = {
             'DD_HOST_ROOT_VOLUME_SIZE': {'type': 'integer'},
             'DD_HOST_DATA_VOLUME_FACTOR': {'type': 'integer'},
             'DD_HOST_DATA_VOLUME_DEVICE': {'type': 'string'},
-            'DD_HOST_DATA_VOLUME_TYPE': {'type': 'string'}
+            'DD_HOST_DATA_VOLUME_TYPE': {'type': 'string'},
+            'DD_HOST_NETWORK': {'type': 'string'}
+
         },
         'required': [
             'DD_SHUTDOWN_MODE',
@@ -163,7 +165,9 @@ BACKEND_CONFIG = {
             'DD_HOST_MASTER_SG',
             'DD_HOST_ROOT_VOLUME_SIZE',
             'DD_HOST_DATA_VOLUME_FACTOR',
-            'DD_HOST_DATA_VOLUME_TYPE'
+            'DD_HOST_DATA_VOLUME_TYPE',
+            'DD_HOST_NETWORK',
+
         ]
     },
     'model': {
@@ -180,6 +184,7 @@ BACKEND_CONFIG = {
         'DD_HOST_ROOT_VOLUME_SIZE': 0,
         'DD_HOST_DATA_VOLUME_FACTOR': 4,
         'DD_HOST_DATA_VOLUME_DEVICE': '/dev/vdb',  # an optional ephemeral local volume on vm flavor
-        'DD_HOST_DATA_VOLUME_TYPE': 'standard'
+        'DD_HOST_DATA_VOLUME_TYPE': 'standard',
+        'DD_HOST_NETWORK': 'auto'
     }
 }

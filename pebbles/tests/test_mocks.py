@@ -1,3 +1,6 @@
+import mock
+
+
 class SecurityGroup(object):
     def __init__(self):
         self.id = "secgroup_1"
@@ -73,6 +76,9 @@ class NovaClientMock(object):
         def get(self, *args, **kwargs):
             return Instance()
 
+        def delete(self, *args, **kwargs):
+            return
+
     class FloatingIPManager(object):
         def findall(self, *args, **kwargs):
             return []
@@ -90,12 +96,25 @@ class NovaClientMock(object):
         def get(self, *args, **kwargs):
             return Volume()
 
+        def delete(self, *args, **kwargs):
+            return
+
     class KeypairManager(object):
         def create(self, *args, **kwargs):
             return Keypair()
 
         def find(self, *args, **kwargs):
             return Keypair()
+
+    class Glance(object):
+        def create(self, *args, **kwargs):
+            return Keypair()
+
+        def list(self, *args, **kwargs):
+            return [Image()]
+
+        def find_image(self, *args, **kwargs):
+            return Image()
 
     def __init__(self):
         self.security_groups = NovaClientMock.SecurityGroupManagerMock()
@@ -106,3 +125,11 @@ class NovaClientMock(object):
         self.floating_ips = NovaClientMock.FloatingIPManager()
         self.volumes = NovaClientMock.VolumeManager()
         self.keypairs = NovaClientMock.KeypairManager()
+        self.glance = NovaClientMock.Glance()
+        self.delete_security_group = mock.MagicMock()
+        self.create_security_group = mock.MagicMock()
+        self.create_security_group_rule = mock.MagicMock()
+        self.list_floatingips = mock.MagicMock()
+        self.create_floatingip = mock.MagicMock()
+        self.find_resource = mock.MagicMock()
+        self.exceptions = mock.MagicMock()

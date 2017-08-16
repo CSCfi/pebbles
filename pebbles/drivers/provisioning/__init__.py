@@ -8,14 +8,32 @@ backends. Currently it's possible to:
 * provision OpenStack virtual machines (OpenStackDriver)
 * provision Docker containers from a host pool that consists of OpenStack
   virtual machines (DockerDriver)
+* provision containers from OpenShift (OpenShiftDriver)
 
-There is work ongoing about adding support for provisioning
-containers from an OpenShift.
+The ones for DockerDriver are prepended DD_* . All drivers require the
+variable M2M_CREDENTIAL_STORE for credentials to OpenStack/OpenShift. The
+variable should point to a JSON file that contains
 
-Each driver uses different settings that can be set by the admin. The ones for
-DockerDriver are prepended DD_* . Both instances require M2M_CREDENTIAL_STORE
-to access OpenStack API.
+For OpenStackDriver and DockerDriver
+
+* OS_USERNAME
+* OS_PASSWORD
+* OS_TENANT_NAME
+* OS_AUTH_URL
+
+To a v2 endpoint (v3 support will come eventually).
+
+For OpenShiftDriver:
+
+* OSD_*_BASE_URL
+* OSD_*_SUBDOMAIN
+* OSD_*_USER
+* OSD_*_PASSWORD
+
+Where * is the name of the OpenShift installation (the system can handle
+multiple openshifts).
+
 
 Drivers are implemented as plugins that are loaded dynamically by
-:py:mod:`stevedore`
+:py:mod:`stevedore` .
 """

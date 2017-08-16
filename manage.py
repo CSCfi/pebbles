@@ -106,6 +106,17 @@ def createuser(email=None, password=None, admin=False):
         password = getpass.getpass("password: ")
     create_user(email, password=password, is_admin=admin)
 
+@manager.command
+def purgehost(name):
+    """Purges a docker driver host by host name from NamespacedKeyValues so
+    it can be safely deleted via OpenStack UI"""
+    from pebbles.models import NamespacedKeyValue, db
+    q_ = db.session.query(NamespacedKeyValue).filter(
+        NamespacedKeyValue.key.contains(name))
+    for obj in q_:
+        db.session.delete(obj)
+    db.session.commit()
+
 
 @manager.command
 def createworker():
