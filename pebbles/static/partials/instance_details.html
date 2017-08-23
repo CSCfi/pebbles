@@ -37,13 +37,13 @@
         </dd>
     </dl>
 
-    <label>Latest entries in provisioning log</label>
+    <label>Instance provisioning logs</label>
     <pre>{{ getLogs(instance, "provisioning") }}</pre>
     <br>
-    <label>Latest entries in running log</label>
+    <label>Running instance logs (For debugging)</label>
     <pre>{{ getLogs(instance, "running") }}</pre>
       <div>
-       <button ng-click="fetchRunningLogs(instance)" class="btn btn-primary">Get Logs</button>
+       <button ng-click="fetchRunningLogs(instance)" class="btn btn-primary">Get Running Logs <i ng-show="log_loading" class="fa fa-spinner fa-spin"></i></button>
     </div>
     <br>
     <br>

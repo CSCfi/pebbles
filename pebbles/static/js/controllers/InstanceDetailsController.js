@@ -31,12 +31,15 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
             }
         };
 
+        $scope.log_loading = false;
         $scope.fetchRunningLogs = function(instance){
             Restangular.one('instances', instance.id).one('logs').customPATCH({'send_log_fetch_task': true}).then(function (response) {
                 $.notify({title: 'HTTP 200', message: 'Fetching running Logs'}, {type: 'info'});
+                $scope.log_loading = true;
             },
                function(error){
                   $.notify({title: 'HTTP ' + error.status, message: error.message}, {type: 'danger'});
+                  $scope.log_loading = false;
                });
         }
 
@@ -51,6 +54,7 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
                     }
                     if (log.log_type == log_type && log_type == "running"){
                         full_log_text = log.message
+                        $scope.log_loading = false;
                     }
                 }
             }
