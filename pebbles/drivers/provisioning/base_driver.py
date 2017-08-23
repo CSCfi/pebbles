@@ -92,6 +92,7 @@ class ProvisioningDriverBase(object):
             self.provision(token, instance_id)
         elif instance['to_be_deleted'] and instance['state'] not in [Instance.STATE_DELETED]:
             self.deprovision(token, instance_id)
+            pbclient.clear_running_instance_logs(instance_id)
         else:
             self.logger.debug("update('%s') - nothing to do for %s" % (instance_id, instance))
 
@@ -161,7 +162,6 @@ class ProvisioningDriverBase(object):
     @abc.abstractmethod
     def get_running_instance_logs(self, token, instance_id):
         """ get the logs of an instance which is in running state """
-        self.logger.warn("ABSTRACTTTTTTTTT METHOD")
         pass
 
     @abc.abstractmethod

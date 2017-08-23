@@ -295,7 +295,6 @@ class InstanceLogs(restful.Resource):
     def get(self, instance_id):
         args = self.parser.parse_args()
         instance = Instance.query.filter_by(id=instance_id).first()
-        logging.warn(instance)
         if not instance:
             abort(404)
         if args.get('log_type'):
@@ -313,17 +312,29 @@ class InstanceLogs(restful.Resource):
         if args.get('send_log_fetch_task'):
             if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
                 fetch_running_instance_logs.delay(instance_id)
-        logging.warn(args)
         if args.get('log_record'):
             log_record = args['log_record']
-            logging.warn('LOG_RECORD')
-            logging.warn(log_record)
             instance_log = process_logs(instance_id, log_record)
-            logging.warn(instance_log)
             db.session.add(instance_log)
             db.session.commit()
 
         return 'ok'
+
+    @auth.login_required
+    @requires_admin
+    def delete(self, instance_id):
+        args = self.parser.parse_args()
+        log_type = args.get('log_type')
+        if log_type:
+            instance_logs = get_logs_from_db(instance_id, args.get('log_type'))
+        else:
+            instance_logs = get_logs_from_db(instance_id)
+        if not instance_logs:
+            logging.warn("There are no log entries to be deleted")
+
+        for instance_log in instance_logs:
+            db.session.delete(instance_log)
+        db.session.commit()
 
 
 def get_logs_from_db(instance_id, log_type=None):
@@ -338,15 +349,19 @@ def get_logs_from_db(instance_id, log_type=None):
 
 def process_logs(instance_id, log_record):
 
-    instance_log = get_logs_from_db(instance_id, "running")
-    if not instance_log:
-        instance_log = InstanceLog(instance_id)
-        instance_log.log_type = log_record['log_type']
-        instance_log.log_level = log_record['log_level']
-        instance_log.timestamp = float(log_record['timestamp'])
-        instance_log.message = log_record['message']
-    else:
-        instance_log.timestamp = float(log_record['timestamp'])
-        instance_log.message = log_record['message']
+    check_running_log = get_logs_from_db(instance_id, "running")
+
+    if check_running_log:
+        instance_log = check_running_log[0]
+        if log_record['log_type'] == "running":
+            instance_log.timestamp = float(log_record['timestamp'])
+            instance_log.message = log_record['message']
+            return instance_log
+
+    instance_log = InstanceLog(instance_id)
+    instance_log.log_type = log_record['log_type']
+    instance_log.log_level = log_record['log_level']
+    instance_log.timestamp = float(log_record['timestamp'])
+    instance_log.message = log_record['message']
 
     return instance_log

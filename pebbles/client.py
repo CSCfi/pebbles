@@ -89,6 +89,16 @@ class PBClient(object):
 
         return resp.json()
 
+    def clear_running_instance_logs(self, instance_id):
+        headers = {'Accept': 'text/plain',
+                   'Authorization': 'Basic %s' % self.auth}
+        url = '%s/instances/%s/logs' % (self.api_base_url, instance_id)
+        params = {'log_type': 'running'}
+        resp = requests.delete(url, params=params, headers=headers, verify=self.ssl_verify)
+        if resp.status_code != 200:
+            raise RuntimeError('Unable to delete running logs for instance %s, %s' % (instance_id, resp.reason))
+        return resp
+
     def get_plugin_data(self, plugin_id):
         resp = self.do_get('plugins/%s' % plugin_id)
         if resp.status_code != 200:
