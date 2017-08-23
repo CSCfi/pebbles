@@ -58,7 +58,7 @@ def update_driver_backend_config(token, plugin, backend_config):
         # compare user_config with default_config
         if diff_set:
             for elem in diff_set:
-                user_config['value'][elem] = default_config[elem]
+                user_config[elem] = default_config[elem]
         payload['value'] = user_config
         payload['updated_version_ts'] = resp['updated_ts']
         do_post_or_put(token, 'namespaced_keyvalues/%s/%s' % (plugin, 'backend_config'), payload, 'PUT')
