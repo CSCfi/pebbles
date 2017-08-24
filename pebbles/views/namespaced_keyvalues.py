@@ -17,6 +17,7 @@ namespace_fields = {
     'namespace': fields.String,
     'key': fields.String,
     'value': fields.Raw,
+    'schema': fields.Raw,
     'created_ts': fields.Float,
     'updated_ts': fields.Float
 }
