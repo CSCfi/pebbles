@@ -384,13 +384,14 @@ app.controller('PoolConfigController', ['$scope', 'Restangular',
         }
 
         $scope.updateConfig = function(poolConfig) {
-            poolConfigs.one(poolConfig.namespace).one(poolConfig.key).customPUT({
+            configService.one(poolConfig.namespace).one(poolConfig.key).customPUT({
                  'namespace': poolConfig.namespace,
                  'key': poolConfig.key,
                  'value': poolConfig.value,
                  'updated_version_ts': poolConfig.updated_ts
                }).then(
                function(){
+		   fetchPoolConfig();
                    $.notify({title: 'HTTP 200', message: 'Config changed successfully'}, {type: 'success'});
             }, function(response) {
                    if (response.status == 409) {
