@@ -123,28 +123,25 @@ class PBClient(object):
         resp = self.do_get('namespaced_keyvalues/%s/%s' % (namespace, key))
         if resp.status_code == 200:
             return resp.json()
-        else:
-            raise RuntimeError('Error getting namespaced record: %s' % resp.reason)
+        return None
 
-    def create_namespaced_keyvalue(self, payload):
+    def create_or_modify_namespaced_keyvalue(self, namespace, key, payload):
         headers = {'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % self.auth}
-        url = '%s/%s' % (self.api_base_url, 'namespaced_keyvalues')
-        resp = requests.post(url, json=payload, headers=headers, verify=self.ssl_verify)
+        ns_record = self.get_namespaced_keyvalue(namespace, key)
+        if not ns_record:
+            url = '%s/%s' % (self.api_base_url, 'namespaced_keyvalues')
+            resp = requests.post(url, json=payload, headers=headers, verify=self.ssl_verify)
+        else:
+            updated_version_ts = ns_record['updated_ts']
+            payload['updated_version_ts'] = updated_version_ts
+            url = '%s/%s/%s/%s' % (self.api_base_url, 'namespaced_keyvalues', namespace, key)
+            resp = requests.put(url, json=payload, headers=headers, verify=self.ssl_verify)
+
         if resp.status_code == 200:
             return resp.json()
         else:
-            raise RuntimeError('Error creating namespaced record %s %s' % (resp.reason, payload))
-
-    def modify_namespaced_keyvalue(self, namespace, key, payload):
-        headers = {'Accept': 'text/plain',
-                   'Authorization': 'Basic %s' % self.auth}
-        url = '%s/%s/%s/%s' % (self.api_base_url, 'namespaced_keyvalues', namespace, key)
-        resp = requests.put(url, json=payload, headers=headers, verify=self.ssl_verify)
-        if resp.status_code == 200:
-            return resp.json()
-        else:
-            raise RuntimeError('Error modifying namespaced record: %s %s, %s' % (namespace, key, resp.reason))
+            raise RuntimeError('Error creating / modifying namespaced record: %s %s, %s' % (namespace, key, resp.reason))
 
     def delete_namespaced_keyvalue(self, namespace, key):
         headers = {'Accept': 'text/plain',

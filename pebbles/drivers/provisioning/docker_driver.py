@@ -89,7 +89,6 @@ class DockerDriverAccessProxy(object):
         namespaced_records = pbclient.get_namespaced_keyvalues({'namespace': NAMESPACE, 'key': KEY_PREFIX_POOL})
         hosts = []
         for ns_record in namespaced_records:
-            ns_record['value']['updated_ts'] = ns_record['updated_ts']
             hosts.append(ns_record['value'])
         return hosts
 
@@ -105,17 +104,11 @@ class DockerDriverAccessProxy(object):
                 'key': _key,
                 'schema': {}
             }
-            if host.get('state') == DD_STATE_SPAWNED:  # POST
+            if host.get('state') in [DD_STATE_SPAWNED, DD_STATE_ACTIVE, DD_STATE_INACTIVE]:  # POST or PUT
                 payload['value'] = host
-                pbclient.create_namespaced_keyvalue(payload)
+                pbclient.create_or_modify_namespaced_keyvalue(NAMESPACE, _key, payload)
             elif host.get('state') == DD_STATE_REMOVED:  # DELETE
                 pbclient.delete_namespaced_keyvalue(NAMESPACE, _key)
-            else:  # PUT
-                updated_version_ts = host['updated_ts']
-                del host['updated_ts']
-                payload['value'] = host
-                payload['updated_version_ts'] = updated_version_ts
-                pbclient.modify_namespaced_keyvalue(NAMESPACE, _key, payload)
 
     @classmethod
     def load_driver_config(cls, token, url):
