@@ -220,15 +220,14 @@ class PBClientMock(object):
         filtered_record = self._filter_namespaced_records(namespace, key)[0]
         return filtered_record
 
-    def create_namespaced_keyvalue(self, payload):
-        if not self._filter_namespaced_records(payload['namespace'], payload['key']):
+    def create_or_modify_namespaced_keyvalue(self, namespace, key, payload):
+        if not self._filter_namespaced_records(namespace, key):
             payload['updated_ts'] = time.time()
             self.namespaced_records.append(payload)
-
-    def modify_namespaced_keyvalue(self, namespace, key, payload):
-        filtered_record = self._filter_namespaced_records(payload['namespace'], payload['key'])
-        filtered_record[0]['value'] = payload['value']
-        filtered_record[0]['updated_ts'] = time.time()
+        else:
+            filtered_record = self._filter_namespaced_records(namespace, key)
+            filtered_record[0]['value'] = payload['value']
+            filtered_record[0]['updated_ts'] = time.time()
 
     def delete_namespaced_keyvalue(self, namespace, key):
         filtered_record = self._filter_namespaced_records(namespace, key)
@@ -250,7 +249,6 @@ class DockerDriverAccessMock(object):
         namespaced_records = self.pbc_mock.get_namespaced_keyvalues({'namespace': NAMESPACE, 'key': KEY_PREFIX_POOL})
         hosts = []
         for ns_record in namespaced_records:
-            ns_record['value']['updated_ts'] = ns_record['updated_ts']
             hosts.append(ns_record['value'])
         return hosts
 
@@ -261,17 +259,11 @@ class DockerDriverAccessMock(object):
                 'namespace': NAMESPACE,
                 'key': _key
             }
-            if host.get('state') == DD_STATE_SPAWNED:
+            if host.get('state') in [DD_STATE_SPAWNED, DD_STATE_ACTIVE, DD_STATE_INACTIVE]:  # POST or PUT
                 payload['value'] = host
-                self.pbc_mock.create_namespaced_keyvalue(payload)
+                self.pbc_mock.create_or_modify_namespaced_keyvalue(NAMESPACE, _key, payload)
             elif host.get('state') == DD_STATE_REMOVED:
                 self.pbc_mock.delete_namespaced_keyvalue(NAMESPACE, _key)
-            else:
-                updated_version_ts = host['updated_ts']
-                del host['updated_ts']
-                payload['value'] = host
-                payload['updated_version_ts'] = updated_version_ts
-                self.pbc_mock.modify_namespaced_keyvalue(NAMESPACE, _key, payload)
 
     def load_driver_config(self, token, url):
         namespaced_record = self.pbc_mock.get_namespaced_keyvalue(NAMESPACE, KEY_CONFIG)
