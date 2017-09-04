@@ -5,7 +5,7 @@ app.directive('jsonValidate', function () {
           function jsonValidator(value) {
               var exception = false;
               try {
-                  JSON.parse(value);
+                  parsed_value = JSON.parse(value);
               } catch (e) {
                   exception = true;
               }
@@ -15,7 +15,7 @@ app.directive('jsonValidate', function () {
               else {
                   ngModelController.$setValidity('jsonValid', true);
               }
-              return value;
+              return parsed_value;
           }
           function jsonFormatter(value) {
               return JSON.stringify(value, null, 2);
