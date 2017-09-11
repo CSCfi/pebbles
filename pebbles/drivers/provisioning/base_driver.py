@@ -92,6 +92,7 @@ class ProvisioningDriverBase(object):
             self.provision(token, instance_id)
         elif instance['to_be_deleted'] and instance['state'] not in [Instance.STATE_DELETED]:
             self.deprovision(token, instance_id)
+            pbclient.clear_running_instance_logs(instance_id)
         else:
             self.logger.debug("update('%s') - nothing to do for %s" % (instance_id, instance))
 
@@ -156,6 +157,11 @@ class ProvisioningDriverBase(object):
         This can be used to e.g. open holes in firewalls or to update a proxy
         to route traffic to an instance.
         """
+        pass
+
+    @abc.abstractmethod
+    def get_running_instance_logs(self, token, instance_id):
+        """ get the logs of an instance which is in running state """
         pass
 
     @abc.abstractmethod

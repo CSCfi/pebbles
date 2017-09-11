@@ -66,7 +66,7 @@ api.add_resource(
 api.add_resource(
     InstanceLogs,
     api_root + '/instances/<string:instance_id>/logs',
-    methods=['GET', 'PATCH'])
+    methods=['GET', 'PATCH', 'DELETE'])
 api.add_resource(PluginList, api_root + '/plugins')
 api.add_resource(PluginView, api_root + '/plugins/<string:plugin_id>')
 api.add_resource(PublicVariableList, api_root + '/config')
