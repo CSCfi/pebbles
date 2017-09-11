@@ -21,6 +21,10 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
 
         return CONFIG
 
+    def get_running_instance_logs(self, token, instance_id):
+        running_log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='running')
+        running_log_uploader.info('dummy running logs')
+
     def do_update_connectivity(self, token, instance_id):
         pass
 

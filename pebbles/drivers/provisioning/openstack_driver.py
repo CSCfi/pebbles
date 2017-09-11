@@ -31,6 +31,10 @@ class OpenStackDriver(base_driver.ProvisioningDriverBase):
 
         return config
 
+    def get_running_instance_logs(self, token, instance_id):
+        running_log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='running')
+        running_log_uploader.info('Cannot get running logs. This feature has not been implemented for the OpenStackDriver yet')
+
     def do_update_connectivity(self, token, instance_id):
         oss = self.get_oss()
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)

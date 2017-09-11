@@ -1537,22 +1537,23 @@ class FlaskApiTestCase(BaseTestCase):
 
     def test_instance_logs(self):
         epoch_time = time.time()
-        log_record_json = json.dumps({
+        log_record = {
             'log_level': 'INFO',
             'log_type': 'provisioning',
             'timestamp': epoch_time,
             'message': 'log testing'
-        })
+        }
         response_patch = self.make_authenticated_admin_request(
             method='PATCH',
             path='/api/v1/instances/%s/logs' % self.known_instance_id,
-            data=json.dumps({'log_record_json': log_record_json})
+            data=json.dumps({'log_record': log_record})
         )
         self.assert_200(response_patch)
 
         response_get = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/instances/%s/logs' % self.known_instance_id
+            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            data=json.dumps({'log_type': 'provisioning'})
         )
         self.assert_200(response_get)
         self.assertEquals(response_get.json[0]['timestamp'], epoch_time)

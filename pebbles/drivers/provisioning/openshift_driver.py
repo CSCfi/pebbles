@@ -290,6 +290,10 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
 
         return config
 
+    def get_running_instance_logs(self, token, instance_id):
+        running_log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='running')
+        running_log_uploader.info('Cannot get running logs. This feature has not been implemented for the OpenShiftDriver yet')
+
     def _get_access_proxy(self):
         if not getattr(self, '_ap', None):
             m2m_creds = self.get_m2m_credentials()
