@@ -10,6 +10,8 @@ from pebbles.views.commons import create_user, create_worker
 from pebbles.models import db
 from pebbles.tests.fixtures import primary_test_setup
 
+import random
+import string
 # 2to3 fix for input
 try:
     input = raw_input
@@ -116,6 +118,32 @@ def purgehost(name):
     for obj in q_:
         db.session.delete(obj)
     db.session.commit()
+
+
+@manager.command
+def createuser_bulk(user_prefix=None, domain_name=None, admin=False):
+    """Creates new demo users"""
+    no_of_accounts = int(input("Enter the number of demo user accounts needed: "))
+    print("\nFind the demo user accounts and their respective passwords.\
+             \nPLEASE COPY THESE BEFORE CLOSING THE WINDOW \n")
+    if not domain_name:
+        domain_name = "example.org"
+    if not user_prefix:
+        user_prefix = "demouser"
+    for i in range(no_of_accounts):
+        retry = 1
+        # eg: demo_user_Rgv4@example.com
+        user = user_prefix + "_" + ''.join(random.choice(string.ascii_lowercase +
+                                           string.digits) for _ in range(3)) + "@" + domain_name
+        password = ''.join(random.choice(string.ascii_uppercase +
+                           string.ascii_lowercase + string.digits) for _ in range(8))
+        a = create_user(user, password, is_admin=admin)
+        if (not a and retry < 5):
+            retry += 1
+            no_of_accounts += 1
+        else:
+            print("User name: %s\t Password: %s" % (user, password))
+    print("\n")
 
 
 @manager.command
