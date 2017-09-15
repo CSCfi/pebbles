@@ -18,6 +18,7 @@ def proxy_add_route(route_key, target, options):
     config = [
         'location /notebooks/%s/ {' % (route_key),
         'proxy_pass %s;' % (target),
+        'proxy_http_version 1.1;',
         'proxy_set_header Upgrade $http_upgrade;',
         'proxy_set_header Connection "upgrade";',
         'proxy_read_timeout 86400;'
