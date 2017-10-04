@@ -95,6 +95,7 @@ CONFIG = {
         'image',
         'maximum_lifetime',
         'maximum_instances_per_user',
+        'openstack_net_id',
         'preallocated_credits',
         'cost_multiplier',
         {
