@@ -382,7 +382,7 @@ class AllocateIPForInstance(task.Task):
                     logging.warning("Cannot allocate IP, quota exceeded?")
                     raise e
             else:
-                ip = ips[0]["floating_ip_address"]
+                ip = free_ips[0]["floating_ip_address"]
             try:
                 server.add_floating_ip(ip)
             except Exception as e:
