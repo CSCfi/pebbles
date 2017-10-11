@@ -62,10 +62,11 @@ def send_mails(users):
     dynamic_config = get_dynamic_config()
     j2_env = jinja2.Environment(loader=jinja2.PackageLoader('pebbles', 'templates'))
     base_url = dynamic_config['BASE_URL'].strip('/')
-    for email, token in users:
+    for email, token, user_active in users:
         activation_url = '%s/#/activate/%s' % (base_url, token)
-        msg = MIMEText(j2_env.get_template('invitation.txt').render(activation_link=activation_url, instance_name=dynamic_config['INSTALLATION_NAME'], instance_description=dynamic_config['INSTALLATION_DESCRIPTION']))
-        msg['Subject'] = 'Pebbles account activation'
+        msg = MIMEText(j2_env.get_template('invitation.txt').render(activation_link=activation_url, instance_name=dynamic_config['INSTALLATION_NAME'], instance_description=dynamic_config['INSTALLATION_DESCRIPTION'], user_active=user_active))
+        subject = '%s account activation' if not user_active else '%s password reset'
+        msg['Subject'] = subject % dynamic_config['INSTALLATION_NAME']
         msg['To'] = email
         msg['From'] = dynamic_config['SENDER_EMAIL']
         logger.info(msg)
