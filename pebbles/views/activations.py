@@ -30,13 +30,16 @@ class ActivationView(restful.Resource):
             return abort(410)
 
         user.set_password(form.password.data)
-        user.is_active = True
-        add_user_to_default_group(user)
-        db.session.add(user)
+
+        if not user.is_active:
+            user.is_active = True
+            add_user_to_default_group(user)
+            db.session.add(user)
+            logging.info("Activating user: %s" % user.email)
         db.session.delete(token)
         db.session.commit()
 
-        logging.info("User activated: %s" % user.email)
+        logging.info("User %s is active and password has been updated" % user.email)
 
         return user
 
