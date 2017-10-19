@@ -49,42 +49,68 @@ A regular user can do the following things on a Pebbles instance:
 * Destroy an instance they started earlier
 
 
-Instructions
-------------
+Instructions for creating a group and its blueprint
+---------------------------------------------------
 
 **Creating a Group:**
 
 1) Go the Groups tab
 
-2) Click on create group button. Give a name and description.
+2) Click on 'Create A New Group' button. Give a name and description.
 
-**Adding a manager and banning users**
+.. image:: img/group_create.png
 
-1) Once the user has joined , click on modify group
-2) Select the user(s) in the banned users / managers multiselct component accordingly.
+3) You should be able to see the group in your groups list now. The joining
+code for a group is the code that you'll mail or otherwise communicate to the
+users who wish to join your group.
+
+.. image:: img/group_view.png
+
+Next step would be to create a blueprint for your group.
 
 **Creating a blueprint:**
 
 1) Click on Blueprints tab
 
-2) You will see a list of templates that admin has created for you to choose from. From any one of the template, click on Click Blueprint
+2) You will see a list of templates that admin has created for you to choose
+from. From any one of the template, click on Click Blueprint
 
-3) Then choose the group which you want the blueprint to be associated with, enter the name , description and other properties which you see (if you want to override the default values)
+.. image:: img/blueprint_create.png
 
-4) Click on Activate to activate the blueprint for the users
+3) Then choose the group which you want the blueprint to be associated with,
+enter the name , description and other properties which you see (if you want
+to override the default values)
 
-.. should this be for users instead?
+4) You can choose to override the *'maximum lifetime'* field (If your template
+permits it), to suit your course needs. **NOTE: Please do not enter a value
+more than 8h** (the blueprints should not be run for more than a day, in case
+of multiple day trainings - launch it on a daily basis)
+
+.. image:: img/blueprints_view.png
+
+5) Click on Activate button (in the blueprints list) to activate the
+blueprint. Now, the users will be able to see the blueprints.
+
+Instructions for Users who wish to join or leave a group
+--------------------------------------------------------
 
 **To Join A Group:**
 
-1) Go to Accounts tab -> Join Group
-2) Enter the code provided by group admin or manager
+1) Go to Accounts tab -> Join Group 2) Enter the code provided by group admin
+or manager
+
+.. image:: img/group_join.png
 
 **To Leave A Group:**
 
-1) Go to Accounts tab
-2) From the list of groups , click on Exit Group for any of the groups
+1) Go to Accounts tab 2) From the list of groups , click on Exit Group for any
+of the groups
 
+
+**Adding extra managers and banning users (OPTIONAL)**
+
+1) Once the user has joined , click on modify group 2) Select the user(s) in
+the banned users / managers multiselct component accordingly.
 
 Github persistence
 ------------------
