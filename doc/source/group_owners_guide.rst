@@ -61,8 +61,8 @@ Instructions for creating a group and its blueprint
 .. image:: img/group_create.png
 
 3) You should be able to see the group in your groups list now. The joining
-code for a group is the code that you'll mail the users who wish to join your
-group.
+code for a group is the code that you'll mail or otherwise communicate to the
+users who wish to join your group.
 
 .. image:: img/group_view.png
 
