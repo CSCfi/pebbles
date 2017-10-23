@@ -230,7 +230,7 @@ class Keypair(db.Model):
 
     id = db.Column(db.String(32), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
-    _public_key = db.Column(db.String(450))
+    _public_key = db.Column(db.String(1025))
 
     def __init__(self):
         self.id = uuid.uuid4().hex
