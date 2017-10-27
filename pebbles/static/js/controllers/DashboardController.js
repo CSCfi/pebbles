@@ -1,6 +1,6 @@
 /* global app */
-app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard', 'DesktopNotifications',
-                              function ($q,   $scope,   $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard, DesktopNotifications) {
+app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard', 'DesktopNotifications',
+                              function ($q,   $scope,   $routeParams, $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard, DesktopNotifications) {
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
         var LIMIT_DEFAULT = 100, OFFSET_DEFAULT=0;
 
@@ -21,7 +21,18 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
 
         var blueprints = Restangular.all('blueprints');
         blueprints.getList().then(function (response) {
-            $scope.blueprints = response;
+            if($routeParams.blueprint_id){  // Case when the blueprint link is given
+                var blueprint_id = $routeParams.blueprint_id;
+                $scope.blueprints = _.filter(response, { 'id': blueprint_id });
+                if (!$scope.blueprints.length){
+                    alert("INVALID LINK! Please check the link");
+                    $.notify({
+                        title: "INVALID LINK!", message: "The link provided appears to be invalid. Could not retrieve any information."}, {type: "danger"});
+                }
+            }
+            else{  // Fetch all blueprints
+                $scope.blueprints = response;
+            }
         });
 
         var keypairs = Restangular.all('users/' + AuthService.getUserId() + '/keypairs');
