@@ -172,6 +172,14 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider, confi
         .when('/reset_password', {
             controller: 'ResetPasswordController',
             templateUrl: partialsDir + '/reset_password.html'
+        })
+        .when('/blueprint/:blueprint_id', {
+            controller: 'DashboardController',
+            templateUrl: partialsDir + '/user_dashboard.html',
+            resolve: {
+                redirectIfNotAuthenticated: notAuthenticatedP,
+                isUserDashboard: function() {return true},
+            }
         });
 
 });

@@ -100,6 +100,17 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
             });
         };
 
+        $scope.openBlueprintLinkDialog = function(blueprint) {
+            $uibModal.open({
+                size: 'lg',
+                templateUrl: '/partials/modal_url.html',
+                controller: 'ModalBlueprintUrlController',
+                resolve: {
+                   blueprint: blueprint
+                }
+             });
+        };
+
         $scope.copyBlueprint = function(blueprint) {
             var blueprint_copy = Restangular.all('blueprints').one('blueprint_copy', blueprint.id).put();
             blueprint_copy.then(function () {
@@ -274,5 +285,16 @@ app.controller('ModalReconfigureBlueprintController', function($scope, $modalIns
             $modalInstance.close(true);  // launches the result section of modal
         }
         $modalInstance.dismiss('cancel');  // does not launch the result of modal
+    };
+});
+
+app.controller('ModalBlueprintUrlController', function($scope, $modalInstance, blueprint) {
+
+    $scope.url_type = "Blueprint Link (To be given to the users)" + ' - ' + blueprint.name;
+    var hostname = window.location.hostname;
+    $scope.url = 'https://' + hostname + '/#/blueprint/' + blueprint.id;
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
     };
 });
