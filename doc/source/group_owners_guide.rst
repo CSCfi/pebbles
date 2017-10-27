@@ -70,25 +70,42 @@ Next step would be to create a blueprint for your group.
 
 **Creating a blueprint:**
 
-1) Click on Blueprints tab
 
-2) You will see a list of templates that admin has created for you to choose
-from. From any one of the template, click on Click Blueprint
+1. Click on Blueprints tab
+
+2. You will see a list of templates that admin has created for you to choose
+from. From any one of the template, click on Create Blueprint
 
 .. image:: img/blueprint_create.png
 
-3) Then choose the group which you want the blueprint to be associated with,
+3. Then choose the group which you want the blueprint to be associated with,
 enter the name , description and other properties which you see (if you want
 to override the default values)
 
-4) You can choose to override the *'maximum lifetime'* field (If your template
-permits it), to suit your course needs. **NOTE: Please do not enter a value
-more than 8h** (the blueprints should not be run for more than a day, in case
+4. **Set time limit for your blueprint** : You can choose to override the *maximum lifetime* field
+(If your template permits it), to suit your course needs. **NOTE: Please do not enter a value
+more than 8h-10h** (the blueprints should not be run for more than a day, in case
 of multiple day trainings - launch it on a daily basis)
+
+5. **IMPORTANT STEP** : Provide Environment Variables in the field *environment variables for docker* - 
+**This step allows you to fetch your own github repo (containing your files, datasets), 
+install custom libraries etc , for your blueprints.**
+So, when a user launches your blueprint, they will be able to see the files from your github repo and
+the necessary libraries directly.
+In order to continue with this, you need to enter the following value in the field called 
+'environment variables for docker, separated by space' :
+``AUTODOWNLOAD_URL=<URL_TO_A_BASH_SCRIPT> AUTODOWNLOAD_EXEC=instance_launch.sh``
+
+As you can notice, it requires ``<URL_TO_A_BASH_SCRIPT>``. This bash script is responsible for cloning your github repo,
+installing your libraries etc. 
+An example of the bash script can be found at : https://github.com/CSCfi/notebook-images/blob/master/bootstrap/spark-sql.bash
+The above script tries to clone a github repo and then tries to install a python library via pip. The github repo it clones
+contains the required files and datasets. You can make your own script in a similar way and host it somewhere on the web.
+Replace ``<URL_TO_A_BASH_SCRIPT>`` with the actual URL of your script.
 
 .. image:: img/blueprints_view.png
 
-5) Click on Activate button (in the blueprints list) to activate the
+6) Click on Activate button (in the blueprints list) to activate the
 blueprint. Now, the users will be able to see the blueprints.
 
 Instructions for Users who wish to join or leave a group
