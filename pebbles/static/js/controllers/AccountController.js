@@ -128,6 +128,7 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
     };
 
     $scope.openGroupJoinModal=function() {
+         console.log("Here");
          $uibModal.open({
          templateUrl: '/partials/modal_group_join.html',
          controller: 'ModalGroupJoinController',
@@ -135,6 +136,12 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
          resolve: {
              group_join: function() {
                  return group_join;
+             },
+             join_title: function() {
+                 return "Join A Group";
+             },
+             dismiss_reason: function(){
+                 return "You did not join a group";
              }
          }
          }).result.then(function() {
@@ -143,8 +150,8 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
      };
 }]);
 
-app.controller('ModalGroupJoinController', function($scope, $modalInstance, group_join) {
-
+app.controller('ModalGroupJoinController', function($scope, $modalInstance, group_join, join_title, dismiss_reason) {
+    $scope.join_title = join_title;
     var grp_join_sf = {}
     grp_join_sf.schema = {
             "type": "object",
@@ -178,6 +185,9 @@ app.controller('ModalGroupJoinController', function($scope, $modalInstance, grou
     };
 
     $scope.cancel = function() {
+        if(dismiss_reason){
+            $.notify({title: 'GROUP JOINING CANCELLED ! :', message: dismiss_reason}, {type: 'danger'});
+        }
         $modalInstance.dismiss('cancel');
     };
 });
