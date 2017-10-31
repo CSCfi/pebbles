@@ -71,7 +71,7 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
             $scope.get_activation_url = function(user) {
                 $uibModal.open({
                     size: 'lg',
-                    templateUrl: '/partials/modal_activation_url.html',
+                    templateUrl: '/partials/modal_url.html',
                     controller: 'ModalActivationUrlController',
                     resolve: {
                        user: user
@@ -162,10 +162,11 @@ app.controller('ModalQuotaController', function ($q, $scope, $modalInstance, Res
 
 app.controller('ModalActivationUrlController', function($scope, $modalInstance, Restangular, user) {
 
+    $scope.url_type = "Activation Link" + ' : ' + user.email;
     var users = Restangular.one('users', user.id);
     var user_activation_url = users.customGET('user_activation_url');
     user_activation_url.then(function (response) {
-            $scope.activation_url = response['activation_url'];
+            $scope.url = response['activation_url'];
         });
 
 

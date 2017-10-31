@@ -19,21 +19,50 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$interva
             return false;
         }
 
+        var group_join = Restangular.all('groups').one('group_join');
+
         var blueprints = Restangular.all('blueprints');
         blueprints.getList().then(function (response) {
             if($routeParams.blueprint_id){  // Case when the blueprint link is given
                 var blueprint_id = $routeParams.blueprint_id;
                 $scope.blueprints = _.filter(response, { 'id': blueprint_id });
                 if (!$scope.blueprints.length){
-                    alert("INVALID LINK! Please check the link");
-                    $.notify({
-                        title: "INVALID LINK!", message: "The link provided appears to be invalid. Could not retrieve any information."}, {type: "danger"});
+                     $uibModal.open({
+                     templateUrl: '/partials/modal_group_join.html',
+                     controller: 'ModalGroupJoinController',
+                     size: 'sm',
+                     backdrop  : 'static',
+                     keyboard  : false,
+                     resolve: {
+                         group_join: function() {
+                             return group_join;
+                         },
+                         join_title: function(){
+                             return "Enter the join code"
+                         },
+                         dismiss_reason: function(){
+                             return "You need to join a valid group to see the environment"
+                         }
+                     }
+                     }).result.then(function() {
+                         refresh_blueprints_for_link(blueprint_id);
+                     });
                 }
             }
             else{  // Fetch all blueprints
                 $scope.blueprints = response;
             }
         });
+
+        var refresh_blueprints_for_link = function(blueprint_id){
+            blueprints.getList().then(function (response) {
+            $scope.blueprints = _.filter(response, {'id': blueprint_id, 'is_enabled': true });
+            if(!$scope.blueprints.length){
+                $.notify({
+                    title: "INVALID LINK!", message: "The link provided appears to be invalid. Could not retrieve any information."}, {type: "danger"});
+            }
+            });
+        }
 
         var keypairs = Restangular.all('users/' + AuthService.getUserId() + '/keypairs');
         keypairs.getList().then(function (response) {
