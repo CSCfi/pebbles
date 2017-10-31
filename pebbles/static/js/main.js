@@ -55,11 +55,17 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider, confi
     $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|blob):/);
 
     var redirectIf = function(serviceName, serviceMethod, route) {
-        return function($location, $q, $injector) {
+        return function($location, $q, $injector, $route) {
+            var customRedirectPath = $route.current.params;
             var deferred = $q.defer();
             if ($injector.get(serviceName)[serviceMethod]()) {
                 deferred.reject();
-                $location.path(route);
+                if (customRedirectPath == undefined){
+                    $location.path(route);
+                }
+                else{
+                    $location.path(route).search(customRedirectPath);
+                }
             } else {
                 deferred.resolve();
             }
@@ -70,6 +76,7 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider, confi
     var notAuthenticatedP = redirectIf('AuthService', 'isNotAuthenticated', '/');
     var alreadyAuthenticatedP = redirectIf('AuthService', 'isAuthenticated', '/dashboard');
     var isAdminP = redirectIf('AuthService', 'isGroupManagerOrAdmin', '/admin-dashboard');
+
     $routeProvider
         .when('/', {
             templateUrl: partialsDir + '/welcome.html',
