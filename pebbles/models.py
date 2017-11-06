@@ -122,7 +122,7 @@ class User(db.Model):
         if self.can_login():
             return bcrypt.check_password_hash(self.password, password)
 
-    def generate_auth_token(self, app_secret, expires_in=3600):
+    def generate_auth_token(self, app_secret, expires_in=43200):
         s = Serializer(app_secret, expires_in=expires_in)
         return s.dumps({'id': self.id}).decode('utf-8')
 
