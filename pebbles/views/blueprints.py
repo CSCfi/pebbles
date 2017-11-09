@@ -6,11 +6,11 @@ from sqlalchemy.orm.session import make_transient
 import logging
 import uuid
 
-from pebbles.models import db, Blueprint, BlueprintTemplate, Group
+from pebbles.models import db, Blueprint, BlueprintTemplate, Group, Instance
 from pebbles.forms import BlueprintForm
 from pebbles.server import restful
 from pebbles.views.commons import auth, requires_group_manager_or_admin, is_group_manager
-from pebbles.utils import parse_maximum_lifetime
+from pebbles.utils import parse_maximum_lifetime, requires_group_owner_or_admin
 from pebbles.rules import apply_rules_blueprints
 
 blueprints = FlaskBlueprint('blueprints', __name__)
@@ -131,6 +131,21 @@ class BlueprintView(restful.Resource):
             return timeformat_error, 422
         db.session.add(blueprint)
         db.session.commit()
+
+    @auth.login_required
+    @requires_group_owner_or_admin
+    def delete(self, blueprint_id):
+        blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
+        blueprint_instance = Instance.query.filter_by(blueprint_id=blueprint_id).first()
+        if not blueprint:
+            logging.warn("trying to delete non-existing blueprint")
+            abort(404)
+        elif blueprint_instance is None:
+            db.session.delete(blueprint)
+            db.session.commit()
+        else:
+            logging.warn("trying to delete used blueprint")
+            abort(422)
 
 
 class BlueprintCopy(restful.Resource):

@@ -55,6 +55,7 @@
                     <button ng-click="openReconfigureBlueprintDialog(blueprint)" class="btn btn-default">Reconfigure</button>
                     <button ng-show="blueprint.is_enabled" ng-click="openBlueprintLinkDialog(blueprint)" class="btn btn-success">Link</button>
                     <button ng-confirm-click="Copy this blueprint?" ng-click="copyBlueprint(blueprint)" class="btn btn-default">Copy</button>
+		    <button ng-click="deleteBlueprint(blueprint)" class="btn btn-danger">Delete</button>
                 </td>
             </tr>
         </tbody>
