@@ -29,6 +29,13 @@
     </table>
 
     <h3>Blueprints</h3>
+    <div>
+    <h5>Select the group to view the respective blueprints:
+     <select ng-model="selectedoptionModel" ng-options="blueprint.group_name as blueprint.group_name for blueprint in blueprints | filter : {manager: 'true'} | unique:'group_name'">
+        <option value="">show-all-groups</option> </select>
+    </h5>
+    </div>
+    <br>
     <table class="table table-striped sortorder">
         <thead>
         <tr>
@@ -44,7 +51,7 @@
                 <td colspan="3">No blueprints</td>
             </tr>
 
-            <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | orderBy:sortType">
+            <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType">
                 <td>{{blueprint.name}}</td>
                 <td>{{blueprint.template_name}}</td>
                 <td>{{blueprint.group_name}}</td>
