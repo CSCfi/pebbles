@@ -29,12 +29,12 @@
     </table>
 
     <h3>Blueprints</h3>
-    <table class="table table-striped">
+    <table class="table table-striped sortorder">
         <thead>
         <tr>
-            <td>Type</td>
-            <td>Template</td>
-            <td>Group</td>
+            <td ng-click="sortType='name'">Type</td>
+            <td ng-click="sortType='template_name'">Template</td>
+            <td ng-click="sortType='group_name'">Group</td>
             <td>Max life-time</td>
             <td></td>
         </tr>
@@ -44,7 +44,7 @@
                 <td colspan="3">No blueprints</td>
             </tr>
 
-            <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'}">
+            <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | orderBy:sortType">
                 <td>{{blueprint.name}}</td>
                 <td>{{blueprint.template_name}}</td>
                 <td>{{blueprint.group_name}}</td>
