@@ -1,4 +1,4 @@
-from flask.ext.restful import marshal_with, fields
+from flask.ext.restful import marshal_with, fields, reqparse
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 from sqlalchemy.orm.session import make_transient
@@ -10,7 +10,7 @@ from pebbles.models import db, Blueprint, BlueprintTemplate, Group, Instance
 from pebbles.forms import BlueprintForm
 from pebbles.server import restful
 from pebbles.views.commons import auth, requires_group_manager_or_admin, is_group_manager
-from pebbles.utils import parse_maximum_lifetime, requires_group_owner_or_admin
+from pebbles.utils import parse_maximum_lifetime, requires_group_owner_or_admin, requires_admin
 from pebbles.rules import apply_rules_blueprints
 
 blueprints = FlaskBlueprint('blueprints', __name__)
@@ -31,7 +31,8 @@ blueprint_fields = {
     'form': fields.Raw,
     'group_id': fields.String,
     'group_name': fields.String,
-    'manager': fields.Boolean
+    'manager': fields.Boolean,
+    'current_status': fields.String
 }
 
 
@@ -45,8 +46,9 @@ class BlueprintList(restful.Resource):
         query = query.join(Group, Blueprint.group).order_by(Group.name).order_by(Blueprint.name)
         results = []
         for blueprint in query.all():
-            blueprint = process_blueprint(blueprint)
-            results.append(blueprint)
+            if blueprint.current_status != 'archived':
+                blueprint = process_blueprint(blueprint)
+                results.append(blueprint)
         return results
 
     @auth.login_required
@@ -85,6 +87,9 @@ class BlueprintList(restful.Resource):
 
 
 class BlueprintView(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('current_status', type=str)
+
     @auth.login_required
     @marshal_with(blueprint_fields)
     def get(self, blueprint_id):
@@ -94,6 +99,8 @@ class BlueprintView(restful.Resource):
         blueprint = query.first()
         if not blueprint:
             abort(404)
+        elif blueprint.current_status == 'archived':
+            abort(422)
 
         blueprint = process_blueprint(blueprint)
         return blueprint
@@ -110,6 +117,9 @@ class BlueprintView(restful.Resource):
         blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
         if not blueprint:
             abort(404)
+
+        if blueprint.current_status == 'archived':
+            abort(422)
 
         if not user.is_admin and not is_group_manager(user, blueprint.group):
             logging.warn("invalid group for the user")
@@ -133,6 +143,19 @@ class BlueprintView(restful.Resource):
         db.session.commit()
 
     @auth.login_required
+    @requires_admin
+    def patch(self, blueprint_id):
+        args = self.parser.parse_args()
+        blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
+        if not blueprint:
+            abort(404)
+
+        if args.get('current_status'):
+            blueprint.current_status = args['current_status']
+            blueprint.is_enabled = False
+            db.session.commit()
+
+    @auth.login_required
     @requires_group_owner_or_admin
     def delete(self, blueprint_id):
         blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
@@ -140,6 +163,8 @@ class BlueprintView(restful.Resource):
         if not blueprint:
             logging.warn("trying to delete non-existing blueprint")
             abort(404)
+        elif blueprint.current_status == 'archived':
+            abort(422)
         elif blueprint_instance is None:
             db.session.delete(blueprint)
             db.session.commit()
@@ -155,6 +180,8 @@ class BlueprintCopy(restful.Resource):
         user = g.user
         blueprint = Blueprint.query.get_or_404(blueprint_id)
 
+        if blueprint.current_status == 'archived':
+            abort(422)
         if not user.is_admin and not is_group_manager(user, blueprint.group):
             logging.warn("user is {} not group manager for blueprint {}".format(user.id,
                                                                                 blueprint.group.id))
