@@ -365,7 +365,7 @@ app.controller('ModalDestroyInstanceController', function($scope, $modalInstance
 app.controller('DriverConfigController', ['$scope', 'Restangular',
                               function ($scope,   Restangular) {
 
-        $scope.panel_open = false;
+        $scope.panel_open = true;
 
         $scope.toggleStatusOpen = function() {
              if ($scope.panel_open){
@@ -393,13 +393,8 @@ app.controller('DriverConfigController', ['$scope', 'Restangular',
                  'schema': driverConfig.schema,
                  'updated_version_ts': driverConfig.updated_ts
             }).then( function(){
-                   fetchDriverConfigs();     
             }, function(response){
-                   if (response.status == 409) {
-                        $.notify({title: 'Outdated Config Found:', message: 'Loading the latest config'}, {type: 'danger'});
-                   } else {
-                       console.log('error while updating the driver specific variable');
-                   }
+                  console.log('error while updating the driver specific variable');
                   fetchDriverConfigs();
             });
         };

@@ -111,11 +111,13 @@ class NamespacedKeyValueView(restful.Resource):
         if not namespaced_keyvalue:
             logging.warn("no NamespacedKeyValue object found for namespace %s with key %s" % (namespace, key))
             abort(404)
+
         # Check for concurrency
-        namespaced_keyvalue_updated = namespaced_keyvalue_query.filter_by(updated_ts=updated_version_ts).first()
-        if not namespaced_keyvalue_updated:
-            logging.warn("trying to modify an outdated record")
-            return {'error': 'CONCURRENT_MODIFICATION_EXCEPTION'}, 409
+        if key != 'backend_config':
+            namespaced_keyvalue_updated = namespaced_keyvalue_query.filter_by(updated_ts=updated_version_ts).first()
+            if not namespaced_keyvalue_updated:
+                logging.warn("trying to modify an outdated record")
+                return {'error': 'CONCURRENT_MODIFICATION_EXCEPTION'}, 409
 
         curr_ts = round(time.time(), 2)
         namespaced_keyvalue.updated_ts = curr_ts
