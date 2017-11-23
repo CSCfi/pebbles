@@ -90,3 +90,7 @@ body {
 #admin-pre-background {
     white-space: pre-wrap;
 }
+
+#environments-note {
+    background-image: none;
+}
