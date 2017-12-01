@@ -168,10 +168,7 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
             blueprint.get().then(function(response){ 
 	        instances.getList().then(function (response) {
 		     var blueprint_instances = _.filter(response,function(user) { return user.blueprint_id === blueprint.id });
-		     if(blueprint_instances.length) {
-		        $.notify({title: blueprint.name, message: "has currently " + blueprint_instances.length + " instances attached. Please delete the instances first."}, {type: 'danger'});
-		     }
-		     else if(_.isEmpty(blueprint_instances.length)) {
+		     if(_.isEmpty(blueprint_instances.length)) {
                        $uibModal.open({
 		           templateUrl: 'partials/modal_check_running_instance_confirm.html',
 		           controller: 'ModalDeleteBlueprintsController',
@@ -188,9 +185,7 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
 		       });
                  }});
             }, function (response) {
-                 if(response.status == 422) {
                      $.notify({title: 'HTTP ' + response.status, message: " Cannot delete blueprint."}, {type: 'danger'});
-                 }
             });
         };
 
@@ -385,7 +380,7 @@ app.controller('ModalDeleteBlueprintsController', function($scope, $modalInstanc
             $modalInstance.close(true);
         }, function(response) {
 		if (response.status == 422) {
-		    $.notify({ message: 'Blueprint ' + blueprint.name + ' cannot be deleted. There were instances previously launched using this blueprint. If you no longer wish to use this blueprint in future choose to "ARCHIVE" instead.'}, {type: 'danger'});
+		    $.notify({ message: 'Blueprint ' + blueprint.name + ' cannot be deleted. There were instances previously launched using this blueprint.'}, {type: 'danger'});
         	}
 		else {
 		    $.notify({title: 'HTTP ' + response.status, message: 'Unable to delete the blueprint: ' + blueprint.name}, {type: 'danger'});
