@@ -1,0 +1,40 @@
+<div class="modal-header">
+    <button ng-click="cancel()" type="button" class="close"><span aria-hidden="true">&times;</span></button>
+    <h4 class="modal-title make-bold">Users</h4>
+</div>
+
+<div class="modal-scroll modal-body">
+        <div>
+            <p class="make-bold">Group Owner</p>
+	    <ul class="li-pad">
+		<li>{{group.owner_email}}</li>
+	    </ul>
+        </div>
+        <hr>
+        <div>
+            <h5 class="make-bold">Group Manager</h5>
+	    <ul class="li-pad">
+	        <li ng-hide="manageruser.length">None</li>
+		<li ng-repeat="user in manageruser | orderBy:'email'">{{user.email}}</li>
+	    </ul>
+        </div>
+	<hr>
+	<div>
+            <h5 class="make-bold">List of Active Users</h5>
+            <ul class="li-pad">
+                <li ng-hide="userData.length">None</li>
+                <li ng-repeat="user in userData | orderBy:'email'">{{user.email}}</li>
+            </ul>
+	</div>
+	<hr>
+         <div> 
+	    <h5 class="make-bold">Banned Users</h5>
+            <ul class="li-pad">
+	        <li ng-hide="banneduser.length">None</li>
+                <li ng-repeat="user in banneduser | orderBy:'email'">{{user.email}}</li>
+            </ul>
+	</div>
+</div>
+<div class="modal-footer">
+    <button ng-click="cancel()" class="btn btn-default" >Close</button>
+</div>

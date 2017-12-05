@@ -128,7 +128,6 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
     };
 
     $scope.openGroupJoinModal=function() {
-         console.log("Here");
          $uibModal.open({
          templateUrl: '/partials/modal_group_join.html',
          controller: 'ModalGroupJoinController',
