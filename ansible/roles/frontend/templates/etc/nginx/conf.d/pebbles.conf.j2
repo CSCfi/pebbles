@@ -33,7 +33,7 @@ server {
     client_body_timeout 10s;
     client_header_timeout 10s;
 
-    add_header X-Frame-Options DENY;
+    add_header X-Frame-Options SAMEORIGIN;
 
     location /api {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
