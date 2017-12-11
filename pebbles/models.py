@@ -360,6 +360,7 @@ class Blueprint(db.Model):
     is_enabled = db.Column(db.Boolean, default=False)
     instances = db.relationship('Instance', backref='blueprint', lazy='dynamic')
     group_id = db.Column(db.String(32), db.ForeignKey('groups.id'))
+    current_status = db.Column(db.String(32), default='active')
 
     def __init__(self):
         self.id = uuid.uuid4().hex
