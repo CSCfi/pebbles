@@ -29,12 +29,19 @@
     </table>
 
     <h3>Blueprints</h3>
-    <table class="table table-striped">
+    <div>
+    <h5>Select the group to view the respective blueprints:
+     <select ng-model="selectedoptionModel" ng-options="blueprint.group_name as blueprint.group_name for blueprint in blueprints | filter : {manager: 'true'} | unique:'group_name'">
+        <option value="">show-all-groups</option> </select>
+    </h5>
+    </div>
+    <br>
+    <table class="table table-striped sortorder">
         <thead>
         <tr>
-            <td>Type</td>
-            <td>Template</td>
-            <td>Group</td>
+            <td ng-click="sortType='name'">Type</td>
+            <td ng-click="sortType='template_name'">Template</td>
+            <td ng-click="sortType='group_name'">Group</td>
             <td>Max life-time</td>
             <td></td>
         </tr>
@@ -44,7 +51,7 @@
                 <td colspan="3">No blueprints</td>
             </tr>
 
-            <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'}">
+            <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType">
                 <td>{{blueprint.name}}</td>
                 <td>{{blueprint.template_name}}</td>
                 <td>{{blueprint.group_name}}</td>
@@ -55,6 +62,8 @@
                     <button ng-click="openReconfigureBlueprintDialog(blueprint)" class="btn btn-default">Reconfigure</button>
                     <button ng-show="blueprint.is_enabled" ng-click="openBlueprintLinkDialog(blueprint)" class="btn btn-success">Link</button>
                     <button ng-confirm-click="Copy this blueprint?" ng-click="copyBlueprint(blueprint)" class="btn btn-default">Copy</button>
+                    <button ng-if=isAdmin() ng-confirm-click="Do you want to permanently archive this blueprint?" ng-click="archiveBlueprint(blueprint)" class="btn btn-default">Archive</button>
+		    <button ng-click="deleteBlueprint(blueprint)" class="btn btn-danger">Delete</button>
                 </td>
             </tr>
         </tbody>

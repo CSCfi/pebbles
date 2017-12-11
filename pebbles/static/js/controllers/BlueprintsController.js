@@ -1,6 +1,10 @@
 app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$uibModal', 'AuthService', 'Restangular',
                               function ($q,   $scope,   $http,   $interval,   $uibModal,   AuthService,   Restangular) {
 
+        $scope.isAdmin = function() {
+            return AuthService.isAdmin();
+        };
+
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
 
         var templates = Restangular.all('blueprint_templates');
@@ -14,6 +18,8 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
         blueprints.getList({show_deactivated: true}).then(function (response) {
             $scope.blueprints = response;
         });
+
+	var instances = Restangular.all('instances');
 
          var groups = Restangular.all('groups');
 
@@ -82,33 +88,45 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
         };
 
         $scope.openReconfigureBlueprintDialog = function(blueprint) {
-            $uibModal.open({
-                templateUrl: '/partials/modal_reconfigure_blueprint.html',
-                controller: 'ModalReconfigureBlueprintController',
-                resolve: {
-                    blueprint: function() {
-                        return blueprint;
-                    },
-                    groups_list: function() {
-                        return $scope.groups;
+            blueprint.get().then(function(response){
+                $uibModal.open({
+                    templateUrl: '/partials/modal_reconfigure_blueprint.html',
+                    controller: 'ModalReconfigureBlueprintController',
+                    resolve: {
+                        blueprint: function() {
+                             return blueprint;
+                        },
+                        groups_list: function() {
+                             return $scope.groups;
+                        }
                     }
-                }
-            }).result.then(function() {
-                blueprints.getList().then(function (response) {
-                    $scope.blueprints = response;
-                });
-            });
+                }).result.then(function() {
+                     blueprints.getList().then(function (response) {
+                         $scope.blueprints = response;
+                     });
+                 });
+            }, function (response) {
+                 if(response.status == 422) {
+                     $.notify({title: 'HTTP ' + response.status,  message: " Cannot reconfigure blueprint."}, {type: 'danger'});
+                 }
+           });
         };
 
         $scope.openBlueprintLinkDialog = function(blueprint) {
-            $uibModal.open({
-                size: 'lg',
-                templateUrl: '/partials/modal_url.html',
-                controller: 'ModalBlueprintUrlController',
-                resolve: {
-                   blueprint: blueprint
-                }
-             });
+            blueprint.get().then(function(response){
+                $uibModal.open({
+                     size: 'lg',
+                     templateUrl: '/partials/modal_url.html',
+                     controller: 'ModalBlueprintUrlController',
+                     resolve: {
+                        blueprint: blueprint
+                     }
+                });
+           }, function(response) {
+                 if(response.status == 422) {
+                     $.notify({title: 'HTTP ' + response.status, message: " Cannot get the link for blueprint."}, {type: 'danger'});
+                 }
+           });
         };
 
         $scope.copyBlueprint = function(blueprint) {
@@ -121,7 +139,14 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
                           }, {type: 'success'});
                     $scope.blueprints = response;
                 });
-            });
+            }, function (response) {
+                   if(response.status == 422) {
+                       $.notify({
+                           title: 'HTTP ' + response.status,
+                           message: 'Cannot copy blueprint'
+                       }, {type: 'danger'});
+                   }
+           });
         }, function (response) {
                $.notify({
                    title: 'HTTP ' + response.status,
@@ -129,6 +154,42 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
                }, {type: 'danger'});
 
         }
+
+        $scope.archiveBlueprint = function(blueprint) {
+             blueprint.current_status = 'archived';
+             blueprint.patch().then(function() {
+                blueprints.getList().then(function (response) {
+                     $scope.blueprints = response;
+                 });
+            });
+        };
+    
+	$scope.deleteBlueprint = function(blueprint) {
+            blueprint.get().then(function(response){ 
+	        instances.getList().then(function (response) {
+		     var blueprint_instances = _.filter(response,function(user) { return user.blueprint_id === blueprint.id });
+		     if(_.isEmpty(blueprint_instances.length)) {
+                       $uibModal.open({
+		           templateUrl: 'partials/modal_check_running_instance_confirm.html',
+		           controller: 'ModalDeleteBlueprintsController',
+		           size: 'sm',
+		           resolve: {
+			       blueprint: function() {
+			           return blueprint;
+			       }
+		           }
+		       }).result.then(function() {
+                           blueprints.getList().then(function (response) {
+                              $scope.blueprints = response;
+                           });
+		       });
+                 }});
+            }, function (response) {
+                     $.notify({title: 'HTTP ' + response.status, message: " Cannot delete blueprint."}, {type: 'danger'});
+            });
+        };
+
+ 
 
         $scope.deleteNotification = function(notification) {
             notification.remove().then(function() {
@@ -147,13 +208,25 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
         };
 
         $scope.activate = function (blueprint) {
-            blueprint.is_enabled = true;
-            blueprint.put();
+            blueprint.get().then(function (response) {
+                blueprint.is_enabled = true;
+                blueprint.put();
+            }, function(response) {
+                if (response.status == 422) {
+                     $.notify({title: 'HTTP ' + response.status, message: 'Cannot activate blueprint'}, {type: 'danger'});
+                }
+            });
         };
 
         $scope.deactivate = function (blueprint) {
-            blueprint.is_enabled = undefined;
-            blueprint.put();
+            blueprint.get().then(function () {
+                blueprint.is_enabled = undefined;
+                blueprint.put();
+            }, function(response) {
+                if (response.status == 422) {
+                     $.notify({title: 'HTTP ' + response.status, message: 'Cannot deactivate blueprint'}, {type: 'danger'});
+                }
+            });
         };
 
     }]);
@@ -293,6 +366,28 @@ app.controller('ModalBlueprintUrlController', function($scope, $modalInstance, b
     $scope.url_type = "Blueprint Link (To be given to the users)" + ' - ' + blueprint.name;
     var hostname = window.location.hostname;
     $scope.url = 'https://' + hostname + '/#/blueprint/' + blueprint.id;
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});
+
+
+app.controller('ModalDeleteBlueprintsController', function($scope, $modalInstance, blueprint) {
+    $scope.removeBlueprints = function() {
+        blueprint.remove().then(function () {
+            $.notify({message: "Blueprint: " + blueprint.name + " is successfully deleted"}, {type: 'success'});
+            $modalInstance.close(true);
+        }, function(response) {
+		if (response.status == 422) {
+		    $.notify({ message: 'Blueprint ' + blueprint.name + ' cannot be deleted. There were instances previously launched using this blueprint.'}, {type: 'danger'});
+        	}
+		else {
+		    $.notify({title: 'HTTP ' + response.status, message: 'Unable to delete the blueprint: ' + blueprint.name}, {type: 'danger'});
+		}
+		$modalInstance.close(true);
+	});
+    };
 
     $scope.cancel = function() {
         $modalInstance.dismiss('cancel');
