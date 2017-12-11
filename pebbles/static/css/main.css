@@ -94,3 +94,14 @@ body {
 #environments-note {
     background-image: none;
 }
+
+.sortorder thead {
+    background-color: #DCDCDC;
+    font: bold;
+}
+
+.sortorder thead tr td:nth-of-type(-n+3):hover {
+   cursor: pointer;
+   background-color: #777;
+
+}
