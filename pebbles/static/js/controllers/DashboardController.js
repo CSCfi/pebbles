@@ -123,7 +123,7 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$interva
                 queryParams.offset = $scope.offset;
             }
             if (AuthService.isGroupOwnerOrAdmin() && isUserDashboard) {
-                queryParams.show_only_mine = true;
+		queryParams.show_only_mine = true;
             }
             instances.getList(queryParams).then(function (response) {
                 if ($scope.checkAll){
@@ -134,8 +134,9 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$interva
                     }
                 }
                 $scope.instances = response;
-                DesktopNotifications.notifyInstanceLifetime(response);
             });
+            var own_instances = _.filter($scope.instances, {'user_id': AuthService.getUserId()});
+	    DesktopNotifications.notifyInstanceLifetime(own_instances);
         };
 
         $scope.toggleAdvancedOptions = function() {
