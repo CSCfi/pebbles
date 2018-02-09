@@ -46,7 +46,7 @@ class BlueprintList(restful.Resource):
         query = query.join(Group, Blueprint.group).order_by(Group.name).order_by(Blueprint.name)
         results = []
         for blueprint in query.all():
-            if blueprint.current_status != 'archived':
+            if blueprint.current_status != 'archived' and blueprint.current_status != 'deleted':
                 blueprint = process_blueprint(blueprint)
                 results.append(blueprint)
         return results
@@ -99,7 +99,7 @@ class BlueprintView(restful.Resource):
         blueprint = query.first()
         if not blueprint:
             abort(404)
-        elif blueprint.current_status == 'archived':
+        elif blueprint.current_status == 'archived' or blueprint.current_status == 'deleted':
             abort(422)
 
         blueprint = process_blueprint(blueprint)
@@ -118,7 +118,7 @@ class BlueprintView(restful.Resource):
         if not blueprint:
             abort(404)
 
-        if blueprint.current_status == 'archived':
+        if blueprint.current_status == 'archived' or blueprint.current_status == 'deleted':
             abort(422)
 
         if not user.is_admin and not is_group_manager(user, blueprint.group):
@@ -180,7 +180,7 @@ class BlueprintCopy(restful.Resource):
         user = g.user
         blueprint = Blueprint.query.get_or_404(blueprint_id)
 
-        if blueprint.current_status == 'archived':
+        if blueprint.current_status == 'archived' or blueprint.current_status == 'deleted':
             abort(422)
         if not user.is_admin and not is_group_manager(user, blueprint.group):
             logging.warn("user is {} not group manager for blueprint {}".format(user.id,

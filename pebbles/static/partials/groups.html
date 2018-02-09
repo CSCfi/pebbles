@@ -21,20 +21,21 @@
         </tr>
         </thead>
         <tbody>
-            <tr ng-repeat="group in groups | filter:includeRow">
+        <tr ng-repeat="group in groups | filter:includeRow">
             <td>{{group.name}}</td>
             <td ng-show="isAdmin()">{{group.owner_email}}</td>
             <td>{{group.join_code}}</td>
             <td>{{group.description}}</td>
             <td>
                 <button ng-click="openModifyGroupDialog(group)" type="submit" class="btn btn-default">Modify</button>
-            </td>
-            <td ng-show="isGroupOwnerOrAdmin()">
-                <button ng-click="showUsers(group)" class="btn btn-default">Show Users</button>
-            </td>
-            <td ng-show="isAdmin()">
-               <button ng-confirm-click="Delete this group?" ng-click="deleteGroup(group)" class="btn btn-danger">Delete</button>
-            </td>
+                <span ng-show="isGroupOwnerOrAdmin()">
+                     <button ng-click="showUsers(group)" class="btn btn-default">Show Users</button>
+                </span>
+                <span ng-show="isAdmin() && group.name !='System.default'">
+	            <button ng-show=isAdmin() ng-confirm-click="Do you want to permanently archive this group? Note that blueprints created in this group will also be archived." ng-click="archiveGroup(group)" class="btn btn-default">Archive</button>
+                    <button ng-confirm-click="Delete this group?" ng-click="deleteGroup(group)" class="btn btn-danger">Delete</button>
+                </span>
+	    </td>
         </tr>
         </tbody>
     </table>

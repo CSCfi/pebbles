@@ -29,18 +29,19 @@ class GroupList(restful.Resource):
             groups = query.all()
 
         for group in groups:
-            group_owner_obj = group_user_query.filter_by(group_id=group.id, owner=True).first()
-            owner = User.query.filter_by(id=group_owner_obj.user_id).first()
-            # config and user_config dicts are required by schemaform and multiselect in the groups modify ui modal
-            if user.is_admin or user.id == owner.id:
-                group.config = {"name": group.name, "join_code": group.join_code, "description": group.description}
-                group.user_config = generate_user_config(group)
-                group.owner_email = owner.email
-                group.admin_group = owner.is_admin
-            else:
-                group.config = {}
-                group.user_config = {}
-            results.append(group)
+            if group.current_status != 'archived':
+                group_owner_obj = group_user_query.filter_by(group_id=group.id, owner=True).first()
+                owner = User.query.filter_by(id=group_owner_obj.user_id).first()
+                # config and user_config dicts are required by schemaform and multiselect in the groups modify ui modal
+                if user.is_admin or user.id == owner.id:
+                    group.config = {"name": group.name, "join_code": group.join_code, "description": group.description}
+                    group.user_config = generate_user_config(group)
+                    group.owner_email = owner.email
+                    group.admin_group = owner.is_admin
+                else:
+                    group.config = {}
+                    group.user_config = {}
+                results.append(group)
 
         if not user.is_admin:
             results = sorted(results, key=lambda group: group.name)
@@ -67,6 +68,9 @@ class GroupList(restful.Resource):
 
 
 class GroupView(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('current_status', type=str)
+
     @auth.login_required
     @requires_admin
     @marshal_with(group_fields)
@@ -74,8 +78,12 @@ class GroupView(restful.Resource):
 
         query = Group.query.filter_by(id=group_id)
         group = query.first()
+
         if not group:
             abort(404)
+        if group.current_status == 'archived':
+            abort(422)
+
         return group
 
     @auth.login_required
@@ -89,6 +97,8 @@ class GroupView(restful.Resource):
         group = Group.query.filter_by(id=group_id).first()
         if not group:
             abort(404)
+        if group.current_status == 'archived':
+            abort(422)
         group_owner_obj = GroupUserAssociation.query.filter_by(group_id=group.id, owner=True).first()
         owner = group_owner_obj.user
         if not user.is_admin and user.id != owner.id:
@@ -111,6 +121,21 @@ class GroupView(restful.Resource):
 
     @auth.login_required
     @requires_admin
+    def patch(self, group_id):
+        args = self.parser.parse_args()
+        group = Group.query.filter_by(id=group_id).first()
+        if not group:
+            abort(404)
+
+        if args.get('current_status'):
+            group.current_status = args['current_status']
+            blueprint_instances = group.blueprints.all()
+            for blueprint in blueprint_instances:
+                blueprint.current_status = 'archived'
+            db.session.commit()
+
+    @auth.login_required
+    @requires_admin
     def delete(self, group_id):
         group = Group.query.filter_by(id=group_id).first()
         if group.name == 'System.default':
@@ -119,6 +144,10 @@ class GroupView(restful.Resource):
         if not group:
             logging.warn("trying to delete non-existing group")
             abort(404)
+        blueprint_instances = group.blueprints.all()
+        for blueprint in blueprint_instances:
+            blueprint.current_status = 'deleted'
+        db.session.commit()
         db.session.delete(group)
         db.session.commit()
 
