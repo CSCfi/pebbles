@@ -191,6 +191,8 @@ class Group(db.Model):
     name = db.Column(db.String(32))
     _join_code = db.Column(db.String(64))
     description = db.Column(db.Text)
+    # current_status when created is "active". Later there is option to be "archived".
+    current_status = db.Column(db.String(32), default='active')
     users = db.relationship("GroupUserAssociation", back_populates="group", lazy='dynamic', cascade="all, delete-orphan")
     banned_users = db.relationship('User', secondary=group_banned_user, backref=backref('banned_groups', lazy="dynamic"), lazy='dynamic')
     blueprints = db.relationship('Blueprint', backref='group', lazy='dynamic')
@@ -360,6 +362,7 @@ class Blueprint(db.Model):
     is_enabled = db.Column(db.Boolean, default=False)
     instances = db.relationship('Instance', backref='blueprint', lazy='dynamic')
     group_id = db.Column(db.String(32), db.ForeignKey('groups.id'))
+    # current_status when created is "active". Later there are options to be "archived" or "deleted".
     current_status = db.Column(db.String(32), default='active')
 
     def __init__(self):

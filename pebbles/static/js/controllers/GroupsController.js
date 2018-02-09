@@ -126,6 +126,20 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
 
         }
 
+    $scope.archiveGroup = function(group) {
+        group.current_status = 'archived';
+        group.patch().then(function() {
+            groups.getList().then(function (response) {
+                $scope.groups = response;
+            }, function(response) {
+                   if ('error' in response.data){
+                   error_message = response.data.error;
+                   }
+                   $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger'});
+            });
+        });
+    };
+
     $scope.deleteGroup=function(group) {
         group.remove().then(function () {
             groups.getList().then(function (response) {
