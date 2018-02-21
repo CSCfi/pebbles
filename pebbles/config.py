@@ -25,6 +25,28 @@ import functools
 CONFIG_FILE = '/etc/pebbles/config.yaml'
 
 
+def _parse_env_value(val):
+    """
+    Pars environment variables to bool, integer or float or default to string.
+
+    :param val:
+    :return: val coerced into a type if it looks to be of one
+    """
+    if val.lower() == "false":
+        return False
+    elif val.lower() == "true":
+        return True
+    try:
+        return int(val)
+    except ValueError:
+        pass
+    try:
+        return float(val)
+    except ValueError:
+        pass
+    return val
+
+
 def resolve_configuration_value(key, default=None, *args, **kwargs):
     def get_key_from_config(config_file, key):
         return yaml.load(open(config_file)).get(key)
@@ -33,7 +55,7 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
     pb_key = 'PB_' + key
     value = os.getenv(pb_key)
     if value is not None:
-        return value
+        return _parse_env_value(value)
 
     # then finally check system config file and given default
     if os.path.isfile(CONFIG_FILE):
