@@ -349,7 +349,7 @@ class AllocateIPForInstance(task.Task):
     # but the parts of the refactoring should be correct
     # suvileht -2017-08-24
     def execute(self, server_id, allocate_public_ip, config):
-        logging.debug("Allocate IP for server %s" % server_id)
+        logging.info("Allocate IP for server %s" % server_id)
 
         novaclient = get_openstack_nova_client(config)
         neutronclient = get_openstack_neutron_client(config)
@@ -383,6 +383,7 @@ class AllocateIPForInstance(task.Task):
                     raise e
             else:
                 ip = free_ips[0]["floating_ip_address"]
+                logging.info("IP assigned IS %s" % ip)
             try:
                 server.add_floating_ip(ip)
             except Exception as e:
@@ -636,9 +637,11 @@ class OpenStackService(object):
 
     def clear_security_group_rules(self, group_id):
         nc = get_openstack_neutron_client(self._config)
-        sg = nc.security_groups.get(group_id)
-        for rule in sg.rules:
-            nc.security_group_rules.delete(rule["id"])
+        sg = nc.show_security_group(group_id)
+        sec_group_rules = sg['security_group']['security_group_rules']
+        for rule in sec_group_rules:
+            if rule['direction'] == 'ingress':
+                nc.delete_security_group_rule(rule['id'])
 
     def create_security_group(self, security_group_name, security_group_description):
         nc = get_openstack_neutron_client(self._config)
@@ -649,11 +652,13 @@ class OpenStackService(object):
     def create_security_group_rule(self, security_group_id, from_port, to_port, cidr, ip_protocol='tcp',
                                    group_id=None):
         nc = get_openstack_neutron_client(self._config)
-        nc.security_group_rules.create(
-            security_group_id,
-            ip_protocol=ip_protocol,
-            from_port=from_port,
-            to_port=to_port,
-            cidr=cidr,
-            group_id=group_id
-        )
+        nc.create_security_group_rule({"security_group_rule": dict(
+            security_group_id=security_group_id,
+            protocol=ip_protocol,
+            ethertype='ipv4',
+            port_range_min=from_port,
+            direction='ingress',
+            port_range_max=to_port,
+            remote_ip_prefix=cidr,
+            remote_group_id=group_id
+        )})
