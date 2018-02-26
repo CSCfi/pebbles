@@ -10,6 +10,8 @@ from pebbles.views.commons import auth
 from pebbles.utils import requires_admin
 import datetime
 
+from pebbles.tasks import send_mails
+
 notifications = Blueprint('notifications', __name__)
 
 notification_fields = {
@@ -66,6 +68,9 @@ class NotificationList(restful.Resource):
 
 
 class NotificationView(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('send_mail', type=bool, default=False)
+
     @auth.login_required
     @marshal_with(notification_fields)
     def get(self, notification_id):
@@ -75,13 +80,24 @@ class NotificationView(restful.Resource):
         return notification
 
     @auth.login_required
+    @marshal_with(notification_fields)
     def patch(self, notification_id):
-        user = get_current_user()
+        text = {"subject": " ", "message": " "}
+        args = self.parser.parse_args()
         notification = Notification.query.filter_by(id=notification_id).first()
+        current_user = get_current_user()
         if not notification:
             abort(404)
-        user.latest_seen_notification_ts = notification.broadcasted
-        db.session.commit()
+        if current_user.is_admin is True and args.get('send_mail'):
+            Users = User.query.filter_by(is_active='t')
+            for user in Users:
+                if user.email != 'worker@pebbles':
+                    text['subject'] = notification.subject
+                    text['message'] = notification.message
+                    send_mails.delay([(user.email, 'None', 't')], text)
+        else:
+            current_user.latest_seen_notification_ts = notification.broadcasted
+            db.session.commit()
 
     @auth.login_required
     @requires_admin

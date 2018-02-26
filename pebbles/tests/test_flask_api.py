@@ -2012,6 +2012,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_user_request(
             method='PATCH',
             path='/api/v1/notifications/%s' % self.known_notification_id,
+            data=json.dumps({'send_mail': False})
         )
         self.assert_200(response)
 
@@ -2024,6 +2025,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_user_request(
             method='PATCH',
             path='/api/v1/notifications/%s' % self.known_notification2_id,
+            data=json.dumps({'send_mail': False})
         )
         self.assert_200(response)
 
