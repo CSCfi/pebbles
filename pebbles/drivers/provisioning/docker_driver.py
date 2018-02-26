@@ -159,7 +159,18 @@ class DockerDriverAccessProxy(object):
             }
             if host.get('state') in [DD_STATE_SPAWNED, DD_STATE_ACTIVE, DD_STATE_INACTIVE]:  # POST or PUT
                 payload['value'] = host
-                pbclient.create_or_modify_namespaced_keyvalue(NAMESPACE, _key, payload)
+                try:
+                    pbclient.create_or_modify_namespaced_keyvalue(NAMESPACE, _key, payload)
+                except RuntimeError:
+                    backend_config_record = pbclient.get_namespaced_keyvalues({'namespace': NAMESPACE, 'key': KEY_CONFIG})
+                    backend_config_record[0]['value']['DD_SHUTDOWN_MODE'] = True
+                    payload = {
+                        'namespace': NAMESPACE,
+                        'key': KEY_CONFIG,
+                        'value': backend_config_record[0]['value'],
+                        'schema': backend_config_record[0]['schema']
+                    }
+                    pbclient.create_or_modify_namespaced_keyvalue(NAMESPACE, KEY_CONFIG, payload)
             elif host.get('state') == DD_STATE_REMOVED:  # DELETE
                 pbclient.delete_namespaced_keyvalue(NAMESPACE, _key)
 
