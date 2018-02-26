@@ -1,8 +1,8 @@
 app.factory('DesktopNotifications', ['webNotification', 'localStorageService',
                     function(webNotification,   localStorageService) {
-/* Send desktop notifications after desired time levels.
- * All time levels would be denoted in Seconds
- * START will always be Infinity, If you want to send one at the END, use 0 */
+ 
+   /* Send desktop notifications for instance lifetime and service level notiications */
+
     return{
 
         /* The array behaves as a queue data-structure.
@@ -12,6 +12,10 @@ app.factory('DesktopNotifications', ['webNotification', 'localStorageService',
             900,  // 15 Minutes
             300  // 5 Minutes
         ],
+
+        /* Send desktop notifications after desired time levels.
+        * All time levels would be denoted in Seconds
+        * START will always be Infinity, If you want to send one at the END, use 0 */
 
         /* The main function which needs the list of instances */
         notifyInstanceLifetime : function(instance_list) {
@@ -83,6 +87,18 @@ app.factory('DesktopNotifications', ['webNotification', 'localStorageService',
                 }
             }
             return notification_queue;
-        }
+        },
+
+        notifyNotifications : function(notification) {
+            webNotification.showNotification(notification.subject, {
+                 body: notification.message,
+                 autoClose: 10000
+            }, function onShow(error, hide) {
+               if (error) {
+                  console.log('Unable to show notifications. Check manually ' + error.message);
+               }
+            });
+        },
+
     };
 }]);

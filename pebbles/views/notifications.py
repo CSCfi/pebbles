@@ -8,6 +8,7 @@ from pebbles.forms import NotificationForm
 from pebbles.server import restful
 from pebbles.views.commons import auth
 from pebbles.utils import requires_admin
+import datetime
 
 notifications = Blueprint('notifications', __name__)
 
@@ -32,6 +33,7 @@ def get_current_user():
 class NotificationList(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('show_all', type=bool, default=False, location='args')
+    parser.add_argument('show_recent', type=bool, default=False, location='args')
 
     @auth.login_required
     @marshal_with(notification_fields)
@@ -39,6 +41,10 @@ class NotificationList(restful.Resource):
         args = self.parser.parse_args()
         if args.get('show_all'):
             return Notification.query.all()
+        if args.get('show_recent'):
+            timevalue = datetime.datetime.utcnow() - datetime.timedelta(minutes=1)  # minute before the current time
+            recent_notifications = Notification.query.filter(Notification.broadcasted >= timevalue).all()
+            return recent_notifications
 
         user = get_current_user()
         return user.unseen_notifications()
@@ -91,6 +97,7 @@ class NotificationView(restful.Resource):
 
         notification.subject = form.subject.data
         notification.message = form.message.data
+        notification.broadcasted = datetime.datetime.utcnow()
 
         db.session.commit()
 
