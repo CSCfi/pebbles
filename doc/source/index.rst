@@ -6,7 +6,7 @@ Welcome to Pebbles's documentation!
 ===================================
 
 Pebbles is a tool developed at CSC_ for simple provisioning of resources.
-Pebbles_ is the name of the open source project and the installations should
+Pebbles_ is the name of the open source project and the installations should have
 individual names. The name of the installation at CSC for example will be
 called CSC Notebooks.
 
