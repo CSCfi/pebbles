@@ -90,3 +90,31 @@ body {
 #admin-pre-background {
     white-space: pre-wrap;
 }
+
+#environments-note {
+    background-image: none;
+}
+
+.sortorder thead {
+    background-color: #DCDCDC;
+    font: bold;
+}
+
+.sortorder thead tr td:nth-of-type(-n+3):hover {
+   cursor: pointer;
+   background-color: #777;
+}
+
+.make-bold {
+    font-weight:bold;
+}
+
+.modal-scroll{
+    padding-left: 20px;
+    max-height: calc(100vh - 200px);
+    overflow-x: auto;
+}
+
+.li-pad{
+    padding-left: 40px;
+}

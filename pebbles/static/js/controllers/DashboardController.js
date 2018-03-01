@@ -1,6 +1,6 @@
 /* global app */
-app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard',
-                              function ($q,   $scope,   $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard) {
+app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard', 'DesktopNotifications',
+                              function ($q,   $scope,   $routeParams, $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard, DesktopNotifications) {
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
         var LIMIT_DEFAULT = 100, OFFSET_DEFAULT=0;
 
@@ -19,10 +19,50 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
             return false;
         }
 
+        var group_join = Restangular.all('groups').one('group_join');
+
         var blueprints = Restangular.all('blueprints');
         blueprints.getList().then(function (response) {
-            $scope.blueprints = response;
+            if($routeParams.blueprint_id){  // Case when the blueprint link is given
+                var blueprint_id = $routeParams.blueprint_id;
+                $scope.blueprints = _.filter(response, { 'id': blueprint_id });
+                if (!$scope.blueprints.length){
+                     $uibModal.open({
+                     templateUrl: '/partials/modal_group_join.html',
+                     controller: 'ModalGroupJoinController',
+                     size: 'sm',
+                     backdrop  : 'static',
+                     keyboard  : false,
+                     resolve: {
+                         group_join: function() {
+                             return group_join;
+                         },
+                         join_title: function(){
+                             return "Enter the join code"
+                         },
+                         dismiss_reason: function(){
+                             return "You need to join a valid group to see the environment"
+                         }
+                     }
+                     }).result.then(function() {
+                         refresh_blueprints_for_link(blueprint_id);
+                     });
+                }
+            }
+            else{  // Fetch all blueprints
+                $scope.blueprints = response;
+            }
         });
+
+        var refresh_blueprints_for_link = function(blueprint_id){
+            blueprints.getList().then(function (response) {
+            $scope.blueprints = _.filter(response, {'id': blueprint_id, 'is_enabled': true });
+            if(!$scope.blueprints.length){
+                $.notify({
+                    title: "INVALID LINK!", message: "The link provided appears to be invalid. Could not retrieve any information."}, {type: "danger"});
+            }
+            });
+        }
 
         var keypairs = Restangular.all('users/' + AuthService.getUserId() + '/keypairs');
         keypairs.getList().then(function (response) {
@@ -83,7 +123,7 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
                 queryParams.offset = $scope.offset;
             }
             if (AuthService.isGroupOwnerOrAdmin() && isUserDashboard) {
-                queryParams.show_only_mine = true;
+		queryParams.show_only_mine = true;
             }
             instances.getList(queryParams).then(function (response) {
                 if ($scope.checkAll){
@@ -95,6 +135,8 @@ app.controller('DashboardController', ['$q', '$scope', '$interval', 'AuthService
                 }
                 $scope.instances = response;
             });
+            var own_instances = _.filter($scope.instances, {'user_id': AuthService.getUserId()});
+	    DesktopNotifications.notifyInstanceLifetime(own_instances);
         };
 
         $scope.toggleAdvancedOptions = function() {

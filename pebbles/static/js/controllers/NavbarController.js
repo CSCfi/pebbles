@@ -1,4 +1,4 @@
-app.controller('NavbarController', ['$scope', '$rootScope', '$location', 'AuthService', 'ConfigurationService', function($scope, $rootScope, $location, AuthService, ConfigurationService) {
+app.controller('NavbarController', ['$scope', '$rootScope', '$location', '$routeParams', 'AuthService', 'ConfigurationService', function($scope, $rootScope, $location, $routeParams, AuthService, ConfigurationService) {
     var _invalidLogin = false;
     var _showLoginBox = undefined;
 
@@ -33,7 +33,7 @@ app.controller('NavbarController', ['$scope', '$rootScope', '$location', 'AuthSe
         AuthService.login($scope.email, $scope.password).then(function() {
             _invalidLogin = false;
             $rootScope.$broadcast('userLoggedIn');
-            $location.path("/dashboard");
+            _routeNavigator();
         }, function() {
             _invalidLogin = true;
         });
@@ -72,4 +72,15 @@ app.controller('NavbarController', ['$scope', '$rootScope', '$location', 'AuthSe
         $rootScope.$broadcast('userLoggedOut');
         $location.path("/");
     };
+
+    var _routeNavigator = function() {
+        if($routeParams.blueprint_id){
+            $location.url($location.path());  // remove query parameters when navigating further
+            $location.path("/blueprint/" + $routeParams.blueprint_id);
+        }
+        else{
+            $location.path("/dashboard");
+        }
+    };
+
 }]);

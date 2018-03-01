@@ -2,7 +2,7 @@
 
 'use strict';
 
-var app = angular.module('PBApp', ['ngRoute', 'ngAnimate', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload', 'schemaForm', 'ui.bootstrap', 'angular-loading-bar', 'angularjs-dropdown-multiselect','ngSanitize']);
+var app = angular.module('PBApp', ['ngRoute', 'ngAnimate', 'restangular', 'LocalStorageModule', 'validation.match', 'angularFileUpload', 'schemaForm', 'ui.bootstrap', 'angular-loading-bar', 'angularjs-dropdown-multiselect','ngSanitize', 'angular-web-notification']);
 
 app.run(function($location, Restangular, AuthService) {
     Restangular.setFullRequestInterceptor(function(element, operation, route, url, headers) {
@@ -55,11 +55,17 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider, confi
     $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|blob):/);
 
     var redirectIf = function(serviceName, serviceMethod, route) {
-        return function($location, $q, $injector) {
+        return function($location, $q, $injector, $route) {
+            var customRedirectPath = $route.current.params;
             var deferred = $q.defer();
             if ($injector.get(serviceName)[serviceMethod]()) {
                 deferred.reject();
-                $location.path(route);
+                if (customRedirectPath == undefined){
+                    $location.path(route);
+                }
+                else{
+                    $location.path(route).search(customRedirectPath);
+                }
             } else {
                 deferred.resolve();
             }
@@ -70,6 +76,7 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider, confi
     var notAuthenticatedP = redirectIf('AuthService', 'isNotAuthenticated', '/');
     var alreadyAuthenticatedP = redirectIf('AuthService', 'isAuthenticated', '/dashboard');
     var isAdminP = redirectIf('AuthService', 'isGroupManagerOrAdmin', '/admin-dashboard');
+
     $routeProvider
         .when('/', {
             templateUrl: partialsDir + '/welcome.html',
@@ -172,6 +179,14 @@ app.config(function($routeProvider, $compileProvider, RestangularProvider, confi
         .when('/reset_password', {
             controller: 'ResetPasswordController',
             templateUrl: partialsDir + '/reset_password.html'
+        })
+        .when('/blueprint/:blueprint_id', {
+            controller: 'DashboardController',
+            templateUrl: partialsDir + '/user_dashboard.html',
+            resolve: {
+                redirectIfNotAuthenticated: notAuthenticatedP,
+                isUserDashboard: function() {return true},
+            }
         });
 
 });

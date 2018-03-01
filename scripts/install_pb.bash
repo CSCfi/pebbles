@@ -57,7 +57,7 @@ install_packages()
         sudo aptitude install -y git build-essential python-dev python-setuptools python-openstackclient
     fi
     if [ -f /etc/redhat-release ]; then
-        sudo yum install -y centos-release-openstack
+        sudo yum install -y centos-release-openstack-pike
         sudo yum install -y bind-utils git python-devel python-setuptools python-novaclient
         sudo yum install -y libffi-devel openssl-devel
     fi

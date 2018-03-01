@@ -122,7 +122,7 @@ class User(db.Model):
         if self.can_login():
             return bcrypt.check_password_hash(self.password, password)
 
-    def generate_auth_token(self, app_secret, expires_in=3600):
+    def generate_auth_token(self, app_secret, expires_in=43200):
         s = Serializer(app_secret, expires_in=expires_in)
         return s.dumps({'id': self.id}).decode('utf-8')
 
@@ -230,7 +230,7 @@ class Keypair(db.Model):
 
     id = db.Column(db.String(32), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
-    _public_key = db.Column(db.String(450))
+    _public_key = db.Column(db.String(1025))
 
     def __init__(self):
         self.id = uuid.uuid4().hex
@@ -360,6 +360,7 @@ class Blueprint(db.Model):
     is_enabled = db.Column(db.Boolean, default=False)
     instances = db.relationship('Instance', backref='blueprint', lazy='dynamic')
     group_id = db.Column(db.String(32), db.ForeignKey('groups.id'))
+    current_status = db.Column(db.String(32), default='active')
 
     def __init__(self):
         self.id = uuid.uuid4().hex
