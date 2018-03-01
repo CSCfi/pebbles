@@ -14,6 +14,10 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             return AuthService.isAdmin();
         };
 
+        $scope.isGroupOwnerOrAdmin = function() {
+            return AuthService.isGroupOwnerOrAdmin();
+        };
+
         if (AuthService.isGroupOwnerOrAdmin()) {
             var groups = Restangular.all('groups');
             groups.getList().then(function (response) {
@@ -98,6 +102,27 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                      });
                 });
             };
+ 
+           $scope.showUsers=function(group) {
+               $uibModal.open({
+		   templateUrl: '/partials/modal_showusers_group.html',
+                   controller: 'ModalShowusersGroupController',
+                    size: 'md',
+                    resolve: {
+                        group: function() {
+                            return group;
+                        },
+                        group_users: function() {
+                            var group_users = Restangular.all('groups').one(group.id).all('users');
+                            return group_users;
+                        }
+                    }
+               }).result.then(function() {
+                    groups.getList().then(function (response) {
+                        $scope.groups = response;
+                     });
+              });
+           };
 
         }
 
@@ -183,3 +208,24 @@ app.controller('ModalModifyGroupController', function($scope, $modalInstance, gr
     };
 });
 
+app.controller('ModalShowusersGroupController', function($scope, $modalInstance, group, group_users) {
+    group_users.getList().then(function (response) {
+        $scope.group = group;
+        $scope.userData = response;
+        $scope.manageruser = _.flatten(_.map(group.user_config.managers, function(check_value){
+                   return _.filter(response, check_value);
+         }));
+        $scope.groupowneruser = _.filter(response, {"is_group_owner": true} );
+    });
+
+    group_users.getList({'banned_list': true}).then(function (response) {
+        $scope.managerData = response;
+        $scope.banneduser = _.flatten(_.map(group.user_config.banned_users, function(check_value){
+                   return _.filter(response, check_value);
+        }));
+    });
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});
