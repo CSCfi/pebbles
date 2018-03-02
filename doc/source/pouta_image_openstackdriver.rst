@@ -1,5 +1,6 @@
 cPouta virtual machines in Pebbles
 ***********************************************
+
 These instructions show you how to create a cPouta image and use it to create OpenStackDriver Templates 
 in a Pebbles installation. We assume that you are
 familiar with the cPouta service and you login as an admin to the Pebbles UI. Horizon web interface will be used as an example.
