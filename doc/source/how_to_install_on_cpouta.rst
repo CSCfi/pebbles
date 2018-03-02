@@ -94,13 +94,13 @@ Clone the repository from GitHub::
     $ git clone https://github.com/CSCfi/pebbles.git
 
 Run the install script once - you will asked to log out and in again to make
-unix group changes effective. Here is a good time to reboot the server after
+unix group changes effective. Now is a good time to reboot the server after
 the updates::
 
     $ ./pebbles/scripts/install_pb.bash
     $ sudo reboot
 
-Wait while for the server to reboot and copy the m2m OpenStack RC file to the server::
+Wait for the server to reboot and copy the m2m OpenStack RC file to the server::
 
     $ scp path/to/your/saved/rc-file.bash cloud-user@<public ip of the server>
 
@@ -121,8 +121,8 @@ Here is list of tasks for a quick start.
 Set admin credentials
 ---------------------   
 
-The installation script will print out initialization URL at the end of the
-installation. Navigate to that, set the admin credentials and log in as an
+The installation script will print out the initialization URL at the end of the
+installation. Navigate to it, set the admin credentials and log in as an
 admin. If you're using the ansible script you won't see the url, it is of the
 format https://pebbles.example.org/#/initialize .
 
