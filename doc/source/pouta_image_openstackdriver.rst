@@ -66,9 +66,7 @@ For compatibility with the standard Pebbles installation your custom virtual mac
 
 * The custom virtual machine was created in cPouta using the option Instance Boot Source:Boot from image
 * TODO: test if VM launched with Instance Boot Source:Boot from snapshot also works
-* TODO: confirm in explicit tests using in Pebbles an image that was created from a VM that had been launched
-with options:  Instance Boot Source:Boot from volume, Boot from image (creates a new volume) 
-OR  Instance Boot Source:Boot from volume snapshot (creates a new volume)
+* TODO: confirm in explicit tests using in Pebbles an image that was created from a VM that had been launched with options:  Instance Boot Source:Boot from volume, Boot from image (creates a new volume) OR  Instance Boot Source:Boot from volume snapshot (creates a new volume)
 * a cloud-user account exists in the virtual 
 * TODO: ssh-server installation, cloud-user account settings, supported OS's...
 * TODO: other connection possibilities, for ex VNC
