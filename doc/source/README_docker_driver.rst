@@ -47,7 +47,7 @@ Change the following configuration variables in the web configuration page visib
     PLUGIN_WHITELIST: DockerDriver
     DD_SHUTDOWN_MODE: False
 
-Once you enable the driver, you can take a look at the tmux status window mentioned in how_to_install_on_cpouta.md, 
+Once you enable the driver, you can take a look at the tmux status window mentioned in `administrative tasks documentation <http://cscfi.github.io/pebbles/how_to_install_on_cpouta.html#part-5-administrative-tasks-and-troubleshootinghow_to_install_on_cpouta.md>`_, 
 window number 2 (CTRL-b 2) how the provisioning of notebook hosts in the pool is coming along.
 
 There is a PREFIX setting that sets the prefix to use when generating pool
@@ -57,7 +57,7 @@ hosts.
 Create a test blueprint
 =======================
 
-Go to Web UI, select 'Configure' tab, click on 'Create Blueprint' next to DockerDriver
+Go to Web UI, select 'Configure' tab, click on 'Create Template' next to DockerDriver
 
 Settings:
 
