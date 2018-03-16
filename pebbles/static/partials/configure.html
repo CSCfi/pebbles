@@ -75,6 +75,7 @@
                 <td>{{ notification.subject }}</td>
                 <td>{{ notification.broadcasted | utcToLocale:"medium"}}</td>
                 <td>{{ notification.message }}</td>
+		<td> <button ng-confirm-click="Do you want to email this notification to all the active users?" ng-click="emailNotification(notification)" class="btn btn-default">Email Active Users</button> </td>
                 <td>
                     <button ng-click="openEditNotification(notification)" class="btn btn-primary btn-xs" type="button">
                         <span class="glyphicon glyphicon-edit"></span>

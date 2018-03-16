@@ -171,6 +171,11 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             });
         };
 
+        $scope.emailNotification = function(notification) {
+            notification.patch({send_mail: true}).then(function(response) {
+            });
+        };
+
         $scope.openEditNotification = function(notification) {
             $uibModal.open({
                 templateUrl: '/partials/modal_edit_notification.html',
