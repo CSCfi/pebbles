@@ -50,7 +50,7 @@
 - name: Install psycopg from pip to virtualenv
   pip: name={{ item }} virtualenv={{ virtualenv_path }}
   with_items:
-      - psycopg2
+      - psycopg2-binary
 
 - name: Set redis to listen to all interfaces
   lineinfile:
