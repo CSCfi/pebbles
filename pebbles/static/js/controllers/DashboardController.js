@@ -135,7 +135,7 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$interva
                 }
                 $scope.instances = response;
             });
-            var own_instances = _.filter($scope.instances, {'user_id': AuthService.getUserId()});
+            var own_instances = _.filter($scope.instances, {'user_id': AuthService.getUserId(), 'state': 'running'});
 	    DesktopNotifications.notifyInstanceLifetime(own_instances);
         };
 
