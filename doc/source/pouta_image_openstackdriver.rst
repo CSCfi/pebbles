@@ -85,7 +85,7 @@ that Pebbles will fail to launch virtual machines)
 and qemu tools, this is not covered here though)
 
 Adding your custom image to Pebbles
--------------------------
+-----------------------------------
 Follow the instruction at the beginning of this document.
 
 TODO: what other settings may be needed compared to using an existing basic image.
