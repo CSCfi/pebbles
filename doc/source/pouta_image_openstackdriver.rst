@@ -55,7 +55,7 @@ The UI gives the instructions to connect to the virtual machine, similar to: ssh
 
 
 Creating your own cPouta images for Pebbles
-==================================
+===========================================
 
 You can create blueprint templates and bluprints in Pebbles from your own custom images. The instructions below
 describe what basic configuration your virtual machine should have and how the cPouta image should be created.
