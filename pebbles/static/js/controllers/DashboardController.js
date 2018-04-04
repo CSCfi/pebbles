@@ -1,6 +1,6 @@
 /* global app */
-app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard', 'DesktopNotifications',
-                              function ($q,   $scope, $routeParams, $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard, DesktopNotifications) {
+app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard', 'DesktopNotifications',
+                              function ($q,   $scope,   $routeParams, $timeout, $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard, DesktopNotifications) {
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
         var LIMIT_DEFAULT = 100, OFFSET_DEFAULT=0;
         $scope.currentView = "default";
@@ -192,6 +192,10 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$interva
         $scope.provision = function (blueprint) {
             instances.post({blueprint: blueprint.id}).then(function (response) {
                 $scope.updateInstanceList();
+                $timeout(function () {
+                    Restangular.one('instances', response.id).customPOST({'send_email': true}).then(function (response) {
+                      });
+                }, 600000);
             }, function(response) {
                 if (response.status != 409) {
                     $.notify({title: 'HTTP ' + response.status, message: 'unknown error'}, {type: 'danger'});

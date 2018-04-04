@@ -1487,10 +1487,31 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(path='/api/v1/instances/%s' % self.known_instance_id)
         self.assert_401(response)
         # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/instances/%s' % self.known_instance_id)
+        response = self.make_authenticated_user_request(
+            method='GET',
+            path='/api/v1/instances/%s' % self.known_instance_id
+        )
         self.assert_200(response)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/instances/%s' % self.known_instance_id)
+        response = self.make_authenticated_admin_request(
+            method='GET',
+            path='/api/v1/instances/%s' % self.known_instance_id
+        )
+        self.assert_200(response)
+
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/instances/%s' % self.known_instance_id,
+            data=json.dumps({'send_email': False})
+        )
+        self.assert_200(response)
+
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/instances/%s' % self.known_instance_id,
+            data=json.dumps({'send_email': False})
+        )
+
         self.assert_200(response)
 
     def test_delete_instance(self):
