@@ -14,6 +14,8 @@ from pebbles.tasks import run_update, update_user_connectivity, fetch_running_in
 from pebbles.views.commons import auth, is_group_manager
 from pebbles.rules import apply_rules_instances, get_group_blueprint_ids_for_instances
 
+from pebbles.tasks import send_mails
+
 instances = FlaskBlueprint('instances', __name__)
 
 USER_INSTANCE_LIMIT = 5
@@ -174,6 +176,7 @@ class InstanceView(restful.Resource):
     parser.add_argument('client_ip', type=str)
     parser.add_argument('instance_data', type=str)
     parser.add_argument('to_be_deleted', type=bool)
+    parser.add_argument('send_email', type=bool)
 
     @auth.login_required
     @marshal_with(instance_fields)
@@ -202,6 +205,26 @@ class InstanceView(restful.Resource):
         instance.maximum_lifetime = blueprint.maximum_lifetime
         instance.cost_multiplier = blueprint.cost_multiplier
 
+        return instance
+
+    @auth.login_required
+    @marshal_with(instance_fields)
+    def post(self, instance_id):
+        args = self.parser.parse_args()
+        user = g.user
+        query = apply_rules_instances(user, {'instance_id': instance_id})
+        instance = query.first()
+        if not instance:
+            abort(404)
+
+        if args.get('send_email'):
+            text = {"subject": " ", "message": " "}
+            admin_users = User.query.filter_by(is_admin=True).all()
+            for admins in admin_users:
+                if admins.email != 'worker@pebbles':
+                    text['subject'] = "Notebooks.csc.fi:WARNING"
+                    text['message'] = instance.name + " is taking more than ten minutes to launch"
+                    send_mails.delay([(admins.email, 'None', 't')], text)
         return instance
 
     @auth.login_required
