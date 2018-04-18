@@ -94,7 +94,7 @@ So, when a user launches your blueprint, they will be able to see the files from
 the necessary libraries directly.
 In order to continue with this, you need to enter the following value in the field called 
 'environment variables for docker, separated by space' :
-``AUTODOWNLOAD_URL=<URL_TO_A_BASH_SCRIPT> AUTODOWNLOAD_EXEC=instance_launch.sh``
+``AUTODOWNLOAD_URL=<URL_TO_A_BASH_SCRIPT> AUTODOWNLOAD_EXEC=<BASH_SCRIPT_FILENAME>.bash``
 
 As you can notice, it requires ``<URL_TO_A_BASH_SCRIPT>``. This bash script is responsible for cloning your github repo,
 installing your libraries etc. 
