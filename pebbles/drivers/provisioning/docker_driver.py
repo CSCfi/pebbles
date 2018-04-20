@@ -76,6 +76,7 @@ import pebbles.tasks
 from lockfile import locked, LockTimeout
 import socket
 
+
 DD_STATE_SPAWNED = 'spawned'
 DD_STATE_ACTIVE = 'active'
 DD_STATE_INACTIVE = 'inactive'
@@ -443,26 +444,46 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         ap = self._get_ap()
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
-        lock_id = 'dd_host:%s' % 'global'
-        try:
-            lock_res = pbclient.obtain_lock(lock_id)
-            while not lock_res:
-                time.sleep(5)
-                lock_res = pbclient.obtain_lock(lock_id)
+        instance = pbclient.get_instance_description(instance_id)
+        blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
+        blueprint_config = blueprint['full_config']
 
+        log_uploader.info("selecting host...")
+        try:
+            docker_hosts = self._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+        except (RuntimeWarning, ConnectionError) as e:
+            self.logger.info('_do_provision() failed for %s due to %s' % (instance_id, e))
+            log_uploader.info("provisioning failed, queueing again to retry\n")
+            return Instance.STATE_QUEUEING
+
+        selected_host = []
+        lock_res = None
+        while not lock_res:
+            for i in range(len(docker_hosts)):
+                lock_id = str(docker_hosts[i]["id"])
+                try:
+                    lock_res = pbclient.obtain_lock(lock_id)
+                    if lock_res:
+                        selected_host = docker_hosts[i]
+                        break
+                except Exception:
+                    pass
+            if not lock_res:
+                time.sleep(7)
+        if selected_host:
             try:
-                self._do_provision(token, instance_id, int(time.time()))
+                self._do_provision(token, instance_id, int(time.time()), selected_host)
                 return Instance.STATE_RUNNING
             except (RuntimeWarning, ConnectionError) as e:
                 self.logger.info('_do_provision() failed for %s due to %s' % (instance_id, e))
                 log_uploader.info("provisioning failed, queueing again to retry\n")
                 return Instance.STATE_QUEUEING
-        finally:
-            pbclient.release_lock(lock_id)
-            # give proxy and container some time to initialize
-            time.sleep(2)
+            finally:
+                pbclient.release_lock(lock_id)
+                # give proxy and container some time to initialize
+                time.sleep(2)
 
-    def _do_provision(self, token, instance_id, cur_ts):
+    def _do_provision(self, token, instance_id, cur_ts, selected_host):
         ap = self._get_ap()
 
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
@@ -474,11 +495,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         # fetch config
         blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
         blueprint_config = blueprint['full_config']
-
-        log_uploader.info("selecting host...")
-
-        docker_hosts = self._select_hosts(blueprint_config['consumed_slots'], token, cur_ts)
-        selected_host = docker_hosts[0]
 
         docker_client = ap.get_docker_client(selected_host['docker_url'])
 
@@ -586,7 +602,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         ap = self._get_ap()
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 
-        lock_id = 'dd_host:%s' % 'global'
+        instance = pbclient.get_instance_description(instance_id)
+        if instance["instance_data"]:
+            lock_id = str(instance["instance_data"]["docker_host_id"])
+        else:
+            lock_id = 'dd_host:%s' % 'global'
         try:
             lock_res = pbclient.obtain_lock(lock_id)
             while not lock_res:
@@ -837,7 +857,12 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             for host in active_hosts:
                 if host['num_slots'] - host['num_reserved_slots'] >= slots:
                     selected_hosts.append(host)
-
+        """
+        # return all the hosts that that space left
+        for host in active_hosts:
+            if host['num_slots'] - host['num_reserved_slots'] >= slots:
+                selected_hosts.append(host)
+        """
         if len(selected_hosts) == 0:
             self.logger.debug('_select_host(): no space left, %d slots requested,'
                               ' active hosts: %s' % (slots, active_hosts))
