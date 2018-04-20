@@ -432,7 +432,13 @@ class DockerDriverTestCase(BaseTestCase):
 
         # spawn an instance and destroy it
         ddam.pbc_mock.add_instance_data('1001')
-        dd._do_provision(token='foo', instance_id='1001', cur_ts=cur_ts)
+        token = 'foo'
+        instance = ddam.pbc_mock.get_instance_description(instance_id='1001')
+        blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
+        blueprint_config = blueprint['full_config']
+
+        docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+        dd._do_provision(token='foo', instance_id='1001', cur_ts=cur_ts, selected_host=docker_hosts[0])
         dd._do_deprovision(token='foo', instance_id='1001')
 
     @mock_open_context
@@ -448,7 +454,12 @@ class DockerDriverTestCase(BaseTestCase):
 
         # spawn an instance and destroy it twice, should not blow up
         ddam.pbc_mock.add_instance_data('1001')
-        dd._do_provision(token='foo', instance_id='1001', cur_ts=cur_ts)
+        token = 'foo'
+        instance = ddam.pbc_mock.get_instance_description(instance_id='1001')
+        blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
+        blueprint_config = blueprint['full_config']
+        docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+        dd._do_provision(token='foo', instance_id='1001', cur_ts=cur_ts, selected_host=docker_hosts[0])
         dd._do_deprovision(token='foo', instance_id='1001')
         # because base driver is bypassed in tests, instance state has to be set manually
         ddam.pbc_mock.do_instance_patch('1001', dict(state='deleted'))
@@ -467,7 +478,12 @@ class DockerDriverTestCase(BaseTestCase):
 
         # spawn an instance and destroy it twice, should not blow up
         ddam.pbc_mock.add_instance_data('1001')
-        dd._do_provision(token='foo', instance_id='1001', cur_ts=cur_ts)
+        token = 'foo'
+        instance = ddam.pbc_mock.get_instance_description(instance_id='1001')
+        blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
+        blueprint_config = blueprint['full_config']
+        docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+        dd._do_provision(token='foo', instance_id='1001', cur_ts=cur_ts, selected_host=docker_hosts[0])
         dd._do_deprovision(token='foo', instance_id='1001')
         dd._do_deprovision(token='foo', instance_id='1001')
 
@@ -490,7 +506,13 @@ class DockerDriverTestCase(BaseTestCase):
         # spawn instances up to the limit
         for i in range(0, num_slots):
             ddam.pbc_mock.add_instance_data('%d' % (1000 + i))
-            dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts)
+            token = 'foo'
+            instance = ddam.pbc_mock.get_instance_description(instance_id='%d' % (1000 + i))
+            blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
+            blueprint_config = blueprint['full_config']
+            docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+
+            dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts, selected_host=docker_hosts[0])
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
@@ -498,7 +520,13 @@ class DockerDriverTestCase(BaseTestCase):
 
         try:
             ddam.pbc_mock.add_instance_data('999')
-            dd._do_provision(token='foo', instance_id='999', cur_ts=cur_ts)
+            token = 'foo'
+            instance = ddam.pbc_mock.get_instance_description(instance_id='999')
+            blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
+            blueprint_config = blueprint['full_config']
+            docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+
+            dd._do_provision(token='foo', instance_id='999', cur_ts=cur_ts, selected_host=docker_hosts[0])
             self.fail('pool should have been full')
         except RuntimeWarning:
             pass
@@ -522,7 +550,13 @@ class DockerDriverTestCase(BaseTestCase):
         # spawn instances up to the limit
         for i in range(0, num_slots):
             ddam.pbc_mock.add_instance_data('%d' % (1000 + i))
-            dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts)
+            token = 'foo'
+            instance = ddam.pbc_mock.get_instance_description(instance_id='%d' % (1000 + i))
+            blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
+            blueprint_config = blueprint['full_config']
+
+            docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+            dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts, selected_host=docker_hosts[0])
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
@@ -572,7 +606,13 @@ class DockerDriverTestCase(BaseTestCase):
 
         # add an instance
         ddam.pbc_mock.add_instance_data('1000')
-        dd._do_provision(token='foo', instance_id='1000', cur_ts=cur_ts)
+        token = 'foo'
+        instance = ddam.pbc_mock.get_instance_description(instance_id='1000')
+        blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
+        blueprint_config = blueprint['full_config']
+        docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+
+        dd._do_provision(token='foo', instance_id='1000', cur_ts=cur_ts, selected_host=docker_hosts[0])
 
         # change the state to inactive under the hood (this is possible due to a race
         # between housekeep() and provision())
@@ -652,7 +692,6 @@ class DockerDriverTestCase(BaseTestCase):
     def test_docker_comm_probs(self):
         dd = self.create_docker_driver()
         ddam = dd._get_ap()
-
         # spawn a host and activate it
         cur_ts = 1000000
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
@@ -660,24 +699,29 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
         ddam.pbc_mock.add_instance_data('1000')
+        token = 'foo'
+        instance = ddam.pbc_mock.get_instance_description(instance_id='1000')
+        blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
+        blueprint_config = blueprint['full_config']
 
         # mimic a docker comm failure
         ddam.failure_mode = True
         try:
-            dd._do_provision(token='foo', instance_id='1000', cur_ts=cur_ts)
+            dd._do_provision(token='foo', instance_id='1000', cur_ts=cur_ts, selected_host=None)
             self.fail('should have raised an error')
-        except:
+        except Exception:
             pass
 
         ddam.failure_mode = False
-        dd._do_provision(token='foo', instance_id='1000', cur_ts=cur_ts)
+        docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+        dd._do_provision(token='foo', instance_id='1000', cur_ts=cur_ts, selected_host=docker_hosts[0])
         ddam.failure_mode = True
 
         ddam.failure_mode = True
         try:
             dd._do_deprovision(token='foo', instance_id='1000')
             self.fail('should have raised an error')
-        except:
+        except Exception:
             pass
 
         ddam.failure_mode = False
