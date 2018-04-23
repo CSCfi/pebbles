@@ -25,9 +25,10 @@ Settings:
 * Flavor: standard.tiny
 * Image: CentOS-07
 * Maximum lifetime: 10m
+* OpenStack network UUID to place instance to or 'auto': set it to the network UUID of your cPouta project (looks like: 25da4740-5f8f-495a-be1f-ad111bc72715)
+* Exposed ports (list of ports and port ranges, separated by space): set the ports you want to be open to the virtual machine, for example to open SSH: 22
+* At the bottom, check the "Allow user to request instance firewall to allow access to user's IP address" option, if you want the users to be able to change the local IP used to connect to the virtual machine.
 * Leave the rest as defaults
-* TODO: review and add rest of parameters?
-* TODO: review how security rules are set by Pebbles, currently not working properly (quick fix, set manually in cPouta)
 
 Click on ´Create´, your new template is added to the Blueprint Templates list. Click on `Activate` next 
 to your template's name so that the template is available to create Blueprints.
@@ -42,16 +43,16 @@ Settings:
 
 Find your new blueprint from the Blueprints list and click on `Activate`.
 
-Finally go to 'Dashboard' and launch an instance. Once the instance is running, click 'Open in Browser'
+Finally go to the 'Dashboard' tab and launch an instance. Once the instance is running, click on 'Details' to give your local IP access to the virtual machine. To get access to the virtual machine click on "Query client IP", then on "Change client IP".
 
 In the example case, the cPouta image is configured to allow only SSH access using a rsa key for user cloud-user. 
-Note also, that the firewall rules set in the blueprint template (default only SSH port 22 is open).
+Note also, that the firewall rules has been set in the blueprint template so that only the SSH port ( port 22) is open.
 
-TODO: review firewalls settings
+Now you can connect to this machine using the indicated ssh connection (you can also use Putty)::
+    
+    ssh -i <your pebbles keypair> cloud-user@xxx.xxx.xxx.xxx
 
-With the default firewalls settings (see blueprint template above), the virtual machine can only be accessed 
-via SSH and using the Pebbles private key (user downloads it from `Account` tab, before launching the machine).
-The UI gives the instructions to connect to the virtual machine, similar to: ssh cloud-user@xxx.xxx.xxx.xxx.
+The virtual machine can only be accessed your via SSH and using the Pebbles private key (user create and download it from `Account` tab, before launching the machine! You need to create this keypair only once and reuse it after that).
 
 
 Creating your own cPouta images for Pebbles
@@ -65,11 +66,7 @@ Virtual machine settings
 For compatibility with the standard Pebbles installation your custom virtual machine should comply with the following:
 
 * The custom virtual machine was created in cPouta using the option Instance Boot Source:Boot from image
-* TODO: test if VM launched with Instance Boot Source:Boot from snapshot also works
-* TODO: confirm in explicit tests using in Pebbles an image that was created from a VM that had been launched with options:  Instance Boot Source:Boot from volume, Boot from image (creates a new volume) OR  Instance Boot Source:Boot from volume snapshot (creates a new volume)
 * a cloud-user account exists in the virtual 
-* TODO: ssh-server installation, cloud-user account settings, supported OS's...
-* TODO: other connection possibilities, for ex VNC
 
 cPouta image creation
 ---------------------
@@ -87,5 +84,3 @@ and qemu tools, this is not covered here though)
 Adding your custom image to Pebbles
 -----------------------------------
 Follow the instruction at the beginning of this document.
-
-TODO: what other settings may be needed compared to using an existing basic image.
