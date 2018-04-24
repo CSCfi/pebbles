@@ -17,6 +17,7 @@ Contents:
    database_migrations
    configuring
    drivers
+   pouta_image_openstackdriver
    README_docker_driver
    dev_environment
    documenting
