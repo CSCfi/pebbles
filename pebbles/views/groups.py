@@ -2,7 +2,7 @@ from flask.ext.restful import marshal_with, reqparse
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 import logging
-from pebbles.models import db, Group, User, GroupUserAssociation
+from pebbles.models import db, Group, User, GroupUserAssociation, Instance
 from pebbles.forms import GroupForm
 from pebbles.server import restful
 from pebbles.views.commons import auth, group_fields, user_fields, requires_group_manager_or_admin, is_group_manager
@@ -138,6 +138,11 @@ class GroupView(restful.Resource):
     @requires_admin
     def delete(self, group_id):
         group = Group.query.filter_by(id=group_id).first()
+        group_blueprints = group.blueprints.all()
+        for group_blueprint in group_blueprints:
+            blueprint_instances = Instance.query.filter_by(blueprint_id=group_blueprint.id).all()
+            if blueprint_instances:
+                abort(422)
         if group.name == 'System.default':
             logging.warn("cannot delete the default system group")
             return {"error": "Cannot delete the default system group"}, 422

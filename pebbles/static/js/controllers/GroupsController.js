@@ -146,12 +146,16 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                         $scope.groups = response;
                      });
             }, function(response) {
-                   if ('error' in response.data){
-                   error_message = response.data.error;
+                   if(response.status == 422) {
+                     $.notify({ message: 'Group ' + group.name + ' cannot be deleted. There were instances previously launched from this group. Choose to archive instead'}, {type: 'danger'});
                    }
-                   $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger'});
+                   else if ('error' in response.data){
+                      error_message = response.data.error;
+                      $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger'});
+                   }
             });
     }
+
  }]);
 
 app.controller('ModalCreateGroupController', function($scope, $modalInstance, groupsSF, groups) {
