@@ -185,6 +185,13 @@ class GroupUserAssociation(db.Model):  # Association Object for many-to-many map
 
 
 class Group(db.Model):
+    STATE_ACTIVE = 'active'
+    STATE_ARCHIVED = 'archived'
+
+    VALID_STATES = (
+        STATE_ACTIVE,
+        STATE_ARCHIVED,
+    )
     __tablename__ = 'groups'
 
     id = db.Column(db.String(32), primary_key=True)
@@ -192,7 +199,7 @@ class Group(db.Model):
     _join_code = db.Column(db.String(64))
     description = db.Column(db.Text)
     # current_status when created is "active". Later there is option to be "archived".
-    current_status = db.Column(db.String(32), default='active')
+    _current_status = db.Column('current_status', db.String(32), default='active')
     users = db.relationship("GroupUserAssociation", back_populates="group", lazy='dynamic', cascade="all, delete-orphan")
     banned_users = db.relationship('User', secondary=group_banned_user, backref=backref('banned_groups', lazy="dynamic"), lazy='dynamic')
     blueprints = db.relationship('Blueprint', backref='group', lazy='dynamic')
@@ -201,6 +208,7 @@ class Group(db.Model):
         self.id = uuid.uuid4().hex
         self.name = name
         self.join_code = name
+        self._current_status = Group.STATE_ACTIVE
 
     @hybrid_property
     def join_code(self):
@@ -212,6 +220,17 @@ class Group(db.Model):
         ascii_name = name.encode('ascii', 'ignore').decode()
         random_chars = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(5))
         self._join_code = ascii_name + '-' + random_chars
+
+    @hybrid_property
+    def current_status(self):
+        return self._current_status
+
+    @current_status.setter
+    def current_status(self, value):
+        if value in Group.VALID_STATES:
+            self._current_status = value
+        else:
+            raise ValueError("'%s' is not a valid state for Groups" % value)
 
 
 class Notification(db.Model):
@@ -354,6 +373,16 @@ class BlueprintTemplate(db.Model):
 
 
 class Blueprint(db.Model):
+    STATE_ACTIVE = 'active'
+    STATE_ARCHIVED = 'archived'
+    STATE_DELETED = 'deleted'
+
+    VALID_STATES = (
+        STATE_ACTIVE,
+        STATE_ARCHIVED,
+        STATE_DELETED,
+    )
+
     __tablename__ = 'blueprints'
     id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(MAX_NAME_LENGTH))
@@ -363,10 +392,11 @@ class Blueprint(db.Model):
     instances = db.relationship('Instance', backref='blueprint', lazy='dynamic')
     group_id = db.Column(db.String(32), db.ForeignKey('groups.id'))
     # current_status when created is "active". Later there are options to be "archived" or "deleted".
-    current_status = db.Column(db.String(32), default='active')
+    _current_status = db.Column('current_status', db.String(32), default='active')
 
     def __init__(self):
         self.id = uuid.uuid4().hex
+        self._current_status = Blueprint.STATE_ACTIVE
 
     @hybrid_property
     def config(self):
@@ -380,6 +410,17 @@ class Blueprint(db.Model):
     @hybrid_property
     def full_config(self):
         return get_full_blueprint_config(self)
+
+    @hybrid_property
+    def current_status(self):
+        return self._current_status
+
+    @current_status.setter
+    def current_status(self, value):
+        if value in Blueprint.VALID_STATES:
+            self._current_status = value
+        else:
+            raise ValueError("'%s' is not a valid status for Blueprint" % value)
 
     @hybrid_property
     def maximum_lifetime(self):
