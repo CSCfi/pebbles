@@ -2,7 +2,8 @@
     <h4 class="modal-title">Delete Blueprints</h4>
 </div>
 <div class="modal-body">
-    There are currently no instances attached with this blueprint. Do you really want to delete the blueprint?
+    <h4 ng-show="blueprint_instances.length">Currently Instances are running using this blueprint. By clicking Yes, you understand that the associated instances will also be destroyed." </h4>
+    <h4 ng-hide="blueprint_instances.length">There are currently no instances attached with this blueprint. Do you really want to delete the blueprint? </h4>
 </div>
 <div class="modal-footer">
     <button ng-click="removeBlueprints()" class="btn btn-primary">Yes</button>

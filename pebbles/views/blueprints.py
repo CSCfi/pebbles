@@ -3,6 +3,7 @@ from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 from sqlalchemy.orm.session import make_transient
 
+import datetime
 import logging
 import uuid
 
@@ -12,6 +13,8 @@ from pebbles.server import restful
 from pebbles.views.commons import auth, requires_group_manager_or_admin, is_group_manager
 from pebbles.utils import parse_maximum_lifetime, requires_group_owner_or_admin, requires_admin
 from pebbles.rules import apply_rules_blueprints
+from pebbles.tasks import run_update
+from pebbles.server import app
 
 blueprints = FlaskBlueprint('blueprints', __name__)
 
@@ -49,6 +52,7 @@ class BlueprintList(restful.Resource):
             if blueprint.current_status != 'archived' and blueprint.current_status != 'deleted':
                 blueprint = process_blueprint(blueprint)
                 results.append(blueprint)
+
         return results
 
     @auth.login_required
@@ -99,8 +103,6 @@ class BlueprintView(restful.Resource):
         blueprint = query.first()
         if not blueprint:
             abort(404)
-        elif blueprint.current_status == 'archived' or blueprint.current_status == 'deleted':
-            abort(422)
 
         blueprint = process_blueprint(blueprint)
         return blueprint
@@ -159,17 +161,25 @@ class BlueprintView(restful.Resource):
     @requires_group_owner_or_admin
     def delete(self, blueprint_id):
         blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
-        blueprint_instance = Instance.query.filter_by(blueprint_id=blueprint_id).first()
+        blueprint_instances = Instance.query.filter_by(blueprint_id=blueprint_id).all()
         if not blueprint:
             logging.warn("trying to delete non-existing blueprint")
             abort(404)
         elif blueprint.current_status == 'archived':
             abort(422)
-        elif blueprint_instance is None:
+        elif not blueprint_instances:
             db.session.delete(blueprint)
             db.session.commit()
+        elif blueprint_instances:
+            for instance in blueprint_instances:
+                instance.to_be_deleted = True
+                instance.state = Instance.STATE_DELETING
+                instance.deprovisioned_at = datetime.datetime.utcnow()
+                if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
+                    run_update.delay(instance.id)
+            blueprint.current_status = blueprint.STATE_DELETED
+            db.session.commit()
         else:
-            logging.warn("trying to delete used blueprint")
             abort(422)
 
 
