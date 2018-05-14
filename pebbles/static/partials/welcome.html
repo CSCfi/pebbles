@@ -14,11 +14,12 @@
             </p>
         </div>
     </div>
-    <div class="row" ><div class="col-md-6 col-xs-6" ng-show="!getLoginVisibility()">
+    <div class="row" >
+      <div class="col-md-6 col-xs-6" ng-show="!getLoginVisibility()">
 	<hr>
         <p><a href="javascript:;" ng-click="toggleLoginVisibility()"
         name="click-show-login">Click here for alternate login</a></p>
-        </div>
+      </div>
     </div>
     <div class="row" ng-show="getLoginVisibility()" name="password-login">
         <div class="col-lg-3 col-md-5 col-sm-5 col-xs-8 ">
@@ -41,5 +42,11 @@
             can <a href="#/reset_password">reset it here</a>
         </div>
     </div>
-    </div>
+    <div class="row" configurable-show key="COURSE_REQUEST_FORM"
+    name="course_request">
+      <div class="col-md-6">
+      <hr>
+      If you want to host your own course using <configurable-value key="INSTALLATION_NAME"></configurable-value>, please fill out the <configurable-href key="COURSE_REQUEST_FORM" name="Course Request Form"></configurable-href>
+      </div>
+   </div>
 </div>
