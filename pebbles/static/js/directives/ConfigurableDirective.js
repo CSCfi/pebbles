@@ -9,6 +9,17 @@ app.directive('configurableValue', ['ConfigurationService', function(Configurati
     };
 }]);
 
+app.directive('configurableHref', ['ConfigurationService', function(ConfigurationService) {
+    return {
+        restrict: 'EA',
+        link: function(scope, element, attrs) {
+            ConfigurationService.getValue().then(function (data) {
+                element.html('<a href="'+data[attrs.key]+'" target="blank">'+attrs.name+'</a>');
+            });
+        }
+    };
+}]);
+
 app.directive('configurableShow', ['ConfigurationService', function(ConfigurationService) {
     return {
         restrict: 'A',

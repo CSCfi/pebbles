@@ -133,6 +133,7 @@ class BaseConfig(object):
         '',
         'An image URL for branding the installation'
     )
+    COURSE_REQUEST_FORM = 'http://link-to-form'
     PLUGIN_WHITELIST = (
         'DummyDriver',
         'A whitespace-separated case-sensitive'
