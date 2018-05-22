@@ -168,22 +168,24 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
             blueprint.get().then(function(response){ 
 	        instances.getList().then(function (response) {
 		     var blueprint_instances = _.filter(response,function(user) { return user.blueprint_id === blueprint.id });
-		     if(_.isEmpty(blueprint_instances.length)) {
-                       $uibModal.open({
-		           templateUrl: 'partials/modal_check_running_instance_confirm.html',
-		           controller: 'ModalDeleteBlueprintsController',
-		           size: 'sm',
-		           resolve: {
-			       blueprint: function() {
-			           return blueprint;
-			       }
-		           }
-		       }).result.then(function() {
-                           blueprints.getList().then(function (response) {
-                              $scope.blueprints = response;
-                           });
-		       });
-                 }});
+                     $uibModal.open({
+		         templateUrl: 'partials/modal_check_running_instance_confirm.html',
+		         controller: 'ModalDeleteBlueprintsController',
+		         size: 'sm',
+		         resolve: {
+			     blueprint: function() {
+			         return blueprint;
+			     },
+                             blueprint_instances: function() {
+                                 return blueprint_instances;
+                             }
+		         }
+		     }).result.then(function() {
+                         blueprints.getList().then(function (response) {
+                            $scope.blueprints = response;
+                         });
+		     });
+                });
             }, function (response) {
                      $.notify({title: 'HTTP ' + response.status, message: " Cannot delete blueprint."}, {type: 'danger'});
             });
@@ -373,23 +375,19 @@ app.controller('ModalBlueprintUrlController', function($scope, $modalInstance, b
 });
 
 
-app.controller('ModalDeleteBlueprintsController', function($scope, $modalInstance, blueprint) {
-    $scope.removeBlueprints = function() {
-        blueprint.remove().then(function () {
-            $.notify({message: "Blueprint: " + blueprint.name + " is successfully deleted"}, {type: 'success'});
-            $modalInstance.close(true);
-        }, function(response) {
-		if (response.status == 422) {
-		    $.notify({ message: 'Blueprint ' + blueprint.name + ' cannot be deleted. There were instances previously launched using this blueprint.'}, {type: 'danger'});
-        	}
-		else {
-		    $.notify({title: 'HTTP ' + response.status, message: 'Unable to delete the blueprint: ' + blueprint.name}, {type: 'danger'});
-		}
-		$modalInstance.close(true);
-	});
-    };
+app.controller('ModalDeleteBlueprintsController', function($scope, $modalInstance, blueprint, blueprint_instances) {
+     $scope.blueprint_instances = blueprint_instances;
+     $scope.removeBlueprints = function() {
+          blueprint.remove().then(function () {
+               $.notify({message: "Blueprint: " + blueprint.name + " is successfully deleted"}, {type: 'success'});
+               $modalInstance.close(true);
+               }, function(response) {
+                     $.notify({title: 'HTTP ' + response.status, message: 'Unable to delete the blueprint: ' + blueprint.name}, {type: 'danger'});
+                     $modalInstance.close(true);
+          });
+     };
 
-    $scope.cancel = function() {
-        $modalInstance.dismiss('cancel');
-    };
+     $scope.cancel = function() {
+          $modalInstance.dismiss('cancel');
+     };
 });
