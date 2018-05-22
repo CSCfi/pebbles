@@ -187,10 +187,12 @@ class GroupUserAssociation(db.Model):  # Association Object for many-to-many map
 class Group(db.Model):
     STATE_ACTIVE = 'active'
     STATE_ARCHIVED = 'archived'
+    STATE_DELETED = 'deleted'
 
     VALID_STATES = (
         STATE_ACTIVE,
         STATE_ARCHIVED,
+        STATE_DELETED
     )
     __tablename__ = 'groups'
 

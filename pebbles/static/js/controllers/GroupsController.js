@@ -145,11 +145,9 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             groups.getList().then(function (response) {
                         $scope.groups = response;
                      });
+            $.notify({message: "Group: " + group.name + " is successfully deleted"}, {type: 'success'});
             }, function(response) {
-                   if(response.status == 422) {
-                     $.notify({ message: 'Group ' + group.name + ' cannot be deleted. There were instances previously launched from this group. Choose to archive instead'}, {type: 'danger'});
-                   }
-                   else if ('error' in response.data){
+                   if ('error' in response.data){
                       error_message = response.data.error;
                       $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger'});
                    }
