@@ -4,10 +4,12 @@ from flask import Blueprint as FlaskBlueprint
 import logging
 from pebbles.models import db, Group, User, GroupUserAssociation, Instance
 from pebbles.forms import GroupForm
-from pebbles.server import restful
+from pebbles.server import restful, app
 from pebbles.views.commons import auth, group_fields, user_fields, requires_group_manager_or_admin, is_group_manager
 from pebbles.utils import requires_admin, requires_group_owner_or_admin
+from pebbles.tasks import run_update
 import re
+import datetime
 
 groups = FlaskBlueprint('groups', __name__)
 
@@ -29,7 +31,7 @@ class GroupList(restful.Resource):
             groups = query.all()
 
         for group in groups:
-            if group.current_status != 'archived':
+            if group.current_status != 'archived' and group.current_status != 'deleted':
                 group_owner_obj = group_user_query.filter_by(group_id=group.id, owner=True).first()
                 owner = User.query.filter_by(id=group_owner_obj.user_id).first()
                 # config and user_config dicts are required by schemaform and multiselect in the groups modify ui modal
@@ -138,23 +140,32 @@ class GroupView(restful.Resource):
     @requires_admin
     def delete(self, group_id):
         group = Group.query.filter_by(id=group_id).first()
-        group_blueprints = group.blueprints.all()
-        for group_blueprint in group_blueprints:
-            blueprint_instances = Instance.query.filter_by(blueprint_id=group_blueprint.id).all()
-            if blueprint_instances:
-                abort(422)
-        if group.name == 'System.default':
-            logging.warn("cannot delete the default system group")
-            return {"error": "Cannot delete the default system group"}, 422
+
         if not group:
             logging.warn("trying to delete non-existing group")
             abort(404)
-        blueprint_instances = group.blueprints.all()
-        for blueprint in blueprint_instances:
-            blueprint.current_status = 'deleted'
-        db.session.commit()
-        db.session.delete(group)
-        db.session.commit()
+        if group.name == 'System.default':
+            logging.warn("cannot delete the default system group")
+            return {"error": "Cannot delete the default system group"}, 422
+
+        group_blueprints = group.blueprints.all()
+
+        if not group_blueprints:
+            db.session.delete(group)
+            db.session.commit()
+        else:
+            for group_blueprint in group_blueprints:
+                blueprint_instances = Instance.query.filter_by(blueprint_id=group_blueprint.id).all()
+                if blueprint_instances:
+                    for instance in blueprint_instances:
+                        instance.to_be_deleted = True
+                        instance.state = Instance.STATE_DELETING
+                        instance.deprovisioned_at = datetime.datetime.utcnow()
+                        if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
+                            run_update.delay(instance.id)
+                group_blueprint.current_status = group_blueprint.STATE_DELETED
+            group.current_status = group.STATE_DELETED
+            db.session.commit()
 
 
 def group_users_add(group, user_config, owner):
