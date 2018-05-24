@@ -22,9 +22,67 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
                 $scope.quotas = response;
             });
 
-            users.getList().then(function (response) {
-                $scope.users = response;
-            });
+            $scope.users = []
+
+            $scope.userTypes = ['All', 'Admins', 'Group Owners', 'Inactive', 'Active', 'Blocked']
+            var defaultUserType = 'All';
+            $scope.selectedUserType = defaultUserType;
+
+            $scope.visiblePages = 4;  // Visible number of pages in the pagination
+            $scope.currentPage = 1;  // Starting page
+            var itemsPerPage = 50;
+            $scope.itemsPerPage = itemsPerPage;
+
+
+            var users_fetch = function(user_type, page, page_size, filter_str){
+                users.getList({
+                    filter_str: filter_str,  // optional
+                    user_type: user_type,
+                    page: page,
+                    page_size: page_size
+                }).then(function (response) {
+                    $scope.users = response;
+                });
+            };
+
+            var users_count = function(user_type, filter_str) {
+                users.patch({
+                    user_type: user_type,
+                    filter_str: filter_str,  // optional
+                    count: true
+                }).then(function(response) {
+                    $scope.totalUsers = response;  // Used by the pagination to determine the total number of pages
+                });
+            };
+
+            users_count(defaultUserType);
+            users_fetch(defaultUserType, 0, itemsPerPage);
+
+            $scope.loadPage = function() {
+                // Also consider the query string for filtering users (if given)
+                users_fetch($scope.selectedUserType, $scope.currentPage-1, $scope.itemsPerPage, $scope.filter_str);
+            };
+
+            $scope.changePageSize = function() {
+                $scope.loadPage();
+            };
+
+            /* Shows selected user type from the dropdown ($scope.selectedUserType),
+               Also considers the query string for filtering users (if given)
+            */ 
+            $scope.showSelectedUsers = function() {
+                 $scope.currentPage = 1;
+                 users_count($scope.selectedUserType, $scope.filter_str);
+                 $scope.loadPage();
+            };
+
+            /* Filter the users based on query string ($scope.filter_str)
+               Reset the default user type to 'All' for fetching global results
+            */
+            $scope.filterUsers = function() {
+                $scope.selectedUserType = defaultUserType;
+                $scope.showSelectedUsers();
+            };
 
             $scope.new_user = '';
             $scope.add_user = function(email) {

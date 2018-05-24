@@ -18,7 +18,7 @@ user_fields = {
     'is_admin': fields.Boolean,
     'is_group_owner': fields.Boolean,
     'is_deleted': fields.Boolean,
-    'is_blocked': fields.Boolean
+    'is_blocked': fields.Boolean,
 }
 
 group_fields = {

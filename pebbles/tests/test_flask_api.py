@@ -303,6 +303,37 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/users')
         self.assert_200(response)
 
+    def test_get_total_users(self):
+        # Anonymous
+        response = self.make_request(path='/api/v1/users', method='PATCH')
+        self.assert_401(response)
+        # Authenticated
+        response = self.make_authenticated_user_request(path='/api/v1/users', method='PATCH')
+        self.assert_403(response)
+        # Admin
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/users',
+            method='PATCH',
+            data=json.dumps({'count': True})
+        )
+        self.assert_200(response)
+
+    def test_invite_multiple_users(self):
+        # Admin
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/users',
+            method='PATCH',
+            data=json.dumps({'addresses': 'invite1@example.org, invite2@example.org'})
+        )
+        self.assert_200(response)
+
+        incorrect_response = self.make_authenticated_admin_request(
+            path='/api/v1/users',
+            method='PATCH',
+            data=json.dumps({'addresses': 'bogus@example'})
+        )
+        self.assertStatus(incorrect_response, 422)
+
     def test_get_groups(self):
         # Anonymous
         response = self.make_request(path='/api/v1/groups')

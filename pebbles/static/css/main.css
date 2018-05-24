@@ -118,3 +118,9 @@ body {
 .li-pad{
     padding-left: 40px;
 }
+.pagination > li > a{
+    color: #555;
+    background-color: #FFF;
+    border: 1px solid #CCC;
+}
+
