@@ -12,16 +12,23 @@ from pebbles.forms import ChangePasswordForm, UserForm
 from pebbles.server import restful, app
 from pebbles.utils import generate_ssh_keypair, requires_admin
 from pebbles.views.commons import user_fields, auth, invite_user
+from pebbles.rules import apply_rules_users
 
 users = FlaskBlueprint('users', __name__)
 
 
 class UserList(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('page', type=int, location='args')
+    parser.add_argument('page_size', type=int, location='args')
+    parser.add_argument('filter_str', type=str)
+    parser.add_argument('user_type', type=str)
+    parser.add_argument('count', type=int)
+
     @staticmethod
     def address_list(value):
         return set(x for x in re.split(r",| |\n|\t", value) if x)
 
-    parser = reqparse.RequestParser()
     parser.add_argument('addresses')
 
     @auth.login_required
@@ -38,38 +45,40 @@ class UserList(restful.Resource):
     @auth.login_required
     @marshal_with(user_fields)
     def get(self):
-        if g.user.is_admin:
-            user_query = (
-                User.query
-                .order_by(User.is_admin.desc())
-                .order_by(User.is_group_owner.desc())
-                .order_by(User.is_active)
-                .order_by(User.is_blocked)
-                .order_by(User.is_blocked)
-            )
+        user = g.user
+        if user.is_admin:
+            try:
+                args = self.parser.parse_args()
+                user_query = apply_rules_users(args)
+            except:
+                logging.warn("no arguments found")
+                user_query = apply_rules_users()
             return user_query.all()
-        return [g.user]
+        return [user]
 
     @auth.login_required
     @requires_admin
-    # @marshal_with(user_fields)
     def patch(self):
         try:
             args = self.parser.parse_args()
         except:
             abort(422)
             return
-        addresses = self.address_list(args.addresses)
-        incorrect_addresses = []
-        for address in addresses:
-            try:
-                invite_user(address)
-            except:
-                logging.exception("cannot add user %s" % address)
-                incorrect_addresses.append(address)
 
-        if incorrect_addresses:
-            return incorrect_addresses, 422
+        if 'addresses' in args and args.addresses:
+            addresses = self.address_list(args.addresses)
+            incorrect_addresses = []
+            for address in addresses:
+                try:
+                    invite_user(address)
+                except:
+                    logging.exception("cannot add user %s" % address)
+                    incorrect_addresses.append(address)
+            if incorrect_addresses:
+                return incorrect_addresses, 422
+        if 'count' in args and args.count:
+            user_query = apply_rules_users(args)
+            return user_query.count()
 
 
 class UserView(restful.Resource):

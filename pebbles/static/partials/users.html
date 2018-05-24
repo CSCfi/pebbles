@@ -26,7 +26,7 @@
                 <div class="form-group">
                     <div class="input-group">
                         <div class="input-group-addon"><span class="glyphicon glyphicon-filter" aria-hidden="true"></span></div>
-                        <input id="query" class="form-control" ng-model="query" placeholder="Filter users"/>
+                        <input id="query" class="form-control" ng-model="filter_str" ng-change="filterUsers()" placeholder="Filter users"/>
                         <span class="input-group-addon">
                             Include deleted
                             <input type="checkbox" ng-model="include_deleted" aria-label="Include deleted">
@@ -36,6 +36,28 @@
             </div>
         </div>
     </form>
+    <div class="row">
+         <div class="col-md-4">
+         <ul uib-pagination total-items="totalUsers" ng-model="currentPage" max-size="visiblePages" items-per-page="itemsPerPage" ng-change="loadPage()" class="pagination-md" boundary-link-numbers="true" rotate="false"></ul> 
+         </div>
+         <div class="col-md-4">
+           <form>
+             <div class="input-group" style="margin-top:6%">
+               <span class="input-group-addon">Show</span>
+                <select class="form-control" ng-model="selectedUserType" ng-change="showSelectedUsers()" ng-options="userType for userType in userTypes">
+                </select>
+             </div>
+           </form>
+        </div>
+         <div class="col-md-4">
+           <form>
+             <div class="input-group" style="margin-top:6%">
+               <span class="input-group-addon">Items per page</span>
+               <input class="form-control" type="number" ng-model="itemsPerPage" ng-change="changePageSize()" placeholder="Max items per page" required />
+             </div>
+           </form>
+         </div>
+    </div>
     <table ng-show="users" class="table table-striped">
         <thead>
         <tr>
@@ -46,7 +68,7 @@
         </tr>
         </thead>
         <tbody>
-            <tr ng-repeat="user in users | filter:query | filter:includeRow">
+            <tr ng-repeat="user in users | filter:includeRow">
             <td>{{user.email}}</td>
             <td>
                 <span class="label label-default" ng-show="user.is_active">active</span>
@@ -66,7 +88,7 @@
                 <button ng-hide="user.is_active" ng-click="get_activation_url(user)" type="submit" class="btn btn-default">Activation Link</button>
                 <button ng-click="block_user(user)" type="submit" class="btn btn-default">{{ user.is_blocked && 'Unblock User' || 'Block User' }}</button>
             </td>
-        </tr>
+            </tr>
         </tbody>
     </table>
 </div>

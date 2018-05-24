@@ -1,4 +1,4 @@
-from pebbles.models import Blueprint, BlueprintTemplate, Instance, GroupUserAssociation
+from pebbles.models import Blueprint, BlueprintTemplate, Instance, User, GroupUserAssociation
 from pebbles.views.commons import is_group_manager
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import load_only
@@ -82,7 +82,39 @@ def apply_rules_instances(user, args=None):
     return q
 
 
+def apply_rules_users(args={}):
+    q = User.query
+
+    if 'filter_str' in args and args.filter_str:
+        filter_str = str.lower(args.filter_str)
+        q = q.filter(User._email.contains(filter_str))
+
+    if 'user_type' in args and args.user_type:
+        user_type = args.get('user_type')
+        if user_type == 'Admins':
+            q = q.filter_by(is_admin=True)
+        elif user_type == 'Group Owners':
+            q = q.filter_by(is_group_owner=True)
+        elif user_type == 'Active':
+            q = q.filter_by(is_active=True)
+        elif user_type == 'Inactive':
+            q = q.filter_by(is_active=False)
+        elif user_type == 'Blocked':
+            q = q.filter_by(is_blocked=True)
+
+    if 'page' and 'page_size' in args:
+        page = args.get('page')
+        page_size = args.get('page_size')
+        try:  # page and page_size can be None sometimes
+            q = q.offset(page * page_size)
+            q = q.limit(page_size)
+        except:
+            pass
+    return q
+
+###############################################
 # all the helper functions for the rules go here
+###############################################
 
 
 def get_manager_group_ids(user):
