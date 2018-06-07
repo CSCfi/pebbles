@@ -91,6 +91,17 @@ CONFIG = {
                 'type': 'string',
                 'title': 'environment variables for docker, separated by space',
                 'default': '',
+            },
+            'miscellaneous_options': {
+                'type': 'object',
+                'title': 'Miscellaneous',
+                'properties': {
+                    'miscellaneous': {
+                        'type': 'boolean',
+                        'title': 'Display Username as rstudio',
+                        'default': False,
+                    }
+                }
             }
         }
     },
@@ -111,7 +122,8 @@ CONFIG = {
         'maximum_instances_per_user',
         'maximum_lifetime',
         'cost_multiplier',
-        'proxy_options'
+        'proxy_options',
+        'miscellaneous_options'
     ],
     'model': {
         'name': 'docker-rstudio',
@@ -127,6 +139,9 @@ CONFIG = {
             'proxy_redirect': True,
             'set_host_header': False,
             'bypass_token_authentication': False
+        },
+        'miscellaneous_options': {
+            'miscellaneous': False
         }
     }
 }
