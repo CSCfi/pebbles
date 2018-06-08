@@ -1,6 +1,7 @@
 <div uib-collapse="navCollapsed" ng-controller="NavbarController" class="navbar-collapse collapse">
   <ul class="nav navbar-nav">
-    <li ng-class="{ active: isActive('/dashboard')}"><a ng-show="isLoggedIn()" href="#/dashboard">Dashboard</a></li>
+    <li ng-class="{ active: isActive('/dashboard'), 
+                    activeAdmin: isActive('/admin-dashboard')}"><a ng-show="isLoggedIn()" href="#/dashboard">Dashboard</a></li>
     <li ng-class="{ active: isActive('/users')}"><a ng-show="isAdmin()" href="#/users">Users</a></li>
     <li ng-class="{ active: isActive('/groups')}"><a ng-show="isGroupOwnerOrAdmin()" href="#/groups">Groups</a></li>
     <li ng-class="{ active: isActive('/blueprints')}"><a ng-show="isGroupManagerOrAdmin()" href="#/blueprints">Blueprints</a></li>

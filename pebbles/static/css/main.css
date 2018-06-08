@@ -6,6 +6,41 @@ a.navbar-brand:hover {
     color: #9d9d9d !important;
 }
 
+.navbar-brand {
+    width: 60%;
+}
+
+.navbar {
+    border: none;
+}
+
+.navbar .navbar-nav {
+    display: inline-block;
+    float: none;
+}
+
+.navbar .navbar-collapse {
+    text-align: center;
+}
+
+.navbar-inverse .navbar-nav > li > a {
+    color: #FFFFFF;
+} 
+
+.navbar-inverse .navbar-nav > .active > a {
+    background-image: linear-gradient(to bottom,#002f5f 0,#002f5f 100%);
+    box-shadow: inset 0px 8px #00a4eb;
+}
+
+.navbar-inverse .navbar-nav > .activeAdmin > a {
+    background-image: linear-gradient(to bottom,#002f5f 0,#002f5f 100%);
+    box-shadow: inset 0px 8px #00a4eb;
+}
+
+.navbar-inverse .navbar-text {
+    color: #FFFFFF;
+}
+
 html,body {
     height:100%;
 }
@@ -124,3 +159,29 @@ body {
     border: 1px solid #CCC;
 }
 
+.jumbotron {
+    background: none;
+    color: #FFFFFF;
+}
+
+.loginPage {
+
+    background: url(../img/notebooks_bg.jpg) no-repeat center center fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    background-size: cover;
+    -o-background-size: cover;
+}
+
+.nav-container {
+    background-color: #002f5f;
+}
+
+.centered-btn {
+    float: none;
+    width: 100%;
+}
+
+#login-logo {
+    margin-top: 5px;
+}
