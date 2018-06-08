@@ -129,6 +129,7 @@ class BaseConfig(object):
     INSTALLATION_NAME = 'Pebbles'
     INSTALLATION_DESCRIPTION = ('A tool for provisioning '
                                 'ephemeral private cloud resources.')
+    SHORT_DESCRIPTION = 'Welcome to Notebooks'
     BRAND_IMAGE = (
         '',
         'An image URL for branding the installation'

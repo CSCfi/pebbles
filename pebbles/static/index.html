@@ -19,12 +19,13 @@
 
         <script src="/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
     </head>
-    <body>
+    <body class="">
+
         <!--[if lt IE 7]>
             <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
     <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-      <div class="container-fluid">
+      <div class="container-fluid nav-container">
         <div class="navbar-header">
           <button type="button" class="navbar-toggle" ng-init="navCollapsed = true" ng-click="navCollapsed = !navCollapsed">
             <span class="sr-only">Toggle navigation</span>
@@ -39,7 +40,6 @@
         <pb-errors></pb-errors>
       </div>
     </nav>
-
     <div class="container">
        <pb-notifications></pb-notifications>
        <div ng-view class="view-animate"></div>
@@ -92,7 +92,7 @@
     <script type="text/javascript" src="/js/directives/ng-confirm-click.js"></script>
     <script type="text/javascript" src="/js/directives/JsonValidatorDirective.js"></script>
     <script type="text/javascript" src="/js/services/DesktopNotifications.js"></script>
-
+    <script type="text/javascript" src="/js/services/StyleService.js"></script>
     <script type="text/javascript" src="/js/filters/unique.js"></script>
     <script type="text/javascript" src="/js/filters/utcToLocale.js"></script>
   </body>

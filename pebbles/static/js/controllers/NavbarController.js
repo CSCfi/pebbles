@@ -1,7 +1,7 @@
 app.controller('NavbarController', ['$scope', '$rootScope', '$location', '$routeParams', 'AuthService', 'ConfigurationService', function($scope, $rootScope, $location, $routeParams, AuthService, ConfigurationService) {
     var _invalidLogin = false;
     var _showLoginBox = undefined;
-
+ 
     $scope.setLoginStatus = function (data){
         /* login box should not be visible by default if shibboleth is enabled.
          * but obviously should be if it is not. */

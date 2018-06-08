@@ -1,25 +1,33 @@
-<div class="jumbotron left-align" ng-controller="NavbarController">
-    <div class="row">
-        <div class="col-md-6 col-xs-6">
-            <h1 name="installation-name"><configurable-value key="INSTALLATION_NAME"></configurable-value></h1>
-            <p name="installation-description"><configurable-value
-                                    key="INSTALLATION_DESCRIPTION"></configurable-value></p>
-        </div>
-    </div>
+<div class=" jumbotron left-align" ng-controller="NavbarController">
     <div class="row" configurable-show key="ENABLE_SHIBBOLETH_LOGIN" 
     name="shibboleth-login">
-        <div class="col-md-6 col-xs-6">
+    
+    
+        <div class="col-md-4 col-xs-6">
+	    <h2 style="margin-top:0px;">Login:</h2><br>
             <p>
                 <a href="/login"><img src="/img/haka_new.jpg" alt="Haka login" /></a>
             </p>
+
+    	   <div ng-show="!getLoginVisibility()">
+	    
+                <p><a href="javascript:;" ng-click="toggleLoginVisibility()"
+                   name="click-show-login" style="color:#FFFFFF;text-decoration:
+                   underline;">Click here for alternate login</a>
+                </p>
+            </div>
         </div>
-    </div>
-    <div class="row" >
-      <div class="col-md-6 col-xs-6" ng-show="!getLoginVisibility()">
-	<hr>
-        <p><a href="javascript:;" ng-click="toggleLoginVisibility()"
-        name="click-show-login">Click here for alternate login</a></p>
-      </div>
+        
+    
+        <div class="col-md-4 col-xs-6">
+            <img id="login-logo" src="/img/Notebooks_neg300px.png" alt="Notebooks by CSC" /><br><br>
+            <h3 name="short-description"><configurable-value
+                                    key="SHORT_DESCRIPTION"></configurable-value></h3>
+            <p name="installation-description"><configurable-value
+                                    key="INSTALLATION_DESCRIPTION"></configurable-value></p>
+        
+
+        </div>
     </div>
     <div class="row" ng-show="getLoginVisibility()" name="password-login">
         <div class="col-lg-3 col-md-5 col-sm-5 col-xs-8 ">
@@ -39,7 +47,7 @@
               </div>
             </form>
             If you do not remember your password, you
-            can <a href="#/reset_password">reset it here</a>
+            can <a href="#/reset_password" style="color: #5cb85c;">reset it here</a>
         </div>
     </div>
     <div class="row" configurable-show key="COURSE_REQUEST_FORM"

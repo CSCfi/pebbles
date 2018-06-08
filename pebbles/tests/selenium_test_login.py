@@ -92,6 +92,8 @@ class LoginTestCase(SeleniumBaseTestCase):
         assert config["INSTALLATION_NAME"] == element.text
         element = driver.find_element_by_name("installation-description")
         assert config["INSTALLATION_DESCRIPTION"] == element.text
+        element = driver.find_element_by_name("short-description")
+        assert config["SHORT_DESCRIPTION"] == element.text
 
     def test_frontpage_login_visibility(self):
         """

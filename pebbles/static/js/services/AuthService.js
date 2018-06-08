@@ -29,9 +29,11 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
         isAuthenticated : function() {
             var token = this.getToken();
             if (token) {
+                $('body').removeClass('loginPage').addClass('');
                 return true;
             }
             localStorageService.clearAll();
+            $('body').removeClass('loginPage').addClass('loginPage');
             return false;
         },
 
