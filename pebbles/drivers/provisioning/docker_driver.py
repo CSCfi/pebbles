@@ -450,6 +450,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         log_uploader.info("selecting host...")
         try:
+            # obtain all the hosts that has free space left
             docker_hosts = self._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
         except (RuntimeWarning, ConnectionError) as e:
             self.logger.info('_do_provision() failed for %s due to %s' % (instance_id, e))
@@ -459,7 +460,9 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         selected_host = []
         lock_res = None
         while not lock_res:
+            # select one host for provision, which is not locked among the free hosts
             for i in range(len(docker_hosts)):
+                # locks can be obtained for all the available hosts at the same time. So provisioning can be done in parallel.
                 lock_id = str(docker_hosts[i]["id"])
                 try:
                     lock_res = pbclient.obtain_lock(lock_id)
@@ -468,6 +471,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                         break
                 except Exception:
                     pass
+            # When unable to find lock a host sleep for sometime and continue the loop
             if not lock_res:
                 time.sleep(7)
         if selected_host:
@@ -605,8 +609,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         instance = pbclient.get_instance_description(instance_id)
         if instance["instance_data"]:
             lock_id = str(instance["instance_data"]["docker_host_id"])
-        else:
-            lock_id = 'dd_host:%s' % 'global'
         try:
             lock_res = pbclient.obtain_lock(lock_id)
             while not lock_res:
@@ -857,12 +859,6 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             for host in active_hosts:
                 if host['num_slots'] - host['num_reserved_slots'] >= slots:
                     selected_hosts.append(host)
-        """
-        # return all the hosts that that space left
-        for host in active_hosts:
-            if host['num_slots'] - host['num_reserved_slots'] >= slots:
-                selected_hosts.append(host)
-        """
         if len(selected_hosts) == 0:
             self.logger.debug('_select_host(): no space left, %d slots requested,'
                               ' active hosts: %s' % (slots, active_hosts))
