@@ -1,60 +1,57 @@
 <div class=" jumbotron left-align" ng-controller="NavbarController">
-    <div class="row" configurable-show key="ENABLE_SHIBBOLETH_LOGIN" 
-    name="shibboleth-login">
-    
-    
-        <div class="col-md-4 col-xs-6">
-	    <h2 style="margin-top:0px;">Login:</h2><br>
-            <p>
-                <a href="/login"><img src="/img/haka_new.jpg" alt="Haka login" /></a>
-            </p>
-
-    	   <div ng-show="!getLoginVisibility()">
-	    
-                <p><a href="javascript:;" ng-click="toggleLoginVisibility()"
-                   name="click-show-login" style="color:#FFFFFF;text-decoration:
-                   underline;">Click here for alternate login</a>
+    <div class="row">
+        <div class="col-lg-3 col-md-4 col-sm-6 col-xs-8">
+            <div configurable-show key="ENABLE_SHIBBOLETH_LOGIN" 
+            name="shibboleth-login">
+                <h2 class="main-login-header">Login:</h2><br>
+                <p>
+                    <a href="/login"><img src="/img/haka_new.jpg" alt="Haka login" /></a>
                 </p>
             </div>
-        </div>
+            <div ng-show="!getLoginVisibility()">
+                <p><a id="alternate-login" href="javascript:;" ng-click="toggleLoginVisibility()"
+                name="click-show-login">Click here for alternate login</a>
+                </p>
+            </div>
+            <div ng-show="getLoginVisibility()" name="password-login">
         
-    
-        <div class="col-md-4 col-xs-6">
-            <img id="login-logo" src="/img/Notebooks_neg300px.png" alt="Notebooks by CSC" /><br><br>
+                <h2 class="main-login-header">Login:</h2>
+                <form ng-submit="login()" >
+                    <div ng-show="invalidLogin()" class="form-group">
+                        <span id="invalid-login" class="label label-default"><strong>Invalid login!</strong></span>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" id="email" name="email" ng-model="email" placeholder="Email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="password" name="password" ng-model="password" placeholder="Password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="submit" class="btn btn-success" value="Sign in" />
+                    </div>
+                </form>
+                If you do not remember your password, you
+                can <a  id="pw-reset" href="#/reset_password">reset it here</a>        
+            </div>
+        </div> 
+        <div class="col-lg-3 col-md-4 col-sm-6 col-xs-8">
+            <div id="brand-image-container">
+                <configurable-value brand-image key="BRAND_IMAGE" 
+                    alt_key="INSTALLATION_NAME"></configurable-value>
+            </div>
             <h3 name="short-description"><configurable-value
                                     key="SHORT_DESCRIPTION"></configurable-value></h3>
             <p name="installation-description"><configurable-value
-                                    key="INSTALLATION_DESCRIPTION"></configurable-value></p>
-        
-
+                                    key="INSTALLATION_DESCRIPTION"></configurable-value></p>       
         </div>
-    </div>
-    <div class="row" ng-show="getLoginVisibility()" name="password-login">
-        <div class="col-lg-3 col-md-5 col-sm-5 col-xs-8 ">
-            <h2>Login</h2>
-            <form ng-submit="login()" >
-              <div ng-show="invalidLogin()" class="form-group">
-                  <span id="invalid-login" class="label label-default"><strong>Invalid login!</strong></span>
-              </div>
-              <div class="form-group">
-                <input type="email" id="email" name="email" ng-model="email" placeholder="Email" class="form-control" required>
-              </div>
-              <div class="form-group">
-                <input type="password" id="password" name="password" ng-model="password" placeholder="Password" class="form-control" required>
-              </div>
-              <div class="form-group">
-                <input type="submit" class="btn btn-success" value="Sign in" />
-              </div>
-            </form>
-            If you do not remember your password, you
-            can <a href="#/reset_password" style="color: #5cb85c;">reset it here</a>
-        </div>
-    </div>
+    </div>  
+    
     <div class="row" configurable-show key="COURSE_REQUEST_FORM"
-    name="course_request">
+        name="course_request">
       <div class="col-md-6">
       <hr>
-      If you want to host your own course using <configurable-value key="INSTALLATION_NAME"></configurable-value>, please fill out the <configurable-href key="COURSE_REQUEST_FORM" name="Course Request Form"></configurable-href>
+      If you want to host your own course using <configurable-value key="INSTALLATION_NAME"></configurable-value>, please fill out the 
+      <configurable-href key="COURSE_REQUEST_FORM" name="Course Request Form" id="course-request-form"></configurable-href>
       </div>
-   </div>
+    </div>
 </div>

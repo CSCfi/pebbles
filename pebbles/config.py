@@ -131,7 +131,7 @@ class BaseConfig(object):
                                 'ephemeral private cloud resources.')
     SHORT_DESCRIPTION = 'Welcome to Notebooks'
     BRAND_IMAGE = (
-        '',
+        'img/Notebooks_neg300px.png',
         'An image URL for branding the installation'
     )
     COURSE_REQUEST_FORM = 'http://link-to-form'

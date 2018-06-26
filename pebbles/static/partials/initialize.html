@@ -11,7 +11,7 @@
             <div data-ng-show="initializationForm.confirmPassword.$error.match" class="alert alert-danger" role="alert">Passwords do not match!</div>
             <div data-ng-hide="initializationForm.confirmPassword.$error.match" class="alert alert-info" role="alert">This will create your admin account</div>
 
-            <button class="btn btn-lg btn-primary btn-block" ng-disabled="initializationForm.$invalid" type="submit">Create</button>
+            <button id="initialization-btn" class="btn btn-lg btn-primary btn-block" ng-disabled="initializationForm.$invalid" type="submit">Create</button>
         </form>
     </div>
     <div ng-show="isInitialized()" class="alert alert-danger" role="alert">
