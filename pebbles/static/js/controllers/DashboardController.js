@@ -1,6 +1,6 @@
 /* global app */
-app.controller('DashboardController', ['$q', '$scope', '$rootScope', '$routeParams', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard', 'DesktopNotifications',
-                              function ($q,   $scope,   $rootScope, $routeParams, $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard, DesktopNotifications) {
+app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard', 'DesktopNotifications',
+                              function ($q,   $scope, $routeParams, $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard, DesktopNotifications) {
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
         var LIMIT_DEFAULT = 100, OFFSET_DEFAULT=0;
         $scope.currentView = "default";

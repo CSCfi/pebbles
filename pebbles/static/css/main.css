@@ -153,6 +153,7 @@ body {
 .li-pad{
     padding-left: 40px;
 }
+
 .pagination > li > a{
     color: #555;
     background-color: #FFF;
@@ -182,6 +183,59 @@ body {
     width: 100%;
 }
 
-#login-logo {
-    margin-top: 5px;
+#pw-reset {
+    color: #5cb85c;
+}
+
+#alternate-login {
+    color:#FFFFFF;
+    text-decoration: underline;
+}
+
+.main-login-header {
+    margin-top: 0px !important;
+}
+
+form[name="initializationForm"] {
+    color:#FFFFFF;
+}
+
+form[name="resetPasswordForm"],
+form[name="requestResetForm"] {
+    color: #FFFFFF;
+}
+
+.reset-btn {
+    background-color: #002f5f;
+    color: #FFFFFF;
+    background-image: none;
+}
+
+.reset-btn:hover {
+    border-color: #FFFFFF;
+    background-color: #002f5f;
+}
+
+#course-request-form>a {
+    color: #5cb85c;
+}
+
+#initialization-btn {
+    background-color: #002f5f;
+    color: #FFFFFF;
+    background-image: none; 
+}
+
+#initialization-btn:hover {
+    border-color: #FFFFFF;
+}
+
+#brand-image-container {
+    max-width: 300px;
+    max-height: 69px;
+}
+
+h3[name="short-description"],
+p[name="installation-description"] {
+    text-align: justify;
 }
