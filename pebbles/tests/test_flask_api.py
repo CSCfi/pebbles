@@ -318,6 +318,122 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response)
 
+    def test_export_statistics(self):
+        dt1 = datetime.datetime(2012, 1, 1)
+        dt2 = datetime.datetime(2015, 5, 5)
+        dt3 = datetime.datetime(2018, 3, 3)
+        u1 = User("test1@example.org", "testuser1", is_admin=False)
+        u2 = User("test2@example.org", "testuser2", is_admin=False)
+        u3 = User("test3@admin.org", "testuser3", is_admin=True)
+        u1.joining_date = dt1
+        u1.is_active = True
+        u2.joining_date = dt2
+        u2.is_active = True
+        u3.joining_date = dt3
+        u3.is_active = True
+        db.session.add(u1)
+        db.session.add(u2)
+        db.session.add(u3)
+
+        bp = Blueprint()
+        i1 = Instance(bp, u1)
+        i1.provisioned_at = dt2
+        db.session.add(i1)
+
+        db.session.commit()
+
+        # Anonymous
+        response = self.make_request(
+            path='/api/v1/export_stats/export_statistics',
+            method="GET"
+        )
+        self.assert_401(response)
+        # Authenticated user
+        response = self.make_authenticated_user_request(
+            path='/api/v1/export_stats/export_statistics',
+            method="GET",
+            data=json.dumps({'stat': 'users'})
+        )
+        self.assert_403(response)
+        # Authenticated group owner
+        response = self.make_authenticated_group_owner_request(
+            path='/api/v1/export_stats/export_statistics',
+            method="GET",
+            data=json.dumps({'stat': 'users'})
+        )
+        self.assert_403(response)
+        # Authenticated admin
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/export_stats/export_statistics',
+            method='GET',
+            data=json.dumps({'start': None, 'end': None, 'stat': 'users'})
+        )
+        self.assert_200(response)
+        # Authenticated admin
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/export_stats/export_statistics',
+            method='GET',
+            data=json.dumps({'start': None, 'end': None, 'stat': 'monthly_instances'})
+        )
+        self.assert_200(response)
+        # Authenticated admin
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/export_stats/export_statistics',
+            method='GET',
+            data=json.dumps({'start': None, 'end': None, 'stat': 'institutions'})
+        )
+        self.assert_200(response)
+        # Authenticated admin
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/export_stats/export_statistics',
+            method='GET',
+            data=json.dumps({'start': None, 'end': None, 'stat': 'quartals'})
+        )
+        self.assert_200(response)
+        # Authenticated admin
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/export_stats/export_statistics',
+            method='GET',
+            data=json.dumps({'start': None, 'end': None, 'stat': 'quartals_by_org'})
+        )
+        self.assert_200(response)
+        # Authenticated admin, invalid date input
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/export_stats/export_statistics',
+            method='GET',
+            data=json.dumps({'start': '2011-02-02', 'end': '2011-01-01', 'stat': 'users'})
+        )
+        self.assertStatus(response, 404)
+        # Authenticated admin, invalid filter input
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/export_stats/export_statistics',
+            method='GET',
+            data=json.dumps({'filter': 'not,in,institutions', 'stat': 'users', 'exclude': False})
+        )
+        self.assertStatus(response, 404)
+        # Authenticated admin, no results
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/export_stats/export_statistics',
+            method='GET',
+            data=json.dumps({'start': '2000-02-02', 'end': '2000-03-03', 'stat': 'users'})
+        )
+        self.assertStatus(response, 404)
+        # Authenticated admin, wrong stat type
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/export_stats/export_statistics',
+            method='GET',
+            data=json.dumps({'start': None, 'end': None, 'stat': 'wrong_stat'})
+        )
+        self.assertStatus(response, 404)
+        # Authenticated admin, correct dates, correct filter, include
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/export_stats/export_statistics',
+            method='GET',
+            data=json.dumps({'start': '2011-01-01', 'end': '2018-01-01', 'filter': 'example.org',
+                             'exclude': False, 'stat': 'users'})
+        )
+        self.assert_200(response)     
+
     def test_invite_multiple_users(self):
         # Admin
         response = self.make_authenticated_admin_request(

@@ -6,6 +6,8 @@ from sqlalchemy.sql.expression import true
 import itertools
 # import logging
 
+date_format = '%Y-%m-%d'
+
 
 def apply_rules_blueprint_templates(user, args=None):
     q = BlueprintTemplate.query
@@ -55,6 +57,31 @@ def apply_rules_export_blueprints(user):
         if manager_group_ids:
             query_exp = Blueprint.group_id.in_(manager_group_ids)
         q = q.filter(query_exp)
+    return q
+
+
+def apply_rules_export_statistics(stat_type, args=None):
+    if stat_type == "institutions" or stat_type == "users":
+        q = User.query
+    elif stat_type == "quartals":
+        q = User.query.add_columns(User.joining_date)
+    if args:
+        start = args.get("start")
+        end = args.get("end")
+        q = q.filter(User.is_active).filter(and_(User.joining_date <= end,
+                                                 User.joining_date >= start))
+    else:
+        q = q.filter_by(is_active=True)
+    return q
+
+
+def apply_rules_export_monthly_instances(args=None):
+    q = Instance.query
+    if args:
+        start = args.get('start')
+        end = args.get('end')
+        q = q.filter(and_(Instance.provisioned_at <= end,
+                          Instance.provisioned_at >= start))
     return q
 
 
