@@ -1,27 +1,210 @@
 <div ng-show="getIcons()">
-    <h2>Instance Usage Statistics</h2>
+    <div class="row">
+        <ul class="nav nav-pills stat-tabs">
+            <li ng-class="toggleClass('usageView')"><a href="" ng-click="currentView='usageView'">Usage statistics</a></li>
+            <li ng-class="toggleClass('userView')"><a href="" ng-click="currentView='userView'">Users</a></li>
+            <li ng-class="toggleClass('institutionView')"><a href = ""  ng-click="currentView='institutionView'">Institutions</a></li>
+            <li ng-class="toggleClass('quartalView')"><a href = ""  ng-click="currentView='quartalView'">Quartals</a></li>
+            <li ng-class="toggleClass('organizationQuartalView')"><a href="" ng-click="currentView='organizationQuartalView'">
+                Quartals by organizations
+            </a></li>
+            <li ng-class="toggleClass('monthlyView')"><a href = ""  ng-click="currentView='monthlyView'">Monthly</a></li>
+        </ul>
+    </div>
     <br>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <td>Blueprint Name</td>
-                <td>Launched Instances</td>
-                <td>Running Instances</td>
-                <td>Unique Users</td>
-            </tr>
-        </thead>
-        <tbody>
-           <tr ng-hide="stats != undefined && stats.blueprints.length">
-                <td colspan="4">No Instances to Show</td>
-            </tr>
-            <tr ng-repeat="stats_item in stats.blueprints">
-                <td>{{ stats_item.name }}</td>
-                <td>{{ stats_item.launched_instances }}</td>
-                <td>{{ stats_item.running_instances }}</td>
-                <td>{{ stats_item.users }}</td>
-            </tr>
-        </tbody>
-    </table>
+    <div class="row no-margin" ng-hide="formView == 'usageView'">
+        <h4>Export data as csv</h4> 
+        <p>
+            Filter by date. Enter a list of organization domains separated by comma to 
+            include or exclude specific organizations. 
+            <br>
+            Please note that exporting is not supported on Internet Explorer.
+        </p>
+        <div ng-controller="StatsController">
+        <form name="stat-form" class="form-horizontal" ng-submit="downloader(date)">
+            <div class="form-group">
+                <div class="row no-margin">
+                <div class="col-md-4">
+                    <input name="start-date" ng-model="date.start" class="form-control stat-query" type="text" 
+                    placeholder="Start date (yyyy-mm-dd)">
+                </div>
+                <div class="col-md-4">
+                    <input name="end-date" ng-model="date.end" class="form-control stat-query" type="text" 
+                    placeholder="End date (yyyy-mm-dd)">
+                </div>
+                <div class="col-md-2">
+                    <button name="stat-btn" class="btn btn-default stat-query" type="submit">
+                        Export csv
+                    </button>
+                </div>
+                </div>
+                <div class="row no-margin">
+                <div class="col-md-8">
+                    <input class="form-control stat-query disable-ng-hide-animate" type="text" name="filter-box", ng-model="date.filter"
+                    placeholder="Enter filter list" ng-hide="formView == 'monthlyView'"/>
+                </div>
+                <div class="col-md-2">
+                    <input type="checkbox" name="exclude-cb" class="stat-query" ng-model="date.exclude" 
+                    ng-hide="formView == 'monthlyView'" />
+                    <label for="exclude-cb" ng-hide="formView == 'monthlyView'">Exclude institutions</label>
+                </div>
+                </div>
+                
+            </div>  
+        
+        </form>
+        <div class="alert alert-danger col-md-8" ng-hide="validForm">
+            Please check input! Date as yyyy-mm-dd, filter as list of domain names separated by comma (,).
+        </div>
+    </div>
+    </div>
+    <div id="usageView" class="dashbox" ng-show="isCurrentView('usageView')">
+        <h2>Instance Usage Statistics</h2>
+        <br>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <td>Blueprint Name</td>
+                    <td>Launched Instances</td>
+                    <td>Running Instances</td>
+                    <td>Unique Users</td>
+                </tr>
+            </thead>
+            <tbody>
+            <tr ng-hide="stats != undefined && stats.blueprints.length">
+                    <td colspan="4">No Instances to Show</td>
+                </tr>
+                <tr ng-repeat="stats_item in stats.blueprints">
+                    <td>{{ stats_item.name }}</td>
+                    <td>{{ stats_item.launched_instances }}</td>
+                    <td>{{ stats_item.running_instances }}</td>
+                    <td>{{ stats_item.users }}</td>
+                </tr>
+            </tbody>
+        </table>
 
-     <span ng-show="stats != undefined && stats.blueprints.length"> Total Number of Running Instances: {{ stats.overall_running_instances }} </span>
+            <span ng-show="stats != undefined && stats.blueprints.length"> Total Number of Running Instances: {{ stats.overall_running_instances }} </span>
+    </div>
+    
+    <div id="userView" class="dashbox" ng-show="isCurrentView('userView')">
+        <h2>Export active users</h2>
+    </div>
+
+    <div id="institutionView" class="dashbox" ng-show="isCurrentView('institutionView')">
+        <h2>Institutions</h2>
+        <br>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <td>Institution</td>
+                    <td>Total users</td>
+                </tr>
+            </thead>
+            <tbody>
+                
+                <tr ng-repeat="institution in inst[0].data">
+                    <td>{{ institution[0] }}</td>
+                    <td>{{ institution[1] }}</td>
+                </tr>
+                
+            </tbody>
+        </table>
+    </div>
+
+    <div id="quartalView" class="dashbox" ng-show="isCurrentView('quartalView')">
+        <h2>Quartal usage by institution type</h2>
+        <br>
+        <table class="table table-striped">
+            <thead>
+                <tr>               
+                    <td>User type</td>
+                    <td>Year</td>
+                    <td>Q1</td>
+                    <td>Q2</td>
+                    <td>Q3</td>
+                    <td>Q4</td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="org in quartals[0].data">
+                    <td>{{ org.org }}</td>
+                    <td>{{ org.year }}</td>
+                    <td>{{ org.quartals[0] }}</td>
+                    <td>{{ org.quartals[1] }}</td>
+                    <td>{{ org.quartals[2] }}</td>
+                    <td>{{ org.quartals[3] }}</td>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="organizationQuartalView" class="dashbox" ng-show="isCurrentView('organizationQuartalView')">
+        <h2>Quartal usage by organization</h2>
+        <br>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <td>Organization</td>
+                    <td>Year</td>
+                    <td>Q1</td>
+                    <td>Q2</td>
+                    <td>Q3</td>
+                    <td>Q4</td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="org in quartalsByOrganization[0].data">
+                    <td>{{ org.org }}</td>
+                    <td>{{ org.year }}</td>
+                    <td>{{ org.quartals[0] }}</td>
+                    <td>{{ org.quartals[1] }}</td>
+                    <td>{{ org.quartals[2] }}</td>
+                    <td>{{ org.quartals[3] }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="monthlyView" class="dashbox" ng-show="isCurrentView('monthlyView')">
+        <h2>Monthly launched instances</h2>
+        <br>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <td>Year</td>
+                    <td>Jan</td>
+                    <td>Feb</td>
+                    <td>Mar</td>
+                    <td>Apr</td>
+                    <td>May</td>
+                    <td>Jun</td>
+                    <td>Jul</td>
+                    <td>Aug</td>
+                    <td>Sep</td>
+                    <td>Oct</td>
+                    <td>Nov</td>
+                    <td>Dec</td>
+                    <td>Total</td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="(year, count) in monthlyInstances[0].data">
+                    <td>{{ year }}</td>
+                    <td>{{ count[0] }}</td>
+                    <td>{{ count[1] }}</td>
+                    <td>{{ count[2] }}</td>
+                    <td>{{ count[3] }}</td>
+                    <td>{{ count[4] }}</td>
+                    <td>{{ count[5] }}</td>
+                    <td>{{ count[6] }}</td>
+                    <td>{{ count[7] }}</td>
+                    <td>{{ count[8] }}</td>
+                    <td>{{ count[9] }}</td>
+                    <td>{{ count[10] }}</td>
+                    <td>{{ count[11] }}</td>
+                    <td>{{ count[12] }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
 </div>

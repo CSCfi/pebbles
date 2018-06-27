@@ -247,3 +247,22 @@ changes to avoid clipping in navbar.
         display: none;
     }
 }
+
+.no-margin {
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+}
+
+thead {
+    font-weight: bold;
+}
+
+.stat-query {
+    padding: 10px;
+}
+
+.disable-ng-hide-animate.ng-hide.ng-hide-animate {
+    display: none;
+}
