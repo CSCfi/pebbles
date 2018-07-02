@@ -118,7 +118,7 @@ class User(db.Model):
         self.is_active = False
 
     def set_password(self, password):
-        self.password = bcrypt.generate_password_hash(password)
+        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
 
     def check_password(self, password):
         if self.can_login():
