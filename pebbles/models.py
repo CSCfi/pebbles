@@ -71,6 +71,7 @@ class User(db.Model):
     id = db.Column(db.String(32), primary_key=True)
     _email = db.Column('email', db.String(MAX_EMAIL_LENGTH), unique=True)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
+    joining_date = db.Column(db.DateTime)
     is_admin = db.Column(db.Boolean, default=False)
     is_group_owner = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
@@ -86,6 +87,7 @@ class User(db.Model):
         self.id = uuid.uuid4().hex
         self.email = email
         self.is_admin = is_admin
+        self.joining_date = datetime.datetime.utcnow()
         if password:
             self.set_password(password)
             self.is_active = True
