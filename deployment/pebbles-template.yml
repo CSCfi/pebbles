@@ -193,6 +193,10 @@ objects:
       spec:
         containers:
         - name: worker
+          volumeMounts:
+            - name: ${NAME}-m2m-vol
+              mountPath: ${M2M_STORE}
+              readOnly: true
           env:
           - name: APP_SCRIPT
             value: /opt/app-root/src/deployment/run_celery.bash
@@ -202,6 +206,8 @@ objects:
             value: provisioning_tasks-1
           - name: CELERY_LOGLEVEL
             value: DEBUG
+          - name: PB_PLUGIN_WHITELIST
+            value: ${PLUGIN_WHITELIST}
           - name: PB_INTERNAL_API_BASE_URL
             value: http://${NAME}-api:8080/api/v1
           - name: PB_SECRET_KEY
@@ -209,12 +215,18 @@ objects:
               secretKeyRef:
                 name: ${NAME}
                 key: pb-secret-key
+          - name: PB_M2M_CREDENTIAL_STORE
+            value: ${M2M_STORE}/${NAME}-m2m
           image: ' '
           resources:
             requests:
               memory: ${MEMORY_WORKER}
             limits:
               memory: ${MEMORY_WORKER}
+        volumes:
+          - name: ${NAME}-m2m-vol
+            secret:
+              secretName: ${NAME}-m2m
     triggers:
     - imageChangeParams:
         automatic: true
@@ -256,6 +268,8 @@ objects:
             value: system_tasks
           - name: CELERY_LOGLEVEL
             value: DEBUG
+          - name: PB_PLUGIN_WHITELIST
+            value: ${PLUGIN_WHITELIST}
           - name: PB_INTERNAL_API_BASE_URL
             value: http://${NAME}-api:8080/api/v1
           - name: PB_SECRET_KEY
@@ -616,8 +630,15 @@ parameters:
   displayName: Custom PyPi Index URL
   name: PIP_INDEX_URL
 
+- displayName: Plugins whitelist
+  name: PLUGIN_WHITELIST
+  value: OpenShiftDriver
+
 - description: Secret master key
   displayName: Secret master key
-  from: '[a-zA-Z0-9]{40}'
-  generate: expression
   name: PB_SECRET_KEY
+  value: change_me
+
+- displayName: M2M Credentials Store
+  name: M2M_STORE
+  value: /run/shm
