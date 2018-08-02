@@ -196,38 +196,23 @@ body {
     margin-top: 0px !important;
 }
 
-form[name="initializationForm"] {
-    color:#FFFFFF;
-}
-
-form[name="resetPasswordForm"],
-form[name="requestResetForm"] {
+.default-form-color {
     color: #FFFFFF;
 }
 
-.reset-btn {
+.default-form-btn {
     background-color: #002f5f;
     color: #FFFFFF;
     background-image: none;
 }
 
-.reset-btn:hover {
+.default-form-btn:hover {
     border-color: #FFFFFF;
     background-color: #002f5f;
 }
 
 #course-request-form>a {
     color: #5cb85c;
-}
-
-#initialization-btn {
-    background-color: #002f5f;
-    color: #FFFFFF;
-    background-image: none; 
-}
-
-#initialization-btn:hover {
-    border-color: #FFFFFF;
 }
 
 #brand-image-container {
