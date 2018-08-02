@@ -1,6 +1,6 @@
 <div class="col-md-4 col-md-offset-4">
     <div ng-hide="isInitialized()">
-        <form name="initializationForm" class="form-activate" ng-submit="initialize_user()">
+        <form name="initializationForm" class="form-activate default-form-color" ng-submit="initialize_user()">
             <h2 class="form-signin-heading">Create admin account</h2>
 
             <input type="email" class="form-control initial-input" name="validEmail" ng-model="user.email" placeholder="Email" required autofocus>
@@ -11,7 +11,7 @@
             <div data-ng-show="initializationForm.confirmPassword.$error.match" class="alert alert-danger" role="alert">Passwords do not match!</div>
             <div data-ng-hide="initializationForm.confirmPassword.$error.match" class="alert alert-info" role="alert">This will create your admin account</div>
 
-            <button id="initialization-btn" class="btn btn-lg btn-primary btn-block" ng-disabled="initializationForm.$invalid" type="submit">Create</button>
+            <button class="btn btn-lg btn-primary btn-block default-form-btn" ng-disabled="initializationForm.$invalid" type="submit">Create</button>
         </form>
     </div>
     <div ng-show="isInitialized()" class="alert alert-danger" role="alert">
