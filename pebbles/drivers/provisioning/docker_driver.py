@@ -609,6 +609,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         instance = pbclient.get_instance_description(instance_id)
         if instance["instance_data"]:
             lock_id = str(instance["instance_data"]["docker_host_id"])
+        else:
+            lock_id = 'dd_host:%s' % 'global'
         try:
             lock_res = pbclient.obtain_lock(lock_id)
             while not lock_res:
