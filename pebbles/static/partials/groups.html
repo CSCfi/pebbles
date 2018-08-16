@@ -35,7 +35,11 @@
 	            <button ng-show=isAdmin() ng-confirm-click="Do you want to permanently archive this group? Note that blueprints created in this group will also be archived." ng-click="archiveGroup(group)" class="btn btn-default">Archive</button>
                     <button ng-confirm-click="Delete this group?" ng-click="deleteGroup(group)" class="btn btn-danger">Delete</button>
                 </span>
-	    </td>
+                <span ng-show="isGroupOwnerOrAdmin() && group.name !='System.default'">
+                    <button ng-show="isGroupOwnerOrAdmin()" ng-confirm-click="This will remove all but Group Owner from this group. Do you want to continue?" 
+                    ng-click="clearUsersFromGroup(group)" class="btn btn-danger">Clear Users</button>
+                </span>
+            </td>
         </tr>
         </tbody>
     </table>

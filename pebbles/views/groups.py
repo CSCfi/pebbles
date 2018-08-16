@@ -337,3 +337,31 @@ class GroupUsersList(restful.Resource):
             total_users = [group_user_obj.user for group_user_obj in group_user_objs]
 
         return total_users
+
+
+class ClearUsersFromGroup(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('group_id', type=str)
+
+    @auth.login_required
+    @requires_group_owner_or_admin
+    def delete(self):
+
+        args = self.parser.parse_args()
+        group_id = args.group_id
+        user = g.user
+        group = Group.query.filter_by(id=group_id).first()
+        group_user_query = GroupUserAssociation.query
+        user_is_owner = group_user_query.filter_by(group_id=group.id, user_id=user.id, owner=True).first()
+
+        if not group:
+            logging.warn('Group %s does not exist', group_id)
+            return {"error": "The group does not exist"}, 404
+
+        if user_is_owner or user.is_admin:
+            group_user_query.filter_by(group_id=group.id,
+                                       owner=False).delete()
+            db.session.commit()
+        else:
+            logging.warn('Group %s not owned, cannot clear users', group_id)
+            return {"error": "Only the group owner can clear users"}, 403

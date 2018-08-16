@@ -16,7 +16,7 @@ from pebbles.views.blueprint_templates import blueprint_templates, BlueprintTemp
 from pebbles.views.blueprints import blueprints, BlueprintList, BlueprintView, BlueprintCopy
 from pebbles.views.plugins import plugins, PluginList, PluginView
 from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserGroupOwner, KeypairList, CreateKeyPair, UploadKeyPair
-from pebbles.views.groups import groups, GroupList, GroupView, GroupJoin, GroupListExit, GroupExit, GroupUsersList
+from pebbles.views.groups import groups, GroupList, GroupView, GroupJoin, GroupListExit, GroupExit, GroupUsersList, ClearUsersFromGroup
 from pebbles.views.notifications import NotificationList, NotificationView
 from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pebbles.views.activations import activations, ActivationList, ActivationView
@@ -47,6 +47,7 @@ api.add_resource(GroupJoin, api_root + '/groups/group_join/<string:join_code>')
 api.add_resource(GroupListExit, api_root + '/groups/group_list_exit')
 api.add_resource(GroupExit, api_root + '/groups/group_exit/<string:group_id>')
 api.add_resource(GroupUsersList, api_root + '/groups/<string:group_id>/users')
+api.add_resource(ClearUsersFromGroup, api_root + '/groups/clear_users_from_group')
 api.add_resource(NotificationList, api_root + '/notifications')
 api.add_resource(NotificationView, api_root + '/notifications/<string:notification_id>')
 api.add_resource(SessionView, api_root + '/sessions')

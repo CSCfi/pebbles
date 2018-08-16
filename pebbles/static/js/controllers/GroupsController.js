@@ -154,8 +154,20 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             });
     }
 
- }]);
+    $scope.clearUsersFromGroup = function(group) {
+        var clearGroup = Restangular.oneUrl('groups/clear_users_from_group');
+        var id = {'group_id': group.id};
+        clearGroup.remove(id).then(function () {
+            $.notify({message: "Cleared all users from Group: " + group.name}, {type: 'success'});
+        }, function(response) {
+            if ('error' in response.data){
+               error_message = response.data.error;
+               $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger'});
+            }
+     });
+    }
 
+ }]);
 app.controller('ModalCreateGroupController', function($scope, $modalInstance, groupsSF, groups) {
 
     $scope.groupsSF = groupsSF;
