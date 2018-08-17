@@ -747,6 +747,70 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertStatus(response, 200)
         self.assertEqual(len(response.json), 1)  # 1 normal user
 
+    def test_clear_users_from_group(self):
+        name = 'GroupToBeCleared'
+        g = Group(name)
+        u1 = User.query.filter_by(id=self.known_user_id).first()
+        gu1_obj = GroupUserAssociation(user=u1, group=g)
+        u2 = User.query.filter_by(id=self.known_group_owner_id_2).first()
+        gu2_obj = GroupUserAssociation(user=u2, group=g, manager=True, owner=False)
+        u3 = User.query.filter_by(id=self.known_group_owner_id).first()
+        gu3_obj = GroupUserAssociation(user=u3, group=g, manager=True, owner=True)
+        g.users.append(gu1_obj)
+        g.users.append(gu2_obj)
+        g.users.append(gu3_obj)
+        db.session.add(g)
+        db.session.commit()
+        # Anonymous
+        response = self.make_request(
+            method='DELETE',
+            path='/api/v1/groups/clear_users_from_group',
+            data=json.dumps({'group_id': g.id})
+        )
+        self.assert_401(response)
+        # Authenticated user
+        response = self.make_authenticated_user_request(
+            method='DELETE',
+            path='/api/v1/groups/clear_users_from_group',
+            data=json.dumps({'group_id': g.id})
+        )
+        self.assert_403(response)
+        # Authenticated group owner
+        response = self.make_authenticated_group_owner_request(
+            method='DELETE',
+            path='/api/v1/groups/clear_users_from_group',
+            data=json.dumps({'group_id': g.id})
+        )
+        self.assert_200(response)
+        # Authenticated group owner, invalid group id
+        invalid_response = self.make_authenticated_group_owner_request(
+            method='DELETE',
+            path='/api/v1/groups/clear_users_from_group',
+            data=json.dumps({'group_id': ''})
+        )
+        self.assertStatus(invalid_response, 404)
+        # Authenticated group manager
+        response = self.make_authenticated_group_owner2_request(
+            method='DELETE',
+            path='/api/v1/groups/clear_users_from_group',
+            data=json.dumps({'group_id': g.id})
+        )
+        self.assert_403(response)
+        # Admin, system.default group
+        invalid_response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/groups/clear_users_from_group',
+            data=json.dumps({'group_id': self.system_default_group_id})
+        )
+        self.assertStatus(invalid_response, 422)
+        # Admin
+        response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/groups/clear_users_from_group',
+            data=json.dumps({'group_id': g.id})
+        )
+        self.assert_200(response)
+
     def test_get_plugins(self):
         # Anonymous
         response = self.make_request(path='/api/v1/plugins')
