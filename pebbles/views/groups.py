@@ -352,15 +352,19 @@ class ClearUsersFromGroup(restful.Resource):
         user = g.user
         group = Group.query.filter_by(id=group_id).first()
         group_user_query = GroupUserAssociation.query
-        user_is_owner = group_user_query.filter_by(group_id=group.id, user_id=user.id, owner=True).first()
+        user_is_owner = group_user_query.filter_by(group_id=group_id, user_id=user.id, owner=True).first()
 
         if not group:
             logging.warn('Group %s does not exist', group_id)
             return {"error": "The group does not exist"}, 404
 
+        if group.name == 'System.default':
+            logging.warn("cannot clear the default system group")
+            return {"error": "Cannot clear the default system group"}, 422
+
         if user_is_owner or user.is_admin:
-            group_user_query.filter_by(group_id=group.id,
-                                       owner=False).delete()
+            group_user_query.filter_by(group_id=group_id,
+                                       owner=False, manager=False).delete()
             db.session.commit()
         else:
             logging.warn('Group %s not owned, cannot clear users', group_id)
