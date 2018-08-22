@@ -172,11 +172,12 @@ class BlueprintView(restful.Resource):
             db.session.commit()
         elif blueprint_instances:
             for instance in blueprint_instances:
-                instance.to_be_deleted = True
-                instance.state = Instance.STATE_DELETING
-                instance.deprovisioned_at = datetime.datetime.utcnow()
-                if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-                    run_update.delay(instance.id)
+                if instance.state != Instance.STATE_DELETED:
+                    instance.to_be_deleted = True
+                    instance.state = Instance.STATE_DELETING
+                    instance.deprovisioned_at = datetime.datetime.utcnow()
+                    if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
+                        run_update.delay(instance.id)
             blueprint.current_status = blueprint.STATE_DELETED
             db.session.commit()
         else:
