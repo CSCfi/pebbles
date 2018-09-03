@@ -192,10 +192,11 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
         $scope.provision = function (blueprint) {
             instances.post({blueprint: blueprint.id}).then(function (response) {
                 $scope.updateInstanceList();
-                $timeout(function () {
-                    Restangular.one('instances', response.id).customPOST({'send_email': true}).then(function (response) {
-                      });
-                }, 600000);
+                //commenting for now because of the bug - spams email for all instances launched
+                //$timeout(function () {
+                //    Restangular.one('instances', response.id).customPOST({'send_email': true}).then(function (response) {
+                //      });
+                //}, 600000);
             }, function(response) {
                 if (response.status != 409) {
                     $.notify({title: 'HTTP ' + response.status, message: 'unknown error'}, {type: 'danger'});
