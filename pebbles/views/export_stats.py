@@ -63,11 +63,6 @@ class ExportStatistics(restful.Resource):
     @auth.login_required
     @requires_admin
     def export_institutions(self, args=None):
-        """
-        if args.get('start') is None and args.get('end') is None:
-            query = apply_rules_export_statistics("institutions")
-        else:
-            """
         query = apply_rules_export_statistics("institutions", args)
         institutions = query.all()
         if not institutions:
@@ -109,11 +104,6 @@ class ExportStatistics(restful.Resource):
     @auth.login_required
     @requires_admin
     def export_users(self, args=None):
-        """
-        if args.get('start') is None and args.get('end') is None:
-            query = apply_rules_export_statistics("users")
-        else:
-            """
         query = apply_rules_export_statistics("users", args)
         users = query.all()
         if not users:
@@ -162,11 +152,6 @@ class ExportStatistics(restful.Resource):
     @auth.login_required
     @requires_admin
     def export_quartals(self, args=None):
-        """
-        if args.get('start') is None and args.get('end') is None:
-            query = apply_rules_export_statistics("quartals")
-        else:
-            """
         query = apply_rules_export_statistics("quartals", args)
         quartals = query.all()
         if not quartals:
@@ -250,11 +235,6 @@ class ExportStatistics(restful.Resource):
     @auth.login_required
     @requires_admin
     def export_monthly_instances(self, args=None):
-        """
-        if args.get('start') is None and args.get('end') is None:
-            query = apply_rules_export_monthly_instances()
-        else:
-            """
         query = apply_rules_export_monthly_instances(args)
         instances = query.all()
         if not instances:
