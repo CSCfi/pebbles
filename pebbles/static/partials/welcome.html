@@ -1,9 +1,8 @@
 <div class=" jumbotron left-align" ng-controller="NavbarController">
     <div class="row">
-        <div class="col-lg-3 col-md-4 col-sm-6 col-xs-8">
+        <div class="col-lg-3 col-md-4 col-sm-4 col-xs-10">
             <div configurable-show key="ENABLE_SHIBBOLETH_LOGIN" 
             name="shibboleth-login">
-                <h2 class="main-login-header">Login:</h2><br>
                 <p>
                     <a href="/login"><img src="/img/haka_new.jpg" alt="Haka login" /></a>
                 </p>
@@ -34,24 +33,20 @@
                 can <a  id="pw-reset" href="#/reset_password">reset it here</a>        
             </div>
         </div> 
-        <div class="col-lg-3 col-md-4 col-sm-6 col-xs-8">
-            <div id="brand-image-container">
-                <configurable-value brand-image key="BRAND_IMAGE" 
-                    alt_key="INSTALLATION_NAME"></configurable-value>
-            </div>
+        <div class="col-lg-4 col-md-4 col-sm-6 col-xs-10">
             <h3 name="short-description"><configurable-value
                                     key="SHORT_DESCRIPTION"></configurable-value></h3>
             <p name="installation-description"><configurable-value
-                                    key="INSTALLATION_DESCRIPTION"></configurable-value></p>       
+                                    key="INSTALLATION_DESCRIPTION"></configurable-value></p>   
         </div>
-    </div>  
+    </div>
     
     <div class="row" configurable-show key="COURSE_REQUEST_FORM"
         name="course_request">
-      <div class="col-md-6">
-      <hr>
-      If you want to host your own course using <configurable-value key="INSTALLATION_NAME"></configurable-value>, please fill out the 
+        <div class="col-lg-7 col-md-8 col-sm-10 col-xs-10">
+            <hr>
+            If you want to host your own course using <configurable-value key="INSTALLATION_NAME"></configurable-value>, please fill out the 
       <configurable-href key="COURSE_REQUEST_FORM" name="Course Request Form" id="course-request-form"></configurable-href>
-      </div>
+        </div>
     </div>
 </div>

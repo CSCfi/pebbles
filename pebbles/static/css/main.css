@@ -12,6 +12,7 @@ a.navbar-brand:hover {
 
 .navbar {
     border: none;
+    min-height: 0px;
 }
 
 .navbar .navbar-nav {
@@ -167,11 +168,22 @@ body {
 
 .loginPage {
 
-    background: url(../img/notebooks_bg.jpg) no-repeat center center fixed;
+    background: url(../img/notebooks_bg_v2.jpg) no-repeat center center fixed;
     -webkit-background-size: cover;
     -moz-background-size: cover;
     background-size: cover;
     -o-background-size: cover;
+    background-color: #002f5f;
+}
+
+/* 
+Hide the bg-image on mobile
+*/
+@media (max-width: 767px) {
+    .loginPage {
+        background: none;
+        background-color: #002f5f;
+    }
 }
 
 .nav-container {
@@ -215,12 +227,23 @@ body {
     color: #5cb85c;
 }
 
-#brand-image-container {
-    max-width: 300px;
-    max-height: 69px;
-}
-
 h3[name="short-description"],
 p[name="installation-description"] {
-    text-align: justify;
+    text-align: left;
+}
+
+/*
+Hide elements when the device resolution
+changes to avoid clipping in navbar.
+*/
+@media (max-width: 1214px) {
+    .navbar-brand {
+        display: none;
+    }
+}
+
+@media (max-width: 991px) {
+    .navbar-text {
+        display: none;
+    }
 }
