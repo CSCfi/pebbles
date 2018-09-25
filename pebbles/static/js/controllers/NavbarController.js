@@ -1,4 +1,4 @@
-app.controller('NavbarController', ['$scope', '$rootScope', '$location', '$routeParams', 'AuthService', 'ConfigurationService', function($scope, $rootScope, $location, $routeParams, AuthService, ConfigurationService) {
+app.controller('NavbarController', ['$scope', '$window', '$rootScope', '$location', '$routeParams', 'AuthService', 'ConfigurationService', function($scope, $window, $rootScope, $location, $routeParams, AuthService, ConfigurationService) {
     var _invalidLogin = false;
     var _showLoginBox = undefined;
  
@@ -70,7 +70,10 @@ app.controller('NavbarController', ['$scope', '$rootScope', '$location', '$route
         $scope.email = "";
         $scope.password = "";
         $rootScope.$broadcast('userLoggedOut');
-        $location.path("/");
+        $location.path("/#/");
+        hostname = $window.location.hostname;
+        urlvalue = 'https' + '://' + hostname + '/Shibboleth.sso/Logout?return=' + 'https' +'://' + hostname;
+        $window.location.href = urlvalue;
     };
 
     var _routeNavigator = function() {
