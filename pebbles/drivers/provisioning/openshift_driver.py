@@ -405,9 +405,14 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         project_data = oc.make_base_kube_object('ProjectRequest', project_name)
 
         # create the project if it does not exist yet
-        res = oc.make_request(object_kind='projects', object_id=project_name, raise_on_failure=False)
-        if not res.ok and res.status_code == 403:
-            oc.make_request(object_kind='projectrequests', data=project_data)
+        from time import sleep
+        for delay_count in range(0, 30):  # sometimes the project isn't created and the code starts to create pvc
+            res = oc.make_request(object_kind='projects', object_id=project_name, raise_on_failure=False)
+            if not res.ok and res.status_code == 403:
+                oc.make_request(object_kind='projectrequests', data=project_data)
+            else:
+                break  # project has been created, exit the loop
+            sleep(2)  # sleep for 2 seconds, the loop goes on for 1 minute
 
         # create PVC if it does not exist yet
         if volume_mount_point:
