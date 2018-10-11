@@ -9,6 +9,8 @@ from pebbles.views.commons import auth
 from pebbles.utils import requires_admin
 from pebbles.rules import apply_rules_export_statistics, apply_rules_export_monthly_instances
 
+import ast
+
 export_stats = FlaskBlueprint('export_stats', __name__)
 
 
@@ -24,7 +26,10 @@ class ExportStatistics(restful.Resource):
         self.date_format = '%Y-%m-%d'
         self.month_count = 12
         # institution types
-        self.institution_list = app.config['HAKA_INSTITUTION_LIST']
+        if app.config['HAKA_INSTITUTION_LIST']:
+            self.institution_list = ast.literal_eval(app.config['HAKA_INSTITUTION_LIST'])
+        else:
+            self.institution_list = {}
         # Quartal definition
         self.Q1 = [1, 2, 3]
         self.Q2 = [4, 5, 6]
@@ -50,7 +55,7 @@ class ExportStatistics(restful.Resource):
             res = self.export_institutions(args)
         if self.stat == "users":
             res = self.export_users(args)
-        if self.stat == "quartals":
+        if self.stat == "quartals" and self.institution_list:
             res = self.export_quartals(args)
         if self.stat == "quartals_by_org":
             res = self.export_quartals(args)
