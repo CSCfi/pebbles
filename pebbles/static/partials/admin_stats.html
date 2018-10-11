@@ -12,6 +12,12 @@
         </ul>
     </div>
     <br>
+
+    <div id="userView" class="dashbox" ng-show="isCurrentView('userView')">
+        <h2>Export active users</h2>
+        <br>
+    </div>
+
     <div class="row no-margin" ng-hide="formView == 'usageView'">
         <h4>Export data as csv</h4> 
         <p>
@@ -20,7 +26,7 @@
             <br>
             Please note that exporting is not supported on Internet Explorer.
         </p>
-        <div ng-controller="StatsController">
+        <div >
         <form name="stat-form" class="form-horizontal" ng-submit="downloader(date)">
             <div class="form-group">
                 <div class="row no-margin">
@@ -54,7 +60,7 @@
         
         </form>
         <div class="alert alert-danger col-md-8" ng-hide="validForm">
-            Please check input! Date as yyyy-mm-dd, filter as list of domain names separated by comma (,).
+            Please check input! filter should be list of domain names separated by comma (,).
         </div>
     </div>
     </div>
@@ -86,10 +92,6 @@
             <span ng-show="stats != undefined && stats.blueprints.length"> Total Number of Running Instances: {{ stats.overall_running_instances }} </span>
     </div>
     
-    <div id="userView" class="dashbox" ng-show="isCurrentView('userView')">
-        <h2>Export active users</h2>
-    </div>
-
     <div id="institutionView" class="dashbox" ng-show="isCurrentView('institutionView')">
         <h2>Institutions</h2>
         <br>
