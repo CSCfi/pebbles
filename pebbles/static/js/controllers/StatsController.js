@@ -11,10 +11,8 @@ app.controller('StatsController', ['$q', '$scope', '$http', '$interval', '$uibMo
         };
 
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
-        
-        $scope.currentView = "usageView";
 
-        $scope.formView;
+        $scope.currentView = "usageView";
 
         $scope.toggleClass = function(view){
             if ($scope.currentView == view){
@@ -30,7 +28,6 @@ app.controller('StatsController', ['$q', '$scope', '$http', '$interval', '$uibMo
             return false;
         }
 
-        $scope.userlist;
         $scope.dates = {
             "start": null,
             "end": null,
@@ -41,7 +38,6 @@ app.controller('StatsController', ['$q', '$scope', '$http', '$interval', '$uibMo
 
 
         var exportStats = Restangular.all('export_stats/export_statistics');
-
         var stats = Restangular.oneUrl('stats');
         var inst = Restangular.oneUrl('export_stats/export_statistics');
         var monthlyInstances = Restangular.oneUrl('export_stats/export_statistics');

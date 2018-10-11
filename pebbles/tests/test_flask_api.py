@@ -389,7 +389,7 @@ class FlaskApiTestCase(BaseTestCase):
             method='GET',
             data=json.dumps({'start': None, 'end': None, 'stat': 'quartals'})
         )
-        #self.assert_200(response)
+        # self.assert_200(response)
         # TODO: The environment variable - istitution list had to be given oterwise it returns 404
         self.assertStatus(response, 404)
         # Authenticated admin
@@ -434,7 +434,7 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps({'start': '2011-01-01', 'end': '2018-01-01', 'filter': 'example.org',
                              'exclude': False, 'stat': 'users'})
         )
-        self.assert_200(response)     
+        self.assert_200(response)
 
     def test_invite_multiple_users(self):
         # Admin
