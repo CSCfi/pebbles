@@ -36,8 +36,10 @@ app.controller('StatsController', ['$q', '$scope', '$http', '$interval', '$uibMo
             "stat": null
         };
 
-
+        $scope.mindate = "2000-01-01";
+        $scope.maxdate = new Date();
         var exportStats = Restangular.all('export_stats/export_statistics');
+
         var stats = Restangular.oneUrl('stats');
         var inst = Restangular.oneUrl('export_stats/export_statistics');
         var monthlyInstances = Restangular.oneUrl('export_stats/export_statistics');
@@ -139,51 +141,25 @@ app.controller('StatsController', ['$q', '$scope', '$http', '$interval', '$uibMo
             });
         } 
 
-        
         $scope.checkInput = function() {
-            var validDateInputRegEx = /^(19|20)\d\d([- /.])(0[1-9]|1[012])\2(0[1-9]|[12][0-9]|3[01])$/;
             var validFilterInputRegex = /^([\w.]+(?:,[\w.]+)*)$/gm;
             var dates = $scope.dates;
             if (dates === undefined) {
                 return true;
             }
             var keys = Object.keys(dates);
-            var start = null;
-            var end = null;
             var filter = null;
             for (var key in keys) {
-                if (keys[key] == 'start') {
-                    start = dates['start'];
-                }
-                if (keys[key] == 'end') {
-                    end = dates['end'];
-                }
                 if (keys[key] == 'filter') {
                     filter = dates['filter'];
                 }
             }
-
             if (filter != null) {
                 if (!validFilterInputRegex.test(filter)) {
                     return false;
                 }
             }
-
-            if (start != null && end != null) {
-                if (validDateInputRegEx.test(start) && validDateInputRegEx.test(end)) {
-                    return true;
-                }return false;
-            }else if (start == null && end != null) {
-                if (validDateInputRegEx.test(end)) {
-                    return true;
-                }return false;
-            }else if (start != null && end == null) {
-                if (validDateInputRegEx.test(start)) {
-                    return true;
-                }return false;
-            }else {
-                return true;
-            }
+            return true;
         };
 
         $scope.validForm = true;
@@ -197,9 +173,15 @@ app.controller('StatsController', ['$q', '$scope', '$http', '$interval', '$uibMo
         // Define which csv to download based on 
         // user selected view.
         $scope.downloader = function(date) {
-            if (date != undefined) { 
-                $scope.dates.start = date.start;
-                $scope.dates.end = date.end;
+            if (date != undefined) {
+                if (date.start == null)
+                   $scope.dates.start = date.start;
+                else
+                   $scope.dates.start = date.start.toLocaleDateString();
+                if (date.end == null)
+                   $scope.dates.end = date.end;
+                else
+                   $scope.dates.end = date.end.toLocaleDateString();
                 $scope.dates.filter = date.filter;
                 $scope.dates.exclude = date.exclude;
             };

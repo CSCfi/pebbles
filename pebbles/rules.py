@@ -4,9 +4,6 @@ from sqlalchemy import or_, and_
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
 import itertools
-# import logging
-
-date_format = '%Y-%m-%d'
 
 
 def apply_rules_blueprint_templates(user, args=None):
@@ -77,6 +74,7 @@ def apply_rules_export_statistics(stat_type, args=None):
 
 def apply_rules_export_monthly_instances(args=None):
     q = Instance.query
+
     if args:
         start = args.get('start')
         end = args.get('end')

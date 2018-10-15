@@ -1,7 +1,6 @@
 from flask.ext.restful import reqparse
 from flask_restful.inputs import boolean
 from flask import Blueprint as FlaskBlueprint
-from datetime import datetime as dt
 from operator import itemgetter
 
 from pebbles.server import restful, app
@@ -10,6 +9,7 @@ from pebbles.utils import requires_admin
 from pebbles.rules import apply_rules_export_statistics, apply_rules_export_monthly_instances
 
 import ast
+import datetime
 
 export_stats = FlaskBlueprint('export_stats', __name__)
 
@@ -23,7 +23,6 @@ class ExportStatistics(restful.Resource):
     parser.add_argument('stat', type=str)
 
     def __init__(self):
-        self.date_format = '%Y-%m-%d'
         self.month_count = 12
         # institution types
         if app.config['HAKA_INSTITUTION_LIST']:
@@ -246,6 +245,8 @@ class ExportStatistics(restful.Resource):
             return []
         results = {}
 
+        # in the future do the count through db query. (When 1000s of instances are there
+        # it is inefficient)
         for inst in instances:
             date = inst.provisioned_at
 
@@ -340,13 +341,21 @@ class ExportStatistics(restful.Resource):
     def check_date_input(self, args=None):
         start = args.get('start')
         end = args.get('end')
-
         if start is None:
-            start = str(dt(2000, 1, 1).date())
+            start = str(datetime.datetime(2000, 1, 1))
+            start = datetime.datetime.strptime(start, '%Y-%m-%d %H:%M:%S')
+        else:
+            start_date = datetime.datetime.strptime(start, '%m/%d/%Y')
+            start_time = datetime.time(0, 0, 0, 0)
+            start = datetime.datetime.combine(start_date, start_time)
+
         if end is None:
-            end = str(dt.utcnow().date())
-        end = dt.strptime(end, self.date_format)
-        start = dt.strptime(start, self.date_format)
+            end = str(datetime.datetime.utcnow())
+            end = datetime.datetime.strptime(end, '%Y-%m-%d %H:%M:%S.%f')
+        else:
+            end_date = datetime.datetime.strptime(end, '%m/%d/%Y')
+            end_time = datetime.time(23, 59, 59, 999999)
+            end = datetime.datetime.combine(end_date, end_time)
         res = {}
         if end < start:
             return res
