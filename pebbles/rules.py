@@ -4,6 +4,7 @@ from sqlalchemy import or_, and_
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
 import itertools
+import datetime
 
 
 def apply_rules_blueprint_templates(user, args=None):
@@ -65,8 +66,13 @@ def apply_rules_export_statistics(stat_type, args=None):
     if args:
         start = args.get("start")
         end = args.get("end")
-        q = q.filter(User.is_active).filter(and_(User.joining_date <= end,
-                                                 User.joining_date >= start))
+        start_null = datetime.datetime.strptime('2000-01-01 00:00:00', '%Y-%m-%d %H:%M:%S')
+        if start == start_null and (stat_type == "users" or stat_type == "institutions"):
+            q = q.filter(User.is_active).filter(or_(User.joining_date.is_(None),
+                                                    User.joining_date <= end))
+        else:
+            q = q.filter(User.is_active).filter(and_(User.joining_date <= end,
+                                                     User.joining_date >= start))
     else:
         q = q.filter_by(is_active=True)
     return q

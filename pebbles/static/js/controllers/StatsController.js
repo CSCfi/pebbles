@@ -36,8 +36,6 @@ app.controller('StatsController', ['$q', '$scope', '$http', '$interval', '$uibMo
             "stat": null
         };
 
-        $scope.mindate = "2000-01-01";
-        $scope.maxdate = new Date();
         var exportStats = Restangular.all('export_stats/export_statistics');
 
         var stats = Restangular.oneUrl('stats');

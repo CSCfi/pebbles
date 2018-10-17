@@ -54,7 +54,7 @@ class ExportStatistics(restful.Resource):
             res = self.export_institutions(args)
         if self.stat == "users":
             res = self.export_users(args)
-        if self.stat == "quartals" and self.institution_list:
+        if self.stat == "quartals":
             res = self.export_quartals(args)
         if self.stat == "quartals_by_org":
             res = self.export_quartals(args)
@@ -245,8 +245,9 @@ class ExportStatistics(restful.Resource):
             return []
         results = {}
 
-        # in the future do the count through db query. (When 1000s of instances are there
-        # it is inefficient)
+        # TODO: In the future do the count through db query.
+        #  (When 1000s of instances are there, it is inefficient)
+        # same for all other exports
         for inst in instances:
             date = inst.provisioned_at
 
