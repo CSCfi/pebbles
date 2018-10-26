@@ -31,9 +31,9 @@ from pebbles.client import PBClient
 from pebbles.drivers.provisioning import base_driver
 
 # maximum time to wait for pod creation before failing
-MAX_POD_SPAWN_WAIT_TIME_SEC = 120
+MAX_POD_SPAWN_WAIT_TIME_SEC = 900
 # maximum time to wait for pod (down) scaling
-MAX_POD_SCALE_WAIT_TIME_SEC = 60
+MAX_POD_SCALE_WAIT_TIME_SEC = 120
 # refresh the token if it is this close to expiration
 TOKEN_REFRESH_DELTA = 600
 
