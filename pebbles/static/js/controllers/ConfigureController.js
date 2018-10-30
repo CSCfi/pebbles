@@ -1,6 +1,10 @@
 app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$uibModal', 'AuthService', 'Restangular',
                               function ($q,   $scope,   $http,   $interval,   $uibModal,   AuthService,   Restangular) {
 
+        $scope.getIcons = function() {
+            return AuthService.getIcons()[4];
+        };
+
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
 
         var plugins = Restangular.all('plugins');

@@ -1,6 +1,10 @@
 /* global app */
 app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard', 'DesktopNotifications',
                               function ($q,   $scope,   $routeParams, $timeout, $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard, DesktopNotifications) {
+        $scope.getIcons = function() {
+            return AuthService.getIcons()[3];
+        };
+
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
         var LIMIT_DEFAULT = 100, OFFSET_DEFAULT=0;
         $scope.currentView = "default";
