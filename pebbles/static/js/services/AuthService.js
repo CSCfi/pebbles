@@ -12,6 +12,7 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
                 me.setGroupOwnerStatus(response.is_group_owner);
                 me.setGroupManagerStatus(response.is_group_manager);
                 me.setUserId(response.user_id);
+                me.setIcons(response.icon_value);
                 return deferred.resolve(response);
             }, function(response) {
                 if (response.status === 401) {
@@ -128,6 +129,7 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
             localStorageService.set('isGroupOwner', isGroupOwner);
         },
 
+
         getGroupOwnerStatus : function() {
             return localStorageService.get('isGroupOwner');
         },
@@ -139,6 +141,15 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
         getGroupManagerStatus : function() {
             return localStorageService.get('isGroupManager');
         },
+
+        setIcons : function(iconValue) {
+            localStorageService.set('iconValue', iconValue);
+        },
+
+        getIcons : function() {
+            return localStorageService.get('iconValue');
+        },
+
 
         setUserRoleForcedStatus : function(isUserRoleForced) {
             localStorageService.set('isUserRoleForced', isUserRoleForced);
