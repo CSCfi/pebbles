@@ -5,6 +5,10 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
             return AuthService.isAdmin();
         };
 
+        $scope.getIcons = function() {
+            return AuthService.getIcons()[3];
+        };
+
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
 
         var templates = Restangular.all('blueprint_templates');

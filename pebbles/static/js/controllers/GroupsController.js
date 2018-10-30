@@ -18,6 +18,10 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             return AuthService.isGroupOwnerOrAdmin();
         };
 
+        $scope.getIcons = function() {
+            return AuthService.getIcons()[2];
+        };
+
         if (AuthService.isGroupOwnerOrAdmin()) {
             var groups = Restangular.all('groups');
             groups.getList().then(function (response) {
