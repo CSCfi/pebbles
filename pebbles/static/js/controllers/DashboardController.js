@@ -1,8 +1,14 @@
 /* global app */
 app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard', 'DesktopNotifications',
                               function ($q,   $scope,   $routeParams, $timeout, $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard, DesktopNotifications) {
+        // used only to get admin dashboard
         $scope.getIcons = function() {
-            return AuthService.getIcons()[3];
+            if (AuthService.getIcons()) {
+                return AuthService.getIcons()[3];
+            }
+            else {
+                return false;
+            }
         };
 
         Restangular.setDefaultHeaders({token: AuthService.getToken()});

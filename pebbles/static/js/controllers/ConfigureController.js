@@ -2,7 +2,12 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                               function ($q,   $scope,   $http,   $interval,   $uibModal,   AuthService,   Restangular) {
 
         $scope.getIcons = function() {
-            return AuthService.getIcons()[4];
+            if (AuthService.getIcons()) {
+                return AuthService.getIcons()[4];
+            }
+            else {
+                return false;
+            }
         };
 
         Restangular.setDefaultHeaders({token: AuthService.getToken()});

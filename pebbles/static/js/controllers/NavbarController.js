@@ -58,7 +58,12 @@ app.controller('NavbarController', ['$scope', '$window', '$rootScope', '$locatio
     };
 
     $scope.getIcons = function() {
-        return AuthService.getIcons();
+        if (AuthService.getIcons()) {
+            return AuthService.getIcons();
+        }
+        else {
+            return false;
+        }
     };
 
     $scope.isGroupOwnerOrAdmin = function() {

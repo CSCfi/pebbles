@@ -19,7 +19,12 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
         };
 
         $scope.getIcons = function() {
-            return AuthService.getIcons()[2];
+            if (AuthService.getIcons()) {
+                return AuthService.getIcons()[2];
+            }
+            else {
+                return false;
+            }
         };
 
         if (AuthService.isGroupOwnerOrAdmin()) {

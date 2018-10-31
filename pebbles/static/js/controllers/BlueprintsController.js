@@ -6,7 +6,12 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
         };
 
         $scope.getIcons = function() {
-            return AuthService.getIcons()[3];
+            if (AuthService.getIcons()) {
+                return AuthService.getIcons()[3];
+            }
+            else {
+                return false;
+            }
         };
 
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
