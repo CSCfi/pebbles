@@ -223,7 +223,7 @@ Hide the bg-image on mobile
     background-color: #002f5f;
 }
 
-#course-request-form>a {
+.links-to>a {
     color: #5cb85c;
 }
 
