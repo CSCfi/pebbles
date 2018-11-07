@@ -14,7 +14,11 @@
             </div>
             <div ng-show="!getLoginVisibility()">
                 </br>
-                <p><a id="alternate-login" href="javascript:;" ng-click="toggleLoginVisibility()"
+                <!--
+                Change to empty string for now because href values are sanitized.
+                In future the values can be whitelisted in controller if required.
+                -->
+                <p><a id="alternate-login" href='' ng-click="toggleLoginVisibility()"
                 name="click-show-login">Click here for alternate login</a>
                 </p>
             </div>
