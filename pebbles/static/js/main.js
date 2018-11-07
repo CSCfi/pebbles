@@ -48,7 +48,9 @@ app.constant('config', {
     partialsDir: '../partials'
 });
 
-app.config(function($routeProvider, $compileProvider, RestangularProvider, config) {
+app.config(function($routeProvider, $locationProvider, $compileProvider, RestangularProvider, config) {
+    /* Due to hash replaced with shebang in urls from angularjs 1.6, give prefix. */
+    $locationProvider.hashPrefix('');
     RestangularProvider.setBaseUrl('/api/v1');
     var partialsDir = config.partialsDir;
 
