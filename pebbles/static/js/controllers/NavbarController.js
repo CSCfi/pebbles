@@ -79,7 +79,8 @@ app.controller('NavbarController', ['$scope', '$window', '$rootScope', '$locatio
         $scope.email = "";
         $scope.password = "";
         $rootScope.$broadcast('userLoggedOut');
-        $location.path("/#/");
+        // To make transition smoother
+        $location.path(' ');
         hostname = $window.location.hostname;
         urlvalue = 'https' + '://' + hostname + '/Shibboleth.sso/Logout?return=' + 'https' +'://' + hostname;
         $window.location.href = urlvalue;
