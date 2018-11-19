@@ -69,6 +69,7 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.String(32), primary_key=True)
+    _eppn = db.Column('eppn', db.String(MAX_EMAIL_LENGTH), unique=True)
     _email = db.Column('email', db.String(MAX_EMAIL_LENGTH), unique=True)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     joining_date = db.Column(db.DateTime)
