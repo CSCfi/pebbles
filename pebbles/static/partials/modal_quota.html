@@ -7,7 +7,7 @@
         <h4>Users affected by quota change:</h4>
         <ul>
             <li ng-repeat="user in users | filter:includeRow">
-                {{ user.email }}
+                {{ user.eppn }}
             </li>
             <li ng-hide="users.length"><strong>All users</strong></li>
         </ul>

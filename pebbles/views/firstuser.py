@@ -22,7 +22,7 @@ class FirstUserView(restful.Resource):
             if not form.validate_on_submit():
                 logging.warn("validation error on first user creation")
                 return form.errors, 422
-            user = create_user(form.email.data, form.password.data, is_admin=True)
+            user = create_user(form.eppn.data, form.password.data, is_admin=True)
             create_worker()
             logging.warn("creating system group")
             create_system_groups(user)

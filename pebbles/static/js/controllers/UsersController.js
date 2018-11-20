@@ -87,7 +87,7 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
             $scope.new_user = '';
             $scope.add_user = function(email) {
                 if ($scope.add_user_form.$valid){
-                    var user_parameters = {email: email};
+                    var user_parameters = {eppn: email};
                     users.post(user_parameters).then(function() {
                         users.getList().then(function (response) {
                             $scope.users = response;
@@ -220,7 +220,7 @@ app.controller('ModalQuotaController', function ($q, $scope, $modalInstance, Res
 
 app.controller('ModalActivationUrlController', function($scope, $modalInstance, Restangular, user) {
 
-    $scope.url_type = "Activation Link" + ' : ' + user.email;
+    $scope.url_type = "Activation Link" + ' : ' + user.eppn;
     var users = Restangular.one('users', user.id);
     var user_activation_url = users.customGET('user_activation_url');
     user_activation_url.then(function (response) {

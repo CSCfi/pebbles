@@ -1,13 +1,13 @@
 app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular',
                     function($q,   localStorageService,   Session,   Restangular) {
     return {
-        login : function(email, password) {
+        login : function(eppn, password) {
             var me = this;
             var deferred = $q.defer();
-            var credentials = {'email': email, 'password': password};
+            var credentials = {'eppn': eppn, 'password': password};
             Session.create(credentials, true).then(function(response) {
                 me.setToken(response.token);
-                me.setUserName(email);
+                me.setUserName(eppn);
                 me.setAdminStatus(response.is_admin);
                 me.setGroupOwnerStatus(response.is_group_owner);
                 me.setGroupManagerStatus(response.is_group_manager);

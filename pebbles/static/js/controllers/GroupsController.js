@@ -213,7 +213,7 @@ app.controller('ModalModifyGroupController', function($scope, $modalInstance, gr
     group_users.getList().then(function (response) {
         $scope.managerData = response;
     });
-    $scope.userSettings = {displayProp: 'email', scrollable: true, enableSearch: true};
+    $scope.userSettings = {displayProp: 'eppn', scrollable: true, enableSearch: true};
     var old_name = group.name;
 
     $scope.modifyGroup = function(form, model, user_config) {

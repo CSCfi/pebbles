@@ -216,10 +216,10 @@ class UserBlacklist(restful.Resource):
             logging.warn("trying to block/unblock non-existing user")
             abort(404)
         if block:
-            logging.info("blocking user %s", user.email)
+            logging.info("blocking user %s", user.eppn)
             user.is_blocked = True
         else:
-            logging.info("unblocking user %s", user.email)
+            logging.info("unblocking user %s", user.eppn)
             user.is_blocked = False
         db.session.add(user)
         db.session.commit()
@@ -240,10 +240,10 @@ class UserGroupOwner(restful.Resource):
             logging.warn("user does not exist")
             abort(404)
         if make_group_owner:
-            logging.info("making user %s a group owner", user.email)
+            logging.info("making user %s a group owner", user.eppn)
             user.is_group_owner = True
         else:
-            logging.info("removing user %s as a group owner", user.email)
+            logging.info("removing user %s as a group owner", user.eppn)
             user.is_group_owner = False
         db.session.add(user)
         db.session.commit()

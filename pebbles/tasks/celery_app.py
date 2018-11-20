@@ -16,7 +16,7 @@ def get_token():
     """ returns a session token from te internal API.
     """
     auth_url = '%s/sessions' % local_config['INTERNAL_API_BASE_URL']
-    auth_credentials = {'email': 'worker@pebbles',
+    auth_credentials = {'eppn': 'worker@pebbles',
                         'password': local_config['SECRET_KEY']}
     try:
         r = requests.post(auth_url, auth_credentials, verify=local_config['SSL_VERIFY'])

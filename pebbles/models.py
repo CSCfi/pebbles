@@ -70,7 +70,7 @@ class User(db.Model):
 
     id = db.Column(db.String(32), primary_key=True)
     _eppn = db.Column('eppn', db.String(MAX_EMAIL_LENGTH), unique=True)
-    _email = db.Column('email', db.String(MAX_EMAIL_LENGTH), unique=True)
+    # _email = db.Column('email', db.String(MAX_EMAIL_LENGTH), unique=True)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     joining_date = db.Column(db.DateTime)
     is_admin = db.Column(db.Boolean, default=False)
@@ -84,9 +84,9 @@ class User(db.Model):
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     groups = db.relationship("GroupUserAssociation", back_populates="user", lazy="dynamic")
 
-    def __init__(self, email, password=None, is_admin=False):
+    def __init__(self, eppn, password=None, is_admin=False):
         self.id = uuid.uuid4().hex
-        self.email = email
+        self.eppn = eppn
         self.is_admin = is_admin
         self.joining_date = datetime.datetime.utcnow()
         if password:
@@ -99,21 +99,21 @@ class User(db.Model):
         return self.id == other.id
 
     @hybrid_property
-    def email(self):
-        return self._email.lower()
+    def eppn(self):
+        return self._eppn.lower()
 
-    @email.setter
-    def email(self, value):
-        self._email = value.lower()
+    @eppn.setter
+    def eppn(self, value):
+        self._eppn = value.lower()
 
-    @email.comparator
-    def email(cls):
-        return CaseInsensitiveComparator(cls._email)
+    @eppn.comparator
+    def eppn(cls):
+        return CaseInsensitiveComparator(cls._eppn)
 
     def delete(self):
         if self.is_deleted:
             return
-        self.email = self.email + datetime.datetime.utcnow().strftime("-%s")
+        self.eppn = self.eppn + datetime.datetime.utcnow().strftime("-%s")
         self.activation_tokens.delete()
         self.is_deleted = True
         self.is_active = False
@@ -164,10 +164,10 @@ class User(db.Model):
             return user
 
     def __repr__(self):
-        return self.email
+        return self.eppn
 
     def __hash__(self):
-        return hash(self.email)
+        return hash(self.eppn)
 
 
 group_banned_user = db.Table(  # Secondary Table for many-to-many mapping

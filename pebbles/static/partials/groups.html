@@ -23,7 +23,7 @@
         <tbody>
         <tr ng-repeat="group in groups | filter:includeRow">
             <td>{{group.name}}</td>
-            <td ng-show="isAdmin()">{{group.owner_email}}</td>
+            <td ng-show="isAdmin()">{{group.owner_eppn}}</td>
             <td>{{group.join_code}}</td>
             <td>{{group.description}}</td>
             <td>
