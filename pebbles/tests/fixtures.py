@@ -17,13 +17,13 @@ def primary_test_setup(namespace):
         ToDo: store test vars inside a namespace on the parent object, e.g.
         namespace.vars to avoid cluttering.
     """
-    namespace.known_admin_email = "admin@example.org"
+    namespace.known_admin_eppn = "admin@example.org"
     namespace.known_admin_password = "admin"
-    namespace.known_user_email = "user@example.org"
+    namespace.known_user_eppn = "user@example.org"
     namespace.known_user_password = "user"
 
-    u1 = User(namespace.known_admin_email, namespace.known_admin_password, is_admin=True)
-    u2 = User(namespace.known_user_email, namespace.known_user_password, is_admin=False)
+    u1 = User(namespace.known_admin_eppn, namespace.known_admin_password, is_admin=True)
+    u2 = User(namespace.known_user_eppn, namespace.known_user_password, is_admin=False)
     u3 = User("group_owner@example.org", "group_owner")
     u4 = User("group_owner2@example.org", "group_owner2")
 
@@ -192,29 +192,29 @@ def primary_test_setup(namespace):
 
     i1 = Instance(
         Blueprint.query.filter_by(id=b2.id).first(),
-        User.query.filter_by(email="user@example.org").first())
+        User.query.filter_by(eppn="user@example.org").first())
     db.session.add(i1)
     namespace.known_instance_id = i1.id
 
     i2 = Instance(
         Blueprint.query.filter_by(id=b3.id).first(),
-        User.query.filter_by(email="user@example.org").first())
+        User.query.filter_by(eppn="user@example.org").first())
     db.session.add(i2)
     namespace.known_instance_id_2 = i2.id
 
     i3 = Instance(
         Blueprint.query.filter_by(id=b3.id).first(),
-        User.query.filter_by(email="user@example.org").first())
+        User.query.filter_by(eppn="user@example.org").first())
     db.session.add(i3)
     i3.state = Instance.STATE_DELETED
 
     i4 = Instance(
         Blueprint.query.filter_by(id=b3.id).first(),
-        User.query.filter_by(email="group_owner@example.org").first())
+        User.query.filter_by(eppn="group_owner@example.org").first())
     db.session.add(i4)
 
     i5 = Instance(
         Blueprint.query.filter_by(id=b4.id).first(),
-        User.query.filter_by(email="admin@example.org").first())
+        User.query.filter_by(eppn="admin@example.org").first())
     db.session.add(i5)
     db.session.commit()

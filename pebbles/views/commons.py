@@ -11,7 +11,7 @@ import re
 
 user_fields = {
     'id': fields.String,
-    'email': fields.String,
+    'eppn': fields.String,
     'credits_quota': fields.Float,
     'credits_spent': fields.Float,
     'is_active': fields.Boolean,
@@ -28,7 +28,7 @@ group_fields = {
     'description': fields.Raw,
     'config': fields.Raw,
     'user_config': fields.Raw,
-    'owner_email': fields.String,
+    'owner_eppn': fields.String,
     'role': fields.String
 }
 
@@ -40,7 +40,7 @@ auth.authenticate_header = lambda: "Authentication Required"
 def verify_password(userid_or_token, password):
     g.user = User.verify_auth_token(userid_or_token, app.config['SECRET_KEY'])
     if not g.user:
-        g.user = User.query.filter_by(email=userid_or_token).first()
+        g.user = User.query.filter_by(eppn=userid_or_token).first()
         if not g.user:
             return False
         if not g.user.check_password(password):
@@ -52,12 +52,12 @@ def create_worker():
     return create_user('worker@pebbles', app.config['SECRET_KEY'], is_admin=True)
 
 
-def create_user(email, password, is_admin=False):
-    if User.query.filter_by(email=email).first():
-        logging.info("user %s already exists" % email)
+def create_user(eppn, password, is_admin=False):
+    if User.query.filter_by(eppn=eppn).first():
+        logging.info("user %s already exists" % eppn)
         return None
 
-    user = User(email, password, is_admin=is_admin)
+    user = User(eppn, password, is_admin=is_admin)
     if not is_admin:
         add_user_to_default_group(user)
     db.session.add(user)
@@ -65,7 +65,8 @@ def create_user(email, password, is_admin=False):
     return user
 
 
-def invite_user(email, password=None, is_admin=False):
+# Email-eppn : change the email
+def invite_user(email=None, password=None, is_admin=False):
     email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
     if not re.match(email_regex, email):
         raise RuntimeError("Incorrect email")

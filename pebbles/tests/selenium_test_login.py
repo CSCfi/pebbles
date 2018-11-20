@@ -15,7 +15,7 @@ class LoginTestCase(SeleniumBaseTestCase):
     def test_login_as_admin(self):
         for driver in self.drivers:
             self._do_login(
-                self.known_admin_email,
+                self.known_admin_eppn,
                 self.known_admin_password,
                 driver,
                 wait_for_element_id="admin-dashboard"
@@ -27,7 +27,7 @@ class LoginTestCase(SeleniumBaseTestCase):
     def test_login_as_user(self):
         for driver in self.drivers:
             self._do_login(
-                self.known_user_email,
+                self.known_user_eppn,
                 self.known_user_password,
                 driver,
             )
@@ -41,7 +41,7 @@ class LoginTestCase(SeleniumBaseTestCase):
             element = driver.find_element_by_id("invalid-login")
             assert not element.is_displayed()
             self._do_login(
-                self.known_user_email,
+                self.known_user_eppn,
                 "open sesame",
                 driver,
                 wait_for=2
@@ -54,7 +54,7 @@ class LoginTestCase(SeleniumBaseTestCase):
     def test_login_logout_as_user(self):
         for driver in self.drivers:
             self._do_login(
-                self.known_user_email,
+                self.known_user_eppn,
                 self.known_user_password,
                 driver
             )

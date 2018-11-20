@@ -61,7 +61,7 @@
     <table ng-show="users" class="table table-striped">
         <thead>
         <tr>
-            <td><label>Email</label></td>
+            <td><label>EPPN</label></td>
             <td><label>State</label></td>
             <td><label>Quota</label></td>
             <td></td>
@@ -69,7 +69,7 @@
         </thead>
         <tbody>
             <tr ng-repeat="user in users | filter:includeRow">
-            <td>{{user.email}}</td>
+            <td>{{user.eppn}}</td>
             <td>
                 <span class="label label-default" ng-show="user.is_active">active</span>
                 <span class="label label-warning" ng-hide="user.is_active">inactive</span>

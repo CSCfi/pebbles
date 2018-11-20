@@ -73,8 +73,8 @@ class ExportStatistics(restful.Resource):
             return []
         results = {}
         for inst in institutions:
-            email = str(inst._email)
-            domain = email.split("@")[1]
+            eppn = str(inst._eppn)
+            domain = eppn.split("@")[1]
 
             if domain in results:
                 results[domain] += 1
@@ -119,8 +119,8 @@ class ExportStatistics(restful.Resource):
             filter = filter.strip().split(',')
             if exclude:
                 for user in users:
-                    email = str(user._email)
-                    info = email.split("@")
+                    eppn = str(user._eppn)
+                    info = eppn.split("@")
                     obj = {
                         "user": info[0],
                         "institution": info[1]
@@ -129,8 +129,8 @@ class ExportStatistics(restful.Resource):
                         results.append(obj)
             else:
                 for user in users:
-                    email = str(user._email)
-                    info = email.split("@")
+                    eppn = str(user._eppn)
+                    info = eppn.split("@")
                     obj = {
                         "user": info[0],
                         "institution": info[1]
@@ -139,8 +139,8 @@ class ExportStatistics(restful.Resource):
                         results.append(obj)
         else:
             for user in users:
-                email = str(user._email)
-                info = email.split("@")
+                eppn = str(user._eppn)
+                info = eppn.split("@")
                 obj = {
                     "user": info[0],
                     "institution": info[1]
@@ -168,8 +168,8 @@ class ExportStatistics(restful.Resource):
         stat = args.get("stat")
         # Assign quartals and institution type
         for row in quartals:
-            email = str(row[0])
-            domain = email.split("@")[1]
+            eppn = str(row[0])
+            domain = eppn.split("@")[1]
             date = row[1]
 
             if date is not None:

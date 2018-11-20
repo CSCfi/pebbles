@@ -96,7 +96,7 @@ class InstanceList(restful.Resource):
 
             user = get_user(instance.user_id)
             if user:
-                instance.username = user.email
+                instance.username = user.eppn
 
             blueprint = get_blueprint(instance.blueprint_id)
             if not blueprint:
@@ -221,7 +221,7 @@ class InstanceView(restful.Resource):
             text = {"subject": " ", "message": " "}
             admin_users = User.query.filter_by(is_admin=True).all()
             for admins in admin_users:
-                if admins.email != 'worker@pebbles':
+                if admins.eppn != 'worker@pebbles':
                     text['subject'] = "Notebooks.csc.fi:WARNING"
                     text['message'] = instance.name + " is taking more than ten minutes to launch"
                     send_mails.delay([(admins.email, 'None', 't')], text)

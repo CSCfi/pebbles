@@ -38,7 +38,7 @@ class GroupList(restful.Resource):
                 if user.is_admin or user.id == owner.id:
                     group.config = {"name": group.name, "join_code": group.join_code, "description": group.description}
                     group.user_config = generate_user_config(group)
-                    group.owner_email = owner.email
+                    group.owner_eppn = owner.eppn
                     group.admin_group = owner.is_admin
                 else:
                     group.config = {}
@@ -48,7 +48,7 @@ class GroupList(restful.Resource):
         if not user.is_admin:
             results = sorted(results, key=lambda group: group.name)
         else:  # For admins, the admin groups should be first
-            results = sorted(results, key=lambda group: (-group.admin_group, group.owner_email, group.name))
+            results = sorted(results, key=lambda group: (-group.admin_group, group.owner_eppn, group.name))
         return results
 
     @auth.login_required

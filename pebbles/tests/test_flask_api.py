@@ -75,7 +75,7 @@ class FlaskApiTestCase(BaseTestCase):
     def make_authenticated_admin_request(self, method='GET', path='/', headers=None, data=None):
         global ADMIN_TOKEN
         if not ADMIN_TOKEN:
-            ADMIN_TOKEN = self.get_auth_token({'email': 'admin@example.org', 'password': 'admin'})
+            ADMIN_TOKEN = self.get_auth_token({'eppn': 'admin@example.org', 'password': 'admin'})
 
         self.admin_token = ADMIN_TOKEN
 
@@ -86,7 +86,7 @@ class FlaskApiTestCase(BaseTestCase):
         global USER_TOKEN
         if not USER_TOKEN:
             USER_TOKEN = self.get_auth_token(creds={
-                'email': self.known_user_email,
+                'eppn': self.known_user_eppn,
                 'password': self.known_user_password}
             )
         self.user_token = USER_TOKEN
@@ -96,7 +96,7 @@ class FlaskApiTestCase(BaseTestCase):
     def make_authenticated_group_owner_request(self, method='GET', path='/', headers=None, data=None):
         global GROUP_OWNER_TOKEN
         if not GROUP_OWNER_TOKEN:
-            GROUP_OWNER_TOKEN = self.get_auth_token(creds={'email': 'group_owner@example.org', 'password': 'group_owner'})
+            GROUP_OWNER_TOKEN = self.get_auth_token(creds={'eppn': 'group_owner@example.org', 'password': 'group_owner'})
         self.group_owner_token = GROUP_OWNER_TOKEN
         return self.make_authenticated_request(method, path, headers, data,
                                                auth_token=self.group_owner_token)
@@ -104,7 +104,7 @@ class FlaskApiTestCase(BaseTestCase):
     def make_authenticated_group_owner2_request(self, method='GET', path='/', headers=None, data=None):
         global GROUP_OWNER_TOKEN2
         if not GROUP_OWNER_TOKEN2:
-            GROUP_OWNER_TOKEN2 = self.get_auth_token(creds={'email': 'group_owner2@example.org', 'password': 'group_owner2'})
+            GROUP_OWNER_TOKEN2 = self.get_auth_token(creds={'eppn': 'group_owner2@example.org', 'password': 'group_owner2'})
         self.group_owner_token2 = GROUP_OWNER_TOKEN2
         return self.make_authenticated_request(method, path, headers, data,
                                                auth_token=self.group_owner_token2)
@@ -115,7 +115,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             'POST',
             '/api/v1/initialize',
-            data=json.dumps({'email': 'admin@example.org',
+            data=json.dumps({'eppn': 'admin@example.org',
                              'password': 'admin'}))
         self.assert_200(response)
 
@@ -123,7 +123,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'email': 'user@example.org', 'password': 'user'}))
+            data=json.dumps({'eppn': 'user@example.org', 'password': 'user'}))
         self.assert_200(response)
         response = self.make_authenticated_admin_request(
             method='DELETE',
@@ -133,14 +133,14 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'email': 'user@example.org', 'password': 'user'}))
+            data=json.dumps({'eppn': 'user@example.org', 'password': 'user'}))
         self.assert_401(response)
 
     def test_deleted_user_cannot_use_token(self):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'email': 'user@example.org', 'password': 'user'})
+            data=json.dumps({'eppn': 'user@example.org', 'password': 'user'})
         )
         self.assert_200(response)
 
@@ -174,8 +174,8 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_401(response)
 
     def test_delete_user(self):
-        email = "test@example.org"
-        u = User(email, "testuser", is_admin=False)
+        eppn = "test@example.org"
+        u = User(eppn, "testuser", is_admin=False)
         # Anonymous
         db.session.add(u)
         db.session.commit()
@@ -198,11 +198,11 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response)
         user = User.query.filter_by(id=u.id).first()
-        self.assertTrue(user.email != email)
+        self.assertTrue(user.eppn != eppn)
 
     def test_make_group_owner(self):
-        email = "test_owner@example.org"
-        u = User(email, "testuser", is_admin=False)
+        eppn = "test_owner@example.org"
+        u = User(eppn, "testuser", is_admin=False)
         db.session.add(u)
         db.session.commit()
         # Anonymous
@@ -247,8 +247,8 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertFalse(user.is_group_owner)
 
     def test_block_user(self):
-        email = "test@example.org"
-        u = User(email, "testuser", is_admin=False)
+        eppn = "test@example.org"
+        u = User(eppn, "testuser", is_admin=False)
         db.session.add(u)
         db.session.commit()
         # Anonymous

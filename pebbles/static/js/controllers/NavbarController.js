@@ -76,7 +76,7 @@ app.controller('NavbarController', ['$scope', '$window', '$rootScope', '$locatio
 
     $scope.logout = function() {
         AuthService.logout();
-        $scope.email = "";
+        $scope.eppn = "";
         $scope.password = "";
         $rootScope.$broadcast('userLoggedOut');
         // To make transition smoother

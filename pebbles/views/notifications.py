@@ -91,7 +91,7 @@ class NotificationView(restful.Resource):
         if current_user.is_admin is True and args.get('send_mail'):
             Users = User.query.filter_by(is_active='t')
             for user in Users:
-                if user.email != 'worker@pebbles':
+                if user.eppn != 'worker@pebbles':
                     text['subject'] = notification.subject
                     text['message'] = notification.message
                     send_mails.delay([(user.email, 'None', 't')], text)

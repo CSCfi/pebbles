@@ -85,7 +85,7 @@ class SeleniumBaseTestCase(LiveServerTestCase):
         # make the form visible if we have SSO enabled
         if elem.is_displayed():
             elem.click()
-        elem = driver.find_element_by_name("email")
+        elem = driver.find_element_by_name("eppn")
         elem.send_keys(username)
         elem = driver.find_element_by_name("password")
         # all logged in users are directed to either dashboard or admin dash.

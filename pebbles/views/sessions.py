@@ -33,7 +33,7 @@ class SessionView(restful.Resource):
             logging.warn("validation error on user login")
             return form.errors, 422
 
-        user = User.query.filter_by(email=form.email.data).first()
+        user = User.query.filter_by(eppn=form.eppn.data).first()
         if user and user.check_password(form.password.data):
             if user.is_admin:
                 icons = json.dumps(admin_icons)
@@ -52,7 +52,7 @@ class SessionView(restful.Resource):
                 'user_id': user.id,
                 'icon_value': icons
             }, token_fields)
-        logging.warn("invalid login credentials for %s" % form.email.data)
+        logging.warn("invalid login credentials for %s" % form.eppn.data)
         return {
             'message': 'Unauthorized',
             'status': 401

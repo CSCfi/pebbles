@@ -269,7 +269,7 @@ class OpenShiftDriverAccessProxy(object):
 
 class OpenShiftDriver(base_driver.ProvisioningDriverBase):
     """ OpenShift Driver allows provisioning instances in an existing OpenShift cluster.
-    It creates a project per user, identified by user email, and optionally a persistent
+    It creates a project per user, identified by user eppn, and optionally a persistent
     volume claim (PVC) for user data.
 
     The driver needs credentials for the cluster. The credentials are placed in the same
