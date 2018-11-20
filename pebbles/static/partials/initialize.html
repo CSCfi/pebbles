@@ -3,7 +3,7 @@
         <form name="initializationForm" class="form-activate default-form-color" ng-submit="initialize_user()">
             <h2 class="form-signin-heading">Create admin account</h2>
 
-            <input type="email" class="form-control initial-input" name="validEmail" ng-model="user.email" placeholder="Email" required autofocus>
+            <input type="email" class="form-control initial-input" name="validEmail" ng-model="user.eppn" placeholder="Email" required autofocus>
             <div data-ng-show="initializationForm.validEmail.$error.email" class="alert alert-danger" role="alert">Incorrect email address!</div>
 
             <input type="password" class="form-control initial-input" ng-model="user.password"  data-ng-class="{'ng-invalid':initializationForm.confirmPassword.$error.match}" placeholder="Password" required>

@@ -106,7 +106,7 @@ def createuser(email=None, password=None, admin=False):
         email = input("email: ")
     if not password:
         password = getpass.getpass("password: ")
-    create_user(email, password=password, is_admin=admin)
+    create_user(eppn=email, password=password, is_admin=admin, email_id=email)
 
 @manager.command
 def purgehost(name):

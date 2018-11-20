@@ -85,9 +85,9 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
             };
 
             $scope.new_user = '';
-            $scope.add_user = function(email) {
+            $scope.add_user = function(email_id) {
                 if ($scope.add_user_form.$valid){
-                    var user_parameters = {eppn: email};
+                    var user_parameters = {eppn: email_id, email_id: email_id};
                     users.post(user_parameters).then(function() {
                         users.getList().then(function (response) {
                             $scope.users = response;

@@ -30,7 +30,7 @@ app.controller('NavbarController', ['$scope', '$window', '$rootScope', '$locatio
         return $location.path().match(viewLocation) === viewLocation;
     };
     $scope.login = function() {
-        AuthService.login($scope.email, $scope.password).then(function() {
+        AuthService.login($scope.eppn, $scope.password).then(function() {
             _invalidLogin = false;
             $rootScope.$broadcast('userLoggedIn');
             _routeNavigator();

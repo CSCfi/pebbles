@@ -30,6 +30,7 @@ class ModelForm(BaseModelForm):
 
 class UserForm(ModelForm):
     eppn = StringField('eppn', validators=[DataRequired(), Email(), Length(max=MAX_EMAIL_LENGTH)])
+    email_id = StringField('email_id', validators=[Email(), Length(max=MAX_EMAIL_LENGTH)])
     password = StringField('password', default=None)
     is_admin = BooleanField('is_admin', default=False, false_values=['false', False, ''])
 
