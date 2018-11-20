@@ -70,7 +70,7 @@ class User(db.Model):
 
     id = db.Column(db.String(32), primary_key=True)
     _eppn = db.Column('eppn', db.String(MAX_EMAIL_LENGTH), unique=True)
-    # _email = db.Column('email', db.String(MAX_EMAIL_LENGTH), unique=True)
+    _email_id = db.Column('email_id', db.String(MAX_EMAIL_LENGTH), unique=True)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     joining_date = db.Column(db.DateTime)
     is_admin = db.Column(db.Boolean, default=False)
@@ -84,11 +84,13 @@ class User(db.Model):
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     groups = db.relationship("GroupUserAssociation", back_populates="user", lazy="dynamic")
 
-    def __init__(self, eppn, password=None, is_admin=False):
+    def __init__(self, eppn, password=None, is_admin=False, email_id=None):
         self.id = uuid.uuid4().hex
         self.eppn = eppn
         self.is_admin = is_admin
         self.joining_date = datetime.datetime.utcnow()
+        if email_id:
+            self.email_id = email_id
         if password:
             self.set_password(password)
             self.is_active = True
@@ -110,10 +112,27 @@ class User(db.Model):
     def eppn(cls):
         return CaseInsensitiveComparator(cls._eppn)
 
+    @hybrid_property
+    def email_id(self):
+        if self._email_id:
+            return self._email_id.lower()
+
+    @email_id.setter
+    def email_id(self, value):
+        if value:
+            self._email_id = value.lower()
+
+    @email_id.comparator
+    def email_id(cls):
+        return CaseInsensitiveComparator(cls._email_id)
+
     def delete(self):
         if self.is_deleted:
             return
         self.eppn = self.eppn + datetime.datetime.utcnow().strftime("-%s")
+        # Email_id is also renamed to allow users
+        # to be deleted and invited again with same email_id
+        self.email_id = self.email_id + datetime.datetime.utcnow().strftime("-%s")
         self.activation_tokens.delete()
         self.is_deleted = True
         self.is_active = False

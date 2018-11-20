@@ -35,11 +35,11 @@ class ActivationView(restful.Resource):
             user.is_active = True
             add_user_to_default_group(user)
             db.session.add(user)
-            logging.info("Activating user: %s" % user.email)
+            logging.info("Activating user: %s" % user.eppn)
         db.session.delete(token)
         db.session.commit()
 
-        logging.info("User %s is active and password has been updated" % user.email)
+        logging.info("User %s is active and password has been updated" % user.eppn)
 
         return user
 
@@ -50,7 +50,7 @@ class ActivationList(restful.Resource):
         if not form.validate_on_submit():
             return form.errors, 422
 
-        user = User.query.filter_by(email=form.email.data).first()
+        user = User.query.filter_by(email_id=form.email_id.data).first()
         if not user:
             abort(404)
 
@@ -61,7 +61,7 @@ class ActivationList(restful.Resource):
             logging.warn(
                 'There are already %d activation tokens for user %s'
                 ', not sending another'
-                % (MAX_ACTIVATION_TOKENS_PER_USER, user.email)
+                % (MAX_ACTIVATION_TOKENS_PER_USER, user.email_id)
             )
             # 403 Forbidden
             abort(403)
@@ -71,4 +71,4 @@ class ActivationList(restful.Resource):
         db.session.add(token)
         db.session.commit()
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-            send_mails.delay([(user.email, token.token, user.is_active)])
+            send_mails.delay([(user.email_id, token.token, user.is_active)])

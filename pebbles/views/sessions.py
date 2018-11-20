@@ -7,7 +7,7 @@ import json
 from pebbles.models import User
 from pebbles.forms import SessionCreateForm
 from pebbles.server import app, restful
-from pebbles.views.commons import is_group_manager  # changed
+from pebbles.views.commons import is_group_manager, update_email  # changed
 
 sessions = FlaskBlueprint('sessions', __name__)
 
@@ -34,6 +34,9 @@ class SessionView(restful.Resource):
             return form.errors, 422
 
         user = User.query.filter_by(eppn=form.eppn.data).first()
+        if not user.email_id:
+            # Email and eppn are same because we invite users through emailid
+            user = update_email(eppn=user.eppn, email_id=user.eppn)
         if user and user.check_password(form.password.data):
             if user.is_admin:
                 icons = json.dumps(admin_icons)

@@ -12,6 +12,7 @@ import re
 user_fields = {
     'id': fields.String,
     'eppn': fields.String,
+    'email_id': fields.String,
     'credits_quota': fields.Float,
     'credits_spent': fields.Float,
     'is_active': fields.Boolean,
@@ -49,15 +50,15 @@ def verify_password(userid_or_token, password):
 
 
 def create_worker():
-    return create_user('worker@pebbles', app.config['SECRET_KEY'], is_admin=True)
+    return create_user('worker@pebbles', app.config['SECRET_KEY'], is_admin=True, email_id=None)
 
 
-def create_user(eppn, password, is_admin=False):
+def create_user(eppn, password, is_admin=False, email_id=None):
     if User.query.filter_by(eppn=eppn).first():
         logging.info("user %s already exists" % eppn)
         return None
 
-    user = User(eppn, password, is_admin=is_admin)
+    user = User(eppn, password, is_admin=is_admin, email_id=email_id)
     if not is_admin:
         add_user_to_default_group(user)
     db.session.add(user)
@@ -65,17 +66,26 @@ def create_user(eppn, password, is_admin=False):
     return user
 
 
-# Email-eppn : change the email
-def invite_user(email=None, password=None, is_admin=False):
+def update_email(eppn, email_id=None):
+    user = User.query.filter_by(eppn=eppn).first()
+    if email_id:
+        user.email_id = email_id
+    db.session.add(user)
+    db.session.commit()
+    return user
+
+
+# both eppn and email are the same
+def invite_user(eppn=None, password=None, is_admin=False):
     email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
-    if not re.match(email_regex, email):
+    if not re.match(email_regex, eppn):
         raise RuntimeError("Incorrect email")
-    user = User.query.filter_by(email=email).first()
+    user = User.query.filter_by(eppn=eppn).first()
     if user:
-        logging.warn("user %s already exists" % email)
+        logging.warn("user %s already exists" % user.eppn)
         return None
 
-    user = User(email, password, is_admin)
+    user = User(eppn=eppn, password=password, is_admin=is_admin, email_id=eppn)
     db.session.add(user)
     db.session.commit()
 
@@ -84,7 +94,7 @@ def invite_user(email=None, password=None, is_admin=False):
     db.session.commit()
 
     if not app.dynamic_config['SKIP_TASK_QUEUE'] and not app.dynamic_config['MAIL_SUPPRESS_SEND']:
-        send_mails.delay([(user.email, token.token, user.is_active)])
+        send_mails.delay([(user.eppn, token.token, user.is_active)])
     else:
         logging.warn(
             "email sending suppressed in config: SKIP_TASK_QUEUE:%s MAIL_SUPPRESS_SEND:%s" %

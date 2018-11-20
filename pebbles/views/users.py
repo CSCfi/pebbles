@@ -39,7 +39,7 @@ class UserList(restful.Resource):
         if not form.validate_on_submit():
             logging.warn("validation error on user add: %s" % form.errors)
             abort(422)
-        invite_user(form.email.data, form.password.data, form.is_admin.data)
+        invite_user(form.eppn.data, form.password.data, form.is_admin.data)
         return User.query.all()
 
     @auth.login_required

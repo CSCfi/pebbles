@@ -11,7 +11,7 @@ except:
 from pebbles.app import app
 from pebbles.models import db, User
 
-from pebbles.views.commons import create_user, is_group_manager
+from pebbles.views.commons import create_user, is_group_manager, update_email
 from pebbles.views.blueprint_templates import blueprint_templates, BlueprintTemplateList, BlueprintTemplateView, BlueprintTemplateCopy
 from pebbles.views.blueprints import blueprints, BlueprintList, BlueprintView, BlueprintCopy
 from pebbles.views.plugins import plugins, PluginList, PluginView
@@ -112,9 +112,11 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
     @sso.login_handler
     def login(user_info):
         eppn = user_info['eppn']
-        user = User.query.filter_by(email=eppn).first()
+        user = User.query.filter_by(eppn=eppn).first()
         if not user:
-            user = create_user(eppn, password=uuid.uuid4().hex)
+            user = create_user(eppn, password=uuid.uuid4().hex, email_id=user_info['email_id'])
+        if not user.email_id:
+            user = update_email(eppn, email_id=user_info['email_id'])
         if not user.is_active:
             user.is_active = True
             db.session.commit()
