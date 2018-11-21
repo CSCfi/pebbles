@@ -100,13 +100,14 @@ def fixtures():
 
 
 @manager.command
-def createuser(email=None, password=None, admin=False):
+def createuser(eppn=None, password=None, admin=False):
     """Creates new user"""
-    if not email:
-        email = input("email: ")
+    if not eppn:
+        eppn = input("email: ")
     if not password:
         password = getpass.getpass("password: ")
-    create_user(eppn=email, password=password, is_admin=admin, email_id=email)
+    create_user(eppn=eppn, password=password, is_admin=admin, email_id=eppn)
+
 
 @manager.command
 def purgehost(name):
