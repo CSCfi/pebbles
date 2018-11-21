@@ -87,7 +87,7 @@ class ChangePasswordForm(ModelForm):
 
 
 class PasswordResetRequestForm(ModelForm):
-    email = StringField('email', validators=[DataRequired(), Email(), Length(max=MAX_EMAIL_LENGTH)])
+    email_id = StringField('email_id', validators=[Email(), Length(max=MAX_EMAIL_LENGTH)])
 
 
 class InstanceForm(ModelForm):

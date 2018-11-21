@@ -13,8 +13,8 @@ app.controller('ActivationController', ['$q', '$scope', '$routeParams', '$locati
         var promise = AuthService.changePasswordWithToken(token, $scope.user.password);
         promise.then(function(response) {
             activation_success = true;
-            $scope.activated_user = response.email;
-	    $.notify({message: 'You have successfully activated your account: ' + response.email + '. Please login with your email and password'}, {type: 'success'});
+            $scope.activated_user = response.eppn;
+	    $.notify({message: 'You have successfully activated your account: ' + response.eppn + '. Please login with your email and password'}, {type: 'success'});
 	    $location.path("/");
         }, function(response) {
             activation_success = false;

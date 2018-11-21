@@ -94,7 +94,7 @@ class NotificationView(restful.Resource):
                 if user.eppn != 'worker@pebbles':
                     text['subject'] = notification.subject
                     text['message'] = notification.message
-                    send_mails.delay([(user.email, 'None', 't')], text)
+                    send_mails.delay([(user.email_id, 'None', 't')], text)
         else:
             current_user.latest_seen_notification_ts = notification.broadcasted
             db.session.commit()
