@@ -116,14 +116,15 @@ class FlaskApiTestCase(BaseTestCase):
             'POST',
             '/api/v1/initialize',
             data=json.dumps({'eppn': 'admin@example.org',
-                             'password': 'admin'}))
+                             'password': 'admin',
+                             'email_id': 'admin@example.org'}))
         self.assert_200(response)
 
     def test_deleted_user_cannot_get_token(self):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'eppn': 'user@example.org', 'password': 'user'}))
+            data=json.dumps({'eppn': 'user@example.org', 'password': 'user', 'email_id': None}))
         self.assert_200(response)
         response = self.make_authenticated_admin_request(
             method='DELETE',
@@ -133,7 +134,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'eppn': 'user@example.org', 'password': 'user'}))
+            data=json.dumps({'eppn': 'user@example.org', 'password': 'user', 'email_id': None}))
         self.assert_401(response)
 
     def test_deleted_user_cannot_use_token(self):
@@ -1475,36 +1476,36 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_403(response)
 
     def test_admin_invite_user(self):
-        data = {'email': 'test@example.org', 'is_admin': True}
+        data = {'eppn': 'test@example.org', 'is_admin': True, 'email_id': 'test@example.org'}
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/users',
             data=json.dumps(data))
         self.assert_200(response)
-        user = User.query.filter_by(email='test@example.org').first()
+        user = User.query.filter_by(eppn='test@example.org').first()
         self.assertIsNotNone(user)
         self.assertFalse(user.is_active)
         self.assertTrue(user.is_admin)
 
-        data = {'email': 'test2@example.org', 'is_admin': False}
+        data = {'eppn': 'test2@example.org', 'is_admin': False, 'email_id': 'test2@example.org'}
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/users',
             data=json.dumps(data))
         self.assert_200(response)
-        user = User.query.filter_by(email='test2@example.org').first()
+        user = User.query.filter_by(eppn='test2@example.org').first()
         self.assertIsNotNone(user)
         self.assertFalse(user.is_active)
         self.assertFalse(user.is_admin)
 
     def test_admin_delete_invited_user_deletes_activation_tokens(self):
-        data = {'email': 'test@example.org'}
+        data = {'eppn': 'test@example.org', 'email_id': 'test@example.org'}
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/users',
             data=json.dumps(data))
         self.assert_200(response)
-        user = User.query.filter_by(email='test@example.org').first()
+        user = User.query.filter_by(eppn='test@example.org').first()
         self.assertIsNotNone(user)
         self.assertFalse(user.is_admin)
         self.assertFalse(user.is_active)
@@ -1517,15 +1518,15 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertEqual(ActivationToken.query.filter_by(user_id=user.id).count(), 0)
 
     def test_accept_invite(self):
-        user = User.query.filter_by(email='test@example.org').first()
+        user = User.query.filter_by(eppn='test@example.org').first()
         self.assertIsNone(user)
-        data = {'email': 'test@example.org', 'password': None, 'is_admin': True}
+        data = {'eppn': 'test@example.org', 'password': None, 'is_admin': True, 'email_id': 'test@example.org'}
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/users',
             data=json.dumps(data))
         self.assert_200(response)
-        user = User.query.filter_by(email='test@example.org').first()
+        user = User.query.filter_by(eppn='test@example.org').first()
         self.assertIsNotNone(user)
         self.assertFalse(user.is_active)
         token = ActivationToken.query.filter_by(user_id=user.id).first()
@@ -1536,7 +1537,7 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/activations/%s' % token.token,
             data=json.dumps(data))
         self.assert_200(response)
-        user = User.query.filter_by(email='test@example.org').first()
+        user = User.query.filter_by(eppn='test@example.org').first()
         default_group = Group.query.filter_by(name='System.default').first()
         self.assertIsNotNone(user)
         self.assertTrue(user.is_active)
@@ -1548,7 +1549,10 @@ class FlaskApiTestCase(BaseTestCase):
         # positive test for existing user
         user = User.query.filter_by(id=self.known_user_id).first()
         self.assertIsNotNone(user)
-        data = {'email': user.email}
+        if user.email_id:
+            data = {'email_id': user.email_id}
+        else:
+            data = {'email_id': user.eppn}
         response = self.make_request(
             method='POST',
             path='/api/v1/activations',
@@ -1569,9 +1573,9 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_403(response)
 
         # negative test for non-existing user
-        user = User.query.filter_by(email='not.here@example.org').first()
+        user = User.query.filter_by(eppn='not.here@example.org').first()
         self.assertIsNone(user)
-        data = {'email': 'not.here@example.org'}
+        data = {'email_id': 'not.here@example.org'}
         response = self.make_request(
             method='POST',
             path='/api/v1/activations',
