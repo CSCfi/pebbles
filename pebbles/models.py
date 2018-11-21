@@ -132,7 +132,8 @@ class User(db.Model):
         self.eppn = self.eppn + datetime.datetime.utcnow().strftime("-%s")
         # Email_id is also renamed to allow users
         # to be deleted and invited again with same email_id
-        self.email_id = self.email_id + datetime.datetime.utcnow().strftime("-%s")
+        if self.email_id:
+            self.email_id = self.email_id + datetime.datetime.utcnow().strftime("-%s")
         self.activation_tokens.delete()
         self.is_deleted = True
         self.is_active = False

@@ -6,7 +6,7 @@ from pebbles.models import User, Group, Blueprint, BlueprintTemplate, Plugin, In
 class ModelsTestCase(BaseTestCase):
     def setUp(self):
         db.create_all()
-        u = User("user@example.org", "user", is_admin=False)
+        u = User("user@example.org", "user", is_admin=False, email_id="user@example.org")
         self.known_user = u
 
         db.session.add(u)

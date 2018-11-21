@@ -34,7 +34,7 @@ class SessionView(restful.Resource):
             return form.errors, 422
 
         user = User.query.filter_by(eppn=form.eppn.data).first()
-        if not user.email_id:
+        if user and not user.email_id:
             # Email and eppn are same because we invite users through emailid
             user = update_email(eppn=user.eppn, email_id=user.eppn)
         if user and user.check_password(form.password.data):

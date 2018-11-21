@@ -50,7 +50,7 @@ class ActivationList(restful.Resource):
         if not form.validate_on_submit():
             return form.errors, 422
 
-        user = User.query.filter_by(email_id=form.email_id.data).first()
+        user = User.query.filter_by(eppn=form.email_id.data).first()
         if not user:
             abort(404)
 
