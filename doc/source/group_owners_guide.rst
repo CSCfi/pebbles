@@ -3,6 +3,8 @@
 Group Owner's Guide
 *******************
 
+**PLEASE NOTE (if you're using CSC Notebooks): notebooks.csc.fi has a regular scheduled maintenance downtime on first tuesday of every month between 7-9 AM**
+
 Groups give you more control and flexiblity to manage your blueprints for
 different sets of users.  A group can contain multiple blueprints and multiple
 users in it. Each blueprint that you create based on a given template would
