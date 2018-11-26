@@ -132,7 +132,7 @@ class OpenShiftClient(object):
 
         return self.token_data['access_token']
 
-    def _construct_object_url(self, kubeapi, namespace=None, object_kind=None, object_id=None):
+    def _construct_object_url(self, kubeapi, namespace=None, object_kind=None, object_id=None, subop=None):
         """
         Create a url string for given object
         :param kubeapi: whether plain k8s or oso api is used
@@ -153,12 +153,14 @@ class OpenShiftClient(object):
             url_components.append(object_kind)
         if object_id:
             url_components.append(object_id)
+        if subop:
+            url_components.append(subop)
         url = '/'.join(url_components)
 
         return url
 
     def make_request(self, method=None, kubeapi=False, verbose=False, namespace=None, object_kind=None, object_id=None,
-                     params=None, data=None, raise_on_failure=True):
+                     subop=None, params=None, data=None, raise_on_failure=True):
         """
         Makes a request to OpenShift API
 
@@ -168,12 +170,13 @@ class OpenShiftClient(object):
         :param namespace: namespace for the object
         :param object_kind: type of the object
         :param object_id: id of the object
+        :param subop: if it's a suboperation eg. getting logs of an object
         :param params: request parameters
         :param data: request data
         :param raise_on_failure: should we raise a RuntimeError on failure
         :return: response object from requests session
         """
-        url = self._construct_object_url(kubeapi, namespace, object_kind, object_id)
+        url = self._construct_object_url(kubeapi, namespace, object_kind, object_id, subop)
         headers = {'Authorization': 'Bearer %s' % self._get_token()}
         if isinstance(data, dict):
             data = json.dumps(data)
@@ -291,8 +294,34 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         return config
 
     def get_running_instance_logs(self, token, instance_id):
+        """ Get the logs of the openshift based instance which is in running state """
+        self.logger.debug("getting container logs for instance id %s" % instance_id)
+
+        ap = self._get_access_proxy()
+        pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         running_log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='running')
-        running_log_uploader.info('Cannot get running logs. This feature has not been implemented for the OpenShiftDriver yet')
+
+        instance = pbclient.get_instance_description(instance_id)
+
+        # create openshift client by getting the cluster id from the blueprint config
+        blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
+        blueprint_config = blueprint['full_config']
+        oc = ap.get_openshift_client(
+            cluster_id=blueprint_config['openshift_cluster_id'],
+        )
+
+        instance_name = instance['name']
+        project = self._get_project_name(instance)
+
+        log_res = oc.make_request(
+            method='GET',
+            namespace=project,
+            object_kind='deploymentconfigs',
+            object_id=instance_name,
+            subop='log',
+        )
+
+        running_log_uploader.info(log_res.text)
 
     def _get_access_proxy(self):
         if not getattr(self, '_ap', None):

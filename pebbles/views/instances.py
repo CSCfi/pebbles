@@ -374,11 +374,11 @@ def process_logs(instance_id, log_record):
 
     check_running_log = get_logs_from_db(instance_id, "running")
 
-    if check_running_log:
+    if check_running_log:  # in case of running logs, the whole message is replaced again (thus only 1 running log record with all info)
         instance_log = check_running_log[0]
         if log_record['log_type'] == "running":
             instance_log.timestamp = float(log_record['timestamp'])
-            instance_log.message = log_record['message']
+            instance_log.message = log_record['message']  # replace the whole text (older text now appended with the new text)
             return instance_log
 
     instance_log = InstanceLog(instance_id)
