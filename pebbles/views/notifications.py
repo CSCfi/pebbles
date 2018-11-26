@@ -1,5 +1,6 @@
 from flask.ext.restful import fields, marshal_with, reqparse
 from flask import abort, g, Blueprint
+from sqlalchemy import or_
 
 import logging
 
@@ -89,7 +90,8 @@ class NotificationView(restful.Resource):
         if not notification:
             abort(404)
         if current_user.is_admin is True and args.get('send_mail'):
-            Users = User.query.filter_by(is_active='t')
+            # Users = User.query.filter_by(is_active='t')
+            Users = User.query.filter(User.is_active == 't').filter(or_(User.is_group_owner == 't', User.is_admin == 't'))
             for user in Users:
                 if user.email != 'worker@pebbles':
                     text['subject'] = notification.subject
