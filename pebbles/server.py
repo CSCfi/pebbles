@@ -101,6 +101,11 @@ app.register_blueprint(stats)
 app.register_blueprint(export_stats)
 app.register_blueprint(namespaced_keyvalues)
 
+admin_icons = ["Dashboard", "Users", "Groups", "Blueprints", "Configure", "Statistics", "Account"]
+group_owner_icons = ["Dashboard", "", "Groups", "Blueprints", "Configure", "", "Account"]
+group_manager_icons = ["Dashboard", "", "", "Blueprints", "", "", "Account"]
+user_icons = ["Dashboard", "", "", "", "", "", "Account"]
+
 if app.config['ENABLE_SHIBBOLETH_LOGIN']:
     sso = SSO(app=app)
 
@@ -120,6 +125,14 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
                 error_title='User Blocked',
                 error_description=error_description
             )
+        if user.is_admin:
+            icons = admin_icons
+        elif user.is_group_owner:
+            icons = group_owner_icons
+        elif is_group_manager(user):
+            icons = group_manager_icons
+        else:
+            icons = user_icons
 
         token = user.generate_auth_token(app.config['SECRET_KEY'])
         return render_template(
@@ -129,7 +142,8 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
             is_admin=user.is_admin,
             is_group_owner=user.is_group_owner,
             is_group_manager=is_group_manager(user),
-            userid=user.id
+            userid=user.id,
+            icon_value=icons
         )
 
     @sso.login_error_handler

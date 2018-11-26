@@ -21,6 +21,7 @@
                     localStorageService.set('isGroupManager', true);
                 {% endif %}
                 localStorageService.set('userId', '{{ userid }}');
+                localStorageService.set('iconValue', {{icon_value|safe}});
                 window.location.assign("/");
             });
         </script>
