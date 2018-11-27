@@ -87,6 +87,7 @@ class ChangePasswordForm(ModelForm):
 
 
 class PasswordResetRequestForm(ModelForm):
+    # password reset link is sent to email so email option is used here
     email_id = StringField('email_id', validators=[Email(), Length(max=MAX_EMAIL_LENGTH)])
 
 
