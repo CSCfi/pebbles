@@ -85,6 +85,8 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
             };
 
             $scope.new_user = '';
+            // When inviting new user add both eppn and email_id
+            // (which are same for guest invite-only users)
             $scope.add_user = function(email_id) {
                 if ($scope.add_user_form.$valid){
                     var user_parameters = {eppn: email_id, email_id: email_id};

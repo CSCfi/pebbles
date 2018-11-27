@@ -62,6 +62,7 @@ def send_mails(users, text=None):
     dynamic_config = get_dynamic_config()
     j2_env = jinja2.Environment(loader=jinja2.PackageLoader('pebbles', 'templates'))
     base_url = dynamic_config['BASE_URL'].strip('/')
+    # Here email_id is used to send email because sending emails through eppn might not work in some cases
     for email_id, token, user_active in users:
         if text is None:
             activation_url = '%s/#/activate/%s' % (base_url, token)

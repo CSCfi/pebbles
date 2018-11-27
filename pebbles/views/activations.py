@@ -50,6 +50,8 @@ class ActivationList(restful.Resource):
         if not form.validate_on_submit():
             return form.errors, 422
 
+        # here users have same email and eppn data.
+        # Because password link is sent only to the email_id
         user = User.query.filter_by(eppn=form.email_id.data).first()
         if not user:
             abort(404)
@@ -71,4 +73,5 @@ class ActivationList(restful.Resource):
         db.session.add(token)
         db.session.commit()
         if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
+            # send email to the email_id
             send_mails.delay([(user.email_id, token.token, user.is_active)])

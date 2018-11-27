@@ -224,6 +224,8 @@ class InstanceView(restful.Resource):
                 if admins.eppn != 'worker@pebbles':
                     text['subject'] = "Notebooks.csc.fi:WARNING"
                     text['message'] = instance.name + " is taking more than ten minutes to launch"
+                    # send email only through email_id because some eppn bounce back.
+                    # Also the email_id will be updated once they login so here it is available
                     send_mails.delay([(admins.email_id, 'None', 't')], text)
         return instance
 

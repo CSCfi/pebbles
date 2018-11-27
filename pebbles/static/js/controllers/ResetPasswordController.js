@@ -7,6 +7,7 @@ app.controller('ResetPasswordController', ['$q', '$scope', '$routeParams', 'Auth
     var instructionSendError = false;
     var error_msg = "";
 
+    // send the email_id directly to send emails
     $scope.requestReset = function() {
         activations.post({email_id: $scope.user.email_id}).then(
             function() {
