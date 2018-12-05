@@ -66,7 +66,6 @@ from docker.utils import parse_bytes
 import os
 import sys
 from requests import ConnectionError
-from requests.exceptions import ReadTimeout
 from pebbles.client import PBClient
 from pebbles.drivers.provisioning import base_driver
 import docker
@@ -897,7 +896,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                 if usage and not host.get('lifetime_tick_ts', 0):
                     host['lifetime_tick_ts'] = cur_ts
 
-            except (ConnectionError, ReadTimeout):
+            except:
                 self.logger.warning('_get_hosts(): updating number of instances failed for %s' % host['id'])
                 host['error_count'] = host.get('error_count', 0) + 1
 
