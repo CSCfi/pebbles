@@ -140,7 +140,7 @@ app.controller('StatsController', ['$q', '$scope', '$http', '$interval', '$uibMo
         } 
 
         $scope.checkInput = function() {
-            var validFilterInputRegex = /^([\w.]+(?:,[\w.]+)*)$/gm;
+            var validFilterInputRegex = /^([\w.-]+(?:,[\w.]+)*)$/gm;
             var dates = $scope.dates;
             if (dates === undefined) {
                 return true;
