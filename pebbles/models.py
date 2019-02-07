@@ -86,6 +86,7 @@ class User(db.Model):
     _email_id = db.Column('email_id', db.String(MAX_EMAIL_LENGTH), unique=True)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     joining_date = db.Column(db.DateTime)
+    expiry_date = db.Column(db.DateTime)
     is_admin = db.Column(db.Boolean, default=False)
     is_group_owner = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
