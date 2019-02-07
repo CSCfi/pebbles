@@ -58,6 +58,7 @@ class OpenShiftClient(object):
         self.subdomain = subdomain
         self.oapi_base_url = base_url + '/oapi/v1'
         self.kube_base_url = base_url + '/api/v1'
+        self.template_base_url = base_url + '/apis/template.openshift.io/v1'
         self.user = user
         self.password = password
 
@@ -132,7 +133,7 @@ class OpenShiftClient(object):
 
         return self.token_data['access_token']
 
-    def _construct_object_url(self, kubeapi, namespace=None, object_kind=None, object_id=None, subop=None):
+    def _construct_object_url(self, api_type, namespace=None, object_kind=None, object_id=None, subop=None):
         """
         Create a url string for given object
         :param kubeapi: whether plain k8s or oso api is used
@@ -141,8 +142,10 @@ class OpenShiftClient(object):
         :param object_id: id of the object
         :return: url string, like 'https://oso.example.org:8443/api/v1/my-project/pods/18hfgy1'
         """
-        if kubeapi:
+        if api_type == 'kubeapi':
             url_components = [self.kube_base_url]
+        elif api_type == 'template_oapi':
+            url_components = [self.template_base_url]
         else:
             url_components = [self.oapi_base_url]
 
@@ -159,7 +162,7 @@ class OpenShiftClient(object):
 
         return url
 
-    def make_request(self, method=None, kubeapi=False, verbose=False, namespace=None, object_kind=None, object_id=None,
+    def make_request(self, method=None, api_type='oapi', verbose=False, namespace=None, object_kind=None, object_id=None,
                      subop=None, params=None, data=None, raise_on_failure=True):
         """
         Makes a request to OpenShift API
@@ -176,7 +179,7 @@ class OpenShiftClient(object):
         :param raise_on_failure: should we raise a RuntimeError on failure
         :return: response object from requests session
         """
-        url = self._construct_object_url(kubeapi, namespace, object_kind, object_id, subop)
+        url = self._construct_object_url(api_type, namespace, object_kind, object_id, subop)
         headers = {'Authorization': 'Bearer %s' % self._get_token()}
         if isinstance(data, dict):
             data = json.dumps(data)
@@ -200,8 +203,8 @@ class OpenShiftClient(object):
 
         return resp
 
-    def make_delete_request(self, kubeapi=False, verbose=False, namespace=None, object_kind=None, object_id=None,
-                            raise_on_failure=True):
+    def make_delete_request(self, api_type='oapi', verbose=False, namespace=None, object_kind=None, object_id=None,
+                            params=None, raise_on_failure=True):
         """
         Makes a delete request to OpenShift API
 
@@ -213,10 +216,10 @@ class OpenShiftClient(object):
         :param raise_on_failure: should we raise a RuntimeError on failure
         :return: response object from requests session
         """
-        url = self._construct_object_url(kubeapi, namespace, object_kind, object_id)
+        url = self._construct_object_url(api_type, namespace, object_kind, object_id)
         headers = {'Authorization': 'Bearer %s' % self._get_token()}
 
-        resp = self._session.delete(url, headers=headers, verify=False)
+        resp = self._session.delete(url, headers=headers, verify=False, params=params)
         if verbose:
             self.print_response(resp)
 
@@ -225,7 +228,7 @@ class OpenShiftClient(object):
 
         return resp
 
-    def search_by_label(self, kubeapi=False, namespace=None, object_kind=None, params=None):
+    def search_by_label(self, api_type, namespace=None, object_kind=None, params=None):
         """
         Performs a search by label(s)
 
@@ -236,7 +239,7 @@ class OpenShiftClient(object):
         :return: search results as json
         """
         res = self.make_request(
-            kubeapi=kubeapi,
+            api_type=api_type,
             namespace=namespace,
             object_kind=object_kind,
             params=params
@@ -379,15 +382,13 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
                 env_vars[var.upper()] = blueprint_config[var]
 
         # create a project and PVC if necessary and spawn a pod (through DC/RC), service and route
-        res = self._spawn_project_and_a_pod(
+
+        res = self._spawn_project_and_objects(
             oc=oc,
             project_name=project_name,
-            pod_name=instance['name'],
-            pod_image=blueprint_config['image'],
-            port=int(blueprint_config['port']),
-            pod_memory=blueprint_config['memory_limit'],
-            volume_mount_point=blueprint_config.get('volume_mount_point', None),
-            environment_vars=env_vars,
+            blueprint_config=blueprint_config,
+            instance=instance,
+            environment_vars=env_vars
         )
 
         instance_data = {
@@ -413,9 +414,23 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
 
         log_uploader.info("provisioning done for %s\n" % instance_id)
 
+    def _create_project(self, oc, project_name):
+
+        # https://server:8443/oapi/v1/projectrequests
+        project_data = oc.make_base_kube_object('ProjectRequest', project_name)
+
+        # create the project if it does not exist yet
+        from time import sleep
+        for delay_count in range(0, 30):  # sometimes the project isn't created and the code starts to create pvc
+            res = oc.make_request(object_kind='projects', object_id=project_name, raise_on_failure=False)
+            if not res.ok and res.status_code == 403:
+                oc.make_request(object_kind='projectrequests', data=project_data)
+            else:
+                break  # project has been created, exit the loop
+            sleep(2)  # sleep for 2 seconds, the loop goes on for 1 minute
+
     # noinspection PyTypeChecker
-    def _spawn_project_and_a_pod(self, oc, project_name, pod_name, pod_image, port, pod_memory,
-                                 volume_mount_point=None, environment_vars=None):
+    def _spawn_project_and_objects(self, oc, project_name, blueprint_config, instance, environment_vars=None):
         """
         Creates an OpenShift project (if needed) and launches a pod in it. If a volume mount point is requested,
         a volume is allocated (if needed) and mounted to the pod. A secure route is also created.
@@ -430,18 +445,14 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         :param environment_vars: environment vars to set in the pod
         :return: dict with key 'route' set to the provisioned route to the instance
         """
-        # https://server:8443/oapi/v1/projectrequests
-        project_data = oc.make_base_kube_object('ProjectRequest', project_name)
 
-        # create the project if it does not exist yet
-        from time import sleep
-        for delay_count in range(0, 30):  # sometimes the project isn't created and the code starts to create pvc
-            res = oc.make_request(object_kind='projects', object_id=project_name, raise_on_failure=False)
-            if not res.ok and res.status_code == 403:
-                oc.make_request(object_kind='projectrequests', data=project_data)
-            else:
-                break  # project has been created, exit the loop
-            sleep(2)  # sleep for 2 seconds, the loop goes on for 1 minute
+        self._create_project(oc, project_name)
+
+        pod_name = instance['name']
+        pod_image = blueprint_config['image']
+        port = int(blueprint_config['port'])
+        pod_memory = blueprint_config['memory_limit']
+        volume_mount_point = blueprint_config.get('volume_mount_point', None)
 
         # create PVC if it does not exist yet
         if volume_mount_point:
@@ -468,7 +479,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
                 namespace=project_name,
                 object_kind='persistentvolumeclaims',
                 object_id=pvc_data['metadata']['name'],
-                kubeapi=True,
+                api_type='kubeapi',
                 raise_on_failure=False,
             )
             # nope, let's create it
@@ -477,7 +488,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
                     namespace=project_name,
                     object_kind='persistentvolumeclaims',
                     data=pvc_data,
-                    kubeapi=True
+                    api_type='kubeapi'
                 )
 
         # https://server:8443/oapi/v1/namespaces/project/deploymentconfigs
@@ -591,35 +602,9 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
 
         oc.make_request(namespace=project_name, object_kind='deploymentconfigs', data=dc_data)
 
-        # wait for pod to become ready
-        end_ts = time.time() + MAX_POD_SPAWN_WAIT_TIME_SEC
-        while time.time() < end_ts:
-            # pods live in kubernetes API
-            res = oc.make_request(
-                kubeapi=True,
-                namespace=project_name,
-                object_kind='pods',
-                params=dict(labelSelector='run=%s' % pod_name),
-            )
+        pod_selector_params = dict(labelSelector='run=%s' % pod_name)
 
-            if res.ok:
-                pod_ready = None
-                for pod in res.json()['items']:
-                    try:
-                        for containerStatus in pod['status']['containerStatuses']:
-                            if containerStatus['name'] == pod_name:
-                                pod_ready = containerStatus['ready']
-                                break
-                    except:
-                        pass
-
-                if pod_ready:
-                    break
-
-            self.logger.debug('waiting for pod to be ready %s' % pod_name)
-            time.sleep(5)
-        else:
-            raise RuntimeError('Timeout waiting for pod readiness for %s' % pod_name)
+        self._wait_for_pod_creation(oc, project_name, pod_selector_params, pod_name)
 
         # calling kubernetes API here
         # https://server:8443/api/v1/namespaces/project/services
@@ -646,7 +631,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
             }, 'status': {'loadBalancer': {}}
         }
 
-        oc.make_request(kubeapi=True, namespace=project_name, object_kind='services', data=svc_data)
+        oc.make_request(api_type='kubeapi', namespace=project_name, object_kind='services', data=svc_data)
 
         route_host = '%s-%s.%s' % (pod_name, uuid.uuid4().hex[:10], oc.subdomain)
 
@@ -678,6 +663,36 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         route_json = route_data.json()
 
         return dict(route='https://%s/' % route_json['spec']['host'])
+
+    def _wait_for_pod_creation(self, oc, project_name, params, pod_name):
+        # wait for pod to become ready
+        end_ts = time.time() + MAX_POD_SPAWN_WAIT_TIME_SEC
+        while time.time() < end_ts:
+            # pods live in kubernetes API
+            res = oc.make_request(
+                api_type='kubeapi',
+                namespace=project_name,
+                object_kind='pods',
+                params=params,
+            )
+            if res.ok:
+                pod_ready = None
+                for pod in res.json()['items']:
+                    try:
+                        pod_status = pod['status']['phase']
+                        if pod_status != 'Running':
+                            break
+                        pod_ready = True
+                    except:
+                        pass
+
+                if pod_ready:
+                    break
+
+            self.logger.debug('waiting for pod to be ready %s' % pod_name)
+            time.sleep(5)
+        else:
+            raise RuntimeError('Timeout waiting for pod readiness for %s' % params['labelSelector'])
 
     def do_deprovision(self, token, instance_id):
         return self._do_deprovision(token, instance_id)
@@ -716,8 +731,15 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
             cluster_id=blueprint_config['openshift_cluster_id'],
         )
 
-        name = instance['name']
         project = self._get_project_name(instance)
+
+        self._delete_objects(oc=oc, project=project, blueprint_config=blueprint_config, instance=instance)
+
+    def _delete_objects(self, oc, project, instance, blueprint_config=None):
+        """ Delete openshift objects
+        """
+        name = instance['name']
+        instance_id = instance['id']
 
         # remove dc
         res = oc.make_delete_request(
@@ -735,7 +757,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         # find rc
         params = dict(labelSelector='run=%s' % name)
         rc_list = oc.search_by_label(
-            kubeapi=True,
+            api_type='kubeapi',
             namespace=project,
             object_kind='replicationcontrollers',
             params=params
@@ -747,7 +769,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         # remove rc
         for rc in rc_list:
             res = oc.make_delete_request(
-                kubeapi=True,
+                api_type='kubeapi',
                 namespace=project,
                 object_kind='replicationcontrollers',
                 object_id=rc['metadata']['name'],
@@ -774,7 +796,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
 
         # remove service
         res = oc.make_delete_request(
-            kubeapi=True,
+            api_type='kubeapi',
             namespace=project,
             object_kind='services',
             object_id=name,
@@ -802,7 +824,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         # scale the pods down
         rc['spec']['replicas'] = num_replicas
         res = oc.make_request(
-            kubeapi=True,
+            api_type='kubeapi',
             method='PUT',
             namespace=project,
             object_kind='replicationcontrollers',
@@ -816,7 +838,7 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         end_ts = time.time() + MAX_POD_SCALE_WAIT_TIME_SEC
         while time.time() < end_ts:
             res = oc.make_request(
-                kubeapi=True,
+                api_type='kubeapi',
                 namespace=project,
                 object_kind='replicationcontrollers',
                 object_id=rc['metadata']['name'],
