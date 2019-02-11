@@ -2,6 +2,7 @@ from email.mime.text import MIMEText
 import random
 import smtplib
 import jinja2
+import datetime
 
 from pebbles.client import PBClient
 from pebbles.models import Instance
@@ -53,6 +54,16 @@ def periodic_update():
         update_list = random.sample(update_list, 10)
     for instance in update_list:
         run_update.delay(instance.get('id'))
+
+
+@celery_app.task(name="pebbles.tasks.user_cleanup")
+def user_cleanup():
+    token = get_token()
+    pbclient = PBClient(token, local_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+    users = pbclient.get_users()
+    for user in users:
+        if not user.get('is_deleted') and user.get('expiry_date') and datetime.datetime.strptime(user.get('expiry_date'), '%a, %d %b %Y %H:%M:%S -0000') <= datetime.datetime.utcnow():
+            pbclient.user_delete(user['id'])
 
 
 @celery_app.task(name="pebbles.tasks.send_mails")

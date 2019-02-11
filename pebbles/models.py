@@ -15,6 +15,7 @@ import six
 
 from pebbles.utils import validate_ssh_pubkey, get_full_blueprint_config, get_blueprint_fields_from_config
 
+
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
 MAX_NAME_LENGTH = 128
@@ -98,11 +99,12 @@ class User(db.Model):
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     groups = db.relationship("GroupUserAssociation", back_populates="user", lazy="dynamic")
 
-    def __init__(self, eppn, password=None, is_admin=False, email_id=None):
+    def __init__(self, eppn, password=None, is_admin=False, email_id=None, expiry_date=None):
         self.id = uuid.uuid4().hex
         self.eppn = eppn
         self.is_admin = is_admin
         self.joining_date = datetime.datetime.utcnow()
+        self.expiry_date = expiry_date
         if email_id:
             self.email_id = email_id
         if password:

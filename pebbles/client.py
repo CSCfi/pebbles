@@ -53,6 +53,15 @@ class PBClient(object):
         resp = self.do_patch(url, payload)
         return resp
 
+    def user_delete(self, user_id):
+        headers = {'Accept': 'text/plain',
+                   'Authorization': 'Basic %s' % self.auth}
+        url = '%s/%s/%s' % (self.api_base_url, 'users', user_id)
+        resp = requests.delete(url, headers=headers, verify=self.ssl_verify)
+        if resp.status_code != 200:
+            raise RuntimeError('Unable to delete running logs for instance %s, %s' % (user_id, resp.reason))
+        return resp
+
     def get_instance_description(self, instance_id):
         resp = self.do_get('instances/%s' % instance_id)
         if resp.status_code != 200:
@@ -67,6 +76,12 @@ class PBClient(object):
 
     def get_user_key_data(self, user_id):
         return self.do_get('users/%s/keypairs' % user_id)
+
+    def get_users(self):
+        resp = self.do_get('users')
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot fetch data for users, %s' % resp.reason)
+        return resp.json()
 
     def get_instances(self):
         resp = self.do_get('instances')

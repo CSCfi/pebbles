@@ -9,11 +9,13 @@
             <textarea ng-model="invitedUsers" class="form-control" rows="10" id="listOfEmails"></textarea>
         </div>
         <div>
+	   <label for="listOfEmails">Enter the expiration date for this user</label>
+	   <i> </br>Default expiry date is 6 months</i>
            <input ng-model="life_span" class="form-control" type="number" required/>
         <div>
     </form>
 </div>
 <div class="modal-footer">
     <button type="button" class="btn btn-default" ng-click="cancel()">Close</button>
-    <button type="submit" class="btn btn-primary" ng-click="invite_users(invitedUsers)">Invite</button>
+    <button type="submit" class="btn btn-primary" ng-click="invite_users(invitedUsers, life_span)">Invite</button>
 </div>
