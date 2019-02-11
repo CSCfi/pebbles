@@ -20,6 +20,7 @@ user_fields = {
     'is_group_owner': fields.Boolean,
     'is_deleted': fields.Boolean,
     'is_blocked': fields.Boolean,
+    'expiry_date': fields.DateTime,
 }
 
 group_fields = {
@@ -76,7 +77,7 @@ def update_email(eppn, email_id=None):
 
 
 # both eppn and email are the same
-def invite_user(eppn=None, password=None, is_admin=False):
+def invite_user(eppn=None, password=None, is_admin=False, expiry_date=None):
     email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
     if not re.match(email_regex, eppn):
         raise RuntimeError("Incorrect email")
@@ -85,7 +86,7 @@ def invite_user(eppn=None, password=None, is_admin=False):
         logging.warn("user %s already exists" % user.eppn)
         return None
 
-    user = User(eppn=eppn, password=password, is_admin=is_admin, email_id=eppn)
+    user = User(eppn=eppn, password=password, is_admin=is_admin, email_id=eppn, expiry_date=expiry_date)
     db.session.add(user)
     db.session.commit()
 

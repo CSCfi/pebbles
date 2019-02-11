@@ -16,3 +16,5 @@ proxy_remove_route = proxy_tasks.proxy_remove_route
 send_mails = misc_tasks.send_mails
 
 periodic_update = misc_tasks.periodic_update
+
+user_cleanup = misc_tasks.user_cleanup

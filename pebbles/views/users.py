@@ -2,7 +2,9 @@ from flask.ext.restful import marshal_with, fields, reqparse
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 from sqlalchemy import desc
+from dateutil.relativedelta import relativedelta
 
+import datetime
 import logging
 import re
 import werkzeug
@@ -24,6 +26,7 @@ class UserList(restful.Resource):
     parser.add_argument('filter_str', type=str)
     parser.add_argument('user_type', type=str)
     parser.add_argument('count', type=int)
+    parser.add_argument('expiry_date', type=int)
 
     @staticmethod
     def address_list(value):
@@ -64,13 +67,17 @@ class UserList(restful.Resource):
         except:
             abort(422)
             return
-
+        if 'expiry_date' in args and args.expiry_date:
+            expiry_date = datetime.datetime.utcnow() + relativedelta(months=+args.expiry_date)
+        else:
+            # default expiry date is 6 months
+            expiry_date = datetime.datetime.utcnow() + relativedelta(months=+6)
         if 'addresses' in args and args.addresses:
             addresses = self.address_list(args.addresses)
             incorrect_addresses = []
             for address in addresses:
                 try:
-                    invite_user(address)
+                    invite_user(address, password=None, is_admin=False, expiry_date=expiry_date)
                 except:
                     logging.exception("cannot add user %s" % address)
                     incorrect_addresses.append(address)

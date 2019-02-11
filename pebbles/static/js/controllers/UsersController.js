@@ -236,8 +236,8 @@ app.controller('ModalActivationUrlController', function($scope, $modalInstance, 
 });
 
 app.controller('ModalInviteUsersController', function($scope, $modalInstance, users) {
-    $scope.invite_users = function(invitedUsers) {
-        var params = {addresses: invitedUsers};
+    $scope.invite_users = function(invitedUsers, life_span) {
+        var params = {addresses: invitedUsers, expiry_date: life_span};
         users.patch(params).then(function() {
             $modalInstance.close(true);
         }, function(response) {

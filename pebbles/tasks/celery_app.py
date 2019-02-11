@@ -106,6 +106,11 @@ celery_app.conf.CELERYBEAT_SCHEDULE = {
         'task': 'pebbles.tasks.housekeeping',
         'schedule': crontab(minute='*/1'),
         'options': {'expires': 60, 'queue': 'system_tasks'},
+    },
+    'periodic-update-every-month': {
+        'task': 'pebbles.tasks.user_cleanup',
+        'schedule': crontab(day_of_month='1'),
+        'options': {'expires': 60, 'queue': 'system_tasks'},
     }
 }
 
@@ -124,6 +129,7 @@ class TaskRouter(object):
                 "pebbles.tasks.send_mails",
                 "pebbles.tasks.publish_plugins_and_configs",
                 "pebbles.tasks.housekeeping",
+                "pebbles.tasks.user_cleanup",
         ):
             return {'queue': 'system_tasks'}
 
