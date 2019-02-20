@@ -11,12 +11,31 @@
             </li>
             <li ng-hide="users.length"><strong>All users</strong></li>
         </ul>
+        <hr>
 
-        <h4>Add or set given amount of credits to quota(s)</h4>
-        <label>Amount:</label>
-        <input ng-model="addedAmount" class="form-control" type="number" required/>
-        <button ng-click="increase_quota(addedAmount)" class="btn btn-primary">Add</button>
-        <button ng-click="set_quota(addedAmount)" class="btn btn-primary">Set</button>
+        <h4> Choose the quota to update: </h4>
+        <div class="radio">
+          <label>
+             <h4><input ng-model="formdata.valueQuota" type="radio" name="valueQuota" value="credits_quota_value">
+             credits quota</h4>
+          </label>
+        </div>
+        </br>
+        <div  ng-show="users[0].is_group_owner" class="radio">
+           <label>
+              <h4><input ng-model="formdata.valueQuota" type="radio" name="valueQuota" value="group_quota_value">
+              group quota</h4>
+           </label>
+        </div>
+
+        <div ng-show ="formdata.valueQuota" >
+           </br>
+           <i><p>Add or set given amount of credits to quota(s)</p></i>
+           <label>Amount:</label>
+           <input ng-model="addedAmount" class="form-control" type="number" required/>
+           <button ng-click="increase_quota(addedAmount)" class="btn btn-primary">Add</button>
+           <button ng-click="set_quota(addedAmount)" class="btn btn-primary">Set</button>
+        </div>
     </form>
 </div>
 <div class="modal-footer">

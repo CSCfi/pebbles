@@ -193,7 +193,10 @@ app.controller('ModalCreateGroupController', function($scope, $modalInstance, gr
                 if ('name' in response.data){
                     error_message = response.data.name
                 }
-                $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger'});
+                else if ('message' in response.data){
+                    error_message = response.data.message
+                }
+                $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger', z_index: 2000});
             });
         }
     };
