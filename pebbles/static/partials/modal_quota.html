@@ -27,6 +27,13 @@
               group quota</h4>
            </label>
         </div>
+        </br>
+        <div  ng-show="users[0].is_group_owner" class="radio">
+           <label>
+              <h4><input ng-model="formdata.valueQuota" type="radio" name="valueQuota" value="blueprint_quota_value">
+              blueprint quota</h4>
+           </label>
+        </div>
 
         <div ng-show ="formdata.valueQuota" >
            </br>
