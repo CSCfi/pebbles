@@ -250,6 +250,7 @@ class UserGroupOwner(restful.Resource):
             logging.info("making user %s a group owner", user.eppn)
             user.is_group_owner = True
             user.group_quota = 1
+            user.blueprint_quota = 1
         else:
             logging.info("removing user %s as a group owner", user.eppn)
             user.is_group_owner = False

@@ -96,6 +96,7 @@ class User(db.Model):
     credits_quota = db.Column(db.Float, default=1.0)
     latest_seen_notification_ts = db.Column(db.DateTime)
     group_quota = db.Column(db.Float)
+    blueprint_quota = db.Column(db.Float)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     groups = db.relationship("GroupUserAssociation", back_populates="user", lazy="dynamic")
