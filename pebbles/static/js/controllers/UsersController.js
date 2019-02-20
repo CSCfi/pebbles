@@ -140,6 +140,8 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
             };
 
             $scope.open_quota_dialog = function(users) {
+		$scope.formdata = {};
+
                 var modalQuota = $uibModal.open({
                     templateUrl: '/partials/modal_quota.html',
                     controller: 'ModalQuotaController',
@@ -183,17 +185,20 @@ app.controller('ModalQuotaController', function ($q, $scope, $modalInstance, Res
     $scope.users = users;
 
     var change_quota = function(amount, change) {
+        if ($scope.formdata.valueQuota)
+           credits_type = $scope.formdata.valueQuota;
+
         var promises = [];
         var quota = Restangular.all('quota');
 
         for (var i = 0; i < users.length; i++) {
             var user = users[i];
             var resource = quota.one(user.id);
-            promises.push(resource.customPUT({type: change, value: amount}));
+            promises.push(resource.customPUT({type: change, value: amount, credits_type: credits_type}));
         }
 
         if (users.length === 0) {
-            promises.push(quota.customPUT({type: change, value: amount}));
+            promises.push(quota.customPUT({type: change, value: amount, credits_type: credits_type}));
         }
 
         return $q.all(promises);

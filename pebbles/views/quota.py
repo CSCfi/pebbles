@@ -10,12 +10,18 @@ from pebbles.models import db, User
 quota = FlaskBlueprint('quota', __name__)
 
 parser = reqparse.RequestParser()
-quota_update_functions = {
+credit_quota_update_functions = {
     'absolute': lambda user, value: value,
     'relative': lambda user, value: user.credits_quota + value
 }
+group_quota_update_functions = {
+    'absolute': lambda user, value: value,
+    'relative': lambda user, value: user.group_quota + value
+}
+
 parser.add_argument('type')
 parser.add_argument('value', type=float)
+parser.add_argument('credits_type', type=str)
 
 quota_fields = {
     'id': fields.String,
@@ -27,7 +33,8 @@ quota_fields = {
 def parse_arguments():
     try:
         args = parser.parse_args()
-        if not args['type'] in quota_update_functions.keys():
+
+        if not args['type'] in credit_quota_update_functions.keys():
             raise RuntimeError("Invalid arguement type = %s" % args['type'])
     except:
         abort(422)
@@ -35,10 +42,14 @@ def parse_arguments():
     return args
 
 
-def update_user_quota(user, update_type, value):
+def update_user_quota(user, update_type, value, credits_type):
     try:
-        fun = quota_update_functions[update_type]
-        user.credits_quota = fun(user, value)
+        if credits_type == 'credits_quota_value':
+            fun = credit_quota_update_functions[update_type]
+            user.credits_quota = fun(user, value)
+        elif credits_type == 'group_quota_value':
+            fun = group_quota_update_functions[update_type]
+            user.group_quota = fun(user, value)
     except:
         abort(422)
 
@@ -50,9 +61,8 @@ class Quota(restful.Resource):
     def put(self):
         args = parse_arguments()
         results = []
-
         for user in User.query.all():
-            update_user_quota(user, args['type'], args['value'])
+            update_user_quota(user, args['type'], args['value'], args['credits_type'])
             results.append({'id': user.id, 'credits_quota': user.credits_quota})
 
         db.session.commit()
@@ -79,12 +89,11 @@ class UserQuota(restful.Resource):
     @marshal_with(quota_fields)
     def put(self, user_id):
         args = parse_arguments()
-
         user = User.query.filter_by(id=user_id).first()
         if not user:
             abort(404)
 
-        update_user_quota(user, args['type'], args['value'])
+        update_user_quota(user, args['type'], args['value'], args['credits_type'])
 
         db.session.commit()
         return {'id': user.id, 'credits_quota': user.credits_quota}
