@@ -21,7 +21,7 @@ token_fields = {
 }
 
 admin_icons = ["Dashboard", "Users", "Groups", "Blueprints", "Configure", "Statistics", "Account"]
-group_owner_icons = ["Dashboard", "", "Groups", "Blueprints", "Configure", "", "Account"]
+group_owner_icons = ["Dashboard", "", "Groups", "Blueprints", "", "", "Account"]
 group_manager_icons = ["Dashboard", "", "", "Blueprints", "", "", "Account"]
 user_icons = ["Dashboard", "", "", "", "", "", "Account"]
 
