@@ -328,7 +328,14 @@ app.controller('ModalCreateBlueprintController', function($scope, $modalInstance
             blueprints.post({ template_id: $scope.template.id, name: model.name, config: model, group_id:  groupModel, expiry_time: $scope.blueprint_span}).then(function () {
                 $modalInstance.close(true);
             }, function(response) {
-                $.notify({title: 'HTTP ' + response.status, message: 'unable to create blueprint'}, {type: 'danger'});
+                error_message = 'unable to create blueprint';
+                if ('name' in response.data){
+                    error_message = response.data.name;
+                }
+                else if ('message' in response.data){
+                    error_message = response.data.message;
+                }
+                $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger', z_index: 2000});
             });
         }
     };

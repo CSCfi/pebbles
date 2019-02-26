@@ -60,7 +60,7 @@ class GroupList(restful.Resource):
             user.group_quota = 1
         elif not user.group_quota and user.is_group_owner and user_owned_groups:
             user.group_quota = user_owned_groups
-        if user_owned_groups >= user.group_quota and user.is_group_owner:
+        if not user.is_admin and user_owned_groups >= user.group_quota and user.is_group_owner:
             logging.warn("Maximum User_group_quota is reached")
             return {"message": "You reached maximum number of groups that can be created. If you wish create more groups contact administrator"}, 422
 
