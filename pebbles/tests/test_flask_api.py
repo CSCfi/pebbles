@@ -499,6 +499,13 @@ class FlaskApiTestCase(BaseTestCase):
             'user_config': {
             }
         }
+        data_4 = {
+            'name': 'TestGroup4',
+            'description': 'Group Details',
+            'user_config': {
+            }
+        }
+
         # Anonymous
         response = self.make_request(
             method='POST',
@@ -511,6 +518,13 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/groups',
             data=json.dumps(data))
         self.assertStatus(response, 403)
+
+        # set group_quota for the group_owner
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/quota',
+            data=json.dumps({'type': 'absolute', 'value': 4, 'credits_type': 'group_quota_value'}))
+        self.assertEqual(response.status_code, 200)
         # Group Owner
         response = self.make_authenticated_group_owner_request(
             method='POST',
@@ -529,6 +543,13 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/groups',
             data=json.dumps(data_3))
         self.assertStatus(response, 200)
+
+        response = self.make_authenticated_group_owner_request(
+            method='POST',
+            path='/api/v1/groups',
+            data=json.dumps(data_4))
+        self.assertStatus(response, 422)
+
         # Admin
         response = self.make_authenticated_admin_request(
             method='POST',
@@ -1192,6 +1213,13 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_404(response)
 
     def test_create_blueprint(self):
+        # Set blueprint_quota_value
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/quota',
+            data=json.dumps({'type': 'absolute', 'value': 5, 'credits_type': 'blueprint_quota_value'}))
+        self.assertEqual(response.status_code, 200)
+
         # Anonymous
         data = {'name': 'test_blueprint_1', 'config': '', 'template_id': self.known_template_id, 'group_id': self.known_group_id}
         response = self.make_request(
@@ -1208,6 +1236,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_403(response)
         # Group Owner 1
         data = {'name': 'test_blueprint_1', 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id}
+        data_2 = {'name': 'test_blueprint_2', 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id}
         response = self.make_authenticated_group_owner_request(
             method='POST',
             path='/api/v1/blueprints',
@@ -1219,6 +1248,12 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/blueprints',
             data=json.dumps(data))
         self.assert_200(response)
+        # check if possible to create more blueprint than quota
+        response = self.make_authenticated_group_owner2_request(
+            method='POST',
+            path='/api/v1/blueprints',
+            data=json.dumps(data_2))
+        self.assertStatus(response, 422)
         # Admin
         data = {'name': 'test_blueprint_1', 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'group_id': self.known_group_id}
         response = self.make_authenticated_admin_request(
@@ -1239,6 +1274,13 @@ class FlaskApiTestCase(BaseTestCase):
             'template_id': self.known_template_id,
             'group_id': self.known_group_id
         }
+        # set blueprint quota
+        response12 = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/quota',
+            data=json.dumps({'type': 'absolute', 'value': 42, 'credits_type': 'blueprint_quota_value'}))
+        self.assertEqual(response12.status_code, 200)
+
         post_response = self.make_authenticated_group_owner_request(
             method='POST',
             path='/api/v1/blueprints',
@@ -1878,7 +1920,7 @@ class FlaskApiTestCase(BaseTestCase):
         response2 = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/quota/%s' % user_id,
-            data=json.dumps({'type': 'relative', 'value': 10}))
+            data=json.dumps({'type': 'relative', 'value': 10, 'credits_type': 'credits_quota_value'}))
         self.assertEqual(response2.status_code, 200)
         response = self.make_authenticated_admin_request(
             path='/api/v1/users'
@@ -1897,7 +1939,7 @@ class FlaskApiTestCase(BaseTestCase):
         response2 = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/quota',
-            data=json.dumps({'type': 'absolute', 'value': 42}))
+            data=json.dumps({'type': 'absolute', 'value': 42, 'credits_type': 'credits_quota_value'}))
         self.assertEqual(response2.status_code, 200)
 
         response3 = self.make_authenticated_admin_request(

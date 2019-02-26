@@ -83,12 +83,12 @@ class BlueprintList(restful.Resource):
             logging.warn("invalid group for the user")
             abort(403)
         user_owned_blueprints = Blueprint.query.filter_by(group_id=group_id).count()
-        if not user.blueprint_quota and user.is_group_owner and not user_owned_blueprints:
+        if not user.blueprint_quota and not user_owned_blueprints:
             user.blueprint_quota = 1
-        elif not user.blueprint_quota and user.is_group_owner and user_owned_blueprints:
+        elif not user.blueprint_quota and user_owned_blueprints:
             user.blueprint_quota = user_owned_blueprints
 
-        if user_owned_blueprints >= user.blueprint_quota and user.is_group_owner:
+        if not user.is_admin and user_owned_blueprints >= user.blueprint_quota and user.is_group_owner:
             logging.warn("Maximum User_blueprint_quota is reached")
             return {"message": "You reached maximum number of blueprints that can be created. If you wish create more groups contact administrator"}, 422
 
