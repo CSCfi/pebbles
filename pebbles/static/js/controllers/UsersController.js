@@ -30,7 +30,7 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
 
             $scope.visiblePages = 4;  // Visible number of pages in the pagination
             $scope.currentPage = 1;  // Starting page
-            var itemsPerPage = 50;
+            var itemsPerPage = 10;
             $scope.itemsPerPage = itemsPerPage;
 
 
