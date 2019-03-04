@@ -216,8 +216,7 @@ class InstanceView(restful.Resource):
         instance = query.first()
         if not instance:
             abort(404)
-
-        if args.get('send_email'):
+        if args.get('send_email') and instance.state != 'running':
             text = {"subject": " ", "message": " "}
             admin_users = User.query.filter_by(is_admin=True).all()
             for admins in admin_users:
