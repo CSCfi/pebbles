@@ -208,6 +208,12 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
                        if (response.state != "running") {
                           Restangular.one('instances', response.id).customPOST({'send_email': true}).then(function (response) {
                           });
+                          // Prob encountered only in queuing state
+                          if(response.state == "queueing") {
+                              response.remove().then(function (res) {
+                                 $scope.updateInstanceList();
+                              });
+                          }
                        }
                     });
                 }, 600000);
