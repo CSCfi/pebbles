@@ -56,14 +56,18 @@ def periodic_update():
         run_update.delay(instance.get('id'))
 
 
-@celery_app.task(name="pebbles.tasks.user_cleanup")
-def user_cleanup():
+@celery_app.task(name="pebbles.tasks.user_blueprint_cleanup")
+def user_blueprint_cleanup():
     token = get_token()
     pbclient = PBClient(token, local_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
     users = pbclient.get_users()
     for user in users:
         if not user.get('is_deleted') and user.get('expiry_date') and datetime.datetime.strptime(user.get('expiry_date'), '%a, %d %b %Y %H:%M:%S -0000') <= datetime.datetime.utcnow():
             pbclient.user_delete(user['id'])
+    blueprints = pbclient.get_blueprints()
+    for blueprint in blueprints:
+        if blueprint.get('expiry_time') and datetime.datetime.strptime(blueprint.get('expiry_time'), '%a, %d %b %Y %H:%M:%S -0000') <= datetime.datetime.utcnow():
+            pbclient.blueprint_delete(blueprint['id'])
 
 
 @celery_app.task(name="pebbles.tasks.send_mails")
