@@ -325,7 +325,7 @@ app.controller('ModalCreateBlueprintController', function($scope, $modalInstance
     $scope.createBlueprint = function(form, model, groupModel) {
     $scope.$broadcast('schemaFormValidate');
         if (form.$valid) {
-            blueprints.post({ template_id: $scope.template.id, name: model.name, config: model, group_id:  groupModel}).then(function () {
+            blueprints.post({ template_id: $scope.template.id, name: model.name, config: model, group_id:  groupModel, expiry_time: $scope.blueprint_span}).then(function () {
                 $modalInstance.close(true);
             }, function(response) {
                 $.notify({title: 'HTTP ' + response.status, message: 'unable to create blueprint'}, {type: 'danger'});

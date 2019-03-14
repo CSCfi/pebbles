@@ -62,6 +62,13 @@ class PBClient(object):
             raise RuntimeError('Unable to delete running logs for instance %s, %s' % (user_id, resp.reason))
         return resp
 
+    def blueprint_delete(self, blueprint_id):
+        resp = self.do_delete('blueprints/%s' % blueprint_id)
+        if resp.status_code == 200:
+            return blueprint_id
+        else:
+            raise RuntimeError('Error deleting blueprint: %s, %s' % (blueprint_id, resp.reason))
+
     def get_instance_description(self, instance_id):
         resp = self.do_get('instances/%s' % instance_id)
         if resp.status_code != 200:
@@ -81,6 +88,12 @@ class PBClient(object):
         resp = self.do_get('users')
         if resp.status_code != 200:
             raise RuntimeError('Cannot fetch data for users, %s' % resp.reason)
+        return resp.json()
+
+    def get_blueprints(self):
+        resp = self.do_get('blueprints')
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot fetch data for blueprints, %s' % resp.reason)
         return resp.json()
 
     def get_instances(self):

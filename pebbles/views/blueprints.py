@@ -2,6 +2,7 @@ from flask.ext.restful import marshal_with, fields, reqparse
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 from sqlalchemy.orm.session import make_transient
+from dateutil.relativedelta import relativedelta
 
 import datetime
 import logging
@@ -35,11 +36,15 @@ blueprint_fields = {
     'group_id': fields.String,
     'group_name': fields.String,
     'manager': fields.Boolean,
-    'current_status': fields.String
+    'current_status': fields.String,
+    'expiry_time': fields.DateTime,
 }
 
 
 class BlueprintList(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('expiry_time', type=int)
+
     @auth.login_required
     @marshal_with(blueprint_fields)
     def get(self):
@@ -78,6 +83,14 @@ class BlueprintList(restful.Resource):
             logging.warn("invalid group for the user")
             abort(403)
         blueprint.group_id = group_id
+        args = self.parser.parse_args()
+        if group.name != 'System.default':
+            if 'expiry_time' in args and args.expiry_time:
+                blueprint.expiry_time = datetime.datetime.utcnow() + relativedelta(months=+args.expiry_time)
+            else:
+                # default expiry date is 6 months
+                blueprint.expiry_time = datetime.datetime.utcnow() + relativedelta(months=+6)
+
         if 'name' in form.config.data:
             form.config.data.pop('name', None)
         blueprint.config = form.config.data
