@@ -266,3 +266,10 @@ thead {
 .disable-ng-hide-animate.ng-hide.ng-hide-animate {
     display: none;
 }
+
+.group-list {cursor: pointer;}
+
+.close-group-details {
+	float: right;
+	cursor: pointer;
+}

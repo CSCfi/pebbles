@@ -1,47 +1,94 @@
 <div ng-show="getIcons()">
-    <h2>Groups</h2>
+ <h2>Groups</h2>
 
-    <table class="table table-striped">
-    <tbody>
-    <tr>
-    <button ng-click="openCreateGroupDialog()" class="btn btn-primary">Create A New Group</button>
-    </tr>
-    </tbody>
-    </table>
-    <h3>List of Available Groups</h3>
-    <table class="table table-striped">
+ <div>
+    <ul class="nav nav-pills">
+      <li><button ng-click="openCreateGroupDialog()" class="btn btn-primary">Create A New Group</button></li>
+    </ul>
+ </div>
+
+ <br/>
+	<form>
+         <div class="row">
+          <div class="col-md-12">
+           <div class="form-group>
+             <div class="input-group">
+              <input id="query" class="form-control" ng-model="query.name" placeholder="Search Group"/>
+             </div>
+            </div>
+           </div>
+          </div>
+        </form>
+ <br/>
+
+ <uib-accordion close-others="false">
+  <div uib-accordion-group class="panel-default" is-open="toggleGroupList.panel_open">
+   <uib-accordion-heading>
+    List of Available Groups <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':toggleGroupList.panel_open, 'glyphicon-chevron-right':!toggleGroupList.panel_open}"></i>
+   </uib-accordion-heading> 
+
+	<table class="table table-striped">
         <thead>
         <tr>
             <td><label>Name</label></td>
             <td ng-show="isAdmin()"><label>Owner</label></td>
-            <td><label>Join Code</label></td>
+        </tr>
+        </thead>
+        <tbody>
+        <tr class="group-list"  ng-repeat="group in groups | filter:query" ng-click="getSelectedGroup(group)">
+            <td>{{group.name}}</td>
+            <td ng-show="isAdmin()">{{group.owner_eppn}}</td>
+        </tr>
+        </tbody>
+    </table>	
+  </div>
+ </uib-accordion>
+
+ </br>
+
+ <div ng-if="selectedGroup!==null">
+
+  <p class="close-group-details" ng-click="removeGroupDetails()"><span class="glyphicon glyphicon-remove"></span></p>
+  <h2>Group Details</h2>
+ 
+  <table class="table table-striped">
+        <thead>
+        <tr>
+            <td><label>Name</label></td>
+            <td ng-show="isAdmin()"><label>Owner</label></td>
+            <td ng-if="showCode==true"><label>Join Code</label></td>
+            <td ng-if="showCode==false"><label>Join Code</label></td>
             <td><label>Description</label></td>
             <td></td>
             <td ng-show="isAdmin()"></td>
         </tr>
         </thead>
-        <tbody>
-        <tr ng-repeat="group in groups | filter:includeRow">
-            <td>{{group.name}}</td>
-            <td ng-show="isAdmin()">{{group.owner_eppn}}</td>
-            <td>{{group.join_code}}</td>
-            <td>{{group.description}}</td>
+  <tbody>
+        <tr>
+            <td>{{selectedGroup.name}}</td>
+            <td ng-show="isAdmin()">{{selectedGroup.owner_eppn}}</td>
+            <td ng-if="showCode==true">{{selectedGroup.join_code}}</td>
+            <td ng-if="showCode==false">*****</td>
+            <td>{{selectedGroup.description}}</td>
             <td>
-                <button ng-click="openModifyGroupDialog(group)" type="submit" class="btn btn-default">Modify</button>
+		<button ng-if="showCode==false" ng-click="toggleJoinCode()" class="btn btn-default"><span class="glyphicon glyphicon-eye-open"></span> Join Code</button>
+		<button ng-if="showCode==true" ng-click="toggleJoinCode()" class="btn btn-default"><span class="glyphicon glyphicon-eye-close"></span> Join Code</button>
+
+                <button ng-click="openModifyGroupDialog(selectedGroup)" type="submit" class="btn btn-default">Modify</button>
                 <span ng-show="isGroupOwnerOrAdmin()">
-                     <button ng-click="showUsers(group)" class="btn btn-default">Show Users</button>
+                     <button ng-click="showUsers(selectedGroup)" class="btn btn-default">Show Users</button>
                 </span>
-                <span ng-show="isAdmin() && group.name !='System.default'">
-	            <button ng-show=isAdmin() ng-confirm-click="Do you want to permanently archive this group? Note that blueprints created in this group will also be archived." ng-click="archiveGroup(group)" class="btn btn-default">Archive</button>
-                    <button ng-confirm-click="Delete this group?" ng-click="deleteGroup(group)" class="btn btn-danger">Delete</button>
+                <span ng-show="isAdmin() && selectedGroup.name !='System.default'">
+                    <button ng-show=isAdmin() ng-confirm-click="Do you want to permanently archive this group? Note that blueprints created in this group will also be archived." ng-click="archiveGroup(selectedGroup)" class="btn btn-default">Archive</button>
+                    <button ng-confirm-click="Delete this group?" ng-click="deleteGroup(selectedGroup)" class="btn btn-danger">Delete</button>
                 </span>
-                <span ng-show="isGroupOwnerOrAdmin() && group.name !='System.default'">
+                <span ng-show="isGroupOwnerOrAdmin() && selectedGroup.name !='System.default'">
                     <button ng-show="isGroupOwnerOrAdmin()" ng-confirm-click="This will remove all but Group Owner from this group. Do you want to continue?" 
-                    ng-click="clearUsersFromGroup(group)" class="btn btn-danger">Clear Users</button>
+                    ng-click="clearUsersFromGroup(selectedGroup)" class="btn btn-danger">Clear Users</button>
                 </span>
             </td>
         </tr>
         </tbody>
     </table>
-    </div>
+ </div>
 </div>

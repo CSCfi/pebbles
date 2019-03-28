@@ -10,6 +10,36 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             }
         };
 
+	$scope.toggleGroupList = function() {
+
+		$scope.toggleGroupList = {
+		panel_open: false
+	 	};
+	}
+
+	$scope.selectedGroup = null;
+	$scope.showCode = false;
+	$scope.getSelectedGroup = function(group) {
+		
+		$scope.showCode = false;
+		$scope.selectedGroup = group;
+		/* $scope.toggleGroupList(); */
+		
+		$scope.toggleGroupList = {
+                panel_open: false
+	        };
+	}
+
+        $scope.toggleJoinCode = function() {
+             if ($scope.showCode){
+                  $scope.showCode = false;
+             } else{
+                 $scope.showCode = true;
+             }
+	}
+
+	$scope.removeGroupDetails = () => {$scope.selectedGroup = null;};
+
         $scope.isAdmin = function() {
             return AuthService.isAdmin();
         };
@@ -31,6 +61,7 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             var groups = Restangular.all('groups');
             groups.getList().then(function (response) {
                 $scope.groups = response;
+                console.log("$scope.groups is ", $scope.groups);
             });
 
             var groupsSF = {};
@@ -269,3 +300,4 @@ app.controller('ModalShowusersGroupController', function($scope, $modalInstance,
         $modalInstance.dismiss('cancel');
     };
 });
+
