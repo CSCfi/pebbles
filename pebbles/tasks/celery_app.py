@@ -109,7 +109,7 @@ celery_app.conf.CELERYBEAT_SCHEDULE = {
     },
     'periodic-update-every-month': {
         'task': 'pebbles.tasks.user_blueprint_cleanup',
-        'schedule': crontab(day_of_month='1'),
+        'schedule': crontab(month_of_year='12', day_of_month='1'),
         'options': {'expires': 60, 'queue': 'system_tasks'},
     }
 }
