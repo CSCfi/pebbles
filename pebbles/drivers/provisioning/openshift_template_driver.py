@@ -47,7 +47,11 @@ class OpenShiftTemplateDriver(OpenShiftDriver):
             template_params = template_yaml['parameters']
             for template_param in template_params:
                 if(template_param['name'] in environment_vars):  # check if the user has passed env vars from the blueprint
-                    template_param['value'] = environment_vars[template_param['name']]
+                    env_template_param_val = environment_vars[template_param['name']]
+                    if(env_template_param_val == "instance_name"):
+                        template_param['value'] = instance['name']
+                    else:
+                        template_param['value'] = env_template_param_val
 
         template_json = json.dumps(template_yaml)  # rest api requires json str
         template_objects_resp = oc.make_request(api_type='template_oapi', namespace=project_name, object_kind='processedtemplates', data=template_json)
