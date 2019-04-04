@@ -2,9 +2,6 @@
   file: name=/etc/cron.daily/automatic_updates state=absent
 
 # fixes for centos 7.6 image, roll everything back to 7.5
-- name: Move existing yum repo
-  command: mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.back
-
 - name: optionally lock operating system minor version in repo config
   yum_repository:
     name: "{{ item.name }}"
