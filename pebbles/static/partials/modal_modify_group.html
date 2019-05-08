@@ -13,8 +13,9 @@
              <div id="userBanSelect" ng-dropdown-multiselect="" options="userData" selected-model="group.user_config.banned_users" extra-settings="userSettings"></div>
              <label for="userOwnerSelect">Add additional group managers (If needed)</label>
              <div id="userOwnerSelect" ng-dropdown-multiselect="" options="managerData" selected-model="group.user_config.managers" extra-settings="userSettings"></div>
+
     </form>
-</div>
+</div> 
 <div class="modal-footer">
     <button ng-click="modifyGroup(ngform2, group.config, group.user_config)" class="btn btn-primary">Modify</button>
     <button ng-click="cancel()" class="btn btn-default" >Close</button>

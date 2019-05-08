@@ -73,7 +73,7 @@
             <td>
 		<button ng-if="showCode==false" ng-click="toggleJoinCode()" class="btn btn-default"><span class="glyphicon glyphicon-eye-open"></span> Join Code</button>
 		<button ng-if="showCode==true" ng-click="toggleJoinCode()" class="btn btn-default"><span class="glyphicon glyphicon-eye-close"></span> Join Code</button>
-
+                <button ng-click="openChangeOwnerDialog(selectedGroup)" type="submit" class="btn btn-default">Change Owner</button>
                 <button ng-click="openModifyGroupDialog(selectedGroup)" type="submit" class="btn btn-default">Modify</button>
                 <span ng-show="isGroupOwnerOrAdmin()">
                      <button ng-click="showUsers(selectedGroup)" class="btn btn-default">Show Users</button>
