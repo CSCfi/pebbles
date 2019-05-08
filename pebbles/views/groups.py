@@ -121,7 +121,7 @@ class GroupView(restful.Resource):
 
         user_config = form.user_config.data
         try:
-            group = group_users_add(group, user_config, owner)
+            group = group_users_add(group, user_config, owner, group_owner_obj)
         except KeyError:
             abort(422)
         except RuntimeError as e:
@@ -177,12 +177,23 @@ class GroupView(restful.Resource):
             db.session.commit()
 
 
-def group_users_add(group, user_config, owner):
+def group_users_add(group, user_config, owner, group_owner_obj):
     """Validate and add the managers, banned users and normal users in a group"""
     # Generate a 'set' of Group Managers
     managers_list = []
     managers_list.append(owner)  # Owner is always a manager
     managers_list.append(g.user)  # always add the user creating/modifying the group
+    # add new group owner
+    if 'owner' in user_config:
+        newOwner = user_config['owner']
+        for new_owner_item in newOwner:
+            new_owner_id = new_owner_item['id']
+            new_owner = User.query.filter_by(id=new_owner_id).first()
+            if new_owner != owner:
+                group_owner_obj.user = new_owner
+                group.users.append(group_owner_obj)
+                managers_list.append(new_owner)
+
     if 'managers' in user_config:
         managers = user_config['managers']
         for manager_item in managers:
@@ -223,7 +234,7 @@ def group_users_add(group, user_config, owner):
 
 def generate_user_config(group):
     """Generates the user_config object used in multiselect ui component on groups modify modal"""
-    user_config = {'banned_users': [], 'managers': []}
+    user_config = {'banned_users': [], 'managers': [], 'owner': []}
     if group.banned_users:
         for banned_user in group.banned_users:
             user_config['banned_users'].append({'id': banned_user.id})
@@ -232,6 +243,10 @@ def generate_user_config(group):
         for group_manager_obj in group_manager_objs:
             manager = group_manager_obj.user
             user_config['managers'].append({'id': manager.id})
+    group_owner_obj = GroupUserAssociation.query.filter_by(group_id=group.id, owner=True).first()
+    if group_owner_obj:
+        owner = group_owner_obj.user
+        user_config['owner'].append({'id': owner.id})
     return user_config
 
 

@@ -135,6 +135,7 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                             var group_users = Restangular.all('groups').one(group.id).all('users');
                             return group_users;
                         }
+
                     }
                 }).result.then(function() {
                     groups.getList().then(function (response) {
@@ -143,6 +144,33 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                 });
             };
  
+
+		$scope.openChangeOwnerDialog=function(group) {
+                $uibModal.open({
+                    templateUrl: '/partials/modal_change_group_owner.html',
+                    controller: 'ModalChangeGroupOwnerController',
+                    size: 'md',
+                    resolve: {
+                        groupsSF: function() {
+                            return groupsSF;
+                        },
+                        group: function() {
+                            return group;
+                        },
+                        user_list: function() {
+                            var user_list = Restangular.all('users');
+                            return user_list;
+                        }
+
+                    }
+                }).result.then(function() {
+                    groups.getList().then(function (response) {
+                        $scope.groups = response;
+                     });
+                });
+            };
+
+
            $scope.showUsers=function(group) {
                $uibModal.open({
 		   templateUrl: '/partials/modal_showusers_group.html',
@@ -256,7 +284,8 @@ app.controller('ModalModifyGroupController', function($scope, $modalInstance, gr
             $scope.group.description = model.description
             $scope.group.user_config = {
                  "banned_users": user_config.banned_users,
-                 "managers": user_config.managers
+                 "managers": user_config.managers,
+		 "owner": user_config.owner
             }
             $scope.group.put().then(function () {
                 $modalInstance.close(true);
@@ -278,6 +307,53 @@ app.controller('ModalModifyGroupController', function($scope, $modalInstance, gr
         $modalInstance.dismiss('cancel');
     };
 });
+
+app.controller('ModalChangeGroupOwnerController', function($scope, $modalInstance, groupsSF, group, user_list) {
+
+    $scope.groupsSF = groupsSF
+    $scope.group = group;
+    user_list.getList().then(function (response) {
+	$scope.userData = _.filter(response, ['is_group_owner', true]);
+    });
+
+ 
+    var old_name = group.name;
+    $scope.userSettings = {displayProp: 'eppn', scrollable: true, enableSearch: true, selectionLimit: '1'};
+
+    $scope.confirmNewGroupOwner = function(form, model, user_config) {
+
+     if (form.$valid) {
+            $scope.group.name = model.name
+	        $scope.group.description = model.description
+	        $scope.group.user_config = {
+	             "banned_users": user_config.banned_users,
+                     "managers": user_config.managers,
+                     "owner": user_config.owner
+		}
+	   
+            $scope.group.put().then(function () {
+                $modalInstance.close(true);
+            }, function(response) {
+                error_message = 'unable to create group';
+                if ('name' in response.data){
+                    error_message = response.data.name;
+                    $scope.group.name = old_name;
+                }
+                if ('error' in response.data){
+                    error_message = response.data.error;
+                }
+                $.notify({title: 'HTTP ' + response.status, message: error_message}, {type: 'danger'});
+            });
+        }
+    };
+
+    $scope.cancel = function() {
+        $modalInstance.dismiss('cancel');
+    };
+});
+
+
+
 
 app.controller('ModalShowusersGroupController', function($scope, $modalInstance, group, group_users) {
     group_users.getList().then(function (response) {
