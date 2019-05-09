@@ -17,13 +17,12 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
 	 	};
 	}
 
-	$scope.selectedGroup = null;
+	$scope.selectedGroup = false;
 	$scope.showCode = false;
 	$scope.getSelectedGroup = function(group) {
 		
 		$scope.showCode = false;
 		$scope.selectedGroup = group;
-		/* $scope.toggleGroupList(); */
 		
 		$scope.toggleGroupList = {
                 panel_open: false
@@ -38,7 +37,9 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
              }
 	}
 
-	$scope.removeGroupDetails = () => {$scope.selectedGroup = null;};
+	$scope.removeGroupDetails = function() {
+		$scope.selectedGroup = false;
+	};
 
         $scope.isAdmin = function() {
             return AuthService.isAdmin();
@@ -61,7 +62,6 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             var groups = Restangular.all('groups');
             groups.getList().then(function (response) {
                 $scope.groups = response;
-                console.log("$scope.groups is ", $scope.groups);
             });
 
             var groupsSF = {};
