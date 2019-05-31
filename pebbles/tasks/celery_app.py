@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 from celery import Celery
@@ -7,7 +8,6 @@ from celery.signals import worker_process_init
 import requests
 from celery.utils.log import get_task_logger
 from pebbles.config import BaseConfig
-import pebbles.utils
 
 local_config = BaseConfig()
 
@@ -29,7 +29,7 @@ def do_get(token, object_url):
     """ wrapper to use the GET method with authentication token against the
     internal api url.
     """
-    auth = pebbles.utils.b64encode_string('%s:%s' % (token, '')).replace('\n', '')
+    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
     url = '%s/%s' % (local_config['INTERNAL_API_BASE_URL'], object_url)
@@ -41,7 +41,7 @@ def do_post_or_put(token, api_path, data, method='POST'):
     """ wrapper to use the POST method with uthentication token against the
     internal api url.
     """
-    auth = pebbles.utils.b64encode_string('%s:%s' % (token, '')).replace('\n', '')
+    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
     url = '%s/%s' % (local_config['INTERNAL_API_BASE_URL'], api_path)
@@ -69,6 +69,8 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 logger = get_task_logger(__name__)
 if local_config['DEBUG']:
     logger.setLevel('DEBUG')
+    print('debug enabled')
+    print('api url ' + local_config['INTERNAL_API_BASE_URL'])
 
 celery_app = Celery(
     'tasks',
@@ -107,7 +109,12 @@ celery_app.conf.CELERYBEAT_SCHEDULE = {
         'schedule': crontab(minute='*/1'),
         'options': {'expires': 60, 'queue': 'system_tasks'},
     },
-    'periodic-update-every-month': {
+    'periodic-update-every-day': {
+        'task': 'pebbles.tasks.instance_token_cleanup',
+        'schedule': crontab(minute=0, hour=0),
+        'options': {'expires': 60, 'queue': 'system_tasks'},
+    },
+    'periodic-update-every-year': {
         'task': 'pebbles.tasks.user_blueprint_cleanup',
         'schedule': crontab(month_of_year='12', day_of_month='1'),
         'options': {'expires': 60, 'queue': 'system_tasks'},
@@ -130,6 +137,7 @@ class TaskRouter(object):
                 "pebbles.tasks.publish_plugins_and_configs",
                 "pebbles.tasks.housekeeping",
                 "pebbles.tasks.user_blueprint_cleanup",
+                "pebbles.tasks.instance_token_cleanup"
         ):
             return {'queue': 'system_tasks'}
 

@@ -6,7 +6,7 @@ import datetime
 import logging
 import json
 
-from pebbles.models import db, Blueprint, Instance, InstanceLog, User
+from pebbles.models import db, Blueprint, Instance, InstanceLog, InstanceToken, User
 from pebbles.forms import InstanceForm, UserIPForm
 from pebbles.server import app, restful
 from pebbles.utils import requires_admin, requires_group_owner_or_admin, memoize
@@ -49,6 +49,12 @@ instance_log_fields = {
     'log_level': fields.String,
     'timestamp': fields.Float,
     'message': fields.String
+}
+
+instance_token_fields = {
+    'token': fields.String,
+    'instance_id': fields.String,
+    'expires_on': fields.DateTime
 }
 
 
@@ -389,3 +395,46 @@ def process_logs(instance_id, log_record):
     instance_log.message = log_record['message']
 
     return instance_log
+
+
+class InstanceTokensList(restful.Resource):
+
+    @auth.login_required
+    @requires_admin
+    @marshal_with(instance_token_fields)
+    def get(self):
+        instance_tokens = InstanceToken.query.all()
+        return instance_tokens
+
+
+class InstanceTokensView(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('instance_seconds', type=positive_integer)
+
+    @auth.login_required
+    def post(self, instance_id):
+        instance = Instance.query.filter_by(id=instance_id).first()
+        if not instance:
+            abort(404)
+        args = self.parser.parse_args()
+        instance_seconds = args.instance_seconds
+        if not instance_seconds:
+            logging.warn('no instance seconds parameter found')
+            abort(422)
+
+        token = InstanceToken(instance_id, instance_seconds)
+
+        db.session.add(token)
+        db.session.commit()
+        return token.token
+
+    @auth.login_required
+    @requires_admin
+    def delete(self, instance_id):
+        instance_token = InstanceToken.query.filter_by(instance_id=instance_id).first()
+
+        if not instance_token:
+            logging.warn('no instance token found for instance id %s' % instance_id)
+            abort(404)
+        db.session.delete(instance_token)
+        db.session.commit()

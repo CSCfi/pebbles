@@ -127,6 +127,29 @@ class PBClient(object):
             raise RuntimeError('Unable to delete running logs for instance %s, %s' % (instance_id, resp.reason))
         return resp
 
+    def create_instance_token(self, instance_id, instance_seconds):
+        headers = {'Accept': 'text/plain',
+                   'Authorization': 'Basic %s' % self.auth}
+        payload = {'instance_seconds': instance_seconds}
+        url = '%s/instance_tokens/%s' % (self.api_base_url, instance_id)
+        resp = requests.post(url, json=payload, headers=headers, verify=self.ssl_verify)
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot crate token, %s' % resp.reason)
+        return resp.json()
+
+    def get_instance_tokens(self):
+        resp = self.do_get('instance_tokens')
+        if resp.status_code != 200:
+            raise RuntimeError('Error getting instance tokens %s' % resp.reason)
+        return resp.json()
+
+    def instance_token_delete(self, instance_id):
+        resp = self.do_delete('instance_tokens/%s' % instance_id)
+        if resp.status_code == 200:
+            return instance_id
+        else:
+            raise RuntimeError('Error deleting instance token for instance id: %s, %s' % (instance_id, resp.reason))
+
     def get_plugin_data(self, plugin_id):
         resp = self.do_get('plugins/%s' % plugin_id)
         if resp.status_code != 200:

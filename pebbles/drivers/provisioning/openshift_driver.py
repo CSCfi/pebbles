@@ -18,6 +18,7 @@ file. names are "OSO_XXX_URL", where XXX is the name of your installation
 
 """
 
+import base64
 import json
 import time
 import uuid
@@ -26,9 +27,10 @@ import requests
 # noinspection PyUnresolvedReferences
 from six.moves.urllib.parse import urlparse, parse_qs
 
-import pebbles.utils
 from pebbles.client import PBClient
 from pebbles.drivers.provisioning import base_driver
+
+from pebbles.utils import parse_maximum_lifetime
 
 # maximum time to wait for pod creation before failing
 MAX_POD_SPAWN_WAIT_TIME_SEC = 900
@@ -92,7 +94,7 @@ class OpenShiftClient(object):
         :return: dict containing access_token, lifetime and expiry time
         """
         url = self.base_url + '/oauth/authorize'
-        auth_encoded = pebbles.utils.b64encode_string(bytes('%s:%s' % (self.user, self.password)))
+        auth_encoded = base64.b64encode(bytes('%s:%s' % (self.user, self.password)))
 
         headers = {
             'Authorization': 'Basic %s' % str(auth_encoded),
@@ -363,6 +365,11 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
         blueprint_config = blueprint['full_config']
 
+        instance_token = None
+        if 'auto_authentication' in blueprint_config and blueprint_config['auto_authentication']:
+            instance_seconds = parse_maximum_lifetime(blueprint_config['maximum_lifetime'])
+            instance_token = pbclient.create_instance_token(instance_id, instance_seconds)
+
         # get/generate a project name
         project_name = self._get_project_name(instance)
 
@@ -401,6 +408,12 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
             'project_name': project_name,
             'spawn_ts': cur_ts
         }
+
+        # if instance token is created, then append it along with instance id in the query string
+        if instance_token:
+            endpoints = instance_data['endpoints']
+            for endpoint_i in endpoints:
+                endpoint_i['access'] += '?token=' + instance_token + '&instance_id=' + instance_id
 
         if 'show_password' in blueprint_config and blueprint_config['show_password']:
             instance_data['password'] = instance_id
