@@ -582,6 +582,22 @@ class InstanceLog(db.Model):
         self.instance_id = instance_id
 
 
+class InstanceToken(db.Model):
+    __tablename__ = 'instance_tokens'
+
+    token = db.Column(db.String(32), primary_key=True)
+    instance_id = db.Column(db.String(32), db.ForeignKey('instances.id'))
+    expires_on = db.Column(db.DateTime)
+
+    def __init__(self, instance_id, instance_seconds):
+        self.token = uuid.uuid4().hex
+        self.instance_id = instance_id
+        self.expires_on = datetime.datetime.utcnow() + datetime.timedelta(seconds=instance_seconds)
+
+    def __repr__(self):
+        return self.token
+
+
 class Lock(db.Model):
     __tablename__ = 'locks'
 
