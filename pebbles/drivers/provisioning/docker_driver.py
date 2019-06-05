@@ -523,6 +523,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         }
         config['environment'].append(format('INSTANCE_ID=%s' % instance_id))
         config['environment'].append(format('TZ=%s' % 'Asia/Delhi'))
+        config['environment'].append(format('PASSWORD=%s' % instance_id))
 
         if len(blueprint_config.get('launch_command', '')):
             launch_command = blueprint_config.get('launch_command').format(
