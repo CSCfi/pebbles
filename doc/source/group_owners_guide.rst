@@ -72,6 +72,9 @@ Next step would be to create a blueprint for your group.
 
 **Creating a blueprint:**
 
+Note: The instructions below details creating a blueprint based on existing/admin provided docker images. If you wish to create your own customized docker image
+(`See instructions for custom images through openshift driver <https://github.com/csc-training/geocomputing/tree/master/rahti>`_)
+
 
 1. Click on Blueprints tab
 
@@ -109,6 +112,8 @@ Replace ``<URL_TO_A_BASH_SCRIPT>`` with the actual URL of your script.
 
 6) Click on Activate button (in the blueprints list) to activate the
 blueprint. Now, the users will be able to see the blueprints.
+
+
 
 Instructions for Users who wish to join or leave a group
 --------------------------------------------------------
