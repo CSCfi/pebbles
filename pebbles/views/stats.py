@@ -1,4 +1,4 @@
-from flask.ext.restful import marshal_with, fields
+from flask_restful import marshal_with, fields
 from flask import Blueprint as FlaskBlueprint
 
 import logging

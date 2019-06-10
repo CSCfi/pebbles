@@ -1,4 +1,4 @@
-from flask.ext.restful import marshal_with, reqparse
+from flask_restful import marshal_with, reqparse
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 import logging

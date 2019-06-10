@@ -1,4 +1,4 @@
-from flask.ext.restful import reqparse
+from flask_restful import reqparse
 from flask_restful.inputs import boolean
 from flask import Blueprint as FlaskBlueprint
 from operator import itemgetter

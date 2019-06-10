@@ -1,5 +1,5 @@
 from flask import g
-from flask.ext.restful import fields, marshal_with
+from flask_restful import fields, marshal_with
 from flask import Blueprint as FlaskBlueprint
 import logging
 

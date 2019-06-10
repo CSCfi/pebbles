@@ -1,5 +1,5 @@
-from flask.ext.restful import fields
-from flask.ext.httpauth import HTTPBasicAuth
+from flask_restful import fields
+from flask_httpauth import HTTPBasicAuth
 from flask import g, render_template, abort
 import logging
 from pebbles.models import db, ActivationToken, User, Group, GroupUserAssociation

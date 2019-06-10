@@ -1,8 +1,7 @@
-from flask.ext.testing import TestCase
+from flask_testing import TestCase
 from flask_testing import LiveServerTestCase
 
 import logging
-
 
 from selenium import webdriver
 

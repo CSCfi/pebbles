@@ -4,7 +4,7 @@ cause gray hair.
 
 """
 
-from flask.ext.wtf import Form
+from flask_wtf import Form
 from wtforms_alchemy import model_form_factory
 from wtforms import BooleanField, FloatField, StringField
 # from wtforms import FormField, FieldList

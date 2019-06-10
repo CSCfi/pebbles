@@ -1,6 +1,6 @@
 from flask import Blueprint as FlaskBlueprint
 from flask import abort
-from flask.ext.restful import marshal_with, fields
+from flask_restful import marshal_with, fields
 
 from pebbles.models import db, Lock
 from pebbles.views.commons import auth

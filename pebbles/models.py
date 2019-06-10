@@ -1,8 +1,8 @@
 import string
 import random
-from flask.ext.bcrypt import Bcrypt
+from flask_bcrypt import Bcrypt
 import names
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.schema import MetaData
