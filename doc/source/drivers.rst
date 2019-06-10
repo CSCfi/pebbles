@@ -35,6 +35,8 @@ OpenShift Driver
 
 .. autoclass:: pebbles.drivers.provisioning.openshift_driver.OpenShiftDriver
 
+Instructions for building custom docker image is available at: https://github.com/csc-training/geocomputing/tree/master/rahti
+
 Dummy Driver
 ============
 
