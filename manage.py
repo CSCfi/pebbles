@@ -1,5 +1,5 @@
 from flask import url_for
-from flask.ext.script import Manager, Server, Shell
+from flask_script import Manager, Server, Shell
 from flask_migrate import MigrateCommand, Migrate
 from werkzeug.contrib.profiler import ProfilerMiddleware
 import getpass

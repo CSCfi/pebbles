@@ -1,7 +1,7 @@
-from flask.ext.restful import marshal_with, reqparse
+from flask_restful import marshal_with, reqparse
 from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
-from flask.ext.restful import fields
+from flask_restful import fields
 from sqlalchemy.orm.session import make_transient
 
 import logging
