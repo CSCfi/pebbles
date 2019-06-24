@@ -14,6 +14,8 @@ user_fields = {
     'eppn': fields.String,
     'email_id': fields.String,
     'credits_quota': fields.Float,
+    'group_quota': fields.Float,
+    'blueprint_quota': fields.Float,
     'credits_spent': fields.Float,
     'is_active': fields.Boolean,
     'is_admin': fields.Boolean,

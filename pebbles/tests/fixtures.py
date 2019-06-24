@@ -177,6 +177,20 @@ def primary_test_setup(namespace):
     db.session.add(b5)
     namespace.known_blueprint_id_disabled_2 = b5.id
 
+    b6 = Blueprint()
+    b6.name = "TestArchivedBlueprint"
+    b6.template_id = t2.id
+    b6.group_id = g2.id
+    b6.current_status = 'archived'
+    db.session.add(b6)
+
+    b7 = Blueprint()
+    b7.name = "TestDeletedBlueprint"
+    b7.template_id = t2.id
+    b7.group_id = g2.id
+    b7.current_status = 'deleted'
+    db.session.add(b7)
+
     n1 = Notification()
     n1.subject = "First notification"
     n1.message = "First notification message"

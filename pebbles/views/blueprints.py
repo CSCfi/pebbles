@@ -43,15 +43,23 @@ blueprint_fields = {
 
 class BlueprintList(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('expiry_time', type=int)
+    parser.add_argument('expiry_time', type=int, location='args')
+    parser.add_argument('show_all', type=bool, default=False, location='args')
 
     @auth.login_required
     @marshal_with(blueprint_fields)
     def get(self):
+        args = self.parser.parse_args()
         user = g.user
         query = apply_rules_blueprints(user)
         # sort the results based on the group name first and then by blueprint name
         query = query.join(Group, Blueprint.group).order_by(Group.name).order_by(Blueprint.name)
+        all_blueprints = []
+        if args.get('show_all'):
+            for blueprint in query.all():
+                blueprint = process_blueprint(blueprint)
+                all_blueprints.append(blueprint)
+            return all_blueprints
         results = []
         for blueprint in query.all():
             if blueprint.current_status != 'archived' and blueprint.current_status != 'deleted':

@@ -13,6 +13,8 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
         if (AuthService.isAdmin()) {
             var users = Restangular.all('users');
             var quota = Restangular.all('quota');
+            var blueprint = Restangular.all('blueprints');
+            var group = Restangular.all('groups');
 
             quota.getList().then(function (response) {
                 $scope.credits_spent = [];
@@ -20,6 +22,14 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
                     $scope.credits_spent[value.id] = value.credits_spent;
                 });
                 $scope.quotas = response;
+            });
+
+            blueprint.getList({show_all: true}).then(function(response) {
+                $scope.blueprints = response;
+            });
+
+            group.getList().then(function(response) {
+                $scope.groups = response;
             });
 
             $scope.users = []
@@ -139,7 +149,7 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
                 });
             };
 
-            $scope.open_quota_dialog = function(users) {
+            $scope.open_quota_dialog = function(users, blueprints, groups) {
 		$scope.formdata = {};
 
                 var modalQuota = $uibModal.open({
@@ -150,6 +160,12 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
                             return $filter('filter')(users, function(value, index) {
                                 return !value.is_deleted;
                             });
+                        },
+                        blueprints: function() {
+                            return blueprints;
+                        },
+                        groups: function() {
+                            return groups;
                         }
                     }
                 });
@@ -181,8 +197,33 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
         }
     }]);
 
-app.controller('ModalQuotaController', function ($q, $scope, $modalInstance, Restangular, users) {
+app.controller('ModalQuotaController', function ($q, $scope, $modalInstance, Restangular, users, blueprints, groups) {
     $scope.users = users;
+
+    $scope.user_blueprint_info = function() {
+	    var user_groups = [];
+	    if(users.length != 0) {
+		$scope.blueprint_quota = users[0].blueprint_quota;
+		$scope.group_quota = users[0].group_quota;
+		user_groups = _.filter(groups, {'owner_eppn': users[0].eppn});
+	    }
+          
+          var user_blueprints = [];
+
+          for (var i = 0; i < user_groups.length; i++) {
+             var check_blueprints = _.filter(blueprints, {'group_id': user_groups[i].id});
+               if(check_blueprints.length != 0) {
+                   for(var j = 0; j < check_blueprints.length; j++) {
+                       user_blueprints.push(check_blueprints[j])
+                   }
+                 }
+          }
+          $scope.active_blueprints = _.filter(user_blueprints, {'current_status': 'active'});
+          $scope.archived_blueprints = _.filter(user_blueprints, {'current_status': 'archived'});
+          $scope.deleted_blueprints = _.filter(user_blueprints, {'current_status': 'deleted'}); 
+
+          return user_blueprints.length;
+    };
 
     var change_quota = function(amount, change) {
         if ($scope.formdata.valueQuota)

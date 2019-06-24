@@ -13,6 +13,80 @@
         </ul>
         <hr>
 
+        <div ng-hide="users.length==0">
+	    <h4> Group quota: {{group_quota}} </h4>
+	    <h4> Blueprint quota: {{blueprint_quota}} </h4>
+            <h4> Total blueprints: {{user_blueprint_info()}} </h4>
+
+            <uib-accordion close-others="false">
+              <div uib-accordion-group class="panel-default" is-open="panel_open">
+                <uib-accordion-heading>
+                Active Blueprints: {{active_blueprints.length}} <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
+                </uib-accordion-heading> 
+	        <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <td><label>Blueprint Name</label></td>
+                      <td><label>Group</label></td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr  ng-repeat="active_bp in active_blueprints">
+                      <td>{{active_bp.name}}</td>
+                      <td>{{active_bp.group_name}}</td>
+                    </tr>
+                  </tbody>
+                </table>	
+              </div>
+            </uib-accordion>
+
+            <uib-accordion close-others="false">
+              <div uib-accordion-group class="panel-default" is-open="panel_open">
+                <uib-accordion-heading>
+                Archived Blueprints: {{archived_blueprints.length}} <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
+                </uib-accordion-heading>
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <td><label>Blueprint Name</label></td>
+                      <td><label>Group</label></td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr  ng-repeat="archived_bp in archived_blueprints">
+                      <td>{{archived_bp.name}}</td>
+                      <td>{{archived_bp.group_name}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </uib-accordion> 
+
+            <uib-accordion close-others="false">
+              <div uib-accordion-group class="panel-default" is-open="panel_open">
+                <uib-accordion-heading>
+                Deleted Blueprints: {{deleted_blueprints.length}} <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
+                </uib-accordion-heading>
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <td><label>Blueprint Name</label></td>
+                      <td><label>Group</label></td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr  ng-repeat="deleted_bp in deleted_blueprints">
+                      <td>{{deleted_bp.name}}</td>
+                      <td>{{deleted_bp.group_name}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </uib-accordion>
+  
+        </div>
+        <hr>
+
         <h4> Choose the quota to update: </h4>
         <div class="radio">
           <label>

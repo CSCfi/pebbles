@@ -1188,6 +1188,9 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/blueprints')
         self.assert_200(response)
         self.assertEqual(len(response.json), 5)
+        response = self.make_authenticated_admin_request(path='/api/v1/blueprints?show_all=true')
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 7)
 
     def test_get_blueprint(self):
         # Existing blueprint
@@ -2141,7 +2144,7 @@ class FlaskApiTestCase(BaseTestCase):
 
         response = self.make_authenticated_admin_request(path='/api/v1/import_export/blueprints')
         self.assertStatus(response, 200)
-        self.assertEquals(len(response.json), 5)  # There were total 5 blueprints initialized during setup
+        self.assertEquals(len(response.json), 7)  # There were total 7 blueprints initialized during setup
 
     def test_anonymous_import_blueprints(self):
 
