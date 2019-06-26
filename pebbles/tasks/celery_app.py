@@ -1,4 +1,3 @@
-import base64
 import json
 import logging
 from celery import Celery
@@ -8,6 +7,7 @@ from celery.signals import worker_process_init
 import requests
 from celery.utils.log import get_task_logger
 from pebbles.config import BaseConfig
+import pebbles.utils
 
 local_config = BaseConfig()
 
@@ -29,7 +29,7 @@ def do_get(token, object_url):
     """ wrapper to use the GET method with authentication token against the
     internal api url.
     """
-    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
+    auth = pebbles.utils.b64encode_string('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
     url = '%s/%s' % (local_config['INTERNAL_API_BASE_URL'], object_url)
@@ -41,7 +41,7 @@ def do_post_or_put(token, api_path, data, method='POST'):
     """ wrapper to use the POST method with uthentication token against the
     internal api url.
     """
-    auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
+    auth = pebbles.utils.b64encode_string('%s:%s' % (token, '')).replace('\n', '')
     headers = {'Accept': 'text/plain',
                'Authorization': 'Basic %s' % auth}
     url = '%s/%s' % (local_config['INTERNAL_API_BASE_URL'], api_path)

@@ -1,7 +1,8 @@
-import base64
 import logging
 import requests
 import time
+
+import pebbles.utils
 
 
 class PBInstanceLogHandler(logging.Handler):
@@ -12,7 +13,7 @@ class PBInstanceLogHandler(logging.Handler):
     """
     def __init__(self, api_base_url, instance_id, token, ssl_verify=True):
         logging.Handler.__init__(self)
-        auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
+        auth = pebbles.utils.b64encode_string('%s:%s' % (token, '')).replace('\n', '')
         self.ssl_verify = ssl_verify
         self.headers = {
             'Accept': 'text/plain',

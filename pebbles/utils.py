@@ -173,3 +173,11 @@ def get_blueprint_fields_from_config(blueprint, field_name):
             except:
                 pass
         return cost_multiplier
+
+
+def b64encode_string(content):
+    """python2 and python3 compatibility wrapper function. Can be removed when support for python2 is gone"""
+    if six.PY3:
+        return base64.b64encode(content.encode('utf-8')).decode('utf-8')
+    else:
+        return base64.b64encode(content).decode('utf-8')

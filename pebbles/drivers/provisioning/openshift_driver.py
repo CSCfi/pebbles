@@ -18,7 +18,6 @@ file. names are "OSO_XXX_URL", where XXX is the name of your installation
 
 """
 
-import base64
 import json
 import time
 import uuid
@@ -27,6 +26,7 @@ import requests
 # noinspection PyUnresolvedReferences
 from six.moves.urllib.parse import urlparse, parse_qs
 
+import pebbles.utils
 from pebbles.client import PBClient
 from pebbles.drivers.provisioning import base_driver
 
@@ -92,7 +92,7 @@ class OpenShiftClient(object):
         :return: dict containing access_token, lifetime and expiry time
         """
         url = self.base_url + '/oauth/authorize'
-        auth_encoded = base64.b64encode(bytes('%s:%s' % (self.user, self.password)))
+        auth_encoded = pebbles.utils.b64encode_string(bytes('%s:%s' % (self.user, self.password)))
 
         headers = {
             'Authorization': 'Basic %s' % str(auth_encoded),

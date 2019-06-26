@@ -1,5 +1,5 @@
-import base64
 import requests
+import pebbles.utils
 
 
 class PBClient(object):
@@ -7,7 +7,7 @@ class PBClient(object):
         self.token = token
         self.api_base_url = api_base_url
         self.ssl_verify = ssl_verify
-        self.auth = base64.encodestring('%s:%s' % (token, '')).replace('\n', '')
+        self.auth = pebbles.utils.b64encode_string('%s:%s' % (token, '')).replace('\n', '')
 
     def do_get(self, object_url, payload=None):
         headers = {'Accept': 'text/plain',
