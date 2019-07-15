@@ -109,11 +109,23 @@ def publish_plugins_and_configs():
         if not len(res_backend_config):
             logger.warn('plugin returned empty backend configuration: %s' % plugin)
             continue
-        backend_config = res_backend_config[0]
-        if not backend_config:
-            logger.warn('No backend config for %s obtained' % plugin)
-            continue
-        update_driver_backend_config(token, plugin, backend_config)
+        if plugin == "DockerDriver":
+            backend_config_cpu = res_backend_config[0][0]
+            backend_config_gpu = res_backend_config[0][1]
+            if not backend_config_cpu:
+                logger.warn('No backend cpu config for %s obtained' % plugin)
+            else:
+                update_driver_backend_config(token, plugin, backend_config_cpu)
+            if not backend_config_gpu:
+                logger.warn('No backend gpu config for %s obtained' % plugin)
+            else:
+                update_driver_backend_config(token, "DockerDriverGpu", backend_config_gpu)
+        else:
+            backend_config = res_backend_config[0]
+            if not backend_config:
+                logger.warn('No backend config for %s obtained' % plugin)
+                continue
+                update_driver_backend_config(token, plugin, backend_config)
 
 
 @celery_app.task(name="pebbles.tasks.housekeeping")
