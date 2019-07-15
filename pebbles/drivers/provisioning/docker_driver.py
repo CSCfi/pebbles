@@ -74,6 +74,7 @@ from pebbles.services.openstack_service import OpenStackService
 import pebbles.tasks
 from lockfile import locked, LockTimeout
 import socket
+import logging
 
 
 DD_STATE_SPAWNED = 'spawned'
@@ -95,7 +96,8 @@ DD_CLIENT_TIMEOUT = 180  # seconds
 
 PEBBLES_SSH_KEY_LOCATION = '/home/pebbles/.ssh/id_rsa'
 
-NAMESPACE = "DockerDriver"
+NAMESPACE_CPU = "DockerDriver"
+NAMESPACE_GPU = "DockerDriverGpu"
 KEY_PREFIX_POOL = "pool_vm"
 KEY_CONFIG = "backend_config"
 
@@ -134,43 +136,45 @@ class DockerDriverAccessProxy(object):
         return PBClient(token, api_base_url, ssl_verify)
 
     @classmethod
-    def load_records(cls, token, url):
+    def load_records(cls, token, url, namespace_value=NAMESPACE_CPU):
         """ Loads the pool vm host state from the database through REST API
             There can be multiple pool vms at a time (in different states)
         """
         pbclient = cls.get_pb_client(token, url, ssl_verify=False)
-        namespaced_records = pbclient.get_namespaced_keyvalues({'namespace': NAMESPACE, 'key': KEY_PREFIX_POOL})
+        namespaced_records = pbclient.get_namespaced_keyvalues({'namespace': namespace_value, 'key': KEY_PREFIX_POOL})
         hosts = []
         for ns_record in namespaced_records:
             hosts.append(ns_record['value'])
         return hosts
 
     @classmethod
-    def save_records(cls, token, url, hosts):
+    def save_records(cls, token, url, hosts, namespace_value=NAMESPACE_CPU):
         """Saves the pool vm host state in the database via REST API
         """
         pbclient = cls.get_pb_client(token, url, ssl_verify=False)
         for host in hosts:
             _key = '%s_%s' % (KEY_PREFIX_POOL, host['id'])
             payload = {
-                'namespace': NAMESPACE,
+                'namespace': namespace_value,
                 'key': _key,
                 'schema': {}
             }
             if host.get('state') in [DD_STATE_SPAWNED, DD_STATE_ACTIVE, DD_STATE_INACTIVE]:  # POST or PUT
                 payload['value'] = host
-                pbclient.create_or_modify_namespaced_keyvalue(NAMESPACE, _key, payload)
+                pbclient.create_or_modify_namespaced_keyvalue(namespace_value, _key, payload)
             elif host.get('state') == DD_STATE_REMOVED:  # DELETE
-                pbclient.delete_namespaced_keyvalue(NAMESPACE, _key)
+                pbclient.delete_namespaced_keyvalue(namespace_value, _key)
 
     @classmethod
-    def load_driver_config(cls, token, url):
+    def load_driver_config(cls, token, url, namespace_value=NAMESPACE_CPU):
         """ Loads the driver config from the database through REST API
             There will always be one config for the driver
         """
+        logging.warn("in load_driver_config")
         pbclient = cls.get_pb_client(token, url, ssl_verify=False)
-        namespaced_record = pbclient.get_namespaced_keyvalue(NAMESPACE, KEY_CONFIG)
+        namespaced_record = pbclient.get_namespaced_keyvalue(namespace_value, KEY_CONFIG)
         driver_config = namespaced_record['value']
+        logging.warn("driver_config is %s" % driver_config)
         return driver_config
 
     @staticmethod
@@ -376,15 +380,25 @@ class DockerDriverAccessProxy(object):
 class DockerDriver(base_driver.ProvisioningDriverBase):
     """ ToDo: document what the docker driver does for an admin/developer here
     """
-    def get_configuration(self):
+    def get_configuration(self, namespace_value=NAMESPACE_CPU):
         """ Return the default config values which are needed for the
             plugin creation (via schemaform)
         """
-        from pebbles.drivers.provisioning.docker_driver_config import CONFIG
+        image_names = self._get_ap().get_image_names()
+        image_loadable_names = []
+        if namespace_value == NAMESPACE_CPU:
+            from pebbles.drivers.provisioning.docker_driver_config import CONFIG
+            for images in image_names:
+                if "gpu" not in images:
+                    image_loadable_names.append(images)
+        elif namespace_value == NAMESPACE_GPU:
+            from pebbles.drivers.provisioning.docker_driver_config_gpu import CONFIG
+            for images in image_names:
+                if "gpu" in images:
+                    image_loadable_names.append(images)
 
         config = CONFIG.copy()
-        image_names = self._get_ap().get_image_names()
-        config['schema']['properties']['docker_image']['enum'] = image_names
+        config['schema']['properties']['docker_image']['enum'] = image_loadable_names
 
         return config
 
@@ -392,21 +406,26 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         """ Return the default values for the variables
             which are needed as a part of backend configuration
         """
+        backend_configs = []
         from pebbles.drivers.provisioning.docker_driver_config import BACKEND_CONFIG
-        backend_config = BACKEND_CONFIG.copy()
-        return backend_config
+        from pebbles.drivers.provisioning.docker_driver_config_gpu import BACKEND_CONFIG_GPU
+        backend_configs.append(BACKEND_CONFIG.copy())
+        backend_configs.append(BACKEND_CONFIG_GPU.copy())
+        return backend_configs
 
     def _get_ap(self):
         if not getattr(self, '_ap', None):
             self._ap = DockerDriverAccessProxy()
         return self._ap
 
-    def _set_driver_backend_config(self, token):
+    def _set_driver_backend_config(self, token, namespace_value=NAMESPACE_CPU):
         """ Set the driver_config variable for usage in the
             docker driver (i.e. the current class)
         """
+        logging.warn("iin _set_driver_backend_config")
         ap = self._get_ap()
-        self.driver_config = ap.load_driver_config(token, self.config['INTERNAL_API_BASE_URL'])
+        self.driver_config = ap.load_driver_config(token, self.config['INTERNAL_API_BASE_URL'], namespace_value)
+        logging.warn("in _set_driver_backend_config self.driver_config is  %s" % self.driver_config)
 
     def do_update_connectivity(self, token, instance_id):
         self.logger.warning('do_update_connectivity not implemented')
@@ -704,51 +723,64 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         return self._do_housekeep(token, int(time.time()))
 
     def _do_housekeep(self, token, cur_ts):
-        self._set_driver_backend_config(token)  # set the driver specific config vars from the db
-
+        # self._set_driver_backend_config(token)  # set the driver specific config vars from the db
+        logging.warn("***************************************")
+        logging.warn("token is %s " % token)
         # in shutdown mode we remove the hosts as soon as no instances are running on them
-        shutdown_mode = self.driver_config['DD_SHUTDOWN_MODE']
-        if shutdown_mode:
-            self.logger.info('do_housekeep(): in shutdown mode')
+        namespace_driver_values = [NAMESPACE_CPU, NAMESPACE_GPU]
+        for name_value in namespace_driver_values:
+            self._set_driver_backend_config(token, namespace_value=name_value)  # set the driver specific config vars from the db
+            shutdown_mode = self.driver_config['DD_SHUTDOWN_MODE']
+            if shutdown_mode:
+                self.logger.info('do_housekeep(): in shutdown mode')
+            if self.driver_config['DD_HOST_FLAVOR_NAME_SMALL'].startswith("gpu"):
+                logging.warn("its GPUUUUU")
+                namespace_value = NAMESPACE_GPU
+            else:
+                logging.warn("its cpu")
+                namespace_value = NAMESPACE_CPU
 
-        # fetch host data
-        hosts = self._get_hosts(token, cur_ts)
+            # fetch host data
+            hosts = self._get_hosts(token, cur_ts, namespace_value)
+            logging.warn("hosts are iilaaaa %s " % hosts)
+            self._update_host_lifetimes(hosts, shutdown_mode, cur_ts)
 
-        self._update_host_lifetimes(hosts, shutdown_mode, cur_ts)
+            # find active hosts
+            active_hosts = self.get_active_hosts(hosts)
+            logging.warn("active hosts %s" % active_hosts)
 
-        # find active hosts
-        active_hosts = self.get_active_hosts(hosts)
+            # find current free slots
+            num_free_slots = self.calculate_free_slots(hosts)
 
-        # find current free slots
-        num_free_slots = self.calculate_free_slots(hosts)
+            # find projected free slots (only take active hosts with more than a minute to go)
+            num_projected_free_slots = self.calculate_projected_free_slots(hosts)
 
-        # find projected free slots (only take active hosts with more than a minute to go)
-        num_projected_free_slots = self.calculate_projected_free_slots(hosts)
+            self.logger.info(
+                'do_housekeep(): active hosts: %d, free slots: %d now, %d projected for near future' %
+                (len(active_hosts), num_free_slots, num_projected_free_slots)
+            )
 
-        self.logger.info(
-            'do_housekeep(): active hosts: %d, free slots: %d now, %d projected for near future' %
-            (len(active_hosts), num_free_slots, num_projected_free_slots)
-        )
+            # priority one: find just spawned hosts, prepare and activate those
+            if self._activate_spawned_hosts(hosts=hosts, cur_ts=cur_ts):
+                self.logger.debug('do_housekeep(): activate action taken')
+                logging.warn("activate hosts is donei in do_housekeep")
 
-        # priority one: find just spawned hosts, prepare and activate those
-        if self._activate_spawned_hosts(hosts=hosts, cur_ts=cur_ts):
-            self.logger.debug('do_housekeep(): activate action taken')
+            # priority two: remove inactive hosts that have no instances on them
+            elif self._remove_inactive_hosts(hosts=hosts, cur_ts=cur_ts):
+                self.logger.debug('do_housekeep(): remove action taken')
 
-        # priority two: remove inactive hosts that have no instances on them
-        elif self._remove_inactive_hosts(hosts=hosts, cur_ts=cur_ts):
-            self.logger.debug('do_housekeep(): remove action taken')
+            # priority three: if we have less available slots than our target, spawn a new hosy
+            # in shutdown mode we skip this
+            elif not shutdown_mode and self._spawn_new_host(hosts=hosts, cur_ts=cur_ts):
+                logging.warn(" going to soawn a new hosta thinguyyyyy in do_housekeep ")
+                self.logger.debug('do_housekeep(): spawn action taken')
 
-        # priority three: if we have less available slots than our target, spawn a new host
-        # in shutdown mode we skip this
-        elif not shutdown_mode and self._spawn_new_host(hosts=hosts, cur_ts=cur_ts):
-            self.logger.debug('do_housekeep(): spawn action taken')
+            # finally mark old hosts without instances inactive (one at a time)
+            elif self._inactivate_old_hosts(hosts=hosts, cur_ts=cur_ts):
+                self.logger.debug('do_housekeep(): inactivate action taken')
 
-        # finally mark old hosts without instances inactive (one at a time)
-        elif self._inactivate_old_hosts(hosts=hosts, cur_ts=cur_ts):
-            self.logger.debug('do_housekeep(): inactivate action taken')
-
-        # save host state in the end
-        self._save_host_state(hosts, token, cur_ts)
+            # save host state in the end
+            self._save_host_state(hosts, token, cur_ts, namespace_value)
 
     def _activate_spawned_hosts(self, hosts, cur_ts):
         spawned_hosts = [x for x in hosts if x['state'] == DD_STATE_SPAWNED]
@@ -870,12 +902,12 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
                                                                              len(selected_hosts)))
         return selected_hosts
 
-    def _get_hosts(self, token, cur_ts):
+    def _get_hosts(self, token, cur_ts, namespace_value=NAMESPACE_CPU):
         """ Loads the state of the pool vm host through access proxy
         """
         ap = self._get_ap()
 
-        hosts = ap.load_records(token, self.config['INTERNAL_API_BASE_URL'])
+        hosts = ap.load_records(token, self.config['INTERNAL_API_BASE_URL'], namespace_value)
         # populate hosts with container data
         for host in hosts:
             if host['state'] not in (DD_STATE_ACTIVE, DD_STATE_INACTIVE):
@@ -903,11 +935,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         return hosts
 
-    def _save_host_state(self, hosts, token, cur_ts):
+    def _save_host_state(self, hosts, token, cur_ts, namespace_value=NAMESPACE_CPU):
         """Saves the state of the pool vm host in the database via access proxy
         """
         ap = self._get_ap()
-        ap.save_records(token, self.config['INTERNAL_API_BASE_URL'], hosts)
+        ap.save_records(token, self.config['INTERNAL_API_BASE_URL'], hosts, namespace_value)
 
     def _spawn_host(self, cur_ts, ramp_up=False):
         instance_name = 'pb_dd_%s' % uuid.uuid4().hex
@@ -964,9 +996,13 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
         docker_client = ap.get_docker_client(host['docker_url'])
 
-        dconf = self.get_configuration()
+        if (self.driver_config['DD_HOST_FLAVOR_NAME_SMALL']).startswith("gpu"):
+            dconf = self.get_configuration(namespace_value=NAMESPACE_GPU)
+        else:
+            dconf = self.get_configuration(namespace_value=NAMESPACE_CPU)
 
         for image_name in dconf['schema']['properties']['docker_image']['enum']:
+            logging.warn("image_name is %s" % image_name)
             filename = '%s/%s.img' % (DD_IMAGE_DIRECTORY, image_name.replace('/', '.'))
             self.logger.debug("_prepare_host(): uploading image %s from file %s" % (image_name, filename))
             with open(filename, 'r') as img_file:
