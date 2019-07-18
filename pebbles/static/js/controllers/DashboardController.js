@@ -443,7 +443,7 @@ app.controller('PoolConfigController', ['$scope', 'Restangular',
         var configService = Restangular.all('namespaced_keyvalues');
 
         var fetchPoolConfig = function(){
-            configService.getList({'namespace': 'DockerDriver', 'key': 'pool_vm'}).then(function (response) {
+            configService.getList({'key': 'pool_vm'}).then(function (response) {
                 $scope.poolConfigs = response;
             });
         };
