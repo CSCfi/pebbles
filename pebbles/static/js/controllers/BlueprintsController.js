@@ -165,14 +165,29 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
         }
 
         $scope.archiveBlueprint = function(blueprint) {
-             blueprint.current_status = 'archived';
-             blueprint.patch().then(function() {
+             blueprint.patch({'blueprint_status' : 'archived'}).then(function() {
                 blueprints.getList().then(function (response) {
                      $scope.blueprints = response;
                  });
             });
         };
-    
+
+        $scope.gpuEnable = function(blueprint) {
+             blueprint.patch({'gpu_status' : "enable"}).then(function() {
+                blueprints.getList().then(function (response) {
+                     $scope.blueprints = response;
+                 });
+            });
+        };
+
+        $scope.gpuDisable = function(blueprint) {
+             blueprint.patch({'gpu_status' : "disable"}).then(function() {
+                blueprints.getList().then(function (response) {
+                     $scope.blueprints = response;
+                 });
+            });
+        };
+
 	$scope.deleteBlueprint = function(blueprint) {
             blueprint.get().then(function(response){ 
 	        instances.getList().then(function (response) {

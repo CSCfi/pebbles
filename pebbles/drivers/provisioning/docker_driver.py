@@ -110,6 +110,7 @@ class DockerDriverAccessProxy(object):
     @staticmethod
     def get_docker_client(docker_url):
         # TODO: figure out why server verification does not work (crls?)
+
         tls_config = TLSConfig(
             client_cert=(
                 '%s/client_cert.pem' % DD_RUNTIME_PATH, '%s/client_key.pem' % DD_RUNTIME_PATH),
@@ -140,6 +141,7 @@ class DockerDriverAccessProxy(object):
         """ Loads the pool vm host state from the database through REST API
             There can be multiple pool vms at a time (in different states)
         """
+        logging.warn("**************in load records ******************")
         pbclient = cls.get_pb_client(token, url, ssl_verify=False)
         namespaced_records = pbclient.get_namespaced_keyvalues({'namespace': namespace_value, 'key': KEY_PREFIX_POOL})
         hosts = []
@@ -171,6 +173,7 @@ class DockerDriverAccessProxy(object):
             There will always be one config for the driver
         """
         logging.warn("in load_driver_config")
+        logging.warn("namespace_value is %s" %namespace_value)
         pbclient = cls.get_pb_client(token, url, ssl_verify=False)
         namespaced_record = pbclient.get_namespaced_keyvalue(namespace_value, KEY_CONFIG)
         driver_config = namespaced_record['value']
@@ -178,7 +181,7 @@ class DockerDriverAccessProxy(object):
         return driver_config
 
     @staticmethod
-    def run_ansible_on_host(host, logger, driver_config):
+    def run_ansible_on_host(host, logger, driver_config, role):
         from ansible.plugins.callback import CallbackBase
         # A rough logger that logs dict messages to standard logger
 
@@ -306,14 +309,26 @@ class DockerDriverAccessProxy(object):
         if 'DD_HOST_DATA_VOLUME_DEVICE' in driver_config:
             extra_vars['notebook_host_block_dev_path'] = driver_config['DD_HOST_DATA_VOLUME_DEVICE']
         variable_manager.extra_vars = extra_vars
-        pb_executor = playbook_executor.PlaybookExecutor(
-            playbooks=['/webapps/pebbles/source/ansible/notebook_playbook.yml'],
-            inventory=inventory,
-            variable_manager=variable_manager,
-            loader=loader,
-            options=options,
-            passwords=None
-        )
+        if driver_config['DD_HOST_FLAVOR_NAME_SMALL'].startswith("gpu") and role == 'ntnormal':
+            logging.warn("loading notebook_gpu_playbook")
+            pb_executor = playbook_executor.PlaybookExecutor(
+                playbooks=['/webapps/pebbles/source/ansible/notebook_gpu_playbook.yml'],
+                inventory=inventory,
+                variable_manager=variable_manager,
+                loader=loader,
+                options=options,
+                passwords=None
+            )
+        else:
+            logging.warn("loading cpu playbook")
+            pb_executor = playbook_executor.PlaybookExecutor(
+                playbooks=['/webapps/pebbles/source/ansible/notebook_playbook.yml'],
+                inventory=inventory,
+                variable_manager=variable_manager,
+                loader=loader,
+                options=options,
+                passwords=None
+            )
         rescb = ResultCallback()
         pb_executor._tqm._stdout_callback = rescb
 
@@ -380,13 +395,16 @@ class DockerDriverAccessProxy(object):
 class DockerDriver(base_driver.ProvisioningDriverBase):
     """ ToDo: document what the docker driver does for an admin/developer here
     """
-    def get_configuration(self, namespace_value=NAMESPACE_CPU):
+    def get_configuration(self, namespace_value=None):
         """ Return the default config values which are needed for the
             plugin creation (via schemaform)
         """
         image_names = self._get_ap().get_image_names()
         image_loadable_names = []
-        if namespace_value == NAMESPACE_CPU:
+        if namespace_value is None:
+            from pebbles.drivers.provisioning.docker_driver_config import CONFIG
+            image_loadable_names = image_names
+        elif namespace_value == NAMESPACE_CPU:
             from pebbles.drivers.provisioning.docker_driver_config import CONFIG
             for images in image_names:
                 if "gpu" not in images:
@@ -449,27 +467,37 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         running_log_uploader.info(container_logs)
 
     def do_provision(self, token, instance_id):
-        self._set_driver_backend_config(token)  # set the driver specific config vars from the db
+        # self._set_driver_backend_config(token)  # set the driver specific config vars from the db
         self.logger.debug("do_provision %s" % instance_id)
         log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='provisioning')
 
         log_uploader.info("Provisioning Docker based instance (%s)\n" % instance_id)
-
-        # in shutdown mode we bail out right away
-        if self.driver_config['DD_SHUTDOWN_MODE']:
-            log_uploader.info("system is in shutdown mode, cannot provision new instances\n")
-            raise RuntimeWarning('Shutdown mode, no provisioning')
 
         ap = self._get_ap()
         pbclient = ap.get_pb_client(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         instance = pbclient.get_instance_description(instance_id)
         blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
         blueprint_config = blueprint['full_config']
+        logging.warn("bp config is %s" %blueprint_config)
+        logging.warn("current status is %s" %blueprint['current_status'])
+        logging.warn("gpu_enabled is %s" %blueprint['gpu_enabled'])
+        if blueprint['gpu_enabled']:
+            namespace_value = NAMESPACE_GPU
+        else:
+            namespace_value = NAMESPACE_CPU
+
+        self._set_driver_backend_config(token, namespace_value)  # set the driver specific config vars from the db
+
+        # in shutdown mode we bail out right away
+        if self.driver_config['DD_SHUTDOWN_MODE']:
+            log_uploader.info("system is in shutdown mode, cannot provision new instances\n")
+            raise RuntimeWarning('Shutdown mode, no provisioning')
 
         log_uploader.info("selecting host...")
         try:
             # obtain all the hosts that has free space left
-            docker_hosts = self._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+            docker_hosts = self._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()), namespace_value)
+            logging.warn("docker_hosts is %s" %docker_hosts)
         except (RuntimeWarning, ConnectionError) as e:
             self.logger.info('_do_provision() failed for %s due to %s' % (instance_id, e))
             log_uploader.info("provisioning failed, queueing again to retry\n")
@@ -873,11 +901,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             host['lifetime_left'] = lifetime
             self.logger.debug('do_housekeep(): host %s has lifetime %d' % (host['id'], lifetime))
 
-    def _select_hosts(self, slots, token, cur_ts):
+    def _select_hosts(self, slots, token, cur_ts, namespace_value=NAMESPACE_CPU):
         """ Select pool vm host for provisioning a container.
             First, oldest active hosts and then the fresh hosts
         """
-        hosts = self._get_hosts(token, cur_ts)
+        hosts = self._get_hosts(token, cur_ts, namespace_value)
         active_hosts = self.get_active_hosts(hosts)
 
         # first try to use the oldest active host with space and lifetime left
@@ -991,8 +1019,7 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
 
     def _prepare_host(self, host):
         ap = self._get_ap()
-
-        ap.run_ansible_on_host(host, self.logger, self.driver_config)
+        ap.run_ansible_on_host(host, self.logger, self.driver_config, role="normal")
 
         docker_client = ap.get_docker_client(host['docker_url'])
 
@@ -1002,11 +1029,11 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
             dconf = self.get_configuration(namespace_value=NAMESPACE_CPU)
 
         for image_name in dconf['schema']['properties']['docker_image']['enum']:
-            logging.warn("image_name is %s" % image_name)
             filename = '%s/%s.img' % (DD_IMAGE_DIRECTORY, image_name.replace('/', '.'))
             self.logger.debug("_prepare_host(): uploading image %s from file %s" % (image_name, filename))
             with open(filename, 'r') as img_file:
                 docker_client.load_image(img_file)
+        ap.run_ansible_on_host(host, self.logger, self.driver_config, role="ntnormal")
 
     def _remove_host(self, host):
         self.logger.debug("_remove_host()")

@@ -72,6 +72,10 @@
 		    <button ng-show="blueprint.is_enabled" ng-click="openBlueprintLinkDialog(blueprint)" class="btn btn-success">Link</button>
 		    <button ng-confirm-click="Copy this blueprint?" ng-click="copyBlueprint(blueprint)" class="btn btn-default">Copy</button>
 		    <button ng-if=isAdmin() ng-confirm-click="Do you want to permanently archive this blueprint?" ng-click="archiveBlueprint(blueprint)" class="btn btn-default">Archive</button>
+                    <span ng-if=isAdmin()>
+                         <button ng-show="blueprint.gpu_enabled==false" ng-click="gpuEnable(blueprint)" class="btn btn-default">EnableGpu</button>
+		         <button ng-show="blueprint.gpu_enabled==true" ng-click="gpuDisable(blueprint)" class="btn btn-default">DisableGpu</button>
+                    </span>
 		    <button ng-click="deleteBlueprint(blueprint)" class="btn btn-danger">Delete</button>
 		</td>
 	   </tr>

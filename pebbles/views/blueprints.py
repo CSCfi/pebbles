@@ -38,6 +38,7 @@ blueprint_fields = {
     'manager': fields.Boolean,
     'current_status': fields.String,
     'expiry_time': fields.DateTime,
+    'gpu_enabled': fields.Boolean,
 }
 
 
@@ -123,7 +124,8 @@ class BlueprintList(restful.Resource):
 
 class BlueprintView(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('current_status', type=str)
+    parser.add_argument('blueprint_status', type=str)
+    parser.add_argument('gpu_status', type=str)
 
     @auth.login_required
     @marshal_with(blueprint_fields)
@@ -183,9 +185,15 @@ class BlueprintView(restful.Resource):
         if not blueprint:
             abort(404)
 
-        if args.get('current_status'):
-            blueprint.current_status = args['current_status']
+        if args.get('blueprint_status'):
+            blueprint.current_status = args['blueprint_status']
             blueprint.is_enabled = False
+            db.session.commit()
+        if args.get('gpu_status'):
+            if args.get('gpu_status') == "enable":
+                blueprint.gpu_enabled = True
+            elif args.get('gpu_status') == "disable":
+                blueprint.gpu_enabled = False
             db.session.commit()
 
     @auth.login_required
