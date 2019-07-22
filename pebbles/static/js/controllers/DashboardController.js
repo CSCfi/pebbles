@@ -28,10 +28,15 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
             
             return false;
         }
-
+        var invisible_bp = [];
         var group_join = Restangular.all('groups').one('group_join');
-
         var blueprints = Restangular.all('blueprints');
+
+        blueprints.getList({bp_from_all: true}).then(function(response) {
+              invisible_bp = response;
+         });
+
+
         blueprints.getList().then(function (response) {
             if($routeParams.blueprint_id){  // Case when the blueprint link is given
                 var blueprint_id = $routeParams.blueprint_id;
@@ -61,6 +66,8 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
             }
             else{  // Fetch all blueprints
                 $scope.blueprints = response;
+                $scope.visibility_off = _.filter(response, {'visibility': false});
+                $scope.advertising_bp = _.differenceBy(invisible_bp, $scope.visibility_off, 'group_id');
             }
         });
 

@@ -88,14 +88,53 @@
                             To launch instances, first <a href="/#/account">add SSH keys</a>.
                         </span>
                     </div>
+               </div>
+            </div>
+        </div>
+  </div> 
+
+<div id="user-dashboard" ng-hide="advertising_bp.length == 0">
+  <div class="row">
+   <div class="pad-with-container">
+           <h2 class="pad-with-container"> Available Blueprints </h2>
+        </div>
+        </br>
+        </br>
+        <div ng-repeat="choice in oddEvenRange()" class="col-md-6">
+            <div ng-repeat="blueprint in advertising_bp" ng-if="filterOddEven($index, choice)" class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">{{ blueprint.name }}</h3>
+                    </div>
+                    <div class="panel-body specialCollapse sp">
+                        <div style="padding: 15px">
+                            <p>
+			       <span class="pre-background" ng-bind-html="blueprint.config.description"></span>
+			    </p>
+                            <p><b>Lifetime:</b> <lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/> </p>
+                        </div>
+			
+                    </div>
+                    <div class="panel-footer text-center">
+                        <div class="row">
+                            <div class="col-md-11 centered-btn">
+                        <a class="btn btn-block btn-primary" ng-disabled="blueprint.visibility==false">
+                            <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch new
+                        </a>
+                            </div>
+                            
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-   </div>
+  </div>
+</div>
+
+                 
    <br>
    <br>
    <div class= "pad-with-container">
 	   <p id = "environments-note" class= "well well-sm"> The environments you see here are determined by the groups that you are a member of. If you do not see an environment you expect to see, you should join the appropriate group under "Account". </p>
-   </div>
 </div>
-
+</div>

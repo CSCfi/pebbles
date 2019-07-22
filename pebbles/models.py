@@ -432,6 +432,7 @@ class Blueprint(db.Model):
     template_id = db.Column(db.String(32), db.ForeignKey('blueprint_templates.id'))
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
+    visibility = db.Column(db.Boolean, default=False)
     expiry_time = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='blueprint', lazy='dynamic')
     group_id = db.Column(db.String(32), db.ForeignKey('groups.id'))

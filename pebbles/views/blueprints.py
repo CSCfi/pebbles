@@ -28,6 +28,7 @@ blueprint_fields = {
     'template_id': fields.String,
     'template_name': fields.String,
     'is_enabled': fields.Boolean,
+    'visibility': fields.Boolean,
     'plugin': fields.String,
     'config': fields.Raw,
     'full_config': fields.Raw,
@@ -45,12 +46,22 @@ class BlueprintList(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('expiry_time', type=int, location='args')
     parser.add_argument('show_all', type=bool, default=False, location='args')
+    parser.add_argument('bp_from_all', type=bool, default=False, location='args')
 
     @auth.login_required
     @marshal_with(blueprint_fields)
     def get(self):
         args = self.parser.parse_args()
         user = g.user
+        all_group_blueprints = []
+        if args.get('bp_from_all'):
+            query = Blueprint.query
+            blueprints = query.all()
+            for blueprint in blueprints:
+                if blueprint.current_status != 'archived' and blueprint.current_status != 'deleted' and blueprint.visibility is not True:
+                    blueprint = process_blueprint(blueprint)
+                    all_group_blueprints.append(blueprint)
+            return all_group_blueprints
         query = apply_rules_blueprints(user)
         # sort the results based on the group name first and then by blueprint name
         query = query.join(Group, Blueprint.group).order_by(Group.name).order_by(Blueprint.name)
@@ -100,6 +111,8 @@ class BlueprintList(restful.Resource):
             logging.warn("Maximum User_blueprint_quota is reached")
             return {"message": "You reached maximum number of blueprints that can be created. If you wish create more groups contact administrator"}, 422
 
+        if group.name == 'System.default':
+            blueprint.visibility = True
         blueprint.group_id = group_id
         args = self.parser.parse_args()
         if group.name != 'System.default':
