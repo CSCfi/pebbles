@@ -46,6 +46,7 @@ class BlueprintList(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('expiry_time', type=int, location='args')
     parser.add_argument('show_all', type=bool, default=False, location='args')
+    # argument to get blueprints from all groups, no matter user belongs to that groups or not
     parser.add_argument('bp_from_all', type=bool, default=False, location='args')
 
     @auth.login_required
@@ -53,6 +54,7 @@ class BlueprintList(restful.Resource):
     def get(self):
         args = self.parser.parse_args()
         user = g.user
+        # get blueprints from all groups except System.default group
         all_group_blueprints = []
         if args.get('bp_from_all'):
             query = Blueprint.query
@@ -111,6 +113,7 @@ class BlueprintList(restful.Resource):
             logging.warn("Maximum User_blueprint_quota is reached")
             return {"message": "You reached maximum number of blueprints that can be created. If you wish create more groups contact administrator"}, 422
 
+        # Blueprint visibility is always true that belongs to System.default group
         if group.name == 'System.default':
             blueprint.visibility = True
         blueprint.group_id = group_id

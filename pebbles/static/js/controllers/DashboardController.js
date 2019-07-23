@@ -28,10 +28,11 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
             
             return false;
         }
-        var invisible_bp = [];
+        var invisible_bp = []; // variable to store blueprints whose visibility is false
         var group_join = Restangular.all('groups').one('group_join');
         var blueprints = Restangular.all('blueprints');
 
+        // fetch blueprints from all groups except System.default group
         blueprints.getList({bp_from_all: true}).then(function(response) {
               invisible_bp = response;
          });
@@ -64,9 +65,12 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
                      });
                 }
             }
-            else{  // Fetch all blueprints
+            else{
+                // Fetch all blueprints from System.default and groups where current user belongs to
                 $scope.blueprints = response;
+                // Sorts the blueprints whose visibility is false and user can access them from UI
                 $scope.visibility_off = _.filter(response, {'visibility': false});
+                // Remove those blueprints from advertising blueprint list that current user got access
                 $scope.advertising_bp = _.differenceBy(invisible_bp, $scope.visibility_off, 'group_id');
             }
         });
