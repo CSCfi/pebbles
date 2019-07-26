@@ -9,7 +9,7 @@ import json
 from pebbles.models import db, Blueprint, Instance, InstanceLog, User
 from pebbles.forms import InstanceForm, UserIPForm
 from pebbles.server import app, restful
-from pebbles.utils import requires_admin, memoize
+from pebbles.utils import requires_admin, requires_group_owner_or_admin, memoize
 from pebbles.tasks import run_update, update_user_connectivity, fetch_running_instance_logs
 from pebbles.views.commons import auth, is_group_manager
 from pebbles.rules import apply_rules_instances, get_group_blueprint_ids_for_instances
@@ -327,7 +327,7 @@ class InstanceLogs(restful.Resource):
         return instance_logs
 
     @auth.login_required
-    @requires_admin
+    @requires_group_owner_or_admin
     def patch(self, instance_id):
         args = self.parser.parse_args()
         instance = Instance.query.filter_by(id=instance_id).first()
