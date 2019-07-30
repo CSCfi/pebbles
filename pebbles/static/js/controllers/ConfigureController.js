@@ -185,6 +185,11 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             });
         };
 
+        $scope.emailNotificationToGroupOwner = function(notification) {
+            notification.patch({send_mail_group_owner: true}).then(function(response) {
+            });
+        };
+
         $scope.openEditNotification = function(notification) {
             $uibModal.open({
                 templateUrl: '/partials/modal_edit_notification.html',

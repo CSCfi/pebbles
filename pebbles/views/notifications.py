@@ -70,6 +70,7 @@ class NotificationList(restful.Resource):
 class NotificationView(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('send_mail', type=bool, default=False)
+    parser.add_argument('send_mail_group_owner', type=bool, default=False)
 
     @auth.login_required
     @marshal_with(notification_fields)
@@ -90,6 +91,13 @@ class NotificationView(restful.Resource):
             abort(404)
         if current_user.is_admin is True and args.get('send_mail'):
             Users = User.query.filter_by(is_active='t')
+            for user in Users:
+                if user.eppn != 'worker@pebbles':
+                    text['subject'] = notification.subject
+                    text['message'] = notification.message
+                    send_mails.delay([(user.email_id, 'None', 't')], text)
+        if current_user.is_admin is True and args.get('send_mail_group_owner'):
+            Users = User.query.filter_by(is_group_owner='t')
             for user in Users:
                 if user.eppn != 'worker@pebbles':
                     text['subject'] = notification.subject
