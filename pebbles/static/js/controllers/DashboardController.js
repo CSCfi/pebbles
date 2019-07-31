@@ -1,6 +1,6 @@
 /* global app */
-app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard', 'DesktopNotifications',
-                              function ($q,   $scope,   $routeParams, $timeout, $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard, DesktopNotifications) {
+app.controller('DashboardController', ['$window', '$q', '$scope', '$routeParams', '$timeout', '$interval', 'AuthService', '$uibModal', 'Restangular', 'isUserDashboard', 'DesktopNotifications',
+                              function ($window, $q,   $scope,   $routeParams, $timeout, $interval,   AuthService,  $uibModal,  Restangular,   isUserDashboard, DesktopNotifications) {
         // used only to get admin dashboard
         $scope.getIcons = function() {
             if (AuthService.getIcons()) {
@@ -289,6 +289,26 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
 
         $scope.isAdmin = function() {
             return AuthService.isAdmin();
+        };
+
+        var notebooks_enability = Restangular.all('notebooks_enability')
+            notebooks_enability.getList().then(function (response) {
+                $scope.notebooksEnability = response;
+
+            });
+
+        $scope.disable_launching_instance = function (notebooksEnability) {
+            notebooksEnability[0].patch({make_disable: true}).then(function(response) {
+                      });
+
+            $window.location.reload();
+        };
+
+        $scope.enable_launching_instance = function (notebooksEnability) {
+              notebooksEnability[0].patch({make_enable: true}).then(function(response) {
+                      });
+
+              $window.location.reload();
         };
 
         var stop;

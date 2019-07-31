@@ -674,3 +674,9 @@ class NamespacedKeyValue(db.Model):
                 except:
                     raise TypeError('Field %s should be of type %s, found %s ' % (field, field_type, type(val[field])))
         self._value = json.dumps(val)
+
+
+class NotebookEnability(db.Model):
+    __tablename__ = 'notebooks_enability'
+    id = db.Column(db.String(32), primary_key=True)
+    is_notebooks_enable = db.Column(db.Boolean, default=True)

@@ -30,6 +30,7 @@ from pebbles.views.stats import stats, StatsList
 from pebbles.views.export_stats import export_stats, ExportStatistics
 from pebbles.views.import_export import import_export, ImportExportBlueprintTemplates, ImportExportBlueprints
 from pebbles.views.namespaced_keyvalues import namespaced_keyvalues, NamespacedKeyValueList, NamespacedKeyValueView
+from pebbles.views.notebook_enability import notebooks_enability, NotebookEnabilityList, NotebookEnabilityView
 
 api = restful.Api(app)
 api_root = '/api/v1'
@@ -82,6 +83,8 @@ api.add_resource(StatsList, api_root + '/stats')
 api.add_resource(ExportStatistics, api_root + '/export_stats/export_statistics')
 api.add_resource(NamespacedKeyValueList, api_root + '/namespaced_keyvalues')
 api.add_resource(NamespacedKeyValueView, api_root + '/namespaced_keyvalues/<string:namespace>/<string:key>')
+api.add_resource(NotebookEnabilityList, api_root + '/notebooks_enability')
+api.add_resource(NotebookEnabilityView, api_root + '/notebooks_enability/<string:notebooks_enability_id>')
 
 app.register_blueprint(blueprint_templates)
 app.register_blueprint(blueprints)
@@ -100,6 +103,7 @@ app.register_blueprint(import_export)
 app.register_blueprint(stats)
 app.register_blueprint(export_stats)
 app.register_blueprint(namespaced_keyvalues)
+app.register_blueprint(notebooks_enability)
 
 admin_icons = ["Dashboard", "Users", "Groups", "Blueprints", "Configure", "Statistics", "Account"]
 group_owner_icons = ["Dashboard", "", "Groups", "Blueprints", "", "", "Account"]

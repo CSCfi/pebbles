@@ -74,7 +74,7 @@
                     <div class="panel-footer text-center">
                         <div class="row">
                             <div class="col-md-11 centered-btn">
-                        <a ng-click="provision(blueprint)" class="btn btn-block btn-primary" ng-disabled="(blueprint.config.needs_ssh_keys && !keypair_exists()) || maxInstanceLimitReached(blueprint)">
+                        <a ng-click="provision(blueprint)" class="btn btn-block btn-primary" ng-disabled="(blueprint.config.needs_ssh_keys && !keypair_exists()) || maxInstanceLimitReached(blueprint) || notebooksEnability[0].is_notebooks_enable==false">
                             <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch new
                         </a>
                             </div>

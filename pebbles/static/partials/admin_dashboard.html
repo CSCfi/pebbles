@@ -4,6 +4,8 @@
       <li ng-class="toggleClass('default')"><a href="" ng-click="currentView='default'">Blueprints/Instances</a></li>
       <li ng-class="toggleClass('driverconfigs')"><a ng-show="isAdmin()" ui-sref="hello" ng-click="currentView='driverconfigs'">Driver Configs</a></li>
       <li ng-class="toggleClass('pools')"><a ng-show="isAdmin()" href = "" ng-click="currentView='pools'">Driver Hosts</a></li>
+      <li><a ng-show="isAdmin() && (notebooksEnability| filter : {is_notebooks_enable: 'true'}).length" href = "" ng-click="disable_launching_instance(notebooksEnability)">Disable Launch</a></li>
+      <li><a ng-show="isAdmin() && (notebooksEnability| filter : {is_notebooks_enable: 'false'}).length" href = "" ng-click="enable_launching_instance(notebooksEnability)">Enable Launch</a></li>
     </ul>
   </div>
   <div id="default" class="dashbox" ng-show="isCurrentView('default')">
@@ -37,7 +39,7 @@
 		    </div>
 		</td>
                 <td>
-                    <a ng-click="provision(blueprint)" class="btn btn-primary" ng-hide="blueprint.config.needs_ssh_keys && !keypair_exists()" ng-disabled="maxInstanceLimitReached(blueprint)">
+                    <a ng-click="provision(blueprint)" class="btn btn-primary" ng-hide="blueprint.config.needs_ssh_keys && !keypair_exists()" ng-disabled="maxInstanceLimitReached(blueprint) || notebooksEnability[0].is_notebooks_enable==false">
                         <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch
                     </a>
                     <a class="btn" ng-click="showMaxInstanceLimitInfo()" ng-show="maxInstanceLimitReached(blueprint)">

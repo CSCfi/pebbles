@@ -965,6 +965,14 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/plugins')
         self.assert_200(response)
 
+    def test_get_notebooks_enability(self):
+        # Anonymous
+        response = self.make_request(path='/api/v1/notebooks_enability')
+        self.assert_401(response)
+        # Authenticated
+        response = self.make_authenticated_user_request(path='/api/v1/notebooks_enability')
+        self.assert_200(response)
+
     def test_get_single_plugin(self):
         # Anonymous
         response = self.make_request(path='/api/v1/plugins/%s' % self.known_plugin_id)
