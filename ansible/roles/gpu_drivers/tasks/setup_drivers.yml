@@ -1,15 +1,11 @@
-- name: Get the distribution install repo dkw
-  #shell: "curl -s -L https://nvidia.github.io/nvidia-container-runtime/centos7/nvidia-container-runtime.repo | tee /etc/yum.repos.d/nvidia-container-runtime.repo"
+- name: Get the distribution install repo 
   shell: sudo yum-config-manager --add-repo=https://nvidia.github.io/nvidia-container-runtime/centos7/nvidia-container-runtime.repo
 
 - name: install nvidia-container-runtime-hook
   shell: sudo yum -y install nvidia-container-runtime-hook
 
-- name: sleeping for a few seconds as there seems to be a race here.
-  shell: sleep 5
-
-- name: jsme-hook
-  shell: ls -Z /dev/nvidia*
+- name: sleeping for a few seconds as it takes a while before all the /dev/nvidia* files appear.
+  shell: sleep 10
 
 - name: configure selinux policies
   shell: sudo chcon -t container_file_t /dev/nvidia*
