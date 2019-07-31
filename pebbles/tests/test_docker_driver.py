@@ -3,7 +3,8 @@ import logging
 import docker.errors
 import pebbles.drivers.provisioning.docker_driver as docker_driver
 from pebbles.tests.base import BaseTestCase
-from pebbles.drivers.provisioning.docker_driver import DD_STATE_ACTIVE, DD_STATE_INACTIVE, DD_STATE_SPAWNED, DD_STATE_REMOVED, NAMESPACE, KEY_PREFIX_POOL, KEY_CONFIG
+from pebbles.drivers.provisioning.docker_driver import NAMESPACE_CPU, NAMESPACE_GPU
+from pebbles.drivers.provisioning.docker_driver import DD_STATE_ACTIVE, DD_STATE_INACTIVE, DD_STATE_SPAWNED, DD_STATE_REMOVED, KEY_PREFIX_POOL, KEY_CONFIG
 import mock
 from sys import version_info
 import docker.utils
@@ -17,6 +18,8 @@ else:
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+namespace_values = [NAMESPACE_CPU, NAMESPACE_GPU]
 
 
 # decorator for overriding open
@@ -67,6 +70,11 @@ class OpenStackServiceMock(object):
         )
         if allocate_public_ip:
             res['address_data']['public_ip'] = '172.16.0.%d' % self.spawn_count
+
+        if flavor_name.startswith("gpu"):
+            res['namespace'] = "DockerDriverGpu"
+        else:
+            res['namespace'] = "DockerDriver"
 
         self.servers.append(res)
 
@@ -179,8 +187,27 @@ class PBClientMock(object):
                    DD_HOST_DATA_VOLUME_DEVICE='/dev/vdc',
                    DD_HOST_DATA_VOLUME_TYPE='',
             ),
-            'updated_ts': 0
-        }]
+            'updated_ts': 0},
+            {
+            'namespace': 'DockerDriverGpu',
+            'key': 'backend_config',
+            'value': dict(
+                   DD_HOST_IMAGE='CentOS-7-Cuda',
+                   DD_MAX_HOSTS=2,
+                   DD_SHUTDOWN_MODE=False,
+                   DD_FREE_SLOT_TARGET=4,
+                   DD_HOST_FLAVOR_NAME_SMALL='gpu.1.1gpu',
+                   DD_HOST_FLAVOR_SLOTS_SMALL=210,
+                   DD_HOST_FLAVOR_NAME_LARGE='gpu.1.1gpu',
+                   DD_HOST_FLAVOR_SLOTS_LARGE=210,
+                   DD_HOST_MASTER_SG='pb_server',
+                   DD_HOST_EXTRA_SGS='',
+                   DD_HOST_ROOT_VOLUME_SIZE=0,
+                   DD_HOST_DATA_VOLUME_FACTOR=4,
+                   DD_HOST_DATA_VOLUME_DEVICE='/dev/vdc',
+                   DD_HOST_DATA_VOLUME_TYPE='',
+            ),
+            'updated_ts': 0}]
 
     def add_instance_data(self, instance_id):
         self.instance_data[instance_id] = dict(
@@ -246,28 +273,39 @@ class DockerDriverAccessMock(object):
         self.shutdown_mode = False
         self.failure_mode = False
 
-    def load_records(self, token=None, url=None):
-        namespaced_records = self.pbc_mock.get_namespaced_keyvalues({'namespace': NAMESPACE, 'key': KEY_PREFIX_POOL})
+    def _filter_records(self, servers_value, namespace_value):
+        filters = [lambda x: x['namespace'] == namespace_value]
+
+        filtered_record = filter(
+            lambda record: all(f(record) for f in filters),
+            servers_value
+        )
+        # need to convert to list, because python3 filter returns generator instead of list as in python2
+        # This should not consume more memory because the filterd_record is not big
+        return list(filtered_record)
+
+    def load_records(self, token=None, url=None, namespace_value=NAMESPACE_CPU):
+        namespaced_records = self.pbc_mock.get_namespaced_keyvalues({'namespace': namespace_value, 'key': KEY_PREFIX_POOL})
         hosts = []
         for ns_record in namespaced_records:
             hosts.append(ns_record['value'])
         return hosts
 
-    def save_records(self, token, url, hosts):
+    def save_records(self, token, url, hosts, namespace_value):
         for host in hosts:
             _key = '%s_%s' % (KEY_PREFIX_POOL, host['id'])
             payload = {
-                'namespace': NAMESPACE,
+                'namespace': namespace_value,
                 'key': _key
             }
             if host.get('state') in [DD_STATE_SPAWNED, DD_STATE_ACTIVE, DD_STATE_INACTIVE]:  # POST or PUT
                 payload['value'] = host
-                self.pbc_mock.create_or_modify_namespaced_keyvalue(NAMESPACE, _key, payload)
+                self.pbc_mock.create_or_modify_namespaced_keyvalue(namespace_value, _key, payload)
             elif host.get('state') == DD_STATE_REMOVED:
-                self.pbc_mock.delete_namespaced_keyvalue(NAMESPACE, _key)
+                self.pbc_mock.delete_namespaced_keyvalue(namespace_value, _key)
 
-    def load_driver_config(self, token, url):
-        namespaced_record = self.pbc_mock.get_namespaced_keyvalue(NAMESPACE, KEY_CONFIG)
+    def load_driver_config(self, token=None, url=None, namespace_value=NAMESPACE_CPU):
+        namespaced_record = self.pbc_mock.get_namespaced_keyvalue(namespace_value, KEY_CONFIG)
         driver_config = namespaced_record['value']
         return driver_config
 
@@ -284,7 +322,7 @@ class DockerDriverAccessMock(object):
     def get_pb_client(self, token, base_url, ssl_verify):
         return self.pbc_mock
 
-    def run_ansible_on_host(self, host, custom_logger, config):
+    def run_ansible_on_host(self, host, custom_logger, config, playbook_name):
         if self.failure_mode:
             raise RuntimeError
 
@@ -341,24 +379,27 @@ class DockerDriverTestCase(BaseTestCase):
         # check that a host gets created
         cur_ts = 1000000
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        self.assertEquals(len(ddam.oss_mock.servers), 1)
-        hosts_data = ddam.load_records()
-        host = hosts_data[0]
-        self.assertEquals(host['state'], DD_STATE_SPAWNED)
-        self.assertEquals(host['spawn_ts'], cur_ts)
+        for dd_kind in namespace_values:
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 1)
+            hosts_data = ddam.load_records(namespace_value=dd_kind)
+            host = hosts_data[0]
+            self.assertEquals(host['state'], DD_STATE_SPAWNED)
+            self.assertEquals(host['spawn_ts'], cur_ts)
 
         # check that the new host gets activated
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        self.assertEquals(len(ddam.oss_mock.servers), 1)
-        hosts_data = ddam.load_records()
-        host = hosts_data[0]
-        self.assertEquals(host['state'], DD_STATE_ACTIVE)
+        for dd_kind in namespace_values:
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 1)
+            hosts_data = ddam.load_records(namespace_value=dd_kind)
+            host = hosts_data[0]
+            self.assertEquals(host['state'], DD_STATE_ACTIVE)
 
         # check that we don't scale up if there are no instances
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        self.assertEquals(len(dd._ap.oss_mock.servers), 1)
+        for dd_kind in namespace_values:
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 1)
 
     @mock_open_context
     def test_do_not_spawn_if_not_used(self):
@@ -372,7 +413,8 @@ class DockerDriverTestCase(BaseTestCase):
         # fast forward time past lifetime, but when the host is not used the lifetime should not tick
         cur_ts += 60 + docker_driver.DD_HOST_LIFETIME
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        self.assertEquals(len(ddam.oss_mock.servers), 1)
+        for dd_kind in namespace_values:
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 1)
 
     @mock_open_context
     def test_spawn_activate_remove(self):
@@ -384,40 +426,45 @@ class DockerDriverTestCase(BaseTestCase):
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        self.assertEquals(len(ddam.oss_mock.servers), 1)
-        hosts_data = ddam.load_records()
-        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE})
+        for dd_kind in namespace_values:
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 1)
+            hosts_data = ddam.load_records(namespace_value=dd_kind)
+            self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE})
 
-        # manipulate the host data a bit so that the host is marked as used
-        hosts_data[0]['lifetime_tick_ts'] = cur_ts
+            # manipulate the host data a bit so that the host is marked as used
+            hosts_data[0]['lifetime_tick_ts'] = cur_ts
 
         # fast forward time past host lifetime, should have one active and one spawned
         cur_ts += 60 + docker_driver.DD_HOST_LIFETIME
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        self.assertEquals(len(ddam.oss_mock.servers), 2)
-        hosts_data = ddam.load_records()
-        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE, DD_STATE_SPAWNED})
+        for dd_kind in namespace_values:
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 2)
+            hosts_data = ddam.load_records(namespace_value=dd_kind)
+            self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE, DD_STATE_SPAWNED})
 
         # next tick: should have two active
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        self.assertEquals(len(ddam.oss_mock.servers), 2)
-        hosts_data = ddam.load_records()
-        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE, DD_STATE_ACTIVE})
+        for dd_kind in namespace_values:
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 2)
+            hosts_data = ddam.load_records(namespace_value=dd_kind)
+            self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE, DD_STATE_ACTIVE})
 
         # next tick: should have one inactive, one active
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        self.assertEquals(len(ddam.oss_mock.servers), 2)
-        hosts_data = ddam.load_records()
-        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_INACTIVE, DD_STATE_ACTIVE})
+        for dd_kind in namespace_values:
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 2)
+            hosts_data = ddam.load_records(namespace_value=dd_kind)
+            self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_INACTIVE, DD_STATE_ACTIVE})
 
         # last tick: should have one active
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        self.assertEquals(len(ddam.oss_mock.servers), 1)
-        hosts_data = ddam.load_records()
-        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE})
+        for dd_kind in namespace_values:
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 1)
+            hosts_data = ddam.load_records(namespace_value=dd_kind)
+            self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE})
 
     @mock_open_context
     def test_provision_deprovision(self):
@@ -498,38 +545,40 @@ class DockerDriverTestCase(BaseTestCase):
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        num_slots = (
-            dd.driver_config['DD_HOST_FLAVOR_SLOTS_SMALL'] +
-            dd.driver_config['DD_HOST_FLAVOR_SLOTS_LARGE'] * (dd.driver_config['DD_MAX_HOSTS'] - 1)
-        )
+        for dd_kind in namespace_values:
+            hosts_data = ddam.pbc_mock.get_namespaced_keyvalue(dd_kind, KEY_CONFIG)
 
-        # spawn instances up to the limit
-        for i in range(0, num_slots):
-            ddam.pbc_mock.add_instance_data('%d' % (1000 + i))
-            token = 'foo'
-            instance = ddam.pbc_mock.get_instance_description(instance_id='%d' % (1000 + i))
-            blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
-            blueprint_config = blueprint['full_config']
-            docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+            num_slots = (hosts_data['value']['DD_HOST_FLAVOR_SLOTS_SMALL'] +
+                         hosts_data['value']['DD_HOST_FLAVOR_SLOTS_LARGE'] * (hosts_data['value']['DD_MAX_HOSTS'] - 1)
+                         )
 
-            dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts, selected_host=docker_hosts[0])
-            cur_ts += 60
-            dd._do_housekeep(token='foo', cur_ts=cur_ts)
+            # spawn instances up to the limit
+            for i in range(0, num_slots):
+                ddam.pbc_mock.add_instance_data('%d' % (1000 + i))
+                token = 'foo'
+                instance = ddam.pbc_mock.get_instance_description(instance_id='%d' % (1000 + i))
+                blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
+                blueprint_config = blueprint['full_config']
+                docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()), dd_kind)
 
-        self.assertEquals(len(ddam.oss_mock.servers), dd.driver_config['DD_MAX_HOSTS'])
+                dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts, selected_host=docker_hosts[0])
+                cur_ts += 60
+                dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        try:
-            ddam.pbc_mock.add_instance_data('999')
-            token = 'foo'
-            instance = ddam.pbc_mock.get_instance_description(instance_id='999')
-            blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
-            blueprint_config = blueprint['full_config']
-            docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), hosts_data['value']['DD_MAX_HOSTS'])
 
-            dd._do_provision(token='foo', instance_id='999', cur_ts=cur_ts, selected_host=docker_hosts[0])
-            self.fail('pool should have been full')
-        except RuntimeWarning:
-            pass
+            try:
+                ddam.pbc_mock.add_instance_data('999')
+                token = 'foo'
+                instance = ddam.pbc_mock.get_instance_description(instance_id='999')
+                blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
+                blueprint_config = blueprint['full_config']
+                docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()), dd_kind)
+
+                dd._do_provision(token='foo', instance_id='999', cur_ts=cur_ts, selected_host=docker_hosts[0])
+                self.fail('pool should have been full')
+            except RuntimeWarning:
+                pass
 
     @mock_open_context
     def test_scale_down(self):
@@ -542,36 +591,38 @@ class DockerDriverTestCase(BaseTestCase):
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        num_slots = (
-            dd.driver_config['DD_HOST_FLAVOR_SLOTS_SMALL'] +
-            dd.driver_config['DD_HOST_FLAVOR_SLOTS_LARGE'] * (dd.driver_config['DD_MAX_HOSTS'] - 1)
-        )
+        for dd_kind in namespace_values:
+            hosts_data = ddam.pbc_mock.get_namespaced_keyvalue(dd_kind, KEY_CONFIG)
 
-        # spawn instances up to the limit
-        for i in range(0, num_slots):
-            ddam.pbc_mock.add_instance_data('%d' % (1000 + i))
-            token = 'foo'
-            instance = ddam.pbc_mock.get_instance_description(instance_id='%d' % (1000 + i))
-            blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
-            blueprint_config = blueprint['full_config']
+            num_slots = (hosts_data['value']['DD_HOST_FLAVOR_SLOTS_SMALL'] +
+                         hosts_data['value']['DD_HOST_FLAVOR_SLOTS_LARGE'] * (hosts_data['value']['DD_MAX_HOSTS'] - 1)
+                         )
 
-            docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
-            dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts, selected_host=docker_hosts[0])
-            cur_ts += 60
-            dd._do_housekeep(token='foo', cur_ts=cur_ts)
+            # spawn instances up to the limit
+            for i in range(0, num_slots):
+                ddam.pbc_mock.add_instance_data('%d' % (1000 + i))
+                token = 'foo'
+                instance = ddam.pbc_mock.get_instance_description(instance_id='%d' % (1000 + i))
+                blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
+                blueprint_config = blueprint['full_config']
 
-        self.assertEquals(len(ddam.oss_mock.servers), dd.driver_config['DD_MAX_HOSTS'])
+                docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()), dd_kind)
+                dd._do_provision(token='foo', instance_id='%d' % (1000 + i), cur_ts=cur_ts, selected_host=docker_hosts[0])
+                cur_ts += 60
+                dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        # remove instances
-        for i in range(0, num_slots):
-            dd._do_deprovision(token='foo', instance_id='%d' % (1000 + i))
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), hosts_data['value']['DD_MAX_HOSTS'])
 
-        # let logic scale down (3 ticks per host should be enough)
-        cur_ts += docker_driver.DD_HOST_LIFETIME
-        for i in range(0, dd.driver_config['DD_MAX_HOSTS'] * 3):
-            dd._do_housekeep(token='foo', cur_ts=cur_ts)
+            # remove instances
+            for i in range(0, num_slots):
+                dd._do_deprovision(token='foo', instance_id='%d' % (1000 + i))
 
-        self.assertEquals(len(ddam.oss_mock.servers), 1)
+            # let logic scale down (3 ticks per host should be enough)
+            cur_ts += docker_driver.DD_HOST_LIFETIME
+            for i in range(0, hosts_data['value']['DD_MAX_HOSTS'] * 3):
+                dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 1)
 
     @mock_open_context
     def test_shutdown_mode(self):
@@ -584,14 +635,24 @@ class DockerDriverTestCase(BaseTestCase):
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        # set shutdown mode and see that we have scaled down
-        dd.driver_config['DD_SHUTDOWN_MODE'] = True
+        for dd_kind in namespace_values:
+            hosts_data = ddam.pbc_mock.get_namespaced_keyvalue(dd_kind, KEY_CONFIG)
+            hosts_data['value']['DD_SHUTDOWN_MODE'] = True
+            # set shutdown mode and see that we have scaled down
+            payload = {
+                'namespace': dd_kind,
+                'key': KEY_CONFIG
+            }
+            payload['value'] = hosts_data['value']
+            ddam.pbc_mock.create_or_modify_namespaced_keyvalue(dd_kind, KEY_CONFIG, payload)
+
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        self.assertEquals(len(ddam.oss_mock.servers), 0)
+        for dd_kind in namespace_values:
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 0)
 
     @mock_open_context
     def test_inactive_host_with_instances(self):
@@ -604,36 +665,44 @@ class DockerDriverTestCase(BaseTestCase):
         cur_ts += 60
         dd._do_housekeep(token='foo', cur_ts=cur_ts)
 
-        # add an instance
-        ddam.pbc_mock.add_instance_data('1000')
-        token = 'foo'
-        instance = ddam.pbc_mock.get_instance_description(instance_id='1000')
-        blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
-        blueprint_config = blueprint['full_config']
-        docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()))
+        count = 999
+        for dd_kind in namespace_values:
+            count += 1
 
-        dd._do_provision(token='foo', instance_id='1000', cur_ts=cur_ts, selected_host=docker_hosts[0])
+            # add an instance
+            ddam.pbc_mock.add_instance_data(count)
+            token = 'foo'
+            instance = ddam.pbc_mock.get_instance_description(instance_id=count)
+            blueprint = ddam.pbc_mock.get_blueprint_description(instance['blueprint_id'])
+            blueprint_config = blueprint['full_config']
+            docker_hosts = dd._select_hosts(blueprint_config['consumed_slots'], token, int(time.time()), dd_kind)
 
-        # change the state to inactive under the hood (this is possible due to a race
-        # between housekeep() and provision())
-        hosts_data = ddam.load_records()
-        hosts_data[0]['state'] = DD_STATE_INACTIVE
+            dd._do_provision(token='foo', instance_id=count, cur_ts=cur_ts, selected_host=docker_hosts[0])
+
+            # change the state to inactive under the hood (this is possible due to a race
+            # between housekeep() and provision())
+            hosts_data = ddam.load_records(namespace_value=dd_kind)
+            hosts_data[0]['state'] = DD_STATE_INACTIVE
 
         for i in range(5):
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        hosts_data = ddam.load_records()
-        self.assertEquals(len(ddam.oss_mock.servers), 2)
-        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_INACTIVE, DD_STATE_ACTIVE})
+        for dd_kind in namespace_values:
+            hosts_data = ddam.load_records(namespace_value=dd_kind)
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 2)
+            self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_INACTIVE, DD_STATE_ACTIVE})
 
-        # remove the instance and check that the host is removed also
-        dd._do_deprovision(token='foo', instance_id='1000')
+            # remove the instance and check that the host is removed also
+        dd._do_deprovision(token='foo', instance_id=(count))
+        dd._do_deprovision(token='foo', instance_id=(count - 1))
         for i in range(5):
             cur_ts += 60
             dd._do_housekeep(token='foo', cur_ts=cur_ts)
-        hosts_data = ddam.load_records()
-        self.assertEquals(len(ddam.oss_mock.servers), 1)
-        self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE})
+
+        for dd_kind in namespace_values:
+            hosts_data = ddam.load_records(namespace_value=dd_kind)
+            self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, dd_kind)), 1)
+            self.assertSetEqual({x['state'] for x in hosts_data}, {DD_STATE_ACTIVE})
 
     @mock_open_context
     def test_prepare_failing(self):
@@ -726,3 +795,35 @@ class DockerDriverTestCase(BaseTestCase):
 
         ddam.failure_mode = False
         dd._do_deprovision(token='foo', instance_id='1000')
+
+    # spawn only one kind of pool_vm
+    @mock_open_context
+    def test_spawn_dd_kind(self):
+        dd = self.create_docker_driver()
+        ddam = dd._get_ap()
+
+        # spawn a host and activate it
+        cur_ts = 1000000
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        for dd_kind in namespace_values:
+            hosts_data = ddam.pbc_mock.get_namespaced_keyvalue(dd_kind, KEY_CONFIG)
+            if dd_kind == NAMESPACE_CPU:
+                hosts_data['value']['DD_SHUTDOWN_MODE'] = True
+                # set shutdown mode and see that we have scaled down
+                payload = {
+                    'namespace': dd_kind,
+                    'key': KEY_CONFIG
+                }
+                payload['value'] = hosts_data['value']
+                ddam.pbc_mock.create_or_modify_namespaced_keyvalue(dd_kind, KEY_CONFIG, payload)
+
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+        cur_ts += 60
+        dd._do_housekeep(token='foo', cur_ts=cur_ts)
+
+        self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, NAMESPACE_CPU)), 0)
+        self.assertEquals(len(ddam._filter_records(ddam.oss_mock.servers, NAMESPACE_GPU)), 1)
