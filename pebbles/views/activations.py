@@ -6,7 +6,6 @@ import logging
 from pebbles.models import db, ActivationToken, User
 from pebbles.forms import ActivationForm, PasswordResetRequestForm
 from pebbles.server import app, restful
-from pebbles.tasks import send_mails
 from pebbles.views.commons import user_fields, add_user_to_default_group
 
 activations = Blueprint('activations', __name__)
@@ -72,6 +71,3 @@ class ActivationList(restful.Resource):
 
         db.session.add(token)
         db.session.commit()
-        if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-            # send email to the email_id
-            send_mails.delay([(user.email_id, token.token, user.is_active)])

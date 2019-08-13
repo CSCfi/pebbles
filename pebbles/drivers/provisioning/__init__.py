@@ -33,7 +33,4 @@ For OpenShiftDriver:
 Where * is the name of the OpenShift installation (the system can handle
 multiple openshifts).
 
-
-Drivers are implemented as plugins that are loaded dynamically by
-:py:mod:`stevedore` .
 """

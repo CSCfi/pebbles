@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    description: Pebbles API
+    template.alpha.openshift.io/wait-for-ready: 'true'
+  name: pebbles-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: pebbles-api
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name: pebbles-api
+      name: pebbles-api
+    spec:
+      containers:
+        - env:
+            - name: APP_MODULE
+              value: pebbles.server:app
+            - name: PB_SQLALCHEMY_DATABASE_URI
+              value: postgresql://pebbles:__PASSWORD__@db/pebbles
+            - name: PB_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pebbles
+                  key: database-password
+            - name: PB_DB_AUTOMIGRATION
+              value: '1'
+            - name: PB_DEBUG
+              value: '1'
+            - name: DB_AUTOMIGRATION
+              value: '1'
+            - name: DEBUG
+              value: '1'
+            {{- if .Values.developmentSetup }}
+            - name: GUNICORN_CMD_ARGS
+              value: --workers=1 --max-requests=100
+            {{- end }}
+            {{- if .Values.remoteDebugServer }}
+            - name: REMOTE_DEBUG_SERVER
+              value: {{ .Values.remoteDebugServer }}
+            {{- end }}
+            - name: PB_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pebbles
+                  key: pb-secret-key
+          image: cscfi/pebbles:latest
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            timeoutSeconds: 3
+          name: pebbles-api
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 3
+            timeoutSeconds: 3
+          {{- if .Values.mountHostSrc }}
+          volumeMounts:
+            - mountPath: /opt/app-root/src
+              name: src
+          {{- end }}
+      {{- if .Values.mountHostSrc }}
+      volumes:
+        - name: src
+          hostPath:
+            path: {{ .Values.mountHostSrc }}
+            type: Directory
+      {{- end }}

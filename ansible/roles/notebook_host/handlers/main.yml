@@ -1,9 +1,0 @@
-- name: restart docker
-  service: name=docker state=restarted
-
-# if we restart iptables, dockerd needs to be restarted, too
-- name: restart iptables
-  service: name={{ item }} state=restarted
-  with_items:
-    - iptables
-    - docker

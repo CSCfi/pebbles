@@ -7,7 +7,6 @@ from pebbles.forms import GroupForm
 from pebbles.server import restful, app
 from pebbles.views.commons import auth, group_fields, user_fields, requires_group_manager_or_admin, is_group_manager
 from pebbles.utils import requires_admin, requires_group_owner_or_admin
-from pebbles.tasks import run_update
 import re
 import datetime
 
@@ -170,9 +169,7 @@ class GroupView(restful.Resource):
                         instance.to_be_deleted = True
                         instance.state = Instance.STATE_DELETING
                         instance.deprovisioned_at = datetime.datetime.utcnow()
-                        if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-                            run_update.delay(instance.id)
-                group_blueprint.current_status = group_blueprint.STATE_DELETED
+                        group_blueprint.current_status = group_blueprint.STATE_DELETED
             group.current_status = group.STATE_DELETED
             db.session.commit()
 

@@ -4,7 +4,6 @@ from flask import g, render_template, abort
 import logging
 from pebbles.models import db, ActivationToken, User, Group, GroupUserAssociation
 from pebbles.server import app
-from pebbles.tasks import send_mails
 from functools import wraps
 import re
 
@@ -97,7 +96,7 @@ def invite_user(eppn=None, password=None, is_admin=False, expiry_date=None):
     db.session.commit()
 
     if not app.dynamic_config['SKIP_TASK_QUEUE'] and not app.dynamic_config['MAIL_SUPPRESS_SEND']:
-        send_mails.delay([(user.eppn, token.token, user.is_active)])
+        logging.warning('email sending not implemented')
     else:
         logging.warn(
             "email sending suppressed in config: SKIP_TASK_QUEUE:%s MAIL_SUPPRESS_SEND:%s" %

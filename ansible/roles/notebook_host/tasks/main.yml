@@ -1,8 +1,0 @@
-- include: setup_system.yml
-
-- include: install_tools.yml
-
-- include: setup_block_storage.yml
-  when: notebook_host_block_dev_path is defined
-
-- include: setup_docker.yml

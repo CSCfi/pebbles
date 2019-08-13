@@ -1,5 +1,0 @@
-- name: restart apache
-  command: supervisorctl restart apache
-
-- name: restart shibboleth
-  command: supervisorctl restart shibboleth

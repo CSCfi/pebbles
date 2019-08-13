@@ -1,4 +1,7 @@
+import json
+
 import requests
+
 import pebbles.utils
 
 
@@ -8,6 +11,16 @@ class PBClient(object):
         self.api_base_url = api_base_url
         self.ssl_verify = ssl_verify
         self.auth = pebbles.utils.b64encode_string('%s:%s' % (token, '')).replace('\n', '')
+
+    def login(self, eppn, password):
+        auth_url = '%s/sessions' % self.api_base_url
+        auth_credentials = {
+            'eppn': eppn,
+            'password': password
+        }
+        r = requests.post(auth_url, auth_credentials, verify=self.ssl_verify)
+        self.token = json.loads(r.text).get('token')
+        self.auth = pebbles.utils.b64encode_string('%s:%s' % (self.token, '')).replace('\n', '')
 
     def do_get(self, object_url, payload=None):
         headers = {'Accept': 'text/plain',
@@ -179,7 +192,8 @@ class PBClient(object):
         if resp.status_code == 200:
             return resp.json()
         else:
-            raise RuntimeError('Error creating / modifying namespaced record: %s %s, %s' % (namespace, key, resp.reason))
+            raise RuntimeError(
+                'Error creating / modifying namespaced record: %s %s, %s' % (namespace, key, resp.reason))
 
     def delete_namespaced_keyvalue(self, namespace, key):
         headers = {'Accept': 'text/plain',

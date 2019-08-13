@@ -10,8 +10,6 @@ from pebbles.views.commons import auth
 from pebbles.utils import requires_admin
 import datetime
 
-from pebbles.tasks import send_mails
-
 notifications = Blueprint('notifications', __name__)
 
 notification_fields = {
@@ -95,14 +93,14 @@ class NotificationView(restful.Resource):
                 if user.eppn != 'worker@pebbles':
                     text['subject'] = notification.subject
                     text['message'] = notification.message
-                    send_mails.delay([(user.email_id, 'None', 't')], text)
+                    logging.warning('email sending not implemented')
         if current_user.is_admin is True and args.get('send_mail_group_owner'):
             Users = User.query.filter_by(is_group_owner='t')
             for user in Users:
                 if user.eppn != 'worker@pebbles':
                     text['subject'] = notification.subject
                     text['message'] = notification.message
-                    send_mails.delay([(user.email_id, 'None', 't')], text)
+                    logging.warning('email sending not implemented')
         else:
             current_user.latest_seen_notification_ts = notification.broadcasted
             db.session.commit()

@@ -10,11 +10,8 @@ from pebbles.models import db, Blueprint, Instance, InstanceLog, User
 from pebbles.forms import InstanceForm, UserIPForm
 from pebbles.server import app, restful
 from pebbles.utils import requires_admin, requires_group_owner_or_admin, memoize
-from pebbles.tasks import run_update, update_user_connectivity, fetch_running_instance_logs
 from pebbles.views.commons import auth, is_group_manager
 from pebbles.rules import apply_rules_instances, get_group_blueprint_ids_for_instances
-
-from pebbles.tasks import send_mails
 
 instances = FlaskBlueprint('instances', __name__)
 
@@ -162,9 +159,6 @@ class InstanceList(restful.Resource):
         db.session.add(instance)
         db.session.commit()
 
-        if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-            run_update.delay(instance.id)
-
         return marshal(instance, instance_fields), 200
 
 
@@ -225,7 +219,7 @@ class InstanceView(restful.Resource):
                     text['message'] = instance.name + " is taking more than ten minutes to launch"
                     # send email only through email_id because some eppn bounce back.
                     # Also the email_id will be updated once they login so here it is available
-                    send_mails.delay([(admins.email_id, 'None', 't')], text)
+                    logging.warning('email sending not implemented')
         return instance
 
     @auth.login_required
@@ -244,8 +238,6 @@ class InstanceView(restful.Resource):
         instance.state = Instance.STATE_DELETING
         instance.deprovisioned_at = datetime.datetime.utcnow()
         db.session.commit()
-        if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-            run_update.delay(instance.id)
 
     @auth.login_required
     def put(self, instance_id):
@@ -263,8 +255,6 @@ class InstanceView(restful.Resource):
         if 'allow_update_client_connectivity' in blueprint.full_config \
                 and blueprint.full_config['allow_update_client_connectivity']:
             instance.client_ip = form.client_ip.data
-            if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-                update_user_connectivity.delay(instance.id)
             db.session.commit()
 
         else:
@@ -333,9 +323,6 @@ class InstanceLogs(restful.Resource):
         instance = Instance.query.filter_by(id=instance_id).first()
         if not instance:
             abort(404)
-        if args.get('send_log_fetch_task'):
-            if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-                fetch_running_instance_logs.delay(instance_id)
         if args.get('log_record'):
             log_record = args['log_record']
             instance_log = process_logs(instance_id, log_record)

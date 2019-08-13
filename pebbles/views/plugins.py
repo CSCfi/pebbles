@@ -1,14 +1,14 @@
-from flask_restful import fields, marshal_with
-from flask import abort, Blueprint
-
-import logging
 import json
+import logging
 
-from pebbles.models import db, Plugin
+from flask import abort, Blueprint
+from flask_restful import fields, marshal_with
+
 from pebbles.forms import PluginForm
+from pebbles.models import db, Plugin
 from pebbles.server import restful
-from pebbles.views.commons import auth
 from pebbles.utils import requires_admin
+from pebbles.views.commons import auth
 
 plugins = Blueprint('plugins', __name__)
 

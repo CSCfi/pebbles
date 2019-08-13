@@ -1,21 +1,19 @@
-from flask_restful import marshal_with, fields, reqparse
-from flask import abort, g
-from flask import Blueprint as FlaskBlueprint
-from sqlalchemy.orm.session import make_transient
-from dateutil.relativedelta import relativedelta
-
 import datetime
 import logging
 import uuid
 
-from pebbles.models import db, Blueprint, BlueprintTemplate, Group, Instance
+from dateutil.relativedelta import relativedelta
+from flask import Blueprint as FlaskBlueprint
+from flask import abort, g
+from flask_restful import marshal_with, fields, reqparse
+from sqlalchemy.orm.session import make_transient
+
 from pebbles.forms import BlueprintForm
-from pebbles.server import restful
-from pebbles.views.commons import auth, requires_group_manager_or_admin, is_group_manager
-from pebbles.utils import parse_maximum_lifetime, requires_group_owner_or_admin, requires_admin
+from pebbles.models import db, Blueprint, BlueprintTemplate, Group, Instance
 from pebbles.rules import apply_rules_blueprints
-from pebbles.tasks import run_update
-from pebbles.server import app
+from pebbles.server import restful
+from pebbles.utils import parse_maximum_lifetime, requires_group_owner_or_admin, requires_admin
+from pebbles.views.commons import auth, requires_group_manager_or_admin, is_group_manager
 
 blueprints = FlaskBlueprint('blueprints', __name__)
 
@@ -98,7 +96,8 @@ class BlueprintList(restful.Resource):
 
         if not user.is_admin and user_owned_blueprints >= user.blueprint_quota and user.is_group_owner:
             logging.warn("Maximum User_blueprint_quota is reached")
-            return {"message": "You reached maximum number of blueprints that can be created. If you wish create more groups contact administrator"}, 422
+            return {
+                       "message": "You reached maximum number of blueprints that can be created. If you wish create more groups contact administrator"}, 422
 
         blueprint.group_id = group_id
         args = self.parser.parse_args()
@@ -207,8 +206,6 @@ class BlueprintView(restful.Resource):
                     instance.to_be_deleted = True
                     instance.state = Instance.STATE_DELETING
                     instance.deprovisioned_at = datetime.datetime.utcnow()
-                    if not app.dynamic_config.get('SKIP_TASK_QUEUE'):
-                        run_update.delay(instance.id)
             blueprint.current_status = blueprint.STATE_DELETED
             db.session.commit()
         else:

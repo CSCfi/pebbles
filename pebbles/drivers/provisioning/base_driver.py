@@ -4,20 +4,17 @@ A driver object can be instantiated to connect to some end point to CRUD
 resources like Docker containers or OpenStack virtual machines.
 """
 
-import json
-import datetime
-import os
-import logging
-
 import abc
-import six
+import datetime
+import json
+import logging
+import os
 
-from pebbles.logger import PBInstanceLogHandler, PBInstanceLogFormatter
 from pebbles.client import PBClient
+from pebbles.logger import PBInstanceLogHandler, PBInstanceLogFormatter
 from pebbles.models import Instance
 
 
-@six.add_metaclass(abc.ABCMeta)
 class ProvisioningDriverBase(object):
     """ This class functions as the base for other classes.
     """
@@ -194,7 +191,8 @@ class ProvisioningDriverBase(object):
                     self.config['INTERNAL_API_BASE_URL'],
                     instance_id,
                     token,
-                    ssl_verify=self.config['SSL_VERIFY'])
+                    ssl_verify=self.config['SSL_VERIFY']
+                )
                 formatter = PBInstanceLogFormatter(log_type)
                 log_handler.setFormatter(formatter)
                 uploader.addHandler(log_handler)

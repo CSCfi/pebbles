@@ -98,6 +98,7 @@ class BaseConfig(object):
     SSL_VERIFY = False
     # SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
     SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:KskRu1V_qK1Z._ALGnh6nxFvhM288N2c@localhost/pebbles'
+    DATABASE_PASSWORD = None
     M2M_CREDENTIAL_STORE = (
         '/var/run/pebbles_m2m',
         'Where to find the M2M credentials file'
@@ -170,7 +171,7 @@ class TestConfig(BaseConfig):
     MAIL_SUPPRESS_SEND = True
     FAKE_PROVISIONING = True
     SKIP_TASK_QUEUE = True
-    BCRYPT_LOG_ROUNDS = 12
+    BCRYPT_LOG_ROUNDS = 4
     WRITE_PROVISIONING_LOGS = False
     TEST_MODE = True
     INSTALLATION_NAME = 'Pebbles'
