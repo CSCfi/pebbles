@@ -31,5 +31,8 @@ pebbles-4.0.0.dev1-py2.7.egg-info/
 # MacOS Finder cache
 .DS_Store
 
-#VSCode settings
+# VSCode settings
 .vscode
+
+# bash history from an interactive development session
+.bash_history
