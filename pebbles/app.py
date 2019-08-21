@@ -12,6 +12,7 @@ from pebbles.drivers.provisioning import dummy_driver_config
 
 
 app = Flask(__name__, static_url_path='')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 migrate = Migrate(app, db)
 
 if 'REMOTE_DEBUG_SERVER' in os.environ:
