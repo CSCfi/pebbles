@@ -2,7 +2,9 @@ from flask_restful import fields
 from flask_httpauth import HTTPBasicAuth
 from flask import g, render_template, abort
 import logging
-from pebbles.models import db, ActivationToken, User, Group, GroupUserAssociation
+
+from pebbles.drivers.provisioning import dummy_driver_config
+from pebbles.models import db, ActivationToken, User, Group, GroupUserAssociation, Plugin
 from pebbles.server import app
 from functools import wraps
 import re
@@ -66,6 +68,17 @@ def create_user(eppn, password, is_admin=False, email_id=None):
     db.session.add(user)
     db.session.commit()
     return user
+
+
+def create_plugin_config():
+    plugin = Plugin()
+    plugin.name = 'DummyDriver'
+    plugin.id = 1
+    plugin.schema = dummy_driver_config.CONFIG['schema']
+    plugin.form = dummy_driver_config.CONFIG['form']
+    plugin.model = dummy_driver_config.CONFIG['model']
+    db.session.add(plugin)
+    db.session.commit()
 
 
 def update_email(eppn, email_id=None):
