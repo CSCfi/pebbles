@@ -8,9 +8,6 @@ from flask_migrate import upgrade as flask_upgrade_db_to_head
 from pebbles.config import BaseConfig, TestConfig
 from pebbles.models import db, bcrypt, Plugin
 
-from pebbles.drivers.provisioning import dummy_driver_config
-
-
 app = Flask(__name__, static_url_path='')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 migrate = Migrate(app, db)
@@ -35,14 +32,20 @@ def favicon():
 
 
 @app.after_request
-def add_header(r):
+def add_headers(r):
     r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     r.headers["Pragma"] = "no-cache"
     r.headers["Expires"] = "0"
     r.headers['Strict-Transport-Security'] = 'max-age=31536000'
     # does not work without unsafe-inline / unsafe-eval
-    r.headers[
-        'Content-Security-Policy'] = "img-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' wss://{{ domain_name }} ; style-src 'self' 'unsafe-inline'; default-src 'self'"
+    csp_list = [
+        "img-src 'self' data:",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "connect-src 'self' wss://{{ domain_name }}",
+        "style-src 'self' 'unsafe-inline'",
+        "default-src 'self'",
+    ]
+    r.headers['Content-Security-Policy'] = '; '.join(csp_list)
 
     return r
 
@@ -84,20 +87,6 @@ def run_things_in_context(is_test_run):
                 os.environ.get("DB_AUTOMIGRATION", None) not in ["0", 0] and \
                 not is_test_run:
             flask_upgrade_db_to_head()
-
-        # initialize plugins
-        if not is_test_run:
-            plugins = Plugin.query.all()
-            if len(plugins) == 0:
-                plugin = Plugin()
-                plugin.name = 'DummyDriver'
-                plugin.id = 1
-                plugin.schema = dummy_driver_config.CONFIG['schema']
-                plugin.form = dummy_driver_config.CONFIG['form']
-                plugin.model = dummy_driver_config.CONFIG['model']
-                db.session.add(plugin)
-                db.session.commit()
-
 
 
 run_things_in_context(test_run)
