@@ -1,20 +1,20 @@
-import string
+import datetime
+import json
 import random
-from flask_bcrypt import Bcrypt
+import string
+import uuid
+
 import names
+import six
+from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
-from sqlalchemy.schema import MetaData
 from sqlalchemy.orm import backref
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-import uuid
-import json
-import datetime
-import six
+from sqlalchemy.schema import MetaData
 
 from pebbles.utils import validate_ssh_pubkey, get_full_blueprint_config, get_blueprint_fields_from_config
-
 
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
@@ -243,8 +243,10 @@ class Group(db.Model):
     description = db.Column(db.Text)
     # current_status when created is "active". Later there is option to be "archived".
     _current_status = db.Column('current_status', db.String(32), default='active')
-    users = db.relationship("GroupUserAssociation", back_populates="group", lazy='dynamic', cascade="all, delete-orphan")
-    banned_users = db.relationship('User', secondary=group_banned_user, backref=backref('banned_groups', lazy="dynamic"), lazy='dynamic')
+    users = db.relationship("GroupUserAssociation", back_populates="group", lazy='dynamic',
+                            cascade="all, delete-orphan")
+    banned_users = db.relationship('User', secondary=group_banned_user,
+                                   backref=backref('banned_groups', lazy="dynamic"), lazy='dynamic')
     blueprints = db.relationship('Blueprint', backref='group', lazy='dynamic')
 
     def __init__(self, name):
@@ -595,11 +597,13 @@ class InstanceLog(db.Model):
 class Lock(db.Model):
     __tablename__ = 'locks'
 
-    lock_id = db.Column(db.String(64), primary_key=True, unique=True)
+    id = db.Column(db.String(64), primary_key=True, unique=True)
+    owner = db.Column(db.String(64))
     acquired_at = db.Column(db.DateTime)
 
-    def __init__(self, lock_id):
-        self.lock_id = lock_id
+    def __init__(self, id, owner):
+        self.id = id
+        self.owner = owner
         self.acquired_at = datetime.datetime.utcnow()
 
 

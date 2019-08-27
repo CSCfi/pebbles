@@ -147,8 +147,21 @@ class PBClient(object):
 
         return resp.json()
 
-    def obtain_lock(self, lock_id):
-        resp = self.do_put('locks/%s' % lock_id)
+    def query_locks(self, lock_id=None):
+        if lock_id:
+            resp = self.do_get('locks/%s' % lock_id)
+        else:
+            resp = self.do_get('locks')
+
+        if resp.status_code == 200:
+            return resp.json()
+        elif resp.status_code == 404:
+            return None
+        else:
+            raise RuntimeError('Error querying lock: %s, %s' % (lock_id, resp.reason))
+
+    def obtain_lock(self, lock_id, owner):
+        resp = self.do_put('locks/%s' % lock_id, payload=dict(owner=owner))
         if resp.status_code == 200:
             return lock_id
         elif resp.status_code == 409:
@@ -156,8 +169,11 @@ class PBClient(object):
         else:
             raise RuntimeError('Error obtaining lock: %s, %s' % (lock_id, resp.reason))
 
-    def release_lock(self, lock_id):
-        resp = self.do_delete('locks/%s' % lock_id)
+    def release_lock(self, lock_id, owner=None):
+        if owner:
+            resp = self.do_delete('locks/%s?owner=%s' % (lock_id, owner))
+        else:
+            resp = self.do_delete('locks/%s' % lock_id)
         if resp.status_code == 200:
             return lock_id
         else:

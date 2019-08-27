@@ -6,7 +6,7 @@ from flask_migrate import Migrate
 from flask_migrate import upgrade as flask_upgrade_db_to_head
 
 from pebbles.config import BaseConfig, TestConfig
-from pebbles.models import db, bcrypt, Plugin
+from pebbles.models import db, bcrypt
 
 app = Flask(__name__, static_url_path='')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -15,6 +15,7 @@ migrate = Migrate(app, db)
 if 'REMOTE_DEBUG_SERVER' in os.environ:
     print('trying to connect to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
     import pydevd_pycharm
+
     pydevd_pycharm.settrace(os.environ['REMOTE_DEBUG_SERVER'], port=12345, stdoutToServer=True, stderrToServer=True,
                             suspend=False)
     print('connected to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
@@ -50,7 +51,11 @@ def add_headers(r):
     return r
 
 
-test_run = set(['test', 'covtest']).intersection(set(sys.argv)) or 'UNIT_TEST' in os.environ.keys()
+# check if we are running as a test process
+test_run = (
+        set(['test', 'covtest']).intersection(set(sys.argv)) or
+        ('UNITTEST' in os.environ.keys() and os.environ['UNITTEST'])
+)
 
 if test_run:
     app.dynamic_config = TestConfig()
@@ -75,6 +80,7 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
 
 bcrypt.init_app(app)
 db.init_app(app)
+
 
 def run_things_in_context(is_test_run):
     # This is only split into a function so we can easily test some of it's

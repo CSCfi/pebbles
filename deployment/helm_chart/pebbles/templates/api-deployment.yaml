@@ -4,19 +4,19 @@ metadata:
   annotations:
     description: Pebbles API
     template.alpha.openshift.io/wait-for-ready: 'true'
-  name: pebbles-api
+  name: api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      name: pebbles-api
+      name: api
   strategy:
     type: RollingUpdate
   template:
     metadata:
       labels:
-        name: pebbles-api
-      name: pebbles-api
+        name: api
+      name: api
     spec:
       containers:
         - env:
@@ -58,7 +58,7 @@ spec:
               port: 8080
             initialDelaySeconds: 30
             timeoutSeconds: 3
-          name: pebbles-api
+          name: api
           ports:
             - containerPort: 8080
           readinessProbe:

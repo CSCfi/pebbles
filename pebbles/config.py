@@ -97,7 +97,7 @@ class BaseConfig(object):
     WTF_CSRF_ENABLED = False
     SSL_VERIFY = False
     # SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
-    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:KskRu1V_qK1Z._ALGnh6nxFvhM288N2c@localhost/pebbles'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:pebbles@localhost/pebbles'
     DATABASE_PASSWORD = None
     M2M_CREDENTIAL_STORE = (
         '/var/run/pebbles_m2m',

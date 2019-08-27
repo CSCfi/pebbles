@@ -2031,28 +2031,51 @@ class FlaskApiTestCase(BaseTestCase):
         unique_id = 'abc123'
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/locks/%s' % unique_id)
+            path='/api/v1/locks/%s' % unique_id,
+            data=json.dumps(dict(owner='test'))
+        )
         self.assertStatus(response, 200)
 
         response2 = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/locks/%s' % unique_id)
+            path='/api/v1/locks/%s' % unique_id,
+            data=json.dumps(dict(owner='test'))
+        )
         self.assertStatus(response2, 409)
 
         response3 = self.make_authenticated_admin_request(
             method='DELETE',
-            path='/api/v1/locks/%s' % unique_id)
+            path='/api/v1/locks/%s' % unique_id
+        )
+
         self.assertStatus(response3, 200)
 
         response4 = self.make_authenticated_admin_request(
             method='DELETE',
-            path='/api/v1/locks/%s' % unique_id)
+            path='/api/v1/locks/%s' % unique_id
+        )
+
         self.assertStatus(response4, 404)
 
-        unique_id = 'abc123'
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/locks/%s' % unique_id)
+            path='/api/v1/locks/%s' % unique_id,
+            data=json.dumps(dict(owner='test'))
+        )
+        self.assertStatus(response, 200)
+
+        # test deleting with an owner filter that does not match
+        response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/locks/%s?owner=foo' % unique_id
+        )
+        self.assertStatus(response, 404)
+
+        # test deleting with an owner filter
+        response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/locks/%s?owner=test' % unique_id
+        )
         self.assertStatus(response, 200)
 
     def test_user_and_group_owner_export_blueprint_templates(self):

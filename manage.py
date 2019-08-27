@@ -1,8 +1,9 @@
 from flask import url_for
 from flask_script import Manager, Server, Shell
 from flask_migrate import MigrateCommand, Migrate
-from werkzeug.contrib.profiler import ProfilerMiddleware
+from werkzeug.middleware.profiler import ProfilerMiddleware
 import getpass
+from six.moves import input
 from pebbles import models
 from pebbles.config import BaseConfig
 from pebbles.server import app
@@ -12,11 +13,6 @@ from pebbles.tests.fixtures import primary_test_setup
 
 import random
 import string
-# 2to3 fix for input
-try:
-    input = raw_input
-except NameError:
-    pass
 
 manager = Manager(app)
 migrate = Migrate(app, models.db)

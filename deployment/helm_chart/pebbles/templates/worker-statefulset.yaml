@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: worker
+spec:
+  selector:
+    matchLabels:
+      app: worker
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: worker
+        image: cscfi/pebbles:latest
+        imagePullPolicy: IfNotPresent
+        command:
+          - python
+          - pebbles/worker/main.py
+        env:
+          - name: PYTHONPATH
+            value: /opt/app-root/src
+          - name: PB_INTERNAL_API_BASE_URL
+            value: http://api:8080/api/v1
+          - name: WORKER_ID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: PB_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: pebbles
+                key: pb-secret-key
+        {{- if .Values.mountHostSrc }}
+        volumeMounts:
+          - mountPath: /opt/app-root/src
+            name: src
+        {{- end }}
+      {{- if .Values.mountHostSrc }}
+      volumes:
+        - name: src
+          hostPath:
+            path: {{ .Values.mountHostSrc }}
+            type: Directory
+      {{- end }}

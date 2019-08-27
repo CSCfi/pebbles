@@ -25,7 +25,7 @@ from pebbles.views.myip import myip, WhatIsMyIp
 from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.variables import variables, PublicVariableList
-from pebbles.views.locks import locks, LockView
+from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.stats import stats, StatsList
 from pebbles.views.export_stats import export_stats, ExportStatistics
 from pebbles.views.import_export import import_export, ImportExportBlueprintTemplates, ImportExportBlueprints
@@ -75,6 +75,7 @@ api.add_resource(PublicVariableList, api_root + '/config')
 api.add_resource(WhatIsMyIp, api_root + '/what_is_my_ip')
 api.add_resource(Quota, api_root + '/quota')
 api.add_resource(UserQuota, api_root + '/quota/<string:user_id>')
+api.add_resource(LockList, api_root + '/locks')
 api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
 api.add_resource(ImportExportBlueprintTemplates, api_root + '/import_export/blueprint_templates')
 api.add_resource(ImportExportBlueprints, api_root + '/import_export/blueprints')

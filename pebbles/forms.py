@@ -131,3 +131,7 @@ class NamespacedKeyValueForm(ModelForm):
     value = StringField('value', validators=[DataRequired()])
     schema = StringField('schema')
     updated_version_ts = FloatField('updated_version_ts')
+
+
+class LockForm(ModelForm):
+    owner = StringField('owner')

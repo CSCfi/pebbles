@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: pebbles-api
+  name: api
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
@@ -9,7 +9,7 @@ spec:
     - http:
         paths:
           - backend:
-              serviceName: pebbles-api
+              serviceName: api
               servicePort: 8080
       {{- if .Values.ingressHost }}
       host: {{ .Values.ingressHost }}

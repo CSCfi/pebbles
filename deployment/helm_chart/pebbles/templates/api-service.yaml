@@ -3,11 +3,11 @@ kind: Service
 metadata:
   annotations:
     description: Exposes and load balances the application pods
-  name: pebbles-api
+  name: api
 spec:
   ports:
     - name: web
       port: 8080
       targetPort: 8080
   selector:
-    name: pebbles-api
+    name: api
