@@ -11,10 +11,10 @@ from pebbles.models import Instance
 
 class Worker:
 
-    def __init__(self, config):
-        self.config = config
-        self.api_key = config['SECRET_KEY']
-        self.api_base_url = config['INTERNAL_API_BASE_URL']
+    def __init__(self, conf):
+        self.config = conf
+        self.api_key = conf['SECRET_KEY']
+        self.api_base_url = conf['INTERNAL_API_BASE_URL']
         self.client = PBClient(None, self.api_base_url)
         self.client.login('worker@pebbles', self.api_key)
         self.id = os.environ['WORKER_ID'] if 'WORKER_ID' in os.environ.keys() else 'worker-%s' % randrange(100, 2 ** 32)
@@ -26,7 +26,7 @@ class Worker:
         plugin_id = blueprint['plugin']
         plugin_name = self.client.get_plugin_data(plugin_id)['name']
 
-        if (plugin_name == 'DummyDriver'):
+        if plugin_name == 'DummyDriver':
             dd = DummyDriver(logging.getLogger(), self.config)
             dd.update(self.client.token, instance_id)
 
