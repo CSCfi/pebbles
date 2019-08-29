@@ -235,9 +235,11 @@ class InstanceView(restful.Resource):
         if not user.is_admin and not is_group_manager(user, group) and instance.user_id != user.id:
             abort(403)
         instance.to_be_deleted = True
-        instance.state = Instance.STATE_DELETING
         instance.deprovisioned_at = datetime.datetime.utcnow()
         db.session.commit()
+
+        # Action queued, return 202 Accepted
+        return None, 202
 
     @auth.login_required
     def put(self, instance_id):
@@ -280,6 +282,7 @@ class InstanceView(restful.Resource):
 
         if args.get('to_be_deleted'):
             instance.to_be_deleted = args['to_be_deleted']
+            instance.deprovisioned_at = datetime.datetime.utcnow()
             db.session.commit()
 
         if args.get('error_msg'):

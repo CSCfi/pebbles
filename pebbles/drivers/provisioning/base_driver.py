@@ -125,7 +125,6 @@ class ProvisioningDriverBase(object):
             self.do_deprovision(token, instance_id)
 
             self.logger.debug('finishing deprovisioning')
-            pbclient.do_instance_patch(instance_id, {'deprovisioned_at': datetime.datetime.utcnow()})
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETED})
         except Exception as e:
             self.logger.exception('do_deprovision raised %s' % e)
