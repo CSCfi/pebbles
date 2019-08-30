@@ -1836,6 +1836,13 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response_patch)
 
+        response_patch = self.make_authenticated_group_owner_request(
+            method='PATCH',
+            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            data=json.dumps({'log_record': log_record})
+        )
+        self.assert_200(response_patch)
+
         response_get = self.make_authenticated_user_request(
             method='GET',
             path='/api/v1/instances/%s/logs' % self.known_instance_id,

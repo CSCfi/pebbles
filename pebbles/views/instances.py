@@ -330,7 +330,10 @@ class InstanceLogs(restful.Resource):
     @requires_group_owner_or_admin
     def patch(self, instance_id):
         args = self.parser.parse_args()
-        instance = Instance.query.filter_by(id=instance_id).first()
+        user = g.user
+        args_ins = {'instance_id': instance_id}
+        query = apply_rules_instances(user, args_ins)
+        instance = query.first()
         if not instance:
             abort(404)
         if args.get('send_log_fetch_task'):
