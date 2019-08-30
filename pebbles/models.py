@@ -74,19 +74,8 @@ class User(db.Model):
     id = db.Column(db.String(32), primary_key=True)
     # eppn is manadatory and database objects are retrieved based on eppn
     _eppn = db.Column('eppn', db.String(MAX_EMAIL_LENGTH), unique=True)
-    # email_id field is used only for sending emails. If it is not null it should be unique
-    """
-    Earlier, User can have two separate accounts based on eppn (through sso) and
-    email(through invite-only). From now on only one account will be allowed.
-
-    For new users: Uniqueness of email_id does not allow users to have two accounts
-    like "eppn@example.org" and "firstname.lastname@example.org", because both will
-    have the same email_id.
-    For old users: If the user already has two accounts like "eppn@example.org" and
-    "firstname.lastname@example.org", the first account user logs in will update his
-    email_id and by deafult second account will become inaccessible.
-    """
-    _email_id = db.Column('email_id', db.String(MAX_EMAIL_LENGTH), unique=True)
+    # email_id field is used only for sending emails.
+    _email_id = db.Column('email_id', db.String(MAX_EMAIL_LENGTH))
     pseudonym = db.Column(db.String(MAX_USER_PSEUDONYM_LENGTH), unique=True, nullable=False)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     joining_date = db.Column(db.DateTime)
