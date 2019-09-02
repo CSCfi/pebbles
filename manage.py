@@ -8,7 +8,7 @@ from pebbles import models
 from pebbles.config import BaseConfig
 from pebbles.server import app
 from pebbles.views import commons
-from pebbles.views.commons import create_user, create_worker
+from pebbles.views.commons import create_user, create_worker, create_system_groups
 from pebbles.models import db
 from pebbles.tests.fixtures import primary_test_setup
 
@@ -103,7 +103,15 @@ def createuser(eppn=None, password=None, admin=False):
         eppn = input("email: ")
     if not password:
         password = getpass.getpass("password: ")
-    create_user(eppn=eppn, password=password, is_admin=admin, email_id=eppn)
+    return create_user(eppn=eppn, password=password, is_admin=admin, email_id=eppn)
+
+@manager.command
+def initialize_system(eppn=None, password=None):
+    """Initializes the system using provided admin credentials"""
+    admin_user = createuser(eppn=eppn, password=password, admin=True)
+    create_worker()
+    create_system_groups(admin_user)
+    commons.register_plugins()
 
 @manager.command
 def register_plugins(plugin_name=None):

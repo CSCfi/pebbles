@@ -35,10 +35,7 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
         )
 
         instance_data = {
-            'endpoints': [dict(
-                name='https',
-                access='http://%s-%s' % (instance['name'], APP_DOMAIN)
-            )]
+            'endpoints': [dict(name='https', access='http://%s' % self.get_instance_hostname(instance))]
         }
 
         pbclient.do_instance_patch(instance_id, {'instance_data': json.dumps(instance_data)})
@@ -131,8 +128,7 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
         )
         return service
 
-    @staticmethod
-    def create_ingress_object(instance):
+    def create_ingress_object(self, instance):
         ingress = kc.ExtensionsV1beta1Ingress(
             metadata=kc.V1ObjectMeta(
                 name=instance['name'],
@@ -140,7 +136,7 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
             spec=kc.ExtensionsV1beta1IngressSpec(
                 rules=[
                     kc.NetworkingV1beta1IngressRule(
-                        host='%s-%s' % (instance['name'], APP_DOMAIN),
+                        host=self.get_instance_hostname(instance),
                         http=kc.NetworkingV1beta1HTTPIngressRuleValue(
                             paths=[
                                 kc.NetworkingV1beta1HTTPIngressPath(
@@ -156,3 +152,6 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
             )
         )
         return ingress
+
+    def get_instance_hostname(self, instance):
+        return '%s-%s' % (instance['name'], APP_DOMAIN)

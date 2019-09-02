@@ -17,6 +17,14 @@ spec:
         name: api
       name: api
     spec:
+      initContainers:
+        - name: wait-for-db
+          image: centos/postgresql-95-centos7
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+            - until pg_isready -h db; do echo "waiting for db to respond"; sleep 2; done
       containers:
         - env:
             - name: APP_MODULE

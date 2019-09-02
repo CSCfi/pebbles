@@ -78,7 +78,7 @@ def register_plugins():
             conf=dummy_driver_config.CONFIG
         ),
         dict(
-            id='3',
+            id='2',
             name='KubernetesLocalDriver',
             conf=kubernetes_local_driver_config.CONFIG
         )
