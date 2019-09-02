@@ -1,14 +1,14 @@
-from flask_restful import fields
-from flask_httpauth import HTTPBasicAuth
-from flask import g, render_template, abort
 import logging
+import re
+from functools import wraps
 
-from pebbles.drivers.provisioning import dummy_driver_config
+from flask import g, render_template, abort
+from flask_httpauth import HTTPBasicAuth
+from flask_restful import fields
+
+from pebbles.drivers.provisioning import dummy_driver_config, kubernetes_local_driver_config
 from pebbles.models import db, ActivationToken, User, Group, GroupUserAssociation, Plugin
 from pebbles.server import app
-from functools import wraps
-import re
-
 
 user_fields = {
     'id': fields.String,
@@ -70,14 +70,33 @@ def create_user(eppn, password, is_admin=False, email_id=None):
     return user
 
 
-def create_plugin_config():
-    plugin = Plugin()
-    plugin.name = 'DummyDriver'
-    plugin.id = 1
-    plugin.schema = dummy_driver_config.CONFIG['schema']
-    plugin.form = dummy_driver_config.CONFIG['form']
-    plugin.model = dummy_driver_config.CONFIG['model']
-    db.session.add(plugin)
+def register_plugins():
+    plugin_data = [
+        dict(
+            id='1',
+            name='DummyDriver',
+            conf=dummy_driver_config.CONFIG
+        ),
+        dict(
+            id='3',
+            name='KubernetesLocalDriver',
+            conf=kubernetes_local_driver_config.CONFIG
+        )
+    ]
+
+    for pd in plugin_data:
+        app.logger.debug('processing plugin %s' % pd['name'])
+        plugin = Plugin.query.filter_by(id=pd['id']).first()
+        if not plugin:
+            plugin = Plugin()
+            plugin.id = pd['id']
+
+            plugin.name = pd['name']
+            plugin.schema = pd['conf']['schema']
+            plugin.form = pd['conf']['form']
+            plugin.model = pd['conf']['model']
+            db.session.add(plugin)
+
     db.session.commit()
 
 

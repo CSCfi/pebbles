@@ -3,7 +3,6 @@ kind: Deployment
 metadata:
   annotations:
     description: Pebbles API
-    template.alpha.openshift.io/wait-for-ready: 'true'
   name: api
 spec:
   replicas: 1
@@ -41,9 +40,9 @@ spec:
             - name: GUNICORN_CMD_ARGS
               value: --workers=1 --max-requests=100
             {{- end }}
-            {{- if .Values.remoteDebugServer }}
+            {{- if .Values.remoteDebugServerApi }}
             - name: REMOTE_DEBUG_SERVER
-              value: {{ .Values.remoteDebugServer }}
+              value: {{ .Values.remoteDebugServerApi }}
             {{- end }}
             - name: PB_SECRET_KEY
               valueFrom:

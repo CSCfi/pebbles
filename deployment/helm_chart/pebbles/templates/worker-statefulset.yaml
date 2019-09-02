@@ -12,6 +12,7 @@ spec:
       labels:
         app: worker
     spec:
+      serviceAccount: worker
       terminationGracePeriodSeconds: 30
       containers:
       - name: worker
@@ -34,6 +35,10 @@ spec:
               secretKeyRef:
                 name: pebbles
                 key: pb-secret-key
+          {{- if .Values.remoteDebugServerWorker }}
+          - name: REMOTE_DEBUG_SERVER
+            value: {{ .Values.remoteDebugServerWorker }}
+          {{- end }}
         {{- if .Values.mountHostSrc }}
         volumeMounts:
           - mountPath: /opt/app-root/src

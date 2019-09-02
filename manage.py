@@ -7,6 +7,7 @@ from six.moves import input
 from pebbles import models
 from pebbles.config import BaseConfig
 from pebbles.server import app
+from pebbles.views import commons
 from pebbles.views.commons import create_user, create_worker
 from pebbles.models import db
 from pebbles.tests.fixtures import primary_test_setup
@@ -104,6 +105,10 @@ def createuser(eppn=None, password=None, admin=False):
         password = getpass.getpass("password: ")
     create_user(eppn=eppn, password=password, is_admin=admin, email_id=eppn)
 
+@manager.command
+def register_plugins(plugin_name=None):
+    """Registers all known plugins"""
+    commons.register_plugins()
 
 @manager.command
 def purgehost(name):
@@ -152,12 +157,8 @@ def createworker():
 @manager.command
 def list_routes():
 
-    try:
-        from urllib.parse import unquote
-    except ImportError:
-        from urllib import unquote
-
-    from terminaltables import AsciiTable
+    # noinspection PyCompatibility
+    from urllib.parse import unquote
 
     route_data = [
         ['endpoint', 'methods', 'url']
@@ -173,7 +174,8 @@ def list_routes():
         line = [unquote(x) for x in (rule.endpoint, methods, url)]
         route_data.append(line)
 
-    print(AsciiTable(route_data).table)
+    for line in route_data:
+        print('%-40s %-40s %-100s' % (line[0], line[1], line[2]))
 
 
 if __name__ == '__main__':

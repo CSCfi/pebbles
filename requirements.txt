@@ -31,3 +31,5 @@ pydevd-pycharm~=192.5728.105
 selenium==3.141.0
 mock==3.0.5
 
+# for drivers
+kubernetes==10.0.1

@@ -7,7 +7,7 @@ from flask_restful import marshal_with
 from pebbles.forms import UserForm
 from pebbles.models import User
 from pebbles.server import restful
-from pebbles.views.commons import user_fields, create_user, create_worker, create_system_groups, create_plugin_config
+from pebbles.views.commons import user_fields, create_user, create_worker, create_system_groups, register_plugins
 
 firstuser = FlaskBlueprint('firstuser', __name__)
 
@@ -30,7 +30,7 @@ class FirstUserView(restful.Resource):
             # initialize hard coded basic groups
             create_system_groups(user)
             # initialize plugins
-            create_plugin_config()
+            register_plugins()
 
             return user
         else:

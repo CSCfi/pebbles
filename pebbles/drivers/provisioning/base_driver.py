@@ -53,6 +53,10 @@ class ProvisioningDriverBase(object):
 
         return self._m2m_credentials
 
+    def get_pb_client(self, token):
+        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        return pbclient
+
     def get_configuration(self):
         return {
             'schema': {
@@ -83,7 +87,7 @@ class ProvisioningDriverBase(object):
         """
         self.logger.debug("update('%s')" % instance_id)
 
-        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        pbclient = self.get_pb_client(token)
         instance = pbclient.get_instance(instance_id)
         if not instance['to_be_deleted'] and instance['state'] in [Instance.STATE_QUEUEING]:
             self.provision(token, instance_id)
@@ -99,7 +103,7 @@ class ProvisioningDriverBase(object):
 
     def provision(self, token, instance_id):
         self.logger.debug('starting provisioning')
-        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        pbclient = self.get_pb_client(token)
 
         try:
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_PROVISIONING})
@@ -117,7 +121,7 @@ class ProvisioningDriverBase(object):
 
     def deprovision(self, token, instance_id):
         self.logger.debug('starting deprovisioning')
-        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
+        pbclient = self.get_pb_client(token)
 
         try:
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETING})

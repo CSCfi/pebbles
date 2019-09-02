@@ -6,6 +6,7 @@ from time import sleep
 from pebbles.client import PBClient
 from pebbles.config import BaseConfig
 from pebbles.drivers.provisioning.dummy_driver import DummyDriver
+from pebbles.drivers.provisioning.kubernetes_local_driver import KubernetesLocalDriver
 from pebbles.models import Instance
 
 
@@ -29,6 +30,10 @@ class Worker:
         if plugin_name == 'DummyDriver':
             dd = DummyDriver(logging.getLogger(), self.config)
             dd.update(self.client.token, instance_id)
+
+        if plugin_name == 'KubernetesLocalDriver':
+            kd = KubernetesLocalDriver(logging.getLogger(), self.config)
+            kd.update(self.client.token, instance_id)
 
     def process_instance(self, instance):
         # check if we need to deprovision the instance
@@ -99,6 +104,15 @@ class Worker:
 
 
 if __name__ == '__main__':
+
+    if 'REMOTE_DEBUG_SERVER' in os.environ:
+        print('trying to connect to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
+        import pydevd_pycharm
+
+        pydevd_pycharm.settrace(os.environ['REMOTE_DEBUG_SERVER'], port=12345, stdoutToServer=True, stderrToServer=True,
+                                suspend=False)
+        print('connected to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
+
     config = BaseConfig()
     logging.basicConfig(
         level=logging.INFO,
