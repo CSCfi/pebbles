@@ -91,11 +91,11 @@ def register_plugins():
             plugin = Plugin()
             plugin.id = pd['id']
 
-            plugin.name = pd['name']
-            plugin.schema = pd['conf']['schema']
-            plugin.form = pd['conf']['form']
-            plugin.model = pd['conf']['model']
-            db.session.add(plugin)
+        plugin.name = pd['name']
+        plugin.schema = pd['conf']['schema']
+        plugin.form = pd['conf']['form']
+        plugin.model = pd['conf']['model']
+        db.session.add(plugin)
 
     db.session.commit()
 
