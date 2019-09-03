@@ -20,7 +20,6 @@ from pebbles.views.groups import groups, GroupList, GroupView, GroupJoin, GroupL
 from pebbles.views.notifications import NotificationList, NotificationView
 from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pebbles.views.activations import activations, ActivationList, ActivationView
-from pebbles.views.firstuser import firstuser, FirstUserView
 from pebbles.views.myip import myip, WhatIsMyIp
 from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
@@ -33,7 +32,6 @@ from pebbles.views.namespaced_keyvalues import namespaced_keyvalues, NamespacedK
 
 api = restful.Api(app)
 api_root = '/api/v1'
-api.add_resource(FirstUserView, api_root + '/initialize')
 api.add_resource(UserList, api_root + '/users', methods=['GET', 'POST', 'PATCH'])
 api.add_resource(UserView, api_root + '/users/<string:user_id>')
 api.add_resource(UserActivationUrl, api_root + '/users/<string:user_id>/user_activation_url')
@@ -91,7 +89,6 @@ app.register_blueprint(users)
 app.register_blueprint(groups)
 app.register_blueprint(instances)
 app.register_blueprint(activations)
-app.register_blueprint(firstuser)
 app.register_blueprint(myip)
 app.register_blueprint(sessions)
 app.register_blueprint(variables)

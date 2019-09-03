@@ -167,10 +167,6 @@ app.config(function($routeProvider, $locationProvider, $compileProvider, Restang
                 redirectIfAuthenticated: alreadyAuthenticatedP,
             }
         })
-        .when('/initialize', {
-            controller: 'InitializationController',
-            templateUrl: partialsDir + '/initialize.html'
-        })
         .when('/reset_password/:token', {
             controller: 'ResetPasswordController',
             templateUrl: partialsDir + '/reset_password.html'

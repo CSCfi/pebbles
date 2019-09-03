@@ -109,17 +109,6 @@ class FlaskApiTestCase(BaseTestCase):
         return self.make_authenticated_request(method, path, headers, data,
                                                auth_token=self.group_owner_token2)
 
-    def test_first_user(self):
-        db.drop_all()
-        db.create_all()
-        response = self.make_request(
-            'POST',
-            '/api/v1/initialize',
-            data=json.dumps({'eppn': 'admin@example.org',
-                             'password': 'admin',
-                             'email_id': 'admin@example.org'}))
-        self.assert_200(response)
-
     def test_deleted_user_cannot_get_token(self):
         response = self.make_request(
             method='POST',

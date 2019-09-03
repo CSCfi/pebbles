@@ -4,15 +4,6 @@ describe('Pebbles', function() {
     browser.get(browser.params.baseURL);
   });
 
-  it('create first user', function() {
-    browser.get(browser.params.baseURL+'initialize');
-    element(by.model('user.email')).sendKeys(browser.params.login.user);
-    element(by.model('user.password')).sendKeys(browser.params.login.password);
-    element(by.model('user.passwordConfirm')).sendKeys(browser.params.login.password);
-    element(by.buttonText('Create')).click();
-    // No checks here, let creation fail if first user is already created
-  });
-
   it('should see dashboard as admin', function() {
     element(by.model('email')).sendKeys(browser.params.login.user);
     element(by.model('password')).sendKeys(browser.params.login.password);
