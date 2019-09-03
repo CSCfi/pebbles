@@ -121,7 +121,7 @@ class PBClient(object):
             raise RuntimeError('Cannot fetch data for instances %s, %s' % (instance_id, resp.reason))
         return resp.json()
 
-    def get_instance_parent_data(self, instance_id):
+    def get_instance_blueprint(self, instance_id):
         blueprint_id = self.get_instance(instance_id)['blueprint_id']
 
         resp = self.do_get('blueprints/%s' % blueprint_id)

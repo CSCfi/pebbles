@@ -18,13 +18,14 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
     def do_provision(self, token, instance_id):
         pbclient = self.get_pb_client(token)
         instance = pbclient.get_instance(instance_id)
+        blueprint = pbclient.get_instance_blueprint(instance_id)
 
-        deployment = self.create_deployment_object(instance)
+        deployment = self.create_deployment_object(instance, blueprint)
         kc.AppsV1Api().create_namespaced_deployment(
             namespace='default', body=deployment
         )
 
-        service = self.create_service_object(instance)
+        service = self.create_service_object(instance, blueprint)
         kc.CoreV1Api().create_namespaced_service(
             namespace='default', body=service
         )
@@ -90,7 +91,16 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
         pass
 
     @staticmethod
-    def create_deployment_object(instance):
+    def create_deployment_object(instance, blueprint):
+
+        blueprint_config = blueprint['full_config']
+
+        # create a dict out of space separated list of VAR=VAL entries
+        env_var_array = blueprint_config.get('environment_vars', '').split()
+        env_var_dict = {k: v for k, v in [x.split('=') for x in env_var_array]}
+        env_var_dict['INSTANCE_ID'] = instance['id']
+        env_var_list = [kc.V1EnvVar(x, env_var_dict[x]) for x in env_var_dict.keys()]
+
         deployment = kc.V1Deployment(
             metadata=kc.V1ObjectMeta(name=instance['name']),
             spec=kc.V1DeploymentSpec(
@@ -102,8 +112,9 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
                         containers=[
                             kc.V1Container(
                                 name='test',
-                                image='jupyter/minimal-notebook',
-                                args=["jupyter", "notebook", "--NotebookApp.token=''"]
+                                image=blueprint_config['image'],
+                                args=blueprint_config['args'].split(),
+                                env=env_var_list,
                             )
                         ]
                     )
@@ -113,7 +124,10 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
         return deployment
 
     @staticmethod
-    def create_service_object(instance):
+    def create_service_object(instance, blueprint):
+
+        blueprint_config = blueprint['full_config']
+
         service = kc.V1Service(
             metadata=kc.V1ObjectMeta(
                 name=instance['name'],
@@ -122,7 +136,7 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
                 selector=dict(name=instance['name']),
                 ports=[kc.V1ServicePort(
                     port=8888,
-                    target_port=8888
+                    target_port=blueprint_config['port']
                 )]
             )
         )

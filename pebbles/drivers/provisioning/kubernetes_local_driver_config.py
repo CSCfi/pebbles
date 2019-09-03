@@ -19,6 +19,10 @@ CONFIG = {
             'image': {
                 'type': 'string',
             },
+            'args': {
+                'type': 'string',
+                'default': "jupyter notebook --NotebookApp.token=''"
+            },
             'port': {
                 'type': 'integer',
             },
@@ -71,11 +75,12 @@ CONFIG = {
     'form': [
         {
             'type': 'help',
-            'helpvalue': '<h4>Docker instance config</h4>'
+            'helpvalue': '<h4>Kubernetes local driver config</h4>'
         },
         'name',
         'description',
         'image',
+        'args',
         'port',
         'volume_mount_point',
         'environment_vars',
@@ -92,7 +97,7 @@ CONFIG = {
         'description': 'k8s testing template',
         'cost_multiplier': 0.0,
         'port': 8888,
-        'image': '',
+        'image': 'jupyter/minimal-notebook',
         'memory_limit': '512M',
     }
 }

@@ -23,7 +23,7 @@ class Worker:
     def update_instance(self, instance):
         logging.info('updating %s' % instance)
         instance_id = instance['id']
-        blueprint = self.client.get_instance_parent_data(instance_id)
+        blueprint = self.client.get_instance_blueprint(instance_id)
         plugin_id = blueprint['plugin']
         plugin_name = self.client.get_plugin_data(plugin_id)['name']
 
