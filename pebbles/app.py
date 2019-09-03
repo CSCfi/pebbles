@@ -55,7 +55,7 @@ def add_headers(r):
 
 # check if we are running as a test process
 test_run = (
-        set(['test', 'covtest']).intersection(set(sys.argv)) or
+        {'test', 'covtest'}.intersection(set(sys.argv)) or
         ('UNITTEST' in os.environ.keys() and os.environ['UNITTEST'])
 )
 
@@ -73,8 +73,8 @@ if app.config['DATABASE_PASSWORD']:
 
 if app.config['ENABLE_SHIBBOLETH_LOGIN']:
     SSO_ATTRIBUTE_MAP = {
-        "HTTP_AJP_SHIB_MAIL": (True, "email_id"),
-        "HTTP_AJP_SHIB_EPPN": (True, "eppn"),
+        "HTTP_AJP_SHIB_MAIL": (True, 'email_id'),
+        "HTTP_AJP_SHIB_EPPN": (True, 'eppn'),
     }
     app.config.setdefault('SSO_ATTRIBUTE_MAP', SSO_ATTRIBUTE_MAP)
     app.config.setdefault('SSO_LOGIN_URL', '/login')
@@ -91,8 +91,8 @@ def run_things_in_context(is_test_run):
         # upgrade to the head of the migration path (the default)
         # we might want to pass a particular revision id instead
         # in the future
-        if os.environ.get("DB_AUTOMIGRATION", None) and \
-                os.environ.get("DB_AUTOMIGRATION", None) not in ["0", 0] and \
+        if os.environ.get('DB_AUTOMIGRATION', None) and \
+                os.environ.get('DB_AUTOMIGRATION', None) not in ["0", 0] and \
                 not is_test_run:
             flask_upgrade_db_to_head()
 
