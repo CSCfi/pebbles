@@ -34,9 +34,11 @@ def favicon():
 
 @app.after_request
 def add_headers(r):
-    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    r.headers["Pragma"] = "no-cache"
-    r.headers["Expires"] = "0"
+    r.headers['X-Content-Type-Options'] = 'nosniff'
+    r.headers['X-XSS-Protection'] = '1; mode=block'
+    r.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    r.headers['Pragma'] = 'no-cache'
+    r.headers['Expires'] = '0'
     r.headers['Strict-Transport-Security'] = 'max-age=31536000'
     # does not work without unsafe-inline / unsafe-eval
     csp_list = [
