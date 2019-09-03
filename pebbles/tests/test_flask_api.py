@@ -109,6 +109,9 @@ class FlaskApiTestCase(BaseTestCase):
         return self.make_authenticated_request(method, path, headers, data,
                                                auth_token=self.group_owner_token2)
 
+    def assert_202(self, response):
+        self.assert_status(response, 202)
+
     def test_deleted_user_cannot_get_token(self):
         response = self.make_request(
             method='POST',
@@ -1754,7 +1757,7 @@ class FlaskApiTestCase(BaseTestCase):
             method='DELETE',
             path='/api/v1/instances/%s' % i1.id
         )
-        self.assert_200(response)
+        self.assert_202(response)
 
         i2 = Instance(blueprint, user)
         db.session.add(i2)
@@ -1764,7 +1767,7 @@ class FlaskApiTestCase(BaseTestCase):
             method='DELETE',
             path='/api/v1/instances/%s' % i2.id
         )
-        self.assert_200(response)
+        self.assert_202(response)
 
         i3 = Instance(blueprint, user)
         db.session.add(i3)
@@ -1774,7 +1777,7 @@ class FlaskApiTestCase(BaseTestCase):
             method='DELETE',
             path='/api/v1/instances/%s' % i3.id
         )
-        self.assert_200(response)
+        self.assert_202(response)
 
         i4 = Instance(blueprint, user)
         db.session.add(i4)
@@ -1784,7 +1787,7 @@ class FlaskApiTestCase(BaseTestCase):
             method='DELETE',
             path='/api/v1/instances/%s' % i4.id
         )
-        self.assert_200(response)
+        self.assert_202(response)
 
         blueprint2 = Blueprint.query.filter_by(id=self.known_blueprint_id_g2).first()
         user2 = User.query.filter_by(id=self.known_group_owner_id_2).first()
@@ -1808,7 +1811,7 @@ class FlaskApiTestCase(BaseTestCase):
             method='DELETE',
             path='/api/v1/instances/%s' % i5.id
         )
-        self.assert_200(response)
+        self.assert_202(response)
 
     def test_instance_logs(self):
         epoch_time = time.time()
