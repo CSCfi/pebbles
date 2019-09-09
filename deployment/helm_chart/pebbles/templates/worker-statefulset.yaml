@@ -43,6 +43,10 @@ spec:
                 secretKeyRef:
                   name: pebbles
                   key: pb-secret-key
+            {{- if .Values.instanceAppDomain }}
+            - name: INSTANCE_APP_DOMAIN
+              value: {{ .Values.instanceAppDomain }}
+            {{- end }}
             {{- if .Values.remoteDebugServerWorker }}
             - name: REMOTE_DEBUG_SERVER
               value: {{ .Values.remoteDebugServerWorker }}

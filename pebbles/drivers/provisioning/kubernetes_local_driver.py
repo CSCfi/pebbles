@@ -1,4 +1,5 @@
 import json
+import os
 
 import kubernetes
 from kubernetes import client as kc
@@ -6,14 +7,15 @@ from kubernetes.client.rest import ApiException
 
 from pebbles.drivers.provisioning import base_driver
 
-APP_DOMAIN = '127-0-0-1.nip.io'
-
 
 class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
     # noinspection PyCompatibility
     def __init__(self, logger, config):
         super().__init__(logger, config)
         kubernetes.config.load_incluster_config()
+        self.app_domain = os.environ.get('INSTANCE_APP_DOMAIN')
+        if not self.app_domain:
+            self.app_domain = '127-0-0-1.nip.io'
 
     def do_provision(self, token, instance_id):
         pbclient = self.get_pb_client(token)
@@ -168,4 +170,4 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
         return ingress
 
     def get_instance_hostname(self, instance):
-        return '%s-%s' % (instance['name'], APP_DOMAIN)
+        return '%s-%s' % (instance['name'], self.app_domain)
