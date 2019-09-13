@@ -16,27 +16,6 @@ Base Driver
 
 .. autoclass:: pebbles.drivers.provisioning.base_driver.ProvisioningDriverBase
 
-OpenStack Driver
-================
-.. automodule:: pebbles.drivers.provisioning.openstack_driver
-
-.. autoclass:: pebbles.drivers.provisioning.openstack_driver.OpenStackDriver
-
-
-Docker Driver
-=============
-.. automodule:: pebbles.drivers.provisioning.docker_driver
-
-
-OpenShift Driver
-================
-
-.. automodule:: pebbles.drivers.provisioning.openshift_driver
-
-.. autoclass:: pebbles.drivers.provisioning.openshift_driver.OpenShiftDriver
-
-Instructions for building custom docker image is available at: https://github.com/csc-training/geocomputing/tree/master/rahti
-
 Dummy Driver
 ============
 

@@ -1,9 +1,7 @@
 language: python
 python:
-- '2.7'
-- '3.4'
-- '3.5'
 - '3.6'
+- '3.7'
 
 # for new container based Travis environment
 sudo: false
@@ -17,6 +15,7 @@ install:
 - pip --version
 - pip install -r requirements.txt
 - pip install flake8==3.2.0
+- pip install Sphinx==1.5 travis-sphinx==1.4.2 pydot==1.4.1
 - pip install .
 
 before_script:
