@@ -5,7 +5,6 @@ resources like Docker containers or OpenStack virtual machines.
 """
 
 import abc
-import datetime
 import json
 import logging
 import os

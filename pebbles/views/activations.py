@@ -1,11 +1,11 @@
-from flask_restful import marshal_with
-from flask import abort, Blueprint
-
 import logging
 
-from pebbles.models import db, ActivationToken, User
+from flask import abort, Blueprint
+from flask_restful import marshal_with
+
 from pebbles.forms import ActivationForm, PasswordResetRequestForm
-from pebbles.server import app, restful
+from pebbles.models import db, ActivationToken, User
+from pebbles.server import restful
 from pebbles.views.commons import user_fields, add_user_to_default_group
 
 activations = Blueprint('activations', __name__)

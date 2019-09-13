@@ -96,8 +96,10 @@ class BlueprintList(restful.Resource):
 
         if not user.is_admin and user_owned_blueprints >= user.blueprint_quota and user.is_group_owner:
             logging.warn("Maximum User_blueprint_quota is reached")
-            return {
-                       "message": "You reached maximum number of blueprints that can be created. If you wish create more groups contact administrator"}, 422
+            return dict(
+                message="You reached maximum number of blueprints that can be created."
+                        " If you wish create more groups contact administrator"
+            ), 422
 
         blueprint.group_id = group_id
         args = self.parser.parse_args()

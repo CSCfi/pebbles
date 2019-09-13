@@ -1,14 +1,16 @@
-from flask_restful import marshal_with, reqparse
-from flask import abort, g
-from flask import Blueprint as FlaskBlueprint
-import logging
-from pebbles.models import db, Group, User, GroupUserAssociation, Instance
-from pebbles.forms import GroupForm
-from pebbles.server import restful, app
-from pebbles.views.commons import auth, group_fields, user_fields, requires_group_manager_or_admin, is_group_manager
-from pebbles.utils import requires_admin, requires_group_owner_or_admin
-import re
 import datetime
+import logging
+import re
+
+from flask import Blueprint as FlaskBlueprint
+from flask import abort, g
+from flask_restful import marshal_with, reqparse
+
+from pebbles.forms import GroupForm
+from pebbles.models import db, Group, User, GroupUserAssociation, Instance
+from pebbles.server import restful
+from pebbles.utils import requires_admin, requires_group_owner_or_admin
+from pebbles.views.commons import auth, group_fields, user_fields, requires_group_manager_or_admin, is_group_manager
 
 groups = FlaskBlueprint('groups', __name__)
 
@@ -61,8 +63,10 @@ class GroupList(restful.Resource):
             user.group_quota = user_owned_groups
         if not user.is_admin and user_owned_groups >= user.group_quota and user.is_group_owner:
             logging.warn("Maximum User_group_quota is reached")
-            return {"message": "You reached maximum number of groups that can be created. If you wish create more groups contact administrator"}, 422
-
+            return dict(
+                message="You reached maximum number of groups that can be created."
+                        " If you wish create more groups contact administrator"
+            ), 422
         form = GroupForm()
         if not form.validate_on_submit():
             logging.warn("validation error on creating group")
@@ -274,9 +278,11 @@ class GroupListExit(restful.Resource):
         user = g.user
         results = []
         group_user_query = (
-            GroupUserAssociation.query
-            .filter_by(user_id=user.id, owner=False)
-            .order_by(GroupUserAssociation.manager.desc())
+            GroupUserAssociation.query.filter_by(
+                user_id=user.id, owner=False
+            ).order_by(
+                GroupUserAssociation.manager.desc()
+            )
         )
         group_user_objs = group_user_query.all()
         for group_user_obj in group_user_objs:

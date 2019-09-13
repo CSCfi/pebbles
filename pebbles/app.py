@@ -55,8 +55,7 @@ def add_headers(r):
 
 # check if we are running as a test process
 test_run = (
-        {'test', 'covtest'}.intersection(set(sys.argv)) or
-        ('UNITTEST' in os.environ.keys() and os.environ['UNITTEST'])
+    {'test', 'covtest'}.intersection(set(sys.argv)) or ('UNITTEST' in os.environ.keys() and os.environ['UNITTEST'])
 )
 
 if test_run:
