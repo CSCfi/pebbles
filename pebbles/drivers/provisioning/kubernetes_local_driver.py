@@ -13,9 +13,12 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
     def __init__(self, logger, config):
         super().__init__(logger, config)
         kubernetes.config.load_incluster_config()
+        with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace', mode='r') as f:
+            self.namespace = f.read()
+
         self.app_domain = os.environ.get('INSTANCE_APP_DOMAIN')
         if not self.app_domain:
-            self.app_domain = '127-0-0-1.nip.io'
+            self.app_domain = '127.0.0.1.nip.io'
 
     def do_provision(self, token, instance_id):
         pbclient = self.get_pb_client(token)
@@ -23,18 +26,21 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
         blueprint = pbclient.get_instance_blueprint(instance_id)
 
         deployment = self.create_deployment_object(instance, blueprint)
+        self.logger.debug('creating deployment %s' % deployment.to_str())
         kc.AppsV1Api().create_namespaced_deployment(
-            namespace='default', body=deployment
+            namespace=self.namespace, body=deployment
         )
 
         service = self.create_service_object(instance, blueprint)
+        self.logger.debug('creating service %s' % service.to_str())
         kc.CoreV1Api().create_namespaced_service(
-            namespace='default', body=service
+            namespace=self.namespace, body=service
         )
 
         ingress = self.create_ingress_object(instance)
-        kc.NetworkingV1beta1Api().create_namespaced_ingress(
-            namespace='default', body=ingress
+        self.logger.debug('creating ingress %s' % ingress.to_str())
+        kc.ExtensionsV1beta1Api().create_namespaced_ingress(
+            namespace=self.namespace, body=ingress
         )
 
         instance_data = {
@@ -50,7 +56,7 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
         # remove deployment
         try:
             kc.AppsV1Api().delete_namespaced_deployment(
-                namespace='default',
+                namespace=self.namespace,
                 name=instance['name']
             )
         except ApiException as e:
@@ -62,7 +68,7 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
         # remove service
         try:
             kc.CoreV1Api().delete_namespaced_service(
-                namespace='default',
+                namespace=self.namespace,
                 name=instance['name']
             )
         except ApiException as e:
@@ -73,8 +79,8 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
 
         # remove ingress
         try:
-            kc.NetworkingV1beta1Api().delete_namespaced_ingress(
-                namespace='default',
+            kc.ExtensionsV1beta1Api().delete_namespaced_ingress(
+                namespace=self.namespace,
                 name=instance['name']
             )
         except ApiException as e:
@@ -170,4 +176,4 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
         return ingress
 
     def get_instance_hostname(self, instance):
-        return '%s-%s' % (instance['name'], self.app_domain)
+        return '%s.%s' % (instance['name'], self.app_domain)
