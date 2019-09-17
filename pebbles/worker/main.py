@@ -63,6 +63,8 @@ class Worker:
 
             # extract instances that are waiting to be provisioned
             queueing_instances = filter(lambda x: x['state'] == Instance.STATE_QUEUEING, instances)
+            # extract instances that are starting asynchronously
+            starting_instances = filter(lambda x: x['state'] == Instance.STATE_STARTING, instances)
             # extract expired instances
             expired_instances = filter(
                 lambda x: x['to_be_deleted'] or (x['lifetime_left'] == 0 and x['maximum_lifetime']),
@@ -70,7 +72,7 @@ class Worker:
             )
 
             # process expired and queueing instances
-            processed_instances = list(queueing_instances) + list(expired_instances)
+            processed_instances = list(queueing_instances) + list(starting_instances) + list(expired_instances)
 
             if not len(processed_instances):
                 continue
@@ -94,7 +96,7 @@ class Worker:
                 if lock is None:
                     continue
 
-                # provision and release the lock
+                # process instance and release the lock
                 try:
                     self.process_instance(instance)
                 except Exception as e:
@@ -115,7 +117,7 @@ if __name__ == '__main__':
 
     config = BaseConfig()
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG if config.DEBUG else logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     worker = Worker(config)

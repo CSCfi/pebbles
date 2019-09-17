@@ -81,20 +81,26 @@ class ProvisioningDriverBase(object):
     def update(self, token, instance_id):
         """ an update call  updates the status of an instance.
 
-        If an instance is queued it will be provisioned, if should be deleted,
-        it is.
+        If an instance is
+          * queued it will be provisioned
+          * starting it will be checked for readiness
+          * tagged to be deleted it is deprovisioned
         """
         self.logger.debug("update('%s')" % instance_id)
 
         pbclient = self.get_pb_client(token)
         instance = pbclient.get_instance(instance_id)
-        if not instance['to_be_deleted'] and instance['state'] in [Instance.STATE_QUEUEING]:
-            self.provision(token, instance_id)
-        elif instance['to_be_deleted'] and instance['state'] not in [Instance.STATE_DELETED]:
+
+        if not instance['to_be_deleted']:
+            if instance['state'] in [Instance.STATE_QUEUEING]:
+                self.provision(token, instance_id)
+            if instance['state'] in [Instance.STATE_STARTING]:
+                self.check_readiness(token, instance_id)
+            else:
+                self.logger.debug("update('%s') - nothing to do for %s" % (instance_id, instance))
+        elif instance['state'] not in [Instance.STATE_DELETED]:
             self.deprovision(token, instance_id)
             pbclient.clear_running_instance_logs(instance_id)
-        else:
-            self.logger.debug("update('%s') - nothing to do for %s" % (instance_id, instance))
 
     def update_connectivity(self, token, instance_id):
         self.logger.debug('update connectivity')
@@ -109,12 +115,29 @@ class ProvisioningDriverBase(object):
             self.logger.debug('calling subclass do_provision')
 
             new_state = self.do_provision(token, instance_id)
+            self.logger.debug('got new state for instance: %s' % new_state)
             if not new_state:
                 new_state = Instance.STATE_RUNNING
 
             pbclient.do_instance_patch(instance_id, {'state': new_state})
         except Exception as e:
             self.logger.exception('do_provision raised %s' % e)
+            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})
+            raise e
+
+    def check_readiness(self, token, instance_id):
+        self.logger.debug('checking provisioning readiness')
+        pbclient = self.get_pb_client(token)
+
+        try:
+            self.logger.debug('calling subclass do_check_readiness')
+
+            instance_ready = self.do_check_readiness(token, instance_id)
+            if instance_ready:
+                pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_RUNNING})
+
+        except Exception as e:
+            self.logger.exception('do_check_readiness raised %s' % e)
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})
             raise e
 
@@ -168,7 +191,11 @@ class ProvisioningDriverBase(object):
         """ The steps to take to provision an instance.
         Probably doesn't make sense not to implement.
         """
+        pass
 
+    @abc.abstractmethod
+    def do_check_readiness(self, token, instance_id):
+        """ Check if an instance in 'STATE_PROVISIONING' is ready yet """
         pass
 
     @abc.abstractmethod

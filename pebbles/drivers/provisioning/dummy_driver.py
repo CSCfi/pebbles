@@ -33,6 +33,10 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
 
         pbclient.do_instance_patch(instance_id, {'dummy': 'yummy'})
 
+    def do_check_readiness(self, token, instance_id):
+        # we already 'provision' synchronously, so nothing to do here
+        pass
+
     def do_deprovision(self, token, instance_id):
         log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='deprovisioning')
 

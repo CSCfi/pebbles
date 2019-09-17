@@ -492,6 +492,7 @@ class Blueprint(db.Model):
 class Instance(db.Model):
     STATE_QUEUEING = 'queueing'
     STATE_PROVISIONING = 'provisioning'
+    STATE_STARTING = 'starting'
     STATE_RUNNING = 'running'
     STATE_DELETING = 'deleting'
     STATE_DELETED = 'deleted'
@@ -500,6 +501,7 @@ class Instance(db.Model):
     VALID_STATES = (
         STATE_QUEUEING,
         STATE_PROVISIONING,
+        STATE_STARTING,
         STATE_RUNNING,
         STATE_DELETING,
         STATE_DELETED,

@@ -6,6 +6,7 @@ from kubernetes import client as kc
 from kubernetes.client.rest import ApiException
 
 from pebbles.drivers.provisioning import base_driver
+from pebbles.models import Instance
 
 
 class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
@@ -43,11 +44,30 @@ class KubernetesLocalDriver(base_driver.ProvisioningDriverBase):
             namespace=self.namespace, body=ingress
         )
 
-        instance_data = {
-            'endpoints': [dict(name='https', access='http://%s' % self.get_instance_hostname(instance))]
-        }
+        # tell base_driver that we need to check on the readiness later by explicitly returning STATE_STARTING
+        return Instance.STATE_STARTING
 
-        pbclient.do_instance_patch(instance_id, {'instance_data': json.dumps(instance_data)})
+    def do_check_readiness(self, token, instance_id):
+        pbclient = self.get_pb_client(token)
+        instance = pbclient.get_instance(instance_id)
+
+        pods = kc.CoreV1Api().list_namespaced_pod(
+            namespace=self.namespace,
+            label_selector='name=%s' % instance.get('name')
+        )
+
+        if len(pods.items) != 1:
+            raise RuntimeWarning('pod results length is not one. dump: %s' % pods.to_str())
+
+        pod = pods.items[0]
+        if pod.status.phase == 'Running':
+            instance_data = {
+                'endpoints': [dict(name='https', access='http://%s' % self.get_instance_hostname(instance))]
+            }
+            pbclient.do_instance_patch(instance_id, {'instance_data': json.dumps(instance_data)})
+            return True
+
+        return False
 
     def do_deprovision(self, token, instance_id):
         pbclient = self.get_pb_client(token)
