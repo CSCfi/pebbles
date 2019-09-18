@@ -1,5 +1,6 @@
 import logging
 import os
+import signal
 from random import randrange
 from time import sleep
 
@@ -19,6 +20,18 @@ class Worker:
         self.client = PBClient(None, self.api_base_url)
         self.client.login('worker@pebbles', self.api_key)
         self.id = os.environ['WORKER_ID'] if 'WORKER_ID' in os.environ.keys() else 'worker-%s' % randrange(100, 2 ** 32)
+        self.terminate = False
+
+        # Wire our handler to SIGTERM
+        signal.signal(signal.SIGTERM, self.handle_signals)
+
+    def handle_signals(self, signum, frame):
+        """
+        Callback function for graceful shutdown. Here we handle signal SIGTERM, sent by Kubernetes when
+        # pod is being terminated, to break out of main loop as soon as work has finished
+        """
+        logging.info('got signal %s frame %s, terminating worker' % (signum, frame))
+        self.terminate = True
 
     def update_instance(self, instance):
         logging.info('updating %s' % instance)
@@ -52,11 +65,9 @@ class Worker:
         # - fetch instance logs
         # - housekeeping
 
-        while True:
+        # check if we are being terminated and drop out of the loop
+        while not self.terminate:
             logging.info('worker main loop')
-
-            # sleep for a random amount to avoid synchronization between workers
-            sleep(randrange(5, 15))
 
             # we query all non-deleted instances
             instances = self.client.get_instances()
@@ -74,35 +85,40 @@ class Worker:
             # process expired and queueing instances
             processed_instances = list(queueing_instances) + list(starting_instances) + list(expired_instances)
 
-            if not len(processed_instances):
-                continue
+            if len(processed_instances):
+                # get locks for instances that are already being processed by another worker
+                locks = self.client.query_locks()
+                locked_instance_ids = [lock['id'] for lock in locks]
 
-            # get locks for instances that are already being processed by another worker
-            locks = self.client.query_locks()
-            locked_instance_ids = [lock['id'] for lock in locks]
+                # delete leftover locks that we own
+                for lock in locks:
+                    if lock['owner'] == self.id:
+                        self.client.release_lock(lock['id'], self.id)
 
-            # delete leftover locks that we own
-            for lock in locks:
-                if lock['owner'] == self.id:
-                    self.client.release_lock(lock['id'], self.id)
+                for instance in processed_instances:
+                    # skip the ones that are already in progress
+                    if instance['id'] in locked_instance_ids:
+                        continue
 
-            for instance in processed_instances:
-                # skip the ones that are already in progress
-                if instance['id'] in locked_instance_ids:
-                    continue
+                    # try to obtain a lock. Should we lose the race, the winner takes it
+                    lock = self.client.obtain_lock(instance.get('id'), self.id)
+                    if lock is None:
+                        continue
 
-                # try to obtain a lock. Should we lose the race, the winner takes it
-                lock = self.client.obtain_lock(instance.get('id'), self.id)
-                if lock is None:
-                    continue
+                    # process instance and release the lock
+                    try:
+                        self.process_instance(instance)
+                    except Exception as e:
+                        logging.warning(e)
+                    finally:
+                        self.client.release_lock(instance.get('id'), self.id)
 
-                # process instance and release the lock
-                try:
-                    self.process_instance(instance)
-                except Exception as e:
-                    logging.warning(e)
-                finally:
-                    self.client.release_lock(instance.get('id'), self.id)
+            # sleep for a random amount to avoid synchronization between workers
+            # while waiting, check for termination flag every second
+            for i in range(randrange(5, 15)):
+                if self.terminate:
+                    break
+                sleep(1)
 
 
 if __name__ == '__main__':
