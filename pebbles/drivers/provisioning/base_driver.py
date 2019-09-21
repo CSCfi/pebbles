@@ -7,7 +7,6 @@ resources like Docker containers or OpenStack virtual machines.
 import abc
 import json
 import logging
-import os
 
 from pebbles.client import PBClient
 from pebbles.logger import PBInstanceLogHandler, PBInstanceLogFormatter
@@ -19,38 +18,11 @@ class ProvisioningDriverBase(object):
     """
     config = {}
 
-    def __init__(self, logger, config):
+    def __init__(self, logger, config, backend_config):
         self.logger = logger
         self.config = config
-        self._m2m_credentials = {}
-
-    def get_m2m_credentials(self):
-        """ Helper to read and parse m2m credentials. The file name
-          is taken from M2M_CREDENTIAL_STORE config key.
-
-        :return: a dict parsed from creds file
-        """
-        if getattr(self, '_m2m_credentials', None):
-            self.logger.debug('m2m creds: found cached m2m creds')
-            return self._m2m_credentials
-
-        m2m_credential_store = self.config['M2M_CREDENTIAL_STORE']
-        try:
-            self._m2m_credentials = json.load(open(m2m_credential_store))
-
-            debug_str = ['m2m_creds:']
-            for key in self._m2m_credentials.keys():
-                if key == 'OS_PASSWORD':
-                    debug_str.append('OS_PASSWORD is set (not shown)')
-                elif key in ('OS_USERNAME', 'OS_TENANT_NAME', 'OS_TENANT_ID', 'OS_AUTH_URL'):
-                    debug_str.append('%s: %s' % (key, self._m2m_credentials[key]))
-                else:
-                    debug_str.append('other key %s' % key)
-            self.logger.debug(' '.join(debug_str))
-        except (IOError, ValueError) as e:
-            self.logger.warn("Unable to parse M2M credentials from path %s %s" % (m2m_credential_store, e))
-
-        return self._m2m_credentials
+        self.backend_config = backend_config
+        self.logger.info('driver for backend %s created' % backend_config.get('name'))
 
     def get_pb_client(self, token):
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
@@ -72,12 +44,6 @@ class ProvisioningDriverBase(object):
                 {'style': 'btn-info', 'title': 'Create', 'type': 'submit'}
             ], 'model': {}}
 
-    def get_backend_configuration(self):
-        """ This method would return the default values of the backend vars
-            which are specific to a particular driver.
-        """
-        return {}
-
     def update(self, token, instance_id):
         """ an update call  updates the status of an instance.
 
@@ -93,14 +59,19 @@ class ProvisioningDriverBase(object):
 
         if not instance['to_be_deleted']:
             if instance['state'] in [Instance.STATE_QUEUEING]:
+                self.logger.info('provisioning starting for %s' % instance.get('name'))
                 self.provision(token, instance_id)
+                self.logger.info('provisioning done for %s' % instance.get('name'))
             if instance['state'] in [Instance.STATE_STARTING]:
+                self.logger.info('checking readiness of %s' % instance.get('name'))
                 self.check_readiness(token, instance_id)
             else:
                 self.logger.debug("update('%s') - nothing to do for %s" % (instance_id, instance))
         elif instance['state'] not in [Instance.STATE_DELETED]:
+            self.logger.info('deprovisioning starting for %s' % instance.get('name'))
             self.deprovision(token, instance_id)
             pbclient.clear_running_instance_logs(instance_id)
+            self.logger.info('deprovisioning done for %s' % instance.get('name'))
 
     def update_connectivity(self, token, instance_id):
         self.logger.debug('update connectivity')
@@ -132,9 +103,15 @@ class ProvisioningDriverBase(object):
         try:
             self.logger.debug('calling subclass do_check_readiness')
 
-            instance_ready = self.do_check_readiness(token, instance_id)
-            if instance_ready:
-                pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_RUNNING})
+            instance_data = self.do_check_readiness(token, instance_id)
+            if instance_data:
+                instance = pbclient.get_instance(instance_id)
+                self.logger.info('instance %s ready' % instance.get('name'))
+                patch_data = dict(
+                    state=Instance.STATE_RUNNING,
+                    instance_data=json.dumps(instance_data)
+                )
+                pbclient.do_instance_patch(instance_id, patch_data)
 
         except Exception as e:
             self.logger.exception('do_check_readiness raised %s' % e)
@@ -162,6 +139,12 @@ class ProvisioningDriverBase(object):
         """
         self.logger.debug('housekeep')
         self.do_housekeep(token)
+
+    @abc.abstractmethod
+    def is_expired(self):
+        """ called by worker to check if a new instance of this driver needs to be created
+        """
+        pass
 
     @abc.abstractmethod
     def do_housekeep(self, token):
@@ -227,13 +210,3 @@ class ProvisioningDriverBase(object):
                 uploader.addHandler(log_handler)
 
         return uploader
-
-    def create_openstack_env(self):
-        m2m_creds = self.get_m2m_credentials()
-        env = os.environ.copy()
-        for key in ('OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_NAME', 'OS_TENANT_ID', 'OS_AUTH_URL'):
-            if key in m2m_creds:
-                env[key] = m2m_creds[key]
-        env['PYTHONUNBUFFERED'] = '1'
-        env['ANSIBLE_HOST_KEY_CHECKING'] = '0'
-        return env

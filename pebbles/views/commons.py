@@ -6,7 +6,7 @@ from flask import g, render_template, abort
 from flask_httpauth import HTTPBasicAuth
 from flask_restful import fields
 
-from pebbles.drivers.provisioning import dummy_driver_config, kubernetes_local_driver_config
+from pebbles.drivers.provisioning import dummy_driver_config, kubernetes_driver_config
 from pebbles.models import db, ActivationToken, User, Group, GroupUserAssociation, Plugin
 from pebbles.server import app
 
@@ -80,7 +80,17 @@ def register_plugins():
         dict(
             id='2',
             name='KubernetesLocalDriver',
-            conf=kubernetes_local_driver_config.CONFIG
+            conf=kubernetes_driver_config.CONFIG
+        ),
+        dict(
+            id='3',
+            name='OpenShiftLocalDriver',
+            conf=kubernetes_driver_config.CONFIG
+        ),
+        dict(
+            id='4',
+            name='OpenShiftRemoteDriver',
+            conf=kubernetes_driver_config.CONFIG
         )
     ]
 

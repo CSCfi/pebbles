@@ -5,6 +5,7 @@ CONFIG = {
         'description': 'Description',
         'required': [
             'name',
+            'backend',
             'image',
             'port',
             'memory_limit',
@@ -18,6 +19,11 @@ CONFIG = {
             },
             'image': {
                 'type': 'string',
+            },
+            'backend': {
+                'title': 'Name of the backend resource to use. Match this with backend credentials',
+                'type': 'string',
+                'default': 'local_kubernetes',
             },
             'args': {
                 'type': 'string',
@@ -79,6 +85,7 @@ CONFIG = {
         },
         'name',
         'description',
+        'backend',
         'image',
         'args',
         'port',
@@ -101,3 +108,7 @@ CONFIG = {
         'memory_limit': '512M',
     }
 }
+
+if __name__=='__main__':
+    import yaml
+    print(yaml.safe_dump(CONFIG))

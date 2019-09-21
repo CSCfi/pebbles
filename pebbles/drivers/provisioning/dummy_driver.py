@@ -9,6 +9,9 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
     and development purposes.
     """
 
+    def is_expired(self):
+        return False
+
     def get_configuration(self):
         from pebbles.drivers.provisioning.dummy_driver_config import CONFIG
 

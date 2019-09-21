@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{name}"
+spec:
+  selector:
+    matchLabels:
+      name: "{name}"
+  template:
+    metadata:
+      labels:
+        name: "{name}"
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: pebbles-instance
+        image: "{image}"
+        args: []
+        env: []

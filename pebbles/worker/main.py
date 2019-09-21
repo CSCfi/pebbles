@@ -1,14 +1,38 @@
+import importlib
 import logging
 import os
 import signal
 from random import randrange
 from time import sleep
 
+import yaml
+
 from pebbles.client import PBClient
 from pebbles.config import BaseConfig
-from pebbles.drivers.provisioning.dummy_driver import DummyDriver
-from pebbles.drivers.provisioning.kubernetes_local_driver import KubernetesLocalDriver
 from pebbles.models import Instance
+
+
+def load_backend_config():
+    backend_config_file = '/run/secrets/pebbles/backend-config.yaml'
+    backend_passwords_file = '/run/secrets/pebbles/backend-passwords.yaml'
+
+    try:
+        backend_config = yaml.safe_load(open(backend_config_file, 'r'))
+        backend_passwords = yaml.safe_load(open(backend_passwords_file, 'r'))
+    except (IOError, ValueError) as e:
+        logging.warning("Unable to parse backend data from path "
+                        "%s %s" % (backend_config_file, backend_passwords_file))
+        raise e
+
+    for backend in backend_config.get('backends'):
+        backend_name = backend.get('name')
+        logging.debug('found backend %s' % backend_name)
+        password = backend_passwords.get(backend_name)
+        if password:
+            logging.debug('setting password for backend %s' % backend_name)
+            backend['password'] = password
+
+    return backend_config
 
 
 class Worker:
@@ -21,32 +45,56 @@ class Worker:
         self.client.login('worker@pebbles', self.api_key)
         self.id = os.environ['WORKER_ID'] if 'WORKER_ID' in os.environ.keys() else 'worker-%s' % randrange(100, 2 ** 32)
         self.terminate = False
-
-        # Wire our handler to SIGTERM
+        # Wire our handler to SIGTERM for controlled pod shutdowns
         signal.signal(signal.SIGTERM, self.handle_signals)
+
+        self.backends = {}
+        self.backend_config = load_backend_config()
 
     def handle_signals(self, signum, frame):
         """
         Callback function for graceful shutdown. Here we handle signal SIGTERM, sent by Kubernetes when
-        # pod is being terminated, to break out of main loop as soon as work has finished
+        pod is being terminated, to break out of main loop as soon as work has finished
         """
         logging.info('got signal %s frame %s, terminating worker' % (signum, frame))
         self.terminate = True
 
+    def get_driver(self, backend_name):
+
+        backend = None
+        for b in self.backend_config['backends']:
+            if b.get('name') == backend_name:
+                backend = b
+                break
+        if backend is None:
+            raise RuntimeWarning('No matching backend in configuration for %s' % backend_name)
+
+        if 'driver_instance' in backend.keys():
+            # we found an existing instance, use that if it is still valid
+            driver_instance = backend.get('driver_instance')
+            if not driver_instance.is_expired():
+                return driver_instance
+
+        # create the driver, they live in pebbles.drivers.provisioning
+        driver_class = getattr(importlib.import_module('pebbles.drivers.provisioning.kubernetes_driver'),
+                               backend.get('driver'))
+        driver_instance = driver_class(logging.getLogger(), self.config, backend)
+        backend['driver_instance'] = driver_instance
+
+        return driver_instance
+
     def update_instance(self, instance):
-        logging.info('updating %s' % instance)
+        logging.debug('updating %s' % instance)
         instance_id = instance['id']
         blueprint = self.client.get_instance_blueprint(instance_id)
         plugin_id = blueprint['plugin']
         plugin_name = self.client.get_plugin_data(plugin_id)['name']
-
-        if plugin_name == 'DummyDriver':
-            dd = DummyDriver(logging.getLogger(), self.config)
-            dd.update(self.client.token, instance_id)
-
-        if plugin_name == 'KubernetesLocalDriver':
-            kd = KubernetesLocalDriver(logging.getLogger(), self.config)
-            kd.update(self.client.token, instance_id)
+        backend_name = blueprint.get('full_config').get('backend')
+        if backend_name is None:
+            backend_name = plugin_name
+            logging.warning('Guessing backend name to be driver name for instance %s' % instance.get('name'))
+        driver_instance = self.get_driver(backend_name)
+        driver_instance.update(self.client.token, instance_id)
 
     def process_instance(self, instance):
         # check if we need to deprovision the instance
@@ -67,7 +115,7 @@ class Worker:
 
         # check if we are being terminated and drop out of the loop
         while not self.terminate:
-            logging.info('worker main loop')
+            logging.debug('worker main loop')
 
             # we query all non-deleted instances
             instances = self.client.get_instances()
@@ -115,7 +163,7 @@ class Worker:
 
             # sleep for a random amount to avoid synchronization between workers
             # while waiting, check for termination flag every second
-            for i in range(randrange(5, 15)):
+            for i in range(randrange(2, 5)):
                 if self.terminate:
                     break
                 sleep(1)
@@ -138,3 +186,4 @@ if __name__ == '__main__':
     )
     worker = Worker(config)
     worker.run()
+    logging.info('worker shutting down')
