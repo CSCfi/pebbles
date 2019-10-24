@@ -18,7 +18,7 @@ if 'REMOTE_DEBUG_SERVER' in os.environ:
 
     pydevd_pycharm.settrace(os.environ['REMOTE_DEBUG_SERVER'], port=12345, stdoutToServer=True, stderrToServer=True,
                             suspend=False)
-    print('connected to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
+    print('API: connected to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
 
 
 # Setup static files to be served by Flask for automated testing

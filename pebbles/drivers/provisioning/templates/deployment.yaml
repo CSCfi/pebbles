@@ -17,3 +17,10 @@ spec:
         image: "{image}"
         args: []
         env: []
+        volumeMounts:
+          - mountPath: "{volume_mount_path}"
+            name: data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: "{pvc_name}"

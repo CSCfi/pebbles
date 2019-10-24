@@ -1,5 +1,6 @@
 import os
 import time
+from enum import Enum, unique
 from urllib.parse import urlparse, parse_qs
 
 import kubernetes
@@ -14,10 +15,30 @@ from pebbles.models import Instance
 from pebbles.utils import b64encode_string
 
 
+@unique
+class VolumePersistenceLevel(Enum):
+    INSTANCE_LIFETIME = 1
+    BLUEPRINT_LIFETIME = 2
+    USER_LIFETIME = 3
+
+
 def parse_template(name, values):
     with open(os.path.join(os.path.dirname(__file__), 'templates', name), 'r') as f:
         template = f.read()
         return template.format(**values)
+
+
+def get_user_pseudonym(user_id):
+    # TODO: change this to make sure it is 100% unique. A pre-assigned persistent pseudonym
+    # TODO: is probably needed
+    return user_id[:10]
+
+
+def get_volume_name(instance, persistence_level=VolumePersistenceLevel.INSTANCE_LIFETIME):
+    if persistence_level == VolumePersistenceLevel.INSTANCE_LIFETIME:
+        return 'pvc-%s-%s' % (get_user_pseudonym(instance['user_id']), instance['name'])
+    else:
+        raise RuntimeError('volume persistence level %s is not supported' % persistence_level)
 
 
 class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
@@ -63,6 +84,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         instance, blueprint = self.fetch_instance_and_blueprint(token, instance_id)
         namespace = self.get_instance_namespace(instance)
         self.ensure_namespace(namespace)
+        self.ensure_volume(namespace, instance)
         self.create_deployment(namespace, instance, blueprint)
         self.create_service(namespace, instance, blueprint)
         self.create_ingress(namespace, instance)
@@ -125,6 +147,16 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             else:
                 raise e
 
+        # remove volume (only level 1 persistence implemented so far)
+        try:
+            volume_name = get_volume_name(instance)
+            self.delete_volume(namespace, volume_name)
+        except ApiException as e:
+            if e.status == 404:
+                self.logger.warn('Volume not found, assuming it is already deleted')
+            else:
+                raise e
+
     def do_housekeep(self, token):
         pass
 
@@ -136,7 +168,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
     def is_expired(self):
         if 'token_expires_at' in self.backend_config.keys():
-            if self.backend_config.get('token_expires_at') < time.time() + 60:
+            if self.backend_config.get('token_expires_at') < time.time() + 600:
                 return True
         return False
 
@@ -159,6 +191,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         deployment_yaml = parse_template('deployment.yaml', dict(
             name=instance['name'],
             image=blueprint_config['image'],
+            volume_mount_path=blueprint_config['volume_mount_path'],
+            pvc_name=get_volume_name(instance)
         ))
         deployment_dict = yaml.safe_load(deployment_yaml)
         deployment_dict['spec']['template']['spec']['containers'][0]['env'] = env_var_list
@@ -206,6 +240,39 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         kc.ExtensionsV1beta1Api().delete_namespaced_ingress(
             namespace=namespace,
             name=instance.get('name')
+        )
+
+    def ensure_volume(self, namespace, instance):
+        volume_name = get_volume_name(instance)
+        api = self.dynamic_client.resources.get(api_version='v1', kind='PersistentVolumeClaim')
+        try:
+            api.get(namespace=namespace, name=volume_name)
+            return
+        except ApiException as e:
+            if e.status != 404:
+                raise e
+        return self.create_volume(namespace, volume_name)
+
+    def create_volume(self, namespace, volume_name):
+        pvc_yaml = parse_template('pvc.yaml', dict(
+            name=volume_name,
+            storage_size='1Gi',
+        ))
+        pvc_dict = yaml.safe_load(pvc_yaml)
+        storage_class_name = self.backend_config.get('storageClassName')
+        if storage_class_name is not None:
+            pvc_dict['spec']['storageClassName'] = storage_class_name
+
+        self.logger.debug('creating pvc\n%s' % pvc_yaml)
+
+        api = self.dynamic_client.resources.get(api_version='v1', kind='PersistentVolumeClaim')
+        return api.create(body=pvc_dict, namespace=namespace)
+
+    def delete_volume(self, namespace, volume_name):
+        self.logger.debug('deleting volume %s' % volume_name)
+        kc.CoreV1Api().delete_namespaced_persistent_volume_claim(
+            namespace=namespace,
+            name=volume_name
         )
 
 
@@ -292,7 +359,7 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
         else:
             # generate namespace name based on prefix and first 8 characters of user id
             namespace_prefix = self.backend_config.get('namespacePrefix', 'pb-')
-            namespace = '%s%s' % (namespace_prefix, instance['user_id'][:8])
+            namespace = '%s%s' % (namespace_prefix, get_user_pseudonym(instance['user_id']))
             self.logger.debug('assigned namespace %s to instance %s' % (namespace, instance.get('name')))
         return namespace
 

@@ -32,7 +32,7 @@ CONFIG = {
             'port': {
                 'type': 'integer',
             },
-            'volume_mount_point': {
+            'volume_mount_path': {
                 'type': 'string',
             },
             'memory_limit': {
@@ -89,7 +89,7 @@ CONFIG = {
         'image',
         'args',
         'port',
-        'volume_mount_point',
+        'volume_mount_path',
         'environment_vars',
         'autodownload_url',
         'autodownload_filename',
