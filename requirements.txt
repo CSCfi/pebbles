@@ -98,7 +98,7 @@ stevedore==1.25.0
 taskflow==1.18.0
 terminaltables==2.1.0
 travis-sphinx==1.4.2
-urllib3==1.22
+urllib3==1.24.2
 validators==0.12.0
 websocket-client==0.32.0
 Werkzeug==0.10.4
