@@ -2526,14 +2526,6 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assertStatus(invalid_response, 404)
 
-    def test_headers(self):
-        """Test that we set headers for content caching and security"""
-        response = self.make_request(path='/api/v1/config')
-
-        required_headers = ('Cache-Control', 'Expires', 'Strict-Transport-Security', 'Content-Security-Policy')
-        for h in required_headers:
-            self.assertIn(h, response.headers.keys())
-
 
 if __name__ == '__main__':
     unittest.main()

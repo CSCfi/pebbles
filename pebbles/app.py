@@ -23,18 +23,6 @@ def favicon():
     return app.send_static_file('favicon.ico')
 
 
-@app.after_request
-def add_header(r):
-    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    r.headers["Pragma"] = "no-cache"
-    r.headers["Expires"] = "0"
-    r.headers['Strict-Transport-Security'] = 'max-age=31536000'
-    # does not work without unsafe-inline / unsafe-eval
-    r.headers['Content-Security-Policy'] = "img-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' wss://{{ domain_name }} ; style-src 'self' 'unsafe-inline'; default-src 'self'"
-
-    return r
-
-
 test_run = set(['test', 'covtest']).intersection(set(sys.argv))
 
 if test_run:
