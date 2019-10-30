@@ -108,6 +108,7 @@ def createuser(eppn=None, password=None, admin=False):
 @manager.command
 def initialize_system(eppn=None, password=None):
     """Initializes the system using provided admin credentials"""
+    db.create_all()
     admin_user = createuser(eppn=eppn, password=password, admin=True)
     create_worker()
     create_system_groups(admin_user)
