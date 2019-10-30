@@ -49,21 +49,13 @@ class BlueprintList(restful.Resource):
     def get(self):
         args = self.parser.parse_args()
         user = g.user
-        query = apply_rules_blueprints(user)
+        query = apply_rules_blueprints(user, args)
         # sort the results based on the group name first and then by blueprint name
         query = query.join(Group, Blueprint.group).order_by(Group.name).order_by(Blueprint.name)
-        all_blueprints = []
-        if args.get('show_all'):
-            for blueprint in query.all():
-                blueprint = process_blueprint(blueprint)
-                all_blueprints.append(blueprint)
-            return all_blueprints
         results = []
         for blueprint in query.all():
-            if blueprint.current_status != 'archived' and blueprint.current_status != 'deleted':
-                blueprint = process_blueprint(blueprint)
-                results.append(blueprint)
-
+            blueprint = process_blueprint(blueprint)
+            results.append(blueprint)
         return results
 
     @auth.login_required
@@ -88,14 +80,14 @@ class BlueprintList(restful.Resource):
         if not user.is_admin and not is_group_manager(user, group):
             logging.warn("invalid group for the user")
             abort(403)
-        user_owned_blueprints = Blueprint.query.filter_by(group_id=group_id).count()
+        user_owned_blueprints = apply_rules_blueprints(user).filter_by(group_id=group_id).count()
         if not user.blueprint_quota and not user_owned_blueprints:
             user.blueprint_quota = 1
         elif not user.blueprint_quota and user_owned_blueprints:
             user.blueprint_quota = user_owned_blueprints
 
         if not user.is_admin and user_owned_blueprints >= user.blueprint_quota and user.is_group_owner:
-            logging.warn("Maximum User_blueprint_quota is reached")
+            logging.warning("Maximum User_blueprint_quota %s is reached" % user_owned_blueprints)
             return dict(
                 message="You reached maximum number of blueprints that can be created."
                         " If you wish create more groups contact administrator"

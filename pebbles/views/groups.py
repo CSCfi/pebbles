@@ -56,13 +56,14 @@ class GroupList(restful.Resource):
     @requires_group_owner_or_admin
     def post(self):
         user = g.user
-        user_owned_groups = GroupUserAssociation.query.filter_by(user_id=user.id, owner=True).count()
+        user_groups = GroupUserAssociation.query.filter_by(user_id=user.id, owner=True)
+        user_owned_groups = [user_group.group.current_status == 'active' for user_group in user_groups].count(True)
         if not user.group_quota and user.is_group_owner and not user_owned_groups:
             user.group_quota = 1
         elif not user.group_quota and user.is_group_owner and user_owned_groups:
             user.group_quota = user_owned_groups
         if not user.is_admin and user_owned_groups >= user.group_quota and user.is_group_owner:
-            logging.warn("Maximum User_group_quota is reached")
+            logging.warning("Maximum User_group_quota %s is reached" % user_owned_groups)
             return dict(
                 message="You reached maximum number of groups that can be created."
                         " If you wish create more groups contact administrator"

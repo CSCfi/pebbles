@@ -39,7 +39,12 @@ def apply_rules_blueprints(user, args=None):
         if manager_group_ids:
             manager_group_ids_exp = Blueprint.group_id.in_(manager_group_ids)
         query_exp = or_(query_exp, manager_group_ids_exp)
-        q = q.filter(query_exp)
+        q = q.filter(query_exp).filter_by(current_status='active')
+    else:
+        if args is not None and 'show_all' in args and args.get('show_all'):
+            q = q.filter(or_(Blueprint.current_status == 'active', Blueprint.current_status == 'archived', Blueprint.current_status == 'deleted'))
+        else:
+            q = q.filter_by(current_status='active')
 
     if args is not None and 'blueprint_id' in args:
         q = q.filter_by(id=args.get('blueprint_id'))
