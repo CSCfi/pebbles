@@ -9,18 +9,18 @@
         </tr>
         </thead>
         <tbody>
-            <tr ng-hide="plugins != undefined && plugins.length">
-                <td colspan="2">No enabled plugins are reported by workers</td>
-            </tr>
+        <tr ng-hide="plugins != undefined && plugins.length">
+            <td colspan="2">No enabled plugins are reported by workers</td>
+        </tr>
 
-            <tr ng-repeat="plugin in plugins">
-                <td>{{plugin.name}}</td>
-                <td>
-                    <button ng-click="openCreateTemplateDialog(plugin)" class="btn btn-default">
-                      Create Template
-                    </button>
-                </td>
-            </tr>
+        <tr ng-repeat="plugin in plugins">
+            <td>{{ plugin.name }}</td>
+            <td>
+                <button ng-click="openCreateTemplateDialog(plugin)" class="btn btn-default">
+                    Create Template
+                </button>
+            </td>
+        </tr>
         </tbody>
     </table>
 
@@ -34,21 +34,24 @@
         </tr>
         </thead>
         <tbody>
-            <tr ng-hide="templates != undefined && (templates | filter : {is_enabled: 'true'}).length">
-                <td colspan="3">No templates</td>
-            </tr>
+        <tr ng-hide="templates != undefined && (templates | filter : {is_enabled: 'true'}).length">
+            <td colspan="3">No templates</td>
+        </tr>
 
-            <tr ng-repeat="template in templates">
-                <td>{{template.name}}</td>
-                <!--<td><lifetime value="{{ template.maximum_lifetime }}" maximum-lifetime="{{ template.maximum_lifetime }}"/></td>-->
-                <td>{{template.config.maximum_lifetime}}</td>
-                <td>
-                    <button ng-hide="template.is_enabled" ng-click="activate(template)" class="btn btn-primary">Activate</button>
-                    <button ng-show="template.is_enabled" ng-click="deactivate(template)" class="btn btn-default">Deactivate</button>
-                    <button ng-click="openReconfigureTemplateDialog(template)" class="btn btn-default">Reconfigure</button>
-                    <button ng-click="copyTemplate(template)" class="btn btn-default">Copy</button>
-                </td>
-            </tr>
+        <tr ng-repeat="template in templates">
+            <td>{{ template.name }}</td>
+            <!--<td><lifetime value="{{ template.maximum_lifetime }}" maximum-lifetime="{{ template.maximum_lifetime }}"/></td>-->
+            <td>{{ template.config.maximum_lifetime }}</td>
+            <td>
+                <button ng-hide="template.is_enabled" ng-click="activate(template)" class="btn btn-primary">Activate
+                </button>
+                <button ng-show="template.is_enabled" ng-click="deactivate(template)" class="btn btn-default">
+                    Deactivate
+                </button>
+                <button ng-click="openReconfigureTemplateDialog(template)" class="btn btn-default">Reconfigure</button>
+                <button ng-click="copyTemplate(template)" class="btn btn-default">Copy</button>
+            </td>
+        </tr>
         </tbody>
     </table>
 
@@ -67,29 +70,34 @@
         </tr>
         </thead>
         <tbody>
-            <tr ng-hide="notifications != undefined && notifications.length">
-                <td colspan="4">No notifications</td>
-            </tr>
+        <tr ng-hide="notifications != undefined && notifications.length">
+            <td colspan="4">No notifications</td>
+        </tr>
 
-            <tr ng-repeat="notification in notifications">
-                <td>{{ notification.subject }}</td>
-                <td>{{ notification.broadcasted | utcToLocale:"medium"}}</td>
-                <td>{{ notification.message }}</td>
-		        <td> <button ng-confirm-click="Do you want to email this notification to all the active users?" ng-click="emailNotification(notification)" class="btn btn-default">Email Active Users</button>
-                     <button ng-confirm-click="Do you want to email this notification to all the group owners?" ng-click="emailNotificationToGroupOwner(notification)" class="btn btn-default">Email Group Owners</button>
-                </td>
-                <td>
-                    <button ng-click="openEditNotification(notification)" class="btn btn-primary btn-xs" type="button">
-                        <span class="glyphicon glyphicon-edit"></span>
-                    </button>
+        <tr ng-repeat="notification in notifications">
+            <td>{{ notification.subject }}</td>
+            <td>{{ notification.broadcasted | utcToLocale:"mediumDate"}}</td>
+            <td>{{ notification.message }}</td>
+            <td>
+                <button ng-confirm-click="Do you want to email this notification to all the active users?"
+                        ng-click="emailNotification(notification)" class="btn btn-default">Email Active Users
+                </button>
+                <button ng-confirm-click="Do you want to email this notification to all the group owners?"
+                        ng-click="emailNotificationToGroupOwner(notification)" class="btn btn-default">Email Group
+                    Owners
+                </button>
+            </td>
+            <td>
+                <button ng-click="openEditNotification(notification)" class="btn btn-primary btn-xs" type="button">
+                    <span class="glyphicon glyphicon-edit"></span>
+                </button>
 
-                    <button ng-click="deleteNotification(notification)" class="btn btn-danger btn-xs" type="button">
-                        <span class="glyphicon glyphicon-remove"></span>
-                    </button>
-                </td>
-            </tr>
+                <button ng-click="deleteNotification(notification)" class="btn btn-danger btn-xs" type="button">
+                    <span class="glyphicon glyphicon-remove"></span>
+                </button>
+            </td>
+        </tr>
         </tbody>
     </table>
     <button class="btn btn-primary" ng-click="openCreateNotification()">Add notification</button>
-
 </div>

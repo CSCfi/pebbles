@@ -11,122 +11,164 @@
         </tr>
         </thead>
         <tbody>
-            <tr ng-hide="templates != undefined && templates.length">
-                <td colspan="2">No templates found</td>
-            </tr>
+        <tr ng-hide="templates != undefined && templates.length">
+            <td colspan="2">No templates found</td>
+        </tr>
 
-            <tr ng-repeat="template in templates | filter : {is_enabled : 'true'}">
-                <td>{{template.name}}</td>
-                <td>{{template.config.description}}</td>
-                <td>{{template.config.maximum_lifetime}}</td>
-                <td>
-                    <button ng-click="openCreateBlueprintDialog(template)" class="btn btn-default">
-                      Create Blueprint
-                    </button>
-                </td>
-            </tr>
+        <tr ng-repeat="template in templates | filter : {is_enabled : 'true'}">
+            <td>{{ template.name }}</td>
+            <td>{{ template.config.description }}</td>
+            <td>{{ template.config.maximum_lifetime }}</td>
+            <td>
+                <button ng-click="openCreateBlueprintDialog(template)" class="btn btn-default">
+                    Create Blueprint
+                </button>
+            </td>
+        </tr>
         </tbody>
     </table>
 
     <h3>Blueprints</h3>
     <div>
-    <h5>Select the group to view the respective blueprints:
-     <select ng-model="selectedoptionModel" ng-options="blueprint.group_name as blueprint.group_name for blueprint in blueprints | filter : {manager: 'true'} | unique:'group_name'">
-        <option value="">show-all-groups</option> </select>
-    </h5>
+        <h5>Select the group to view the respective blueprints:
+            <select ng-model="selectedoptionModel"
+                    ng-options="blueprint.group_name as blueprint.group_name for blueprint in blueprints | filter : {manager: 'true'} | unique:'group_name'">
+                <option value="">show-all-groups</option>
+            </select>
+        </h5>
     </div>
+
     <br>
 
     <div>
-	
-      <uib-accordion close-others="false">
-        <div uib-accordion-group class="panel-default" is-open="panel_open">
-	<uib-accordion-heading>
-	Active Blueprints: <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
-	</uib-accordion-heading>
+        <uib-accordion close-others="false">
+            <div uib-accordion-group class="panel-default" is-open="panel_open">
+                <uib-accordion-heading>
+                    Active Blueprints: <i class="pull-right glyphicon"
+                                          ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
+                </uib-accordion-heading>
 
-	<table class="table table-striped sortorder">
-	    <thead>
-	    <tr>
-		<td ng-click="sortType='name'">Type</td>
-		<td ng-click="sortType='template_name'">Template</td>
-		<td ng-click="sortType='group_name'">Group</td>
-		<td>Max life-time</td>
-		<td></td>
-	    </tr>
-	    </thead>
-	    <tbody>
-	    <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
-		<td colspan="3">No blueprints</td>
-	    </tr>
-
-	    <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType" ng-if="blueprint.is_enabled==true">
-		<td>{{blueprint.name}}</td>
-		<td>{{blueprint.template_name}}</td>
-		<td>{{blueprint.group_name}}</td>
-		<td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
-		<td>
-		    <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)" class="btn btn-primary">Activate</button>
-		    <button ng-show="blueprint.is_enabled" ng-click="deactivate(blueprint)" class="btn btn-default">Deactivate</button>
-		    <button ng-click="openReconfigureBlueprintDialog(blueprint)" class="btn btn-default">Reconfigure</button>
-		    <button ng-show="blueprint.is_enabled" ng-click="openBlueprintLinkDialog(blueprint)" class="btn btn-success">Link</button>
-		    <button ng-confirm-click="Copy this blueprint?" ng-click="copyBlueprint(blueprint)" class="btn btn-default">Copy</button>
-		    <button ng-if=isAdmin() ng-confirm-click="Do you want to permanently archive this blueprint?" ng-click="archiveBlueprint(blueprint)" class="btn btn-default">Archive</button>
-		    <button ng-click="deleteBlueprint(blueprint)" class="btn btn-danger">Delete</button>
-		</td>
-	   </tr>
-	   </tbody>
-	</table>
-				                
-     </uib-accordion> 
+                <table class="table table-striped sortorder">
+                    <thead>
+                    <tr>
+                        <td ng-click="sortType='name'">Type</td>
+                        <td ng-click="sortType='template_name'">Template</td>
+                        <td ng-click="sortType='group_name'">Group</td>
+                        <td>Max life-time</td>
+                        <td>Expiry Date</td>
+                        <td></td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
+                        <td colspan="3">No blueprints</td>
+                    </tr>
+                    <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType"
+                        ng-if="blueprint.is_enabled==true">
+                        <td>{{ blueprint.name }}</td>
+                        <td>{{ blueprint.template_name }}</td>
+                        <td>{{ blueprint.group_name }}</td>
+                        <td>
+                            <lifetime value="{{ blueprint.maximum_lifetime }}"
+                                      maximum-lifetime="{{ blueprint.maximum_lifetime }}"/>
+                        </td>
+                        <td>{{ blueprint.expiry_time | utcToLocale:"mediumDate"}} </td>
+                        <td>
+                            <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)"
+                                    class="btn btn-primary">Activate
+                            </button>
+                            <button ng-show="blueprint.is_enabled" ng-click="deactivate(blueprint)"
+                                    class="btn btn-default">Deactivate
+                            </button>
+                            <button ng-click="openReconfigureBlueprintDialog(blueprint)" class="btn btn-default">
+                                Reconfigure
+                            </button>
+                            <button ng-show="blueprint.is_enabled" ng-click="openBlueprintLinkDialog(blueprint)"
+                                    class="btn btn-success">Link
+                            </button>
+                            <button ng-confirm-click="Copy this blueprint?" ng-click="copyBlueprint(blueprint)"
+                                    class="btn btn-default">Copy
+                            </button>
+                            <button ng-if=isAdmin()
+                                    ng-confirm-click="Do you want to permanently archive this blueprint?"
+                                    ng-click="archiveBlueprint(blueprint)" class="btn btn-default">Archive
+                            </button>
+                            <button ng-click="deleteBlueprint(blueprint)" class="btn btn-danger">Delete</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </uib-accordion>
     </div>
+
     </br>
+
     <div>
-     <uib-accordion close-others="false">
-       <div uib-accordion-group class="panel-default" is-open="panel_open1">
-       <uib-accordion-heading>
-       Deactive Blueprints: <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open1, 'glyphicon-chevron-right':!panel_open1}"></i>
-       </uib-accordion-heading>
+        <uib-accordion close-others="false">
+            <div uib-accordion-group class="panel-default" is-open="panel_open1">
+                <uib-accordion-heading>
+                    Deactive Blueprints: <i class="pull-right glyphicon"
+                                            ng-class="{'glyphicon-chevron-down':panel_open1, 'glyphicon-chevron-right':!panel_open1}"></i>
+                </uib-accordion-heading>
 
-       <table class="table table-striped sortorder">
-	    <thead>
-	    <tr>
-		<td ng-click="sortType='name'">Type</td>
-		<td ng-click="sortType='template_name'">Template</td>
-		<td ng-click="sortType='group_name'">Group</td>
-		<td>Max life-time</td>
-		<td></td>
-	    </tr>
-	    </thead>
-	    <tbody>
-	    <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
-		<td colspan="3">No blueprints</td>
-	    </tr>
-
-	    <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType" ng-if="blueprint.is_enabled==false || blueprint.is_enabled==undefined">
-		<td>{{blueprint.name}}</td>
-		<td>{{blueprint.template_name}}</td>
-		<td>{{blueprint.group_name}}</td>
-	        <td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
-		<td>
-		    <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)" class="btn btn-primary">Activate</button>
-		    <button ng-show="blueprint.is_enabled" ng-click="deactivate(blueprint)" class="btn btn-default">Deactivate</button>
-		    <button ng-click="openReconfigureBlueprintDialog(blueprint)" class="btn btn-default">Reconfigure</button>
-		    <button ng-show="blueprint.is_enabled" ng-click="openBlueprintLinkDialog(blueprint)" class="btn btn-success">Link</button>
-		    <button ng-confirm-click="Copy this blueprint?" ng-click="copyBlueprint(blueprint)" class="btn btn-default">Copy</button>
-		    <button ng-if=isAdmin() ng-confirm-click="Do you want to permanently archive this blueprint?" ng-click="archiveBlueprint(blueprint)" class="btn btn-default">Archive</button>
-		    <button ng-click="deleteBlueprint(blueprint)" class="btn btn-danger">Delete</button>
-		</td>
-	    </tr>
-	    </tbody>
-       </table>
-				               
-     </uib-accordion> 
+                <table class="table table-striped sortorder">
+                    <thead>
+                    <tr>
+                        <td ng-click="sortType='name'">Type</td>
+                        <td ng-click="sortType='template_name'">Template</td>
+                        <td ng-click="sortType='group_name'">Group</td>
+                        <td>Max life-time</td>
+                        <td>Expiry Date</td>
+                        <td></td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
+                        <td colspan="3">No blueprints</td>
+                    </tr>
+                    <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType"
+                        ng-if="blueprint.is_enabled==false || blueprint.is_enabled==undefined">
+                        <td>{{ blueprint.name }}</td>
+                        <td>{{ blueprint.template_name }}</td>
+                        <td>{{ blueprint.group_name }}</td>
+                        <td>
+                            <lifetime value="{{ blueprint.maximum_lifetime }}"
+                                      maximum-lifetime="{{ blueprint.maximum_lifetime }}"/>
+                        </td>
+                        <td>{{ blueprint.expiry_time | utcToLocale:"mediumDate"}} </td>
+                        <td>
+                            <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)"
+                                    class="btn btn-primary">Activate
+                            </button>
+                            <button ng-show="blueprint.is_enabled" ng-click="deactivate(blueprint)"
+                                    class="btn btn-default">Deactivate
+                            </button>
+                            <button ng-click="openReconfigureBlueprintDialog(blueprint)" class="btn btn-default">
+                                Reconfigure
+                            </button>
+                            <button ng-show="blueprint.is_enabled" ng-click="openBlueprintLinkDialog(blueprint)"
+                                    class="btn btn-success">Link
+                            </button>
+                            <button ng-confirm-click="Copy this blueprint?" ng-click="copyBlueprint(blueprint)"
+                                    class="btn btn-default">Copy
+                            </button>
+                            <button ng-if=isAdmin()
+                                    ng-confirm-click="Do you want to permanently archive this blueprint?"
+                                    ng-click="archiveBlueprint(blueprint)" class="btn btn-default">Archive
+                            </button>
+                            <button ng-click="deleteBlueprint(blueprint)" class="btn btn-danger">Delete</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </uib-accordion>
 
     </div>
-
 
     <h3>Export / Import Blueprints</h3>
     <button class="btn btn-default" ng-click="exportBlueprints()">Export</button>
     <button class="btn btn-default" ng-click="openImportBlueprintsDialog()">Import</button>
+
 </div>
