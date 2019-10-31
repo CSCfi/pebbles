@@ -52,6 +52,7 @@
 		<td ng-click="sortType='template_name'">Template</td>
 		<td ng-click="sortType='group_name'">Group</td>
 		<td>Max life-time</td>
+                <td>Expiry Date</td>
 		<td></td>
 	    </tr>
 	    </thead>
@@ -59,12 +60,12 @@
 	    <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
 		<td colspan="3">No blueprints</td>
 	    </tr>
-
 	    <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType" ng-if="blueprint.is_enabled==true">
 		<td>{{blueprint.name}}</td>
 		<td>{{blueprint.template_name}}</td>
 		<td>{{blueprint.group_name}}</td>
 		<td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
+                <td>{{blueprint.expiry_time | utcToLocale:"mediumDate"}} </td>
 		<td>
 		    <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)" class="btn btn-primary">Activate</button>
 		    <button ng-show="blueprint.is_enabled" ng-click="deactivate(blueprint)" class="btn btn-default">Deactivate</button>
@@ -99,6 +100,7 @@
 		<td ng-click="sortType='template_name'">Template</td>
 		<td ng-click="sortType='group_name'">Group</td>
 		<td>Max life-time</td>
+                <td>Expiry Date</td>
 		<td></td>
 	    </tr>
 	    </thead>
@@ -112,6 +114,7 @@
 		<td>{{blueprint.template_name}}</td>
 		<td>{{blueprint.group_name}}</td>
 	        <td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
+                <td>{{blueprint.expiry_time | utcToLocale:"mediumDate"}} </td>
 		<td>
 		    <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)" class="btn btn-primary">Activate</button>
 		    <button ng-show="blueprint.is_enabled" ng-click="deactivate(blueprint)" class="btn btn-default">Deactivate</button>
