@@ -73,7 +73,7 @@
 
             <tr ng-repeat="notification in notifications">
                 <td>{{ notification.subject }}</td>
-                <td>{{ notification.broadcasted | utcToLocale:"medium"}}</td>
+                <td>{{ notification.broadcasted | utcToLocale:"mediumDate"}}</td>
                 <td>{{ notification.message }}</td>
 		        <td> <button ng-confirm-click="Do you want to email this notification to all the active users?" ng-click="emailNotification(notification)" class="btn btn-default">Email Active Users</button>
                      <button ng-confirm-click="Do you want to email this notification to all the group owners?" ng-click="emailNotificationToGroupOwner(notification)" class="btn btn-default">Email Group Owners</button>
