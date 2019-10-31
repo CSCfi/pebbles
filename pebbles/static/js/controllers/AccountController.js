@@ -4,14 +4,12 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
     var quota = Restangular.one('quota', AuthService.getUserId());
     var group_join = Restangular.all('groups').one('group_join');
 
-    var isUserRoleForced = false;
     var key = null;
     var key_url = null;
     var change_password_result = "";
     var upload_ok = null;
 
     $scope.getUserName = AuthService.getUserName;
-    $scope.userRoleStatus = "Enable User View"
 
     $scope.isAdmin = function() {
         return AuthService.isAdmin();
@@ -19,19 +17,6 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
 
     $scope.isGroupManagerOrAdmin = function() {
         return AuthService.isGroupManagerOrAdmin();
-    };
-
-    $scope.toggleUserRoleForced = function() {
-        isUserRoleForced = AuthService.getUserRoleForcedStatus();
-        if (isUserRoleForced === null || isUserRoleForced === 'false'){
-           isUserRoleForced = 'true';
-           $scope.userRoleStatus = "Disable User View";
-        }
-        else{
-           isUserRoleForced = 'false';
-           $scope.userRoleStatus = "Enable User View";
-        }
-        AuthService.setUserRoleForcedStatus(isUserRoleForced);
     };
 
     quota.get().then(function (response) {
