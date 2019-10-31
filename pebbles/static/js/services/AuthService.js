@@ -56,10 +56,6 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
 
         isAdmin : function() {
             var adminStatus = this.getAdminStatus();
-            var isUserRoleForced = this.getUserRoleForcedStatus();
-            if (isUserRoleForced === "true"){
-                return false;
-            }
             if (adminStatus === "true") {
                 return true;
             }
@@ -69,10 +65,6 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
         isGroupOwnerOrAdmin : function() {
             var groupOwnerStatus = this.getGroupOwnerStatus();
             var adminStatus = this.getAdminStatus();
-            var isUserRoleForced = this.getUserRoleForcedStatus();
-            if (isUserRoleForced === "true"){
-                return false;
-            }
             if (groupOwnerStatus === "true" || adminStatus === "true") {
                 return true;
             }
@@ -83,10 +75,6 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
             var groupManagerStatus = this.getGroupManagerStatus();
             var groupOwnerStatus = this.getGroupOwnerStatus();
             var adminStatus = this.getAdminStatus();
-            var isUserRoleForced = this.getUserRoleForcedStatus();
-            if (isUserRoleForced === "true"){
-                return false;
-            }
             if (groupManagerStatus === "true" || groupOwnerStatus === "true" || adminStatus === "true") {
                 return true;
             }
@@ -151,13 +139,6 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
         },
 
 
-        setUserRoleForcedStatus : function(isUserRoleForced) {
-            localStorageService.set('isUserRoleForced', isUserRoleForced);
-        },
-
-        getUserRoleForcedStatus : function() {
-            return localStorageService.get('isUserRoleForced');
-        }
     };
 }]);
 
