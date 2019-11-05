@@ -82,12 +82,6 @@ class PBClient(object):
         else:
             raise RuntimeError('Error deleting blueprint: %s, %s' % (blueprint_id, resp.reason))
 
-    def get_instance_description(self, instance_id):
-        resp = self.do_get('instances/%s' % instance_id)
-        if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for provisioned blueprints, %s' % resp.reason)
-        return resp.json()
-
     def get_blueprint_description(self, blueprint_id):
         resp = self.do_get('blueprints/%s' % blueprint_id)
         if resp.status_code != 200:
@@ -97,10 +91,10 @@ class PBClient(object):
     def get_user_key_data(self, user_id):
         return self.do_get('users/%s/keypairs' % user_id)
 
-    def get_users(self):
-        resp = self.do_get('users')
+    def get_user(self, user_id):
+        resp = self.do_get('users/%s' % user_id)
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for users, %s' % resp.reason)
+            raise RuntimeError('Cannot fetch data for user %s, %s' % (user_id, resp.reason))
         return resp.json()
 
     def get_blueprints(self):

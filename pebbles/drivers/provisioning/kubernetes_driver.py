@@ -28,15 +28,9 @@ def parse_template(name, values):
         return template.format(**values)
 
 
-def get_user_pseudonym(user_id):
-    # TODO: change this to make sure it is 100% unique. A pre-assigned persistent pseudonym
-    # TODO: is probably needed
-    return user_id[:10]
-
-
 def get_volume_name(instance, persistence_level=VolumePersistenceLevel.INSTANCE_LIFETIME):
     if persistence_level == VolumePersistenceLevel.INSTANCE_LIFETIME:
-        return 'pvc-%s-%s' % (get_user_pseudonym(instance['user_id']), instance['name'])
+        return 'pvc-%s-%s' % (instance['user']['pseudonym'], instance['name'])
     else:
         raise RuntimeError('volume persistence level %s is not supported' % persistence_level)
 
@@ -81,18 +75,18 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         pass
 
     def do_provision(self, token, instance_id):
-        instance, blueprint = self.fetch_instance_and_blueprint(token, instance_id)
+        instance = self.fetch_and_populate_instance(token, instance_id)
         namespace = self.get_instance_namespace(instance)
         self.ensure_namespace(namespace)
         self.ensure_volume(namespace, instance)
-        self.create_deployment(namespace, instance, blueprint)
-        self.create_service(namespace, instance, blueprint)
+        self.create_deployment(namespace, instance)
+        self.create_service(namespace, instance)
         self.create_ingress(namespace, instance)
         # tell base_driver that we need to check on the readiness later by explicitly returning STATE_STARTING
         return Instance.STATE_STARTING
 
     def do_check_readiness(self, token, instance_id):
-        instance, blueprint = self.fetch_instance_and_blueprint(token, instance_id)
+        instance = self.fetch_and_populate_instance(token, instance_id)
         namespace = self.get_instance_namespace(instance)
         api = self.dynamic_client.resources.get(api_version='v1', kind='Pod')
         pods = api.get(
@@ -118,7 +112,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         return None
 
     def do_deprovision(self, token, instance_id):
-        instance, blueprint = self.fetch_instance_and_blueprint(token, instance_id)
+        instance = self.fetch_and_populate_instance(token, instance_id)
         namespace = self.get_instance_namespace(instance)
         # remove deployment
         try:
@@ -172,15 +166,9 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                 return True
         return False
 
-    def fetch_instance_and_blueprint(self, token, instance_id):
-        pbclient = self.get_pb_client(token)
-        instance = pbclient.get_instance(instance_id)
-        blueprint = pbclient.get_instance_blueprint(instance_id)
-        return instance, blueprint
+    def create_deployment(self, namespace, instance):
 
-    def create_deployment(self, namespace, instance, blueprint):
-
-        blueprint_config = blueprint['full_config']
+        blueprint_config = instance['blueprint']['full_config']
 
         # create a dict out of space separated list of VAR=VAL entries
         env_var_array = blueprint_config.get('environment_vars', '').split()
@@ -208,10 +196,10 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         api_deployment = self.dynamic_client.resources.get(api_version='apps/v1', kind='Deployment')
         return api_deployment.delete(namespace=namespace, name=instance.get('name'))
 
-    def create_service(self, namespace, instance, blueprint):
+    def create_service(self, namespace, instance):
         service_yaml = parse_template('service.yaml', dict(
             name=instance['name'],
-            target_port=blueprint['full_config']['port']
+            target_port=instance['blueprint']['full_config']['port']
         ))
         self.logger.debug('creating service\n%s' % service_yaml)
 
@@ -274,6 +262,14 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             namespace=namespace,
             name=volume_name
         )
+
+    def fetch_and_populate_instance(self, token, instance_id):
+        pbclient = self.get_pb_client(token)
+        instance = pbclient.get_instance(instance_id)
+        instance['blueprint'] = pbclient.get_instance_blueprint(instance_id)
+        instance['user'] = pbclient.get_user(instance['user_id'])
+
+        return instance
 
 
 class KubernetesLocalDriver(KubernetesDriverBase):
@@ -357,9 +353,9 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
             namespace = self.backend_config['namespace']
             self.logger.debug('using fixed namespace %s for instance %s' % (namespace, instance.get('name')))
         else:
-            # generate namespace name based on prefix and first 8 characters of user id
+            # generate namespace name based on prefix and user pseudonym
             namespace_prefix = self.backend_config.get('namespacePrefix', 'pb-')
-            namespace = '%s%s' % (namespace_prefix, get_user_pseudonym(instance['user_id']))
+            namespace = '%s%s' % (namespace_prefix, instance['user']['pseudonym'])
             self.logger.debug('assigned namespace %s to instance %s' % (namespace, instance.get('name')))
         return namespace
 

@@ -14,6 +14,7 @@ user_fields = {
     'id': fields.String,
     'eppn': fields.String,
     'email_id': fields.String,
+    'pseudonym': fields.String,
     'credits_quota': fields.Float,
     'group_quota': fields.Float,
     'blueprint_quota': fields.Float,

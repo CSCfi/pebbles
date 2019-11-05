@@ -1,6 +1,7 @@
 import datetime
 import json
 import random
+import secrets
 import string
 import uuid
 
@@ -16,6 +17,7 @@ from sqlalchemy.schema import MetaData
 
 from pebbles.utils import validate_ssh_pubkey, get_full_blueprint_config, get_blueprint_fields_from_config
 
+MAX_USER_PSEUDONYM_LENGTH = 32
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
 MAX_NAME_LENGTH = 128
@@ -85,6 +87,7 @@ class User(db.Model):
     email_id and by deafult second account will become inaccessible.
     """
     _email_id = db.Column('email_id', db.String(MAX_EMAIL_LENGTH), unique=True)
+    pseudonym = db.Column(db.String(MAX_USER_PSEUDONYM_LENGTH), unique=True, nullable=False)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     joining_date = db.Column(db.DateTime)
     expiry_date = db.Column(db.DateTime)
@@ -101,7 +104,7 @@ class User(db.Model):
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     groups = db.relationship("GroupUserAssociation", back_populates="user", lazy="dynamic")
 
-    def __init__(self, eppn, password=None, is_admin=False, email_id=None, expiry_date=None):
+    def __init__(self, eppn, password=None, is_admin=False, email_id=None, expiry_date=None, pseudonym=None):
         self.id = uuid.uuid4().hex
         self.eppn = eppn
         self.is_admin = is_admin
@@ -114,6 +117,13 @@ class User(db.Model):
             self.is_active = True
         else:
             self.set_password(uuid.uuid4().hex)
+        if pseudonym:
+            self.pseudonym = pseudonym
+        else:
+            # Here we opportunistically create a pseudonym without actually checking the existing user table
+            # the probability of collision is low enough. There are 400 pseudonyms for all inhabitants on earth
+            # with 36**8 alternatives
+            self.pseudonym = ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(8))
 
     def __eq__(self, other):
         return self.id == other.id
