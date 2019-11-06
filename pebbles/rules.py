@@ -69,6 +69,9 @@ def apply_rules_export_statistics(stat_type, args=None):
         q = User.query
     elif stat_type == "quartals":
         q = User.query.add_columns(User.joining_date)
+    else:
+        raise RuntimeWarning('Unknown stat_type: %s' % stat_type)
+
     if args:
         start = args.get("start")
         end = args.get("end")
@@ -119,7 +122,10 @@ def apply_rules_instances(user, args=None):
     return q
 
 
-def apply_rules_users(args={}):
+def apply_rules_users(args=None):
+    if args is None:
+        args = {}
+
     q = User.query
 
     if 'filter_str' in args and args.filter_str:
