@@ -1,0 +1,49 @@
+---
+image: python:3.6
+
+variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+# cache pip downloads and installed packages
+cache:
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .cache/pip
+    - venv/
+
+# use virtualenv to enable caching
+before_script:
+  - python --version
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+
+stages:
+  - syntax
+  - dependencies
+  - analysis and tests
+
+flake8:
+  stage: syntax
+  script:
+    - pip3 install flake8
+    - flake8 --extend-ignore E722,W605 pebbles
+
+pip:
+  stage: dependencies
+  script:
+    - pip install -r requirements.txt
+
+unittests:
+  stage: analysis and tests
+  script:
+    - pip install -r requirements.txt
+    - python manage.py test
+
+pylint:
+  stage: analysis and tests
+  script:
+    - pip install -r requirements.txt
+    - pip install pylint
+    - "pylint -j0 pebbles || true" # no failures ATM
+

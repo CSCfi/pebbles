@@ -108,7 +108,3 @@ CONFIG = {
         'memory_limit': '512M',
     }
 }
-
-if __name__=='__main__':
-    import yaml
-    print(yaml.safe_dump(CONFIG))

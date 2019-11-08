@@ -1,0 +1,25 @@
+[MASTER]
+
+# SQLAlchemy is confusing to pylint
+ignored-classes=SQLAlchemy,scoped_session
+
+# we are not that interested in test cases. These tend to have a lot of short variable names for example
+ignore-patterns=test_.*,fixtures.py
+
+# disabling requirements for having a docstring in every module, class, method/function
+disable=C0114,C0115,C0116
+
+# relax the maximum line length
+max-line-length=120
+
+# Regular expression matching correct variable names
+variable-rgx=[a-z_][a-z0-9_]{0,30}$
+
+# Naming hint for variable names
+variable-name-hint=[a-z_][a-z0-9_]{0,30}$
+
+# Regular expression matching correct argument names
+argument-rgx=[a-z_][a-z0-9_]{0,30}$
+
+# Naming hint for argument names
+argument-name-hint=[a-z_][a-z0-9_]{0,30}$

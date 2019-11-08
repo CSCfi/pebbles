@@ -53,7 +53,7 @@ class LockView(restful.Resource):
         db.session.add(lock)
         try:
             db.session.commit()
-        except Exception as e:
+        except Exception:
             db.session.rollback()
             abort(409)
         return lock
