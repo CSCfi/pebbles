@@ -1,8 +1,9 @@
 import logging
 import uuid
 
-from flask import render_template
 import flask_restful as restful
+from flask import render_template
+
 try:
     from flask_sso import SSO
 except:
@@ -12,11 +13,14 @@ from pebbles.app import app
 from pebbles.models import db, User
 
 from pebbles.views.commons import create_user, is_group_manager, update_email
-from pebbles.views.blueprint_templates import blueprint_templates, BlueprintTemplateList, BlueprintTemplateView, BlueprintTemplateCopy
+from pebbles.views.blueprint_templates import blueprint_templates
+from pebbles.views.blueprint_templates import BlueprintTemplateList, BlueprintTemplateView, BlueprintTemplateCopy
 from pebbles.views.blueprints import blueprints, BlueprintList, BlueprintView, BlueprintCopy
 from pebbles.views.plugins import plugins, PluginList, PluginView
-from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserGroupOwner, KeypairList, CreateKeyPair, UploadKeyPair
-from pebbles.views.groups import groups, GroupList, GroupView, GroupJoin, GroupListExit, GroupExit, GroupUsersList, ClearUsersFromGroup
+from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserGroupOwner
+from pebbles.views.users import KeypairList, CreateKeyPair, UploadKeyPair
+from pebbles.views.groups import groups, GroupList, GroupView, GroupJoin, GroupListExit, GroupExit, GroupUsersList
+from pebbles.views.groups import ClearUsersFromGroup
 from pebbles.views.notifications import NotificationList, NotificationView
 from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pebbles.views.activations import activations, ActivationList, ActivationView

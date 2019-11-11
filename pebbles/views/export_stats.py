@@ -1,9 +1,9 @@
 from flask_restful import reqparse
 from flask_restful.inputs import boolean
-from flask import Blueprint as FlaskBlueprint
+from flask import Blueprint as FlaskBlueprint, current_app
 from operator import itemgetter
 
-from pebbles.server import restful, app
+import flask_restful as restful
 from pebbles.views.commons import auth
 from pebbles.utils import requires_admin
 from pebbles.rules import apply_rules_export_statistics, apply_rules_export_monthly_instances
@@ -25,8 +25,8 @@ class ExportStatistics(restful.Resource):
     def __init__(self):
         self.month_count = 12
         # institution types
-        if app.config['HAKA_INSTITUTION_LIST']:
-            self.institution_list = ast.literal_eval(app.config['HAKA_INSTITUTION_LIST'])
+        if current_app.config['HAKA_INSTITUTION_LIST']:
+            self.institution_list = ast.literal_eval(current_app.config['HAKA_INSTITUTION_LIST'])
         else:
             self.institution_list = {}
         # Quartal definition

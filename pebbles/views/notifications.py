@@ -1,18 +1,18 @@
-from flask_restful import fields, marshal_with, reqparse
-from flask import abort, g, Blueprint
-
+import datetime
 import logging
 
-from pebbles.models import db, Notification, User
+import flask_restful as restful
+from flask import abort, g, Blueprint
+from flask_restful import reqparse, fields, marshal_with
+
 from pebbles.forms import NotificationForm
-from pebbles.server import restful
-from pebbles.views.commons import auth
+from pebbles.models import db, Notification, User
 from pebbles.utils import requires_admin
-import datetime
+from pebbles.views.commons import auth
 
 notifications = Blueprint('notifications', __name__)
 
-notification_fields = {
+NOTIFICATION_FIELDS = {
     'id': fields.String,
     'broadcasted': fields.DateTime(dt_format='iso8601'),
     'subject': fields.String,
@@ -36,7 +36,7 @@ class NotificationList(restful.Resource):
     parser.add_argument('show_recent', type=bool, default=False, location='args')
 
     @auth.login_required
-    @marshal_with(notification_fields)
+    @marshal_with(NOTIFICATION_FIELDS)
     def get(self):
         args = self.parser.parse_args()
         if args.get('show_all'):
@@ -64,14 +64,16 @@ class NotificationList(restful.Resource):
         db.session.add(notification)
         db.session.commit()
 
+        return None
+
 
 class NotificationView(restful.Resource):
-    parser = reqparse.RequestParser()
+    parser = restful.reqparse.RequestParser()
     parser.add_argument('send_mail', type=bool, default=False)
     parser.add_argument('send_mail_group_owner', type=bool, default=False)
 
     @auth.login_required
-    @marshal_with(notification_fields)
+    @marshal_with(NOTIFICATION_FIELDS)
     def get(self, notification_id):
         notification = Notification.query.filter_by(id=notification_id).first()
         if not notification:
@@ -79,7 +81,7 @@ class NotificationView(restful.Resource):
         return notification
 
     @auth.login_required
-    @marshal_with(notification_fields)
+    @marshal_with(NOTIFICATION_FIELDS)
     def patch(self, notification_id):
         text = {"subject": " ", "message": " "}
         args = self.parser.parse_args()
@@ -88,15 +90,15 @@ class NotificationView(restful.Resource):
         if not notification:
             abort(404)
         if current_user.is_admin is True and args.get('send_mail'):
-            Users = User.query.filter_by(is_active='t')
-            for user in Users:
+            users = User.query.filter_by(is_active='t')
+            for user in users:
                 if user.eppn != 'worker@pebbles':
                     text['subject'] = notification.subject
                     text['message'] = notification.message
                     logging.warning('email sending not implemented')
         if current_user.is_admin is True and args.get('send_mail_group_owner'):
-            Users = User.query.filter_by(is_group_owner='t')
-            for user in Users:
+            users = User.query.filter_by(is_group_owner='t')
+            for user in users:
                 if user.eppn != 'worker@pebbles':
                     text['subject'] = notification.subject
                     text['message'] = notification.message
@@ -122,6 +124,8 @@ class NotificationView(restful.Resource):
         notification.broadcasted = datetime.datetime.utcnow()
 
         db.session.commit()
+
+        return None
 
     @auth.login_required
     @requires_admin

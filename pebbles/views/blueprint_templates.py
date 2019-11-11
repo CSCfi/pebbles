@@ -1,18 +1,18 @@
-from flask_restful import marshal_with, reqparse
-from flask import abort, g
-from flask import Blueprint as FlaskBlueprint
-from flask_restful import fields
-from sqlalchemy.orm.session import make_transient
-
 import logging
 import uuid
 
-from pebbles.models import db, BlueprintTemplate, Plugin
+import flask_restful as restful
+from flask import Blueprint as FlaskBlueprint
+from flask import abort, g
+from flask_restful import fields
+from flask_restful import marshal_with, reqparse
+from sqlalchemy.orm.session import make_transient
+
 from pebbles.forms import BlueprintTemplateForm
-from pebbles.server import restful
-from pebbles.views.commons import auth, requires_group_manager_or_admin
-from pebbles.utils import requires_admin, parse_maximum_lifetime
+from pebbles.models import db, BlueprintTemplate, Plugin
 from pebbles.rules import apply_rules_blueprint_templates
+from pebbles.utils import requires_admin, parse_maximum_lifetime
+from pebbles.views.commons import auth, requires_group_manager_or_admin
 
 blueprint_templates = FlaskBlueprint('blueprint_templates', __name__)
 
@@ -161,7 +161,13 @@ def blueprint_schemaform_config(blueprint_template):
     """Generates config,schema and model objects used in schemaform ui component for blueprints"""
     plugin = Plugin.query.filter_by(id=blueprint_template.plugin).first()
     schema = plugin.schema
-    blueprint_schema = {'type': 'object', 'title': 'Comment', 'description': 'Description', 'required': ['name', 'description'], 'properties': {}}
+    blueprint_schema = dict(
+        type='object',
+        title='Comment',
+        description='Description',
+        required=['name', 'description'],
+        properties={}
+    )
     config = blueprint_template.config
     blueprint_model = {}
 
@@ -175,18 +181,9 @@ def blueprint_schemaform_config(blueprint_template):
         else:
             blueprint_model[attr] = config[attr]
 
-    blueprint_form = [
-        {
-            "key": "name",
-            "type": "textfield",
-            "placeholder": "Blueprint name"
-        },
-        {
-            "key": "description",
-            "type": "textarea",
-            "placeholder": "Blueprint details"
-        }
-    ] + blueprint_form
+    # add common fields to form
+    blueprint_form.insert(0, dict(key="name", type="textfield", placeholder="Blueprint name"))
+    blueprint_form.insert(1, dict(key="description", type="textarea", placeholder="Blueprint details"))
 
     blueprint_template.blueprint_schema = blueprint_schema
     blueprint_template.blueprint_form = blueprint_form

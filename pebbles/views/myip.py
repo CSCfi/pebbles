@@ -1,5 +1,5 @@
 from flask import Blueprint as FlaskBlueprint, request
-from pebbles.server import restful
+import flask_restful as restful
 from pebbles.views.commons import auth
 
 

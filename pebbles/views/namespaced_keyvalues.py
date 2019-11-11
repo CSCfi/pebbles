@@ -6,7 +6,7 @@ import time
 
 from pebbles.models import db, NamespacedKeyValue
 from pebbles.forms import NamespacedKeyValueForm
-from pebbles.server import restful
+import flask_restful as restful
 from pebbles.views.commons import auth
 from pebbles.utils import requires_admin
 
@@ -107,7 +107,8 @@ class NamespacedKeyValueView(restful.Resource):
         updated_version_ts = float(form.updated_version_ts.data)
 
         namespaced_keyvalue_query = NamespacedKeyValue.query.filter_by(namespace=namespace, key=key)
-        namespaced_keyvalue = namespaced_keyvalue_query.with_for_update(nowait=True).first()  # FOR UPDATE , for really close race conditions
+        # lock row with FOR UPDATE, for really close race conditions
+        namespaced_keyvalue = namespaced_keyvalue_query.with_for_update(nowait=True).first()
         if not namespaced_keyvalue:
             logging.warning("no NamespacedKeyValue object found for namespace %s with key %s" % (namespace, key))
             abort(404)

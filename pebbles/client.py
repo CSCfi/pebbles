@@ -5,7 +5,7 @@ import requests
 import pebbles.utils
 
 
-class PBClient(object):
+class PBClient:
     def __init__(self, token, api_base_url, ssl_verify=True):
         self.token = token
         self.api_base_url = api_base_url
@@ -79,8 +79,8 @@ class PBClient(object):
         resp = self.do_delete('blueprints/%s' % blueprint_id)
         if resp.status_code == 200:
             return blueprint_id
-        else:
-            raise RuntimeError('Error deleting blueprint: %s, %s' % (blueprint_id, resp.reason))
+
+        raise RuntimeError('Error deleting blueprint: %s, %s' % (blueprint_id, resp.reason))
 
     def get_blueprint_description(self, blueprint_id):
         resp = self.do_get('blueprints/%s' % blueprint_id)
@@ -149,19 +149,19 @@ class PBClient(object):
 
         if resp.status_code == 200:
             return resp.json()
-        elif resp.status_code == 404:
+        if resp.status_code == 404:
             return None
-        else:
-            raise RuntimeError('Error querying lock: %s, %s' % (lock_id, resp.reason))
+
+        raise RuntimeError('Error querying lock: %s, %s' % (lock_id, resp.reason))
 
     def obtain_lock(self, lock_id, owner):
         resp = self.do_put('locks/%s' % lock_id, payload=dict(owner=owner))
         if resp.status_code == 200:
             return lock_id
-        elif resp.status_code == 409:
+        if resp.status_code == 409:
             return None
-        else:
-            raise RuntimeError('Error obtaining lock: %s, %s' % (lock_id, resp.reason))
+
+        raise RuntimeError('Error obtaining lock: %s, %s' % (lock_id, resp.reason))
 
     def release_lock(self, lock_id, owner=None):
         if owner:
@@ -170,15 +170,15 @@ class PBClient(object):
             resp = self.do_delete('locks/%s' % lock_id)
         if resp.status_code == 200:
             return lock_id
-        else:
-            raise RuntimeError('Error deleting lock: %s, %s' % (lock_id, resp.reason))
+
+        raise RuntimeError('Error deleting lock: %s, %s' % (lock_id, resp.reason))
 
     def get_namespaced_keyvalues(self, payload=None):
         resp = self.do_get('namespaced_keyvalues', payload)
         if resp.status_code == 200:
             return resp.json()
-        else:
-            raise RuntimeError('Error getting namespaced records: %s' % resp.reason)
+
+        raise RuntimeError('Error getting namespaced records: %s' % resp.reason)
 
     def get_namespaced_keyvalue(self, namespace, key):
         resp = self.do_get('namespaced_keyvalues/%s/%s' % (namespace, key))
@@ -201,9 +201,8 @@ class PBClient(object):
 
         if resp.status_code == 200:
             return resp.json()
-        else:
-            raise RuntimeError(
-                'Error creating / modifying namespaced record: %s %s, %s' % (namespace, key, resp.reason))
+
+        raise RuntimeError('Error creating / modifying namespaced record: %s %s, %s' % (namespace, key, resp.reason))
 
     def delete_namespaced_keyvalue(self, namespace, key):
         headers = {'Accept': 'text/plain',
@@ -212,5 +211,5 @@ class PBClient(object):
         resp = requests.delete(url, headers=headers, verify=self.ssl_verify)
         if resp.status_code == 200:
             return resp.json()
-        else:
-            raise RuntimeError('Error deleting record: %s %s, %s' % (namespace, key, resp.reason))
+
+        raise RuntimeError('Error deleting record: %s %s, %s' % (namespace, key, resp.reason))

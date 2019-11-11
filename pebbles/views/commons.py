@@ -2,13 +2,12 @@ import logging
 import re
 from functools import wraps
 
-from flask import g, render_template, abort
+from flask import g, render_template, abort, current_app
 from flask_httpauth import HTTPBasicAuth
 from flask_restful import fields
 
 from pebbles.drivers.provisioning import dummy_driver_config, kubernetes_driver_config
 from pebbles.models import db, ActivationToken, User, Group, GroupUserAssociation, Plugin
-from pebbles.server import app
 
 user_fields = {
     'id': fields.String,
@@ -44,7 +43,7 @@ auth.authenticate_header = lambda: "Authentication Required"
 
 @auth.verify_password
 def verify_password(userid_or_token, password):
-    g.user = User.verify_auth_token(userid_or_token, app.config['SECRET_KEY'])
+    g.user = User.verify_auth_token(userid_or_token, current_app.config['SECRET_KEY'])
     if not g.user:
         g.user = User.query.filter_by(eppn=userid_or_token).first()
         if not g.user:
@@ -55,7 +54,7 @@ def verify_password(userid_or_token, password):
 
 
 def create_worker():
-    return create_user('worker@pebbles', app.config['SECRET_KEY'], is_admin=True, email_id=None)
+    return create_user('worker@pebbles', current_app.config['SECRET_KEY'], is_admin=True, email_id=None)
 
 
 def create_user(eppn, password, is_admin=False, email_id=None):
@@ -96,7 +95,7 @@ def register_plugins():
     ]
 
     for pd in plugin_data:
-        app.logger.debug('processing plugin %s' % pd['name'])
+        current_app.logger.debug('processing plugin %s' % pd['name'])
         plugin = Plugin.query.filter_by(id=pd['id']).first()
         if not plugin:
             plugin = Plugin()
@@ -138,14 +137,14 @@ def invite_user(eppn=None, password=None, is_admin=False, expiry_date=None):
     db.session.add(token)
     db.session.commit()
 
-    if not app.dynamic_config['SKIP_TASK_QUEUE'] and not app.dynamic_config['MAIL_SUPPRESS_SEND']:
+    if not current_app.dynamic_config['SKIP_TASK_QUEUE'] and not current_app.dynamic_config['MAIL_SUPPRESS_SEND']:
         logging.warning('email sending not implemented')
     else:
         logging.warning(
             "email sending suppressed in config: SKIP_TASK_QUEUE:%s MAIL_SUPPRESS_SEND:%s" %
-            (app.dynamic_config['SKIP_TASK_QUEUE'], app.dynamic_config['MAIL_SUPPRESS_SEND'])
+            (current_app.dynamic_config['SKIP_TASK_QUEUE'], current_app.dynamic_config['MAIL_SUPPRESS_SEND'])
         )
-        activation_url = '%s/#/activate/%s' % (app.config['BASE_URL'], token.token)
+        activation_url = '%s/#/activate/%s' % (current_app.config['BASE_URL'], token.token)
         content = render_template('invitation.txt', activation_link=activation_url)
         logging.warning(content)
 

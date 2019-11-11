@@ -36,7 +36,13 @@ class UserForm(ModelForm):
 
 
 class GroupForm(ModelForm):
-    name = StringField('name', validators=[DataRequired(), Regexp('^(?!System).+', re.IGNORECASE, message='name cannot start with System')])
+    name = StringField(
+        'name',
+        validators=[
+            DataRequired(),
+            Regexp('^(?!System).+', re.IGNORECASE, message='name cannot start with System')
+        ]
+    )
     description = StringField('description')
     user_config = StringField('user_config')
 

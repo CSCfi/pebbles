@@ -4,7 +4,7 @@ from flask_restful import marshal_with, fields, reqparse
 
 from pebbles.forms import LockForm
 from pebbles.models import db, Lock
-from pebbles.server import restful
+import flask_restful as restful
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth
 

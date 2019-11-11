@@ -1,17 +1,17 @@
-from flask_restful import marshal, marshal_with, fields, reqparse
-from flask import abort, g
-from flask import Blueprint as FlaskBlueprint
-
 import datetime
-import logging
 import json
+import logging
 
-from pebbles.models import db, Blueprint, Instance, InstanceLog, User
+import flask_restful as restful
+from flask import Blueprint as FlaskBlueprint
+from flask import abort, g, current_app
+from flask_restful import marshal, marshal_with, fields, reqparse
+
 from pebbles.forms import InstanceForm, UserIPForm
-from pebbles.server import app, restful
+from pebbles.models import db, Blueprint, Instance, InstanceLog, User
+from pebbles.rules import apply_rules_instances, get_group_blueprint_ids_for_instances
 from pebbles.utils import requires_admin, requires_group_owner_or_admin, memoize
 from pebbles.views.commons import auth, is_group_manager
-from pebbles.rules import apply_rules_instances, get_group_blueprint_ids_for_instances
 
 instances = FlaskBlueprint('instances', __name__)
 
@@ -152,7 +152,7 @@ class InstanceList(restful.Resource):
         existing_names = set(x.name for x in Instance.query.all())
         # Note: the potential race is solved by unique constraint in database
         while True:
-            c_name = Instance.generate_name(prefix=app.dynamic_config.get('INSTANCE_NAME_PREFIX'))
+            c_name = Instance.generate_name(prefix=current_app.dynamic_config.get('INSTANCE_NAME_PREFIX'))
             if c_name not in existing_names:
                 instance.name = c_name
                 break
@@ -314,9 +314,9 @@ class InstanceLogs(restful.Resource):
         instance = Instance.query.filter_by(id=instance_id).first()
         if not instance:
             abort(404)
-        if args.get('log_type'):
-            log_type = args['log_type']
-        instance_logs = get_logs_from_db(instance_id, log_type)
+
+        instance_logs = get_logs_from_db(instance_id, args.get('log_type'))
+
         return instance_logs
 
     @auth.login_required
@@ -338,11 +338,7 @@ class InstanceLogs(restful.Resource):
     @requires_admin
     def delete(self, instance_id):
         args = self.parser.parse_args()
-        log_type = args.get('log_type')
-        if log_type:
-            instance_logs = get_logs_from_db(instance_id, args.get('log_type'))
-        else:
-            instance_logs = get_logs_from_db(instance_id)
+        instance_logs = get_logs_from_db(instance_id, args.get('log_type'))
         if not instance_logs:
             logging.warning("There are no log entries to be deleted")
 
@@ -365,11 +361,13 @@ def process_logs(instance_id, log_record):
 
     check_running_log = get_logs_from_db(instance_id, "running")
 
-    if check_running_log:  # in case of running logs, the whole message is replaced again (thus only 1 running log record with all info)
+    # in case of running logs, the whole message is replaced again (thus only 1 running log record with all info)
+    if check_running_log:
         instance_log = check_running_log[0]
         if log_record['log_type'] == "running":
             instance_log.timestamp = float(log_record['timestamp'])
-            instance_log.message = log_record['message']  # replace the whole text (older text now appended with the new text)
+            # replace the whole text (older text now appended with the new text)
+            instance_log.message = log_record['message']
             return instance_log
 
     instance_log = InstanceLog(instance_id)

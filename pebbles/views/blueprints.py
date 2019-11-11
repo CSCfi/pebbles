@@ -11,7 +11,7 @@ from sqlalchemy.orm.session import make_transient
 from pebbles.forms import BlueprintForm
 from pebbles.models import db, Blueprint, BlueprintTemplate, Group, Instance
 from pebbles.rules import apply_rules_blueprints
-from pebbles.server import restful
+import flask_restful as restful
 from pebbles.utils import parse_maximum_lifetime, requires_group_owner_or_admin, requires_admin
 from pebbles.views.commons import auth, requires_group_manager_or_admin, is_group_manager
 

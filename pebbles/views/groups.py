@@ -2,13 +2,13 @@ import datetime
 import logging
 import re
 
+import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
 from flask_restful import marshal_with, reqparse
 
 from pebbles.forms import GroupForm
 from pebbles.models import db, Group, User, GroupUserAssociation, Instance
-from pebbles.server import restful
 from pebbles.utils import requires_admin, requires_group_owner_or_admin
 from pebbles.views.commons import auth, group_fields, user_fields, requires_group_manager_or_admin, is_group_manager
 

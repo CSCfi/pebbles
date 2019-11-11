@@ -6,8 +6,10 @@ ignored-classes=SQLAlchemy,scoped_session
 # we are not that interested in test cases. These tend to have a lot of short variable names for example
 ignore-patterns=test_.*,fixtures.py
 
-# disabling requirements for having a docstring in every module, class, method/function
-disable=C0114,C0115,C0116
+# disabling requirements for
+# - having a docstring in every module, class, method/function
+# -  R0201: Method could be a function (no-self-use)
+disable=C0114,C0115,C0116,R0201
 
 # relax the maximum line length
 max-line-length=120

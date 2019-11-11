@@ -1,5 +1,5 @@
 from flask_restful import marshal_with, fields, reqparse
-from flask import abort, g
+from flask import abort, g, current_app
 from flask import Blueprint as FlaskBlueprint
 from sqlalchemy import desc
 from dateutil.relativedelta import relativedelta
@@ -11,7 +11,7 @@ import werkzeug
 
 from pebbles.models import db, Keypair, User, ActivationToken
 from pebbles.forms import ChangePasswordForm, UserForm
-from pebbles.server import restful, app
+import flask_restful as restful
 from pebbles.utils import generate_ssh_keypair, requires_admin
 from pebbles.views.commons import user_fields, auth, invite_user
 from pebbles.rules import apply_rules_users
@@ -128,7 +128,7 @@ class UserActivationUrl(restful.Resource):
     @requires_admin
     def get(self, user_id):
         token = ActivationToken.query.filter_by(user_id=user_id).first()
-        activation_url = '%s/#/activate/%s' % (app.config['BASE_URL'], token.token)
+        activation_url = '%s/#/activate/%s' % (current_app.config['BASE_URL'], token.token)
         return {'activation_url': activation_url}
 
 

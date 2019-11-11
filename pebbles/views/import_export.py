@@ -4,7 +4,7 @@ from flask import Blueprint as FlaskBlueprint
 import logging
 
 from pebbles.models import db, Blueprint, BlueprintTemplate, Plugin, Group
-from pebbles.server import restful
+import flask_restful as restful
 from pebbles.views.commons import auth, requires_group_manager_or_admin
 from pebbles.views.blueprint_templates import blueprint_schemaform_config
 from pebbles.utils import requires_admin

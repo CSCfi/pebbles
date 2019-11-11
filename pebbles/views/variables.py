@@ -3,7 +3,7 @@ from flask import Blueprint
 
 import logging
 
-from pebbles.server import restful
+import flask_restful as restful
 from pebbles.config import BaseConfig
 
 # Point to be noted, there will be driver specific configs later on

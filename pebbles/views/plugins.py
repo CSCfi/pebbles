@@ -6,7 +6,7 @@ from flask_restful import fields, marshal_with
 
 from pebbles.forms import PluginForm
 from pebbles.models import db, Plugin
-from pebbles.server import restful
+import flask_restful as restful
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth
 

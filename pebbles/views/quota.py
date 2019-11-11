@@ -2,7 +2,7 @@ from flask import abort, g
 from flask import Blueprint as FlaskBlueprint
 from flask_restful import marshal_with, fields, reqparse
 
-from pebbles.server import restful
+import flask_restful as restful
 from pebbles.views.commons import auth
 from pebbles.utils import requires_admin
 from pebbles.models import db, User

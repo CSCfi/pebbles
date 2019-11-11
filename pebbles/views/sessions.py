@@ -1,12 +1,12 @@
 from flask_restful import fields, marshal
-from flask import Blueprint as FlaskBlueprint
+from flask import Blueprint as FlaskBlueprint, current_app
 
 import logging
 import json
 
 from pebbles.models import User
 from pebbles.forms import SessionCreateForm
-from pebbles.server import app, restful
+import flask_restful as restful
 from pebbles.views.commons import is_group_manager, update_email  # changed
 
 sessions = FlaskBlueprint('sessions', __name__)
@@ -48,7 +48,7 @@ class SessionView(restful.Resource):
                 icons = json.dumps(user_icons)
 
             return marshal({
-                'token': user.generate_auth_token(app.config['SECRET_KEY']),
+                'token': user.generate_auth_token(current_app.config['SECRET_KEY']),
                 'is_admin': user.is_admin,
                 'is_group_owner': user.is_group_owner,
                 'is_group_manager': is_group_manager(user),

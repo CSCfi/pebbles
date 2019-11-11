@@ -42,7 +42,13 @@ def apply_rules_blueprints(user, args=None):
         q = q.filter(query_exp).filter_by(current_status='active')
     else:
         if args is not None and 'show_all' in args and args.get('show_all'):
-            q = q.filter(or_(Blueprint.current_status == 'active', Blueprint.current_status == 'archived', Blueprint.current_status == 'deleted'))
+            q = q.filter(
+                or_(
+                    Blueprint.current_status == 'active',
+                    Blueprint.current_status == 'archived',
+                    Blueprint.current_status == 'deleted'
+                )
+            )
         else:
             q = q.filter_by(current_status='active')
 
@@ -177,6 +183,8 @@ def get_group_blueprint_ids_for_instances(user, manager=None):
     groups = [group_user_obj.group for group_user_obj in group_user_objs]
     # loading only id column rest will be deferred
     group_blueprints = [group_item.blueprints.options(load_only("id")).all() for group_item in groups]
-    group_blueprints_flat = list(itertools.chain.from_iterable(group_blueprints))  # merge the list of lists into one list
-    group_blueprints_id = [blueprint_item.id for blueprint_item in group_blueprints_flat]  # Get the ids in a list
+    # merge the list of lists into one list
+    group_blueprints_flat = list(itertools.chain.from_iterable(group_blueprints))
+    # Get the ids in a list
+    group_blueprints_id = [blueprint_item.id for blueprint_item in group_blueprints_flat]
     return group_blueprints_id
