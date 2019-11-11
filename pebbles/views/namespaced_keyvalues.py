@@ -47,8 +47,8 @@ class NamespacedKeyValueList(restful.Resource):
         form = NamespacedKeyValueForm()
 
         if not form.validate_on_submit():
-            logging.warn(form.errors)
-            logging.warn("validation error on creating namespaced key value data")
+            logging.warning(form.errors)
+            logging.warning("validation error on creating namespaced key value data")
             return form.errors, 422
 
         namespace = form.namespace.data
@@ -57,7 +57,7 @@ class NamespacedKeyValueList(restful.Resource):
         value = form.value.data
         ns_check = NamespacedKeyValue.query.filter_by(namespace=namespace, key=key).first()
         if ns_check:
-            logging.warn("a combination of namespace %s with key %s already exists" % (namespace, key))
+            logging.warning("a combination of namespace %s with key %s already exists" % (namespace, key))
             abort(422)
         # Create the object with static (mostly) parameters
         namespaced_keyvalue = NamespacedKeyValue(namespace, key, schema)
@@ -81,7 +81,7 @@ class NamespacedKeyValueView(restful.Resource):
     def get(self, namespace, key):
         namespaced_keyvalue = NamespacedKeyValue.query.filter_by(namespace=namespace, key=key).first()
         if not namespaced_keyvalue:
-            logging.warn("no NamespacedKeyValue object found for namespace %s with key %s" % (namespace, key))
+            logging.warning("no NamespacedKeyValue object found for namespace %s with key %s" % (namespace, key))
             abort(404)
         return namespaced_keyvalue
 
@@ -91,12 +91,12 @@ class NamespacedKeyValueView(restful.Resource):
         form = NamespacedKeyValueForm()
 
         if not form.validate_on_submit():
-            logging.warn(form.errors)
-            logging.warn("validation error on modifying namespaced key value data")
+            logging.warning(form.errors)
+            logging.warning("validation error on modifying namespaced key value data")
             return form.errors, 422
         # check for any discrepancies in the form data, the namespace and key should not change!
         if namespace != form.namespace.data or key != form.key.data:
-            logging.warn(
+            logging.warning(
                 "namespace and key mismatch in the form data. expected %s and %s, got %s and %s" %
                 (namespace, key, form.namespace.data, form.key.data)
             )
@@ -109,12 +109,12 @@ class NamespacedKeyValueView(restful.Resource):
         namespaced_keyvalue_query = NamespacedKeyValue.query.filter_by(namespace=namespace, key=key)
         namespaced_keyvalue = namespaced_keyvalue_query.with_for_update(nowait=True).first()  # FOR UPDATE , for really close race conditions
         if not namespaced_keyvalue:
-            logging.warn("no NamespacedKeyValue object found for namespace %s with key %s" % (namespace, key))
+            logging.warning("no NamespacedKeyValue object found for namespace %s with key %s" % (namespace, key))
             abort(404)
         # Check for concurrency
         namespaced_keyvalue_updated = namespaced_keyvalue_query.filter_by(updated_ts=updated_version_ts).first()
         if not namespaced_keyvalue_updated:
-            logging.warn("trying to modify an outdated record")
+            logging.warning("trying to modify an outdated record")
             return {'error': 'CONCURRENT_MODIFICATION_EXCEPTION'}, 409
 
         curr_ts = round(time.time(), 2)
@@ -131,7 +131,7 @@ class NamespacedKeyValueView(restful.Resource):
     def delete(self, namespace, key):
         namespaced_keyvalue = NamespacedKeyValue.query.filter_by(namespace=namespace, key=key).first()
         if not namespaced_keyvalue:
-            logging.warn("no NamespacedKeyValue object found for namespace %s with key %s" % (namespace, key))
+            logging.warning("no NamespacedKeyValue object found for namespace %s with key %s" % (namespace, key))
             abort(404)
         db.session.delete(namespaced_keyvalue)
         db.session.commit()

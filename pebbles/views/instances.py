@@ -97,7 +97,7 @@ class InstanceList(restful.Resource):
 
             blueprint = get_blueprint(instance.blueprint_id)
             if not blueprint:
-                logging.warn("instance %s has a reference to non-existing blueprint" % instance.id)
+                logging.warning("instance %s has a reference to non-existing blueprint" % instance.id)
                 continue
 
             age = 0
@@ -118,7 +118,7 @@ class InstanceList(restful.Resource):
 
         form = InstanceForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on user login")
+            logging.warning("validation error on user login")
             return form.errors, 422
 
         blueprint_id = form.blueprint.data
@@ -246,7 +246,7 @@ class InstanceView(restful.Resource):
         user = g.user
         form = UserIPForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on UserIPForm")
+            logging.warning("validation error on UserIPForm")
             return form.errors, 422
 
         instance = Instance.query.filter_by(id=instance_id, user_id=user.id).first()
@@ -297,7 +297,7 @@ class InstanceView(restful.Resource):
             try:
                 instance.instance_data = json.loads(args['instance_data'])
             except ValueError:
-                logging.warn("invalid instance_data passed to view: %s" % args['instance_data'])
+                logging.warning("invalid instance_data passed to view: %s" % args['instance_data'])
             db.session.commit()
 
 
@@ -344,7 +344,7 @@ class InstanceLogs(restful.Resource):
         else:
             instance_logs = get_logs_from_db(instance_id)
         if not instance_logs:
-            logging.warn("There are no log entries to be deleted")
+            logging.warning("There are no log entries to be deleted")
 
         for instance_log in instance_logs:
             db.session.delete(instance_log)

@@ -119,7 +119,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             self.delete_deployment(namespace, instance)
         except ApiException as e:
             if e.status == 404:
-                self.logger.warn('Deployment not found, assuming it is already deleted')
+                self.logger.warning('Deployment not found, assuming it is already deleted')
             else:
                 raise e
 
@@ -128,7 +128,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             self.delete_service(namespace, instance)
         except ApiException as e:
             if e.status == 404:
-                self.logger.warn('Service not found, assuming it is already deleted')
+                self.logger.warning('Service not found, assuming it is already deleted')
             else:
                 raise e
 
@@ -137,7 +137,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             self.delete_ingress(namespace, instance)
         except ApiException as e:
             if e.status == 404:
-                self.logger.warn('Ingress not found, assuming it is already deleted')
+                self.logger.warning('Ingress not found, assuming it is already deleted')
             else:
                 raise e
 
@@ -147,7 +147,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             self.delete_volume(namespace, volume_name)
         except ApiException as e:
             if e.status == 404:
-                self.logger.warn('Volume not found, assuming it is already deleted')
+                self.logger.warning('Volume not found, assuming it is already deleted')
             else:
                 raise e
 

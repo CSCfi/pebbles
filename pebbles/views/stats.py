@@ -52,7 +52,7 @@ class StatsList(restful.Resource):
 
             blueprint = get_blueprint(instance.blueprint_id)
             if not blueprint:
-                logging.warn("instance %s has a reference to non-existing blueprint" % instance.id)
+                logging.warning("instance %s has a reference to non-existing blueprint" % instance.id)
                 continue
 
             if 'name' not in per_blueprint_results[blueprint.id]:

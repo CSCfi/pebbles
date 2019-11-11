@@ -54,7 +54,7 @@ class NotificationList(restful.Resource):
     def post(self):
         form = NotificationForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on post new notification")
+            logging.warning("validation error on post new notification")
             return form.errors, 422
 
         notification = Notification()
@@ -114,7 +114,7 @@ class NotificationView(restful.Resource):
 
         form = NotificationForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on update notification")
+            logging.warning("validation error on update notification")
             return form.errors, 422
 
         notification.subject = form.subject.data

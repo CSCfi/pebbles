@@ -40,7 +40,7 @@ class UserList(restful.Resource):
     def post(self):
         form = UserForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on user add: %s" % form.errors)
+            logging.warning("validation error on user add: %s" % form.errors)
             abort(422)
         invite_user(form.eppn.data, form.password.data, form.is_admin.data)
         return User.query.all()
@@ -54,7 +54,7 @@ class UserList(restful.Resource):
                 args = self.parser.parse_args()
                 user_query = apply_rules_users(args)
             except:
-                logging.warn("no arguments found")
+                logging.warning("no arguments found")
                 user_query = apply_rules_users()
             return user_query.all()
         return [user]
@@ -117,7 +117,7 @@ class UserView(restful.Resource):
             abort(403)
         user = User.query.filter_by(id=user_id).first()
         if not user:
-            logging.warn("trying to delete non-existing user")
+            logging.warning("trying to delete non-existing user")
             abort(404)
         user.delete()
         db.session.commit()
@@ -220,7 +220,7 @@ class UserBlacklist(restful.Resource):
 
         user = User.query.filter_by(id=user_id).first()
         if not user:
-            logging.warn("trying to block/unblock non-existing user")
+            logging.warning("trying to block/unblock non-existing user")
             abort(404)
         if block:
             logging.info("blocking user %s", user.eppn)
@@ -244,7 +244,7 @@ class UserGroupOwner(restful.Resource):
 
         user = User.query.filter_by(id=user_id).first()
         if not user:
-            logging.warn("user does not exist")
+            logging.warning("user does not exist")
             abort(404)
         if make_group_owner:
             logging.info("making user %s a group owner", user.eppn)

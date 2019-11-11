@@ -30,7 +30,7 @@ class SessionView(restful.Resource):
     def post(self):
         form = SessionCreateForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on user login")
+            logging.warning("validation error on user login")
             return form.errors, 422
 
         user = User.query.filter_by(eppn=form.eppn.data).first()
@@ -55,7 +55,7 @@ class SessionView(restful.Resource):
                 'user_id': user.id,
                 'icon_value': icons
             }, token_fields)
-        logging.warn("invalid login credentials for %s" % form.eppn.data)
+        logging.warning("invalid login credentials for %s" % form.eppn.data)
         return {
             'message': 'Unauthorized',
             'status': 401

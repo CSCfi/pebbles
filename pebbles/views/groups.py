@@ -70,7 +70,7 @@ class GroupList(restful.Resource):
             ), 422
         form = GroupForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on creating group")
+            logging.warning("validation error on creating group")
             return form.errors, 422
         group = Group(form.name.data)
         group.description = form.description.data
@@ -106,7 +106,7 @@ class GroupView(restful.Resource):
     def put(self, group_id):
         form = GroupForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on creating group")
+            logging.warning("validation error on creating group")
             return form.errors, 422
         user = g.user
         group = Group.query.filter_by(id=group_id).first()
@@ -155,10 +155,10 @@ class GroupView(restful.Resource):
         group = Group.query.filter_by(id=group_id).first()
 
         if not group:
-            logging.warn("trying to delete non-existing group")
+            logging.warning("trying to delete non-existing group")
             abort(404)
         if group.name == 'System.default':
-            logging.warn("cannot delete the default system group")
+            logging.warning("cannot delete the default system group")
             return {"error": "Cannot delete the default system group"}, 422
 
         group_blueprints = group.blueprints.all()
@@ -210,10 +210,10 @@ def group_users_add(group, user_config, owner, group_owner_obj):
             banned_user_id = banned_user_item['id']
             banned_user = User.query.filter_by(id=banned_user_id).first()
             if not banned_user:
-                logging.warn("user %s does not exist", banned_user_id)
+                logging.warning("user %s does not exist", banned_user_id)
                 raise RuntimeError("User to be banned, does not exist")
             if banned_user_id in managers_set:
-                logging.warn("user %s is a manager, cannot ban" % banned_user_id)
+                logging.warning("user %s is a manager, cannot ban" % banned_user_id)
                 raise RuntimeError("User is a manager, demote to normal status first")
             banned_users_final.append(banned_user)
     group.banned_users = banned_users_final  # setting a new list adds and also removes relationships
@@ -222,7 +222,7 @@ def group_users_add(group, user_config, owner, group_owner_obj):
     if group.users:
         for group_user_obj in group.users:  # Association object
             if group_user_obj.user in banned_users_final:
-                logging.warn("user %s is banned, cannot add", group_user_obj.user.id)
+                logging.warning("user %s is banned, cannot add", group_user_obj.user.id)
                 continue
             if group_user_obj.user.id in managers_set:  # if user is a manager
                 group_user_obj.manager = True
@@ -258,13 +258,13 @@ class GroupJoin(restful.Resource):
         user = g.user
         group = Group.query.filter_by(join_code=join_code).first()
         if not group:
-            logging.warn("invalid group join code %s", join_code)
+            logging.warning("invalid group join code %s", join_code)
             return {"error": "The code entered is invalid. Please recheck and try again"}, 422
         if user in group.banned_users:
-            logging.warn("user banned from the group with code %s", join_code)
+            logging.warning("user banned from the group with code %s", join_code)
             return {"error": "You are banned from this group, please contact the concerned person"}, 403
         if user in [group_user_obj.user for group_user_obj in group.users]:
-            logging.warn("user %s already exists in group", user.id)
+            logging.warning("user %s already exists in group", user.id)
             return {"error": "User already in the group"}, 422
         group_user_obj = GroupUserAssociation(user=user, group=group)
         group.users.append(group_user_obj)
@@ -307,7 +307,7 @@ class GroupExit(restful.Resource):
         user = g.user
         group = Group.query.filter_by(id=group_id).first()
         if not group:
-            logging.warn("no group with id %s", group_id)
+            logging.warning("no group with id %s", group_id)
             abort(404)
         if re.match('^System.+', group.name):  # Do not allow exiting system level groups
             abort(403)
@@ -315,11 +315,11 @@ class GroupExit(restful.Resource):
         group_user_filtered_query = GroupUserAssociation.query.filter_by(group_id=group.id, user_id=user.id)
         user_is_owner = group_user_filtered_query.filter_by(owner=True).first()
         if user_is_owner:
-            logging.warn("cannot exit the owned group %s", group_id)
+            logging.warning("cannot exit the owned group %s", group_id)
             return {"error": "Cannot exit the group which is owned by you"}, 422
         user_in_group = group_user_filtered_query.first()
         if not user_in_group:
-            logging.warn("user %s is not a part of the group", user.id)
+            logging.warning("user %s is not a part of the group", user.id)
             abort(403)
         group.users.remove(user_in_group)
         db.session.add(group)
@@ -339,13 +339,13 @@ class GroupUsersList(restful.Resource):
         user = g.user
         group = Group.query.filter_by(id=group_id).first()
         if not group:
-            logging.warn('group %s does not exist', group_id)
+            logging.warning('group %s does not exist', group_id)
             abort(404)
 
         group_user_query = GroupUserAssociation.query
         user_is_owner = group_user_query.filter_by(group_id=group.id, user_id=user.id, owner=True).first()
         if not user.is_admin and not user_is_owner:
-            logging.warn('Group %s not owned, cannot see users', group_id)
+            logging.warning('Group %s not owned, cannot see users', group_id)
             abort(403)
 
         total_users = None
@@ -383,11 +383,11 @@ class ClearUsersFromGroup(restful.Resource):
         user_is_owner = group_user_query.filter_by(group_id=group_id, user_id=user.id, owner=True).first()
 
         if not group:
-            logging.warn('Group %s does not exist', group_id)
+            logging.warning('Group %s does not exist', group_id)
             return {"error": "The group does not exist"}, 404
 
         if group.name == 'System.default':
-            logging.warn("cannot clear the default system group")
+            logging.warning("cannot clear the default system group")
             return {"error": "Cannot clear the default system group"}, 422
 
         if user_is_owner or user.is_admin:
@@ -395,5 +395,5 @@ class ClearUsersFromGroup(restful.Resource):
                                        owner=False, manager=False).delete()
             db.session.commit()
         else:
-            logging.warn('Group %s not owned, cannot clear users', group_id)
+            logging.warning('Group %s not owned, cannot clear users', group_id)
             return {"error": "Only the group owner can clear users"}, 403

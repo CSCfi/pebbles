@@ -58,7 +58,7 @@ class BlueprintTemplateList(restful.Resource):
     def post(self):
         form = BlueprintTemplateForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on create blueprint_template")
+            logging.warning("validation error on create blueprint_template")
             return form.errors, 422
         blueprint_template = BlueprintTemplate()
         blueprint_template.name = form.name.data
@@ -101,7 +101,7 @@ class BlueprintTemplateView(restful.Resource):
     def put(self, template_id):
         form = BlueprintTemplateForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on update blueprint_template config")
+            logging.warning("validation error on update blueprint_template config")
             return form.errors, 422
 
         blueprint_template = BlueprintTemplate.query.filter_by(id=template_id).first()

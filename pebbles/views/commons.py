@@ -127,7 +127,7 @@ def invite_user(eppn=None, password=None, is_admin=False, expiry_date=None):
         raise RuntimeError("Incorrect email")
     user = User.query.filter_by(eppn=eppn).first()
     if user:
-        logging.warn("user %s already exists" % user.eppn)
+        logging.warning("user %s already exists" % user.eppn)
         return None
 
     user = User(eppn=eppn, password=password, is_admin=is_admin, email_id=eppn, expiry_date=expiry_date)
@@ -141,13 +141,13 @@ def invite_user(eppn=None, password=None, is_admin=False, expiry_date=None):
     if not app.dynamic_config['SKIP_TASK_QUEUE'] and not app.dynamic_config['MAIL_SUPPRESS_SEND']:
         logging.warning('email sending not implemented')
     else:
-        logging.warn(
+        logging.warning(
             "email sending suppressed in config: SKIP_TASK_QUEUE:%s MAIL_SUPPRESS_SEND:%s" %
             (app.dynamic_config['SKIP_TASK_QUEUE'], app.dynamic_config['MAIL_SUPPRESS_SEND'])
         )
         activation_url = '%s/#/activate/%s' % (app.config['BASE_URL'], token.token)
         content = render_template('invitation.txt', activation_link=activation_url)
-        logging.warn(content)
+        logging.warning(content)
 
     return user
 

@@ -33,7 +33,7 @@ class PluginList(restful.Resource):
     def post(self):
         form = PluginForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on update blueprint config")
+            logging.warning("validation error on update blueprint config")
             return form.errors, 422
 
         plugin = Plugin.query.filter_by(name=form.plugin.data).first()

@@ -60,15 +60,15 @@ class ImportExportBlueprintTemplates(restful.Resource):
         form = BlueprintTemplateImportForm()
 
         if not form.validate_on_submit():
-            logging.warn(form.errors)
-            logging.warn("validation error on create blueprint")
+            logging.warning(form.errors)
+            logging.warning("validation error on create blueprint")
             return form.errors, 422
 
         plugin_name = form.plugin_name.data
         plugin = Plugin.query.filter_by(name=plugin_name).first()
 
         if not plugin:
-            logging.warn('no plugins found with name %s', plugin_name)
+            logging.warning('no plugins found with name %s', plugin_name)
             return {"error": "No plugins found"}, 404
 
         template = BlueprintTemplate()
@@ -112,20 +112,20 @@ class ImportExportBlueprints(restful.Resource):
         form = BlueprintImportForm()
 
         if not form.validate_on_submit():
-            logging.warn(form.errors)
-            logging.warn("validation error on creating blueprints with import")
+            logging.warning(form.errors)
+            logging.warning("validation error on creating blueprints with import")
             return form.errors, 422
 
         template_name = form.template_name.data
         template = BlueprintTemplate.query.filter_by(name=template_name).first()
         if not template:
-            logging.warn('no blueprint template found with name %s', template_name)
+            logging.warning('no blueprint template found with name %s', template_name)
             return {"error": "No blueprint template found"}, 404
 
         group_name = form.group_name.data
         group = Group.query.filter_by(name=group_name).first()
         if not group:
-            logging.warn('no group found with name %s', group_name)
+            logging.warning('no group found with name %s', group_name)
             return {"error": "No group found"}, 404
 
         blueprint = Blueprint()

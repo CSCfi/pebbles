@@ -59,7 +59,7 @@ class ActivationList(restful.Resource):
             abort(409)
 
         if ActivationToken.query.filter_by(user_id=user.id).count() >= MAX_ACTIVATION_TOKENS_PER_USER:
-            logging.warn(
+            logging.warning(
                 'There are already %d activation tokens for user %s'
                 ', not sending another'
                 % (MAX_ACTIVATION_TOKENS_PER_USER, user.email_id)

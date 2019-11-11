@@ -63,7 +63,7 @@ class BlueprintList(restful.Resource):
     def post(self):
         form = BlueprintForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on create blueprint")
+            logging.warning("validation error on create blueprint")
             return form.errors, 422
         user = g.user
         blueprint = Blueprint()
@@ -78,7 +78,7 @@ class BlueprintList(restful.Resource):
         if not group:
             abort(422)
         if not user.is_admin and not is_group_manager(user, group):
-            logging.warn("invalid group for the user")
+            logging.warning("invalid group for the user")
             abort(403)
         user_owned_blueprints = apply_rules_blueprints(user).filter_by(group_id=group_id).count()
         if not user.blueprint_quota and not user_owned_blueprints:
@@ -136,7 +136,7 @@ class BlueprintView(restful.Resource):
     def put(self, blueprint_id):
         form = BlueprintForm()
         if not form.validate_on_submit():
-            logging.warn("validation error on update blueprint config")
+            logging.warning("validation error on update blueprint config")
             return form.errors, 422
 
         user = g.user
@@ -148,7 +148,7 @@ class BlueprintView(restful.Resource):
             abort(422)
 
         if not user.is_admin and not is_group_manager(user, blueprint.group):
-            logging.warn("invalid group for the user")
+            logging.warning("invalid group for the user")
             abort(403)
 
         blueprint.name = form.config.data.get('name') or form.name.data
@@ -187,7 +187,7 @@ class BlueprintView(restful.Resource):
         blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
         blueprint_instances = Instance.query.filter_by(blueprint_id=blueprint_id).all()
         if not blueprint:
-            logging.warn("trying to delete non-existing blueprint")
+            logging.warning("trying to delete non-existing blueprint")
             abort(404)
         elif blueprint.current_status == 'archived':
             abort(422)
@@ -216,8 +216,7 @@ class BlueprintCopy(restful.Resource):
         if blueprint.current_status == 'archived' or blueprint.current_status == 'deleted':
             abort(422)
         if not user.is_admin and not is_group_manager(user, blueprint.group):
-            logging.warn("user is {} not group manager for blueprint {}".format(user.id,
-                                                                                blueprint.group.id))
+            logging.warning("user is {} not group manager for blueprint {}".format(user.id, blueprint.group.id))
             abort(403)
 
         db.session.expunge(blueprint)
