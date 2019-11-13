@@ -1,49 +1,73 @@
 ---
 image: python:3.6
 
-variables:
-    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-
-# cache pip downloads and installed packages
-cache:
-  key: "${CI_COMMIT_REF_SLUG}"
-  paths:
-    - .cache/pip
-    - venv/
-
-# use virtualenv to enable caching
-before_script:
-  - python --version
-  - pip install virtualenv
-  - virtualenv venv
-  - source venv/bin/activate
-
 stages:
   - syntax
-  - dependencies
   - analysis and tests
+  - ci-deploy
+  - ci-test
+  - ci-deprovision
 
 flake8:
   stage: syntax
   script:
-    - pip3 install flake8
+    - pip install flake8
     - flake8 --extend-ignore E722,W605 pebbles
 
-pip:
-  stage: dependencies
-  script:
-    - pip install -r requirements.txt
-
-unittests:
+analysis-and-tests:
   stage: analysis and tests
+  # cache pip downloads and installed packages
+  variables:
+      PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  cache:
+    key: "${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .cache/pip
+      - venv/
   script:
     - pip install -r requirements.txt
     - python manage.py test
-
-pylint:
-  stage: analysis and tests
-  script:
-    - pip install -r requirements.txt
     - pip install pylint
     - "pylint -j0 pebbles || true" # no failures ATM
 
+ci-deploy:
+  stage: ci-deploy
+  image: $CI_REGISTRY/pebbles/pebbles-deploy/pebbles-deployer
+  variables:
+    ENV_NAME: pebbles-ci
+  script:
+    - /opt/deployment/init_env.bash
+    # create an image for current commit
+    - cd /opt/deployment/pebbles
+    - oc get buildconfig pebbles
+      || oc new-build centos/python-36-centos7~https://github.com/CSCfi/pebbles --name pebbles
+    - oc start-build pebbles --from-dir . --follow
+    # deploy and initialize
+    - cd /opt/deployment/pebbles-deploy
+    - helm install pebbles helm_charts/pebbles -f /dev/shm/pebbles-ci/values.yaml --set overrideSecret=1
+    - "while echo 'wait for api readiness'; do oc get pod -l name=api | grep '1/1.*Running' && break; sleep 5; done"
+    - oc rsh deployment/api python manage.py initialize_system -e admin@example.org -p $CI_COMMIT_REF_NAME
+    - "while echo 'wait for worker-0 readiness'; do oc get pod worker-0 | grep '1/1.*Running' && break; sleep 5; done"
+
+ci-test:
+  stage: ci-test
+  image: $CI_REGISTRY/pebbles/pebbles-deploy/pebbles-deployer
+  variables:
+    ENV_NAME: pebbles-ci
+  script:
+    - /opt/deployment/init_env.bash
+    # tests
+    - curl https://pebbles-ci.oso-qa-app.csc.fi/api/v1/config | grep INSTALLATION_NAME
+    - oc rsh deployment/api python manage.py test
+
+ci-deprovision:
+  stage: ci-deprovision
+  image: $CI_REGISTRY/pebbles/pebbles-deploy/pebbles-deployer
+  variables:
+    ENV_NAME: pebbles-ci
+  when: always
+  script:
+    - /opt/deployment/init_env.bash
+    # uninstall and cleanup
+    - helm uninstall pebbles
+    - oc delete secret pebbles
