@@ -8,6 +8,7 @@ from pebbles.models import User
 from pebbles.forms import SessionCreateForm
 import flask_restful as restful
 from pebbles.views.commons import is_group_manager, update_email  # changed
+from pebbles.views.commons import admin_icons, group_owner_icons, group_manager_icons, user_icons
 
 sessions = FlaskBlueprint('sessions', __name__)
 
@@ -19,11 +20,6 @@ token_fields = {
     'is_group_manager': fields.Boolean,
     'icon_value': fields.String
 }
-
-admin_icons = ["Dashboard", "Users", "Groups", "Blueprints", "Configure", "Statistics", "Account"]
-group_owner_icons = ["Dashboard", "", "Groups", "Blueprints", "", "", "Account"]
-group_manager_icons = ["Dashboard", "", "", "Blueprints", "", "", "Account"]
-user_icons = ["Dashboard", "", "", "", "", "", "Account"]
 
 
 class SessionView(restful.Resource):
@@ -56,7 +52,4 @@ class SessionView(restful.Resource):
                 'icon_value': icons
             }, token_fields)
         logging.warning("invalid login credentials for %s" % form.eppn.data)
-        return {
-            'message': 'Unauthorized',
-            'status': 401
-        }, 401
+        return dict(message='Unauthorized', status=401), 401

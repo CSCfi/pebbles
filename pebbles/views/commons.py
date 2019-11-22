@@ -37,6 +37,11 @@ group_fields = {
     'role': fields.String
 }
 
+admin_icons = ["Dashboard", "Users", "Groups", "Blueprints", "Configure", "Statistics", "Account"]
+group_owner_icons = ["Dashboard", "", "Groups", "Blueprints", "", "", "Account"]
+group_manager_icons = ["Dashboard", "", "", "Blueprints", "", "", "Account"]
+user_icons = ["Dashboard", "", "", "", "", "", "Account"]
+
 auth = HTTPBasicAuth()
 auth.authenticate_header = lambda: "Authentication Required"
 

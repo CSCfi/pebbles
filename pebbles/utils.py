@@ -1,5 +1,4 @@
 import base64
-import six
 from functools import wraps
 from flask import abort, g
 import re
@@ -67,7 +66,7 @@ def parse_ports_string(ports_str):
             try:
                 from_port = int(port)
                 to_port = int(port)
-            except:
+            except ValueError:
                 raise ValueError('Port is not an integer')
 
         if 0 < from_port < 65536 and 0 < to_port < 65536:
@@ -81,7 +80,7 @@ def parse_port_range(port_range):
     m = re.match(r'(\d+):(\d+)', port_range)
     if m:
         if int(m.group(1)) < int(m.group(2)):
-            return (int(m.group(1)), int(m.group(2)))
+            return int(m.group(1)), int(m.group(2))
         else:
             raise ValueError('Port range invalid')
     else:
@@ -110,7 +109,7 @@ def get_blueprint_fields_from_config(blueprint, field_name):
         if 'preallocated_credits' in full_config:
             try:
                 preallocated_credits = bool(full_config['preallocated_credits'])
-            except:
+            except ValueError:
                 pass
         return preallocated_credits
 
@@ -127,14 +126,11 @@ def get_blueprint_fields_from_config(blueprint, field_name):
         if 'cost_multiplier' in full_config:
             try:
                 cost_multiplier = float(full_config['cost_multiplier'])
-            except:
+            except ValueError:
                 pass
         return cost_multiplier
 
 
 def b64encode_string(content):
-    """python2 and python3 compatibility wrapper function. Can be removed when support for python2 is gone"""
-    if six.PY3:
-        return base64.b64encode(content.encode('utf-8')).decode('utf-8')
-    else:
-        return base64.b64encode(content).decode('utf-8')
+    """convenience function to base64 encode a string to UTF-8"""
+    return base64.b64encode(content.encode('utf-8')).decode('utf-8')
