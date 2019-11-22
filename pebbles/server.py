@@ -1,37 +1,26 @@
-import logging
-import uuid
-
 import flask_restful as restful
-from flask import render_template
-
-try:
-    from flask_sso import SSO
-except:
-    logging.info("flask_sso library is not installed, Shibboleth authentication will not work")
 
 from pebbles.app import app
-from pebbles.models import db, User
-
-from pebbles.views.commons import create_user, is_group_manager, update_email
-from pebbles.views.blueprint_templates import blueprint_templates
-from pebbles.views.blueprint_templates import BlueprintTemplateList, BlueprintTemplateView, BlueprintTemplateCopy
-from pebbles.views.blueprints import blueprints, BlueprintList, BlueprintView, BlueprintCopy
-from pebbles.views.plugins import plugins, PluginList, PluginView
-from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserGroupOwner
-from pebbles.views.groups import groups, GroupList, GroupView, GroupJoin, GroupListExit, GroupExit, GroupUsersList
-from pebbles.views.groups import ClearUsersFromGroup
-from pebbles.views.notifications import NotificationList, NotificationView
-from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pebbles.views.activations import activations, ActivationList, ActivationView
+from pebbles.views.blueprint_templates import BlueprintTemplateList, BlueprintTemplateView, BlueprintTemplateCopy
+from pebbles.views.blueprint_templates import blueprint_templates
+from pebbles.views.blueprints import blueprints, BlueprintList, BlueprintView, BlueprintCopy
+from pebbles.views.export_stats import export_stats, ExportStatistics
+from pebbles.views.groups import ClearUsersFromGroup
+from pebbles.views.groups import GroupList, GroupView, GroupJoin, GroupListExit, GroupExit, GroupUsersList
+from pebbles.views.groups import groups
+from pebbles.views.import_export import import_export, ImportExportBlueprintTemplates, ImportExportBlueprints
+from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
+from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.myip import myip, WhatIsMyIp
+from pebbles.views.namespaced_keyvalues import namespaced_keyvalues, NamespacedKeyValueList, NamespacedKeyValueView
+from pebbles.views.notifications import NotificationList, NotificationView
+from pebbles.views.plugins import plugins, PluginList, PluginView
 from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
-from pebbles.views.variables import variables, PublicVariableList
-from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.stats import stats, StatsList
-from pebbles.views.export_stats import export_stats, ExportStatistics
-from pebbles.views.import_export import import_export, ImportExportBlueprintTemplates, ImportExportBlueprints
-from pebbles.views.namespaced_keyvalues import namespaced_keyvalues, NamespacedKeyValueList, NamespacedKeyValueView
+from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserGroupOwner
+from pebbles.views.variables import variables, PublicVariableList
 
 api = restful.Api(app)
 api_root = '/api/v1'
@@ -99,65 +88,5 @@ app.register_blueprint(stats)
 app.register_blueprint(export_stats)
 app.register_blueprint(namespaced_keyvalues)
 
-admin_icons = ["Dashboard", "Users", "Groups", "Blueprints", "Configure", "Statistics", "Account"]
-group_owner_icons = ["Dashboard", "", "Groups", "Blueprints", "", "", "Account"]
-group_manager_icons = ["Dashboard", "", "", "Blueprints", "", "", "Account"]
-user_icons = ["Dashboard", "", "", "", "", "", "Account"]
-
-if app.config['ENABLE_SHIBBOLETH_LOGIN']:
-    sso = SSO(app=app)
-
-    @sso.login_handler
-    def login(user_info):
-        eppn = user_info['eppn']
-        user = User.query.filter_by(eppn=eppn).first()
-        if not user:
-            user = create_user(eppn, password=uuid.uuid4().hex, email_id=user_info['email_id'])
-        if not user.email_id:
-            user = update_email(eppn, email_id=user_info['email_id'])
-        if not user.is_active:
-            user.is_active = True
-            db.session.commit()
-        if user.is_blocked:
-            error_description = 'You have been blocked, contact your administrator'
-            return render_template(
-                'error.html',
-                error_title='User Blocked',
-                error_description=error_description
-            )
-        if user.is_admin:
-            icons = admin_icons
-        elif user.is_group_owner:
-            icons = group_owner_icons
-        elif is_group_manager(user):
-            icons = group_manager_icons
-        else:
-            icons = user_icons
-
-        token = user.generate_auth_token(app.config['SECRET_KEY'])
-        return render_template(
-            'login.html',
-            token=token,
-            username=eppn,
-            is_admin=user.is_admin,
-            is_group_owner=user.is_group_owner,
-            is_group_manager=is_group_manager(user),
-            userid=user.id,
-            icon_value=icons
-        )
-
-    @sso.login_error_handler
-    def login_error(user_info):
-        error_title = 'unknown error'
-        error_description = ''
-        if not user_info.get('eppn'):
-            error_title = 'Login not available'
-            error_description = (
-                'Your home organization did not return us your login attributes which prevents '
-                'you from logging in. Waiting a bit might resolve this.')
-
-        return render_template(
-            'error.html',
-            error_title=error_title,
-            error_description=error_description
-        )
+from pebbles.views.sso import oauth2_login
+app.add_url_rule('/oauth2', oauth2_login)

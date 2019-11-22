@@ -5,7 +5,6 @@ import re
 
 from flask_wtf import Form
 from wtforms import BooleanField, FloatField, StringField
-# from wtforms import FormField, FieldList
 from wtforms.validators import DataRequired, Email, Length, IPAddress, Regexp
 from wtforms_alchemy import model_form_factory
 
@@ -80,10 +79,17 @@ class BlueprintImportForm(ModelForm):
 
 
 class ChangePasswordForm(ModelForm):
-    password = StringField('password', validators=[DataRequired(), Length(
-        min=8,
-        max=MAX_PASSWORD_LENGTH, message=("Password must be between %(min)d and "
-                                          "%(max)d characters long"))])
+    password = StringField(
+        'password',
+        validators=[
+            DataRequired(),
+            Length(
+                min=8,
+                max=MAX_PASSWORD_LENGTH,
+                message="Password must be between %(min)d and %(max)d characters long"
+            )
+        ]
+    )
 
 
 class PasswordResetRequestForm(ModelForm):
@@ -101,10 +107,17 @@ class SessionCreateForm(ModelForm):
 
 
 class ActivationForm(ModelForm):
-    password = StringField('password', validators=[DataRequired(), Length(
-        min=8,
-        max=MAX_PASSWORD_LENGTH, message=("Password must be between %(min)d and "
-                                          "%(max)d characters long"))])
+    password = StringField(
+        'password',
+        validators=[
+            DataRequired(),
+            Length(
+                min=8,
+                max=MAX_PASSWORD_LENGTH,
+                message="Password must be between %(min)d and %(max)d characters long"
+            )
+        ]
+    )
 
 
 class PluginForm(ModelForm):

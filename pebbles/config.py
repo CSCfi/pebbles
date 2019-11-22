@@ -127,7 +127,6 @@ class BaseConfig(object):
         'all spawned instance names will have this prefix'
     )
     DEFAULT_QUOTA = 1.0
-    ENABLE_SHIBBOLETH_LOGIN = False
     INSTALLATION_NAME = 'Pebbles'
     INSTALLATION_DESCRIPTION = ('A tool for provisioning '
                                 'ephemeral private cloud resources.')
@@ -151,12 +150,15 @@ class BaseConfig(object):
 
     PROVISIONING_NUM_WORKERS = 1
 
+    # Oauth2 settings
+    OAUTH2_LOGIN_ENABLED = False
+    OAUTH2_PROXY_SECRET = 'change_me'
+    OAUTH2_LOGO_URL = '/img/CSC_login.png'
     LOG_DIRECTORY = '/opt/log'
 
     ENABLE_FILE_LOGGING = False
 
     # enable access by []
-
     def __getitem__(self, item):
         return getattr(self, item)
 
@@ -166,7 +168,7 @@ class BaseConfig(object):
     def __contains__(self, item):
         try:
             getattr(self, item)
-        except:
+        except AttributeError:
             return False
         return True
 

@@ -76,15 +76,6 @@ if app.config['DATABASE_PASSWORD']:
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('__PASSWORD__', app.config[
         'DATABASE_PASSWORD'])
 
-if app.config['ENABLE_SHIBBOLETH_LOGIN']:
-    SSO_ATTRIBUTE_MAP = {
-        "HTTP_AJP_SHIB_MAIL": (True, 'email_id'),
-        "HTTP_AJP_SHIB_EPPN": (True, 'eppn'),
-    }
-    app.config.setdefault('SSO_ATTRIBUTE_MAP', SSO_ATTRIBUTE_MAP)
-    app.config.setdefault('SSO_LOGIN_URL', '/login')
-    app.config.setdefault('PREFERRED_URL_SCHEME', 'https')
-
 bcrypt.init_app(app)
 db.init_app(app)
 

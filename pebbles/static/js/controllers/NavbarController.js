@@ -3,9 +3,9 @@ app.controller('NavbarController', ['$scope', '$window', '$rootScope', '$locatio
     var _showLoginBox = undefined;
  
     $scope.setLoginStatus = function (data){
-        /* login box should not be visible by default if shibboleth is enabled.
+        /* login box should not be visible by default if oauth2 is enabled.
          * but obviously should be if it is not. */
-        _showLoginBox = ! data['ENABLE_SHIBBOLETH_LOGIN'];
+        _showLoginBox = ! data['OAUTH2_LOGIN_ENABLED'];
     };
 
     ConfigurationService.getValue().then($scope.setLoginStatus);
@@ -82,7 +82,7 @@ app.controller('NavbarController', ['$scope', '$window', '$rootScope', '$locatio
         // To make transition smoother
         $location.path(' ');
         hostname = $window.location.hostname;
-        urlvalue = 'https' + '://' + hostname + '/Shibboleth.sso/Logout?return=' + 'https' +'://' + hostname;
+        urlvalue = '/oauth2/sign_out';
         $window.location.href = urlvalue;
     };
 
