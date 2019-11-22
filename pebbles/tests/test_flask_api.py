@@ -1868,27 +1868,6 @@ class FlaskApiTestCase(BaseTestCase):
         response2 = self.make_authenticated_admin_request(path='/api/v1/users/%s/activation_url' % '0xBogus')
         self.assert_404(response2)
 
-    def test_get_keypairs(self):
-        # Anonymous
-        response = self.make_request(path='/api/v1/users/%s/keypairs' % self.known_user_id)
-        self.assert_401(response)
-        response2 = self.make_request(path='/api/v1/users/%s/keypairs' % '0xBogus')
-        self.assert_401(response2)
-        # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/users/%s/keypairs' % self.known_user_id)
-        self.assert_200(response)
-        self.assertEqual(len(response.json), 0)
-        response2 = self.make_authenticated_user_request(path='/api/v1/users/%s/keypairs' % '0xBogus')
-        self.assert_403(response2)
-        # Admin
-        response = self.make_authenticated_admin_request(
-            path='/api/v1/users/%s/keypairs' % self.known_user_id
-        )
-        self.assert_200(response)
-        self.assertEqual(len(response.json), 0)
-        response2 = self.make_authenticated_admin_request(path='/api/v1/users/%s/keypairs' % '0xBogus')
-        self.assert_404(response2)
-
     def test_user_over_quota_cannot_launch_instances(self):
         data = {'blueprint': self.known_blueprint_id}
         response = self.make_authenticated_user_request(

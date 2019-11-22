@@ -74,11 +74,6 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
             });
         }
 
-        var keypairs = Restangular.all('users/' + AuthService.getUserId() + '/keypairs');
-        keypairs.getList().then(function (response) {
-            $scope.keypairs = response;
-        });
-
         var instances = Restangular.all('instances');
 
         var limit = undefined, offset = undefined, include_deleted = undefined;
@@ -173,13 +168,6 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
         };
 
         $scope.updateInstanceList();
-
-        $scope.keypair_exists = function() {
-            if ($scope.keypairs && $scope.keypairs.length > 0) {
-                return true;
-            }
-            return false;
-        };
 
         $scope.maxInstanceLimitReached = function(blueprint) {
             var max_instance_limit = blueprint.full_config['maximum_instances_per_user'];

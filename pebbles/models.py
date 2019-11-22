@@ -15,7 +15,7 @@ from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.orm import backref
 from sqlalchemy.schema import MetaData
 
-from pebbles.utils import validate_ssh_pubkey, get_full_blueprint_config, get_blueprint_fields_from_config
+from pebbles.utils import get_full_blueprint_config, get_blueprint_fields_from_config
 
 MAX_USER_PSEUDONYM_LENGTH = 32
 MAX_PASSWORD_LENGTH = 100
@@ -288,27 +288,6 @@ class Notification(db.Model):
     def __init__(self):
         self.id = uuid.uuid4().hex
         self.broadcasted = datetime.datetime.utcnow()
-
-
-class Keypair(db.Model):
-    __tablename__ = 'keypairs'
-
-    id = db.Column(db.String(32), primary_key=True)
-    user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
-    _public_key = db.Column(db.String(1025))
-
-    def __init__(self):
-        self.id = uuid.uuid4().hex
-
-    @hybrid_property
-    def public_key(self):
-        return self._public_key
-
-    @public_key.setter
-    def public_key(self, value):
-        if not validate_ssh_pubkey(value):
-            raise ValueError("Not a valid SSH public key")
-        self._public_key = value
 
 
 class ActivationToken(db.Model):

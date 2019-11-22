@@ -58,11 +58,6 @@ CONFIG = {
                 "title": "Allow user to request instance firewall to allow access to user's IP address",
                 "default": False,
             },
-            'needs_ssh_keys': {
-                'type': 'boolean',
-                'title': "Needs ssh-keys to access",
-                'default': True,
-            },
         }
     },
     "form": [
@@ -85,6 +80,5 @@ CONFIG = {
         "name": "bar",
         "description": "dummy blueprint",
         "capabilities": ["Capability A"],
-        'needs_ssh_keys': True
     }
 }

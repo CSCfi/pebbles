@@ -1,11 +1,9 @@
-app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', '$upload', 'Restangular', '$uibModal',
-                             function($q,   $scope,   $timeout,   AuthService,   $upload,   Restangular,    $uibModal) {
+app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 'Restangular', '$uibModal',
+                             function($q,   $scope,   $timeout,   AuthService,   Restangular,   $uibModal) {
     var user = Restangular.one('users', AuthService.getUserId());
     var quota = Restangular.one('quota', AuthService.getUserId());
     var group_join = Restangular.all('groups').one('group_join');
 
-    var key = null;
-    var key_url = null;
     var change_password_result = "";
     var upload_ok = null;
 
@@ -23,61 +21,6 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
                 $scope.credits_spent = response.credits_spent;
                 $scope.credits_quota = response.credits_quota;
             });
-
-    $scope.upload_error = function() {
-        if (upload_ok === false) {
-            return true;
-        }
-        return false;
-    };
-
-    $scope.upload_success = function () {
-        if (upload_ok) {
-            return true;
-        }
-        return false;
-    };
-
-    $scope.$watch('files', function () {
-        $scope.upload($scope.files);
-    });
-
-    $scope.upload = function (files) {
-        if (files && files.length) {
-            upload_ok = null;
-            angular.forEach(files, function(file) {
-                $upload.upload({
-                    url: '/api/v1/users/'+user.id+'/keypairs/upload',
-                    fields: {'username': $scope.username},
-                    headers: {'Authorization': 'Basic ' + AuthService.getToken()},
-                    file: file
-                }).success(function () {
-                    upload_ok = true;
-                }).error(function() {
-                    upload_ok = false;
-                });
-            });
-        }
-    };
-
-    $scope.key_url = function() {
-        return key_url;
-    };
-
-    $scope.key_downloadable = function() {
-        if (key) {
-            return true;
-        }
-        return false;
-    };
-
-    $scope.generate_key = function() {
-        key = null;
-        user.post('keypairs/create').then(function(response) {
-            key = response.private_key;
-            key_url = window.URL.createObjectURL(new Blob([key], {type: "application/octet-stream"}));
-        });
-    };
 
     var group_list_exit = Restangular.all('groups').all('group_list_exit');
     var refresh_group_list_exit = function(){
@@ -151,7 +94,7 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
 
 app.controller('ModalGroupJoinController', function($scope, $modalInstance, group_join, join_title, dismiss_reason) {
     $scope.join_title = join_title;
-    var grp_join_sf = {}
+    var grp_join_sf = {};
     grp_join_sf.schema = {
             "type": "object",
             "title": "Comment",
@@ -164,16 +107,16 @@ app.controller('ModalGroupJoinController', function($scope, $modalInstance, grou
             },
             "required": ["join_code"]
 
-        }
+    };
     grp_join_sf.form = [
             {"key": "join_code", "type": "textfield", "placeholder": "paste the joining code here"}
-        ]
-    grp_join_sf.model = {}
+    ];
+    grp_join_sf.model = {};
     $scope.grp_join_sf = grp_join_sf;
     $scope.group_join = group_join;
 
     $scope.joinGroup = function(form, model) {
-     if (form.$valid) {
+        if (form.$valid) {
             $scope.group_join.one(model.join_code).customPUT().then(function () {
                 $.notify({title: 'Success! ', message: 'Group Joined'}, {type: 'success'});
                 $modalInstance.close(true);

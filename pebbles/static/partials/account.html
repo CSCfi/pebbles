@@ -8,48 +8,48 @@
     </div>
 
 
-<div class="row" ng-hide="isAdmin()">
-   <div class="col-md-6">
-  <h3> User Groups </h3>
-      <div class="row">
-          <div class="col-md-6">
-              <button ng-click="openGroupJoinModal()" type="submit" class="btn btn-primary">Join Group</button>
+    <div class="row" ng-hide="isAdmin()">
+       <div class="col-md-6">
+      <h3> User Groups </h3>
+          <div class="row">
+              <div class="col-md-6">
+                  <button ng-click="openGroupJoinModal()" type="submit" class="btn btn-primary">Join Group</button>
+              </div>
           </div>
-      </div>
-    <table class="table table-striped">
-        <thead>
-        <tr>
-            <td>Name</td>
-            <td>Role</td>
-	    <td ng-show="isGroupManagerOrAdmin()">Join Code</td>
-	    <td>Details</td>
-	    <td></td>
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <td>Name</td>
+                <td>Role</td>
+            <td ng-show="isGroupManagerOrAdmin()">Join Code</td>
+            <td>Details</td>
+            <td></td>
 
-        </tr>
-        </thead>
-        <tbody>
-            <tr ng-hide="group_list_exit != undefined && group_list_exit.length">
-                <td colspan="2">No groups found. Make sure you have joined a group.</td>
             </tr>
+            </thead>
+            <tbody>
+                <tr ng-hide="group_list_exit != undefined && group_list_exit.length">
+                    <td colspan="2">No groups found. Make sure you have joined a group.</td>
+                </tr>
 
-            <tr ng-repeat="group in group_list_exit">
-                <td>{{group.name}}</td>
-                <td>
-                    <span ng-class="{user:'label label-default', manager:'label label-primary', owner:'label label-success'}[group.role]">{{group.role}}</span>
-                </td>
-	        <td ng-hide="group.role=='user' || !isGroupManagerOrAdmin()">{{group.join_code}}</td>
-		<td ng-show="group.role=='user' && isGroupManagerOrAdmin()">-</td>
-		<td>{{group.description}}</td>
-                <td>
-                    <button ng-click="exit_group(group)" class="btn btn-danger">
-                      Exit Group
-                    </button>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+                <tr ng-repeat="group in group_list_exit">
+                    <td>{{group.name}}</td>
+                    <td>
+                        <span ng-class="{user:'label label-default', manager:'label label-primary', owner:'label label-success'}[group.role]">{{group.role}}</span>
+                    </td>
+                <td ng-hide="group.role=='user' || !isGroupManagerOrAdmin()">{{group.join_code}}</td>
+            <td ng-show="group.role=='user' && isGroupManagerOrAdmin()">-</td>
+            <td>{{group.description}}</td>
+                    <td>
+                        <button ng-click="exit_group(group)" class="btn btn-danger">
+                          Exit Group
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
     </div>
-</div>
 
     <div class="row">
         <div class="col-md-6">
@@ -62,57 +62,6 @@
                 <div ng-show="change_password_msg_visible()" class="alert alert-info" role="alert">{{ change_password_msg() }}</div>
                 <button class="btn btn-lg btn-primary btn-block" ng-disabled="changePasswordForm.$invalid" type="submit">Change</button>
             </form>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-md-12">
-            <h3>Manage SSH Keys</h3>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-7 xol-xs-10">
-            <div class="well">
-                <p>
-                    Some blueprints require a public SSH key. This
-                    key is installed on the created instances and you can use
-                    the corresponding private key to connect to the instances
-                    without a password.
-                </p>
-                <p>
-                    You can generate your public and private keys and
-                    download the private key, or upload your existing public
-                    key.  New keys will be used with every new instance
-                    created.
-                </p>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-7 col-xs-10">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">Generate a new keypair</h3>
-                </div>
-                <div class="panel-body">
-                    <button ng-click="generate_key()" class="btn btn-lg btn-primary">Generate Keypair</button>
-                    <a type="button" ng-disabled="!key_downloadable()" class="btn btn-lg btn-primary" id="content" download="pebbles.key" ng-href="{{key_url()}}">Download Private Key</a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-7 col-xs-10">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">or upload existing public key</h3>
-                </div>
-                <div class="panel-body">
-                    <div class="btn btn-block btn-primary" ng-file-select ng-model="files">Upload Public Key</div>
-                    <div class="alert alert-success" ng-show="upload_success()" role="alert"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span> Ok, key uploaded</div>
-                    <div class="alert alert-danger" ng-show="upload_error()" role="alert"><span class="glyphicon glyphicon-bullhorn" aria-hidden="true"></span> Upload failed, not a valid public key</div>
-                </div>
-            </div>
         </div>
     </div>
 

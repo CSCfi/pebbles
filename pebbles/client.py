@@ -88,9 +88,6 @@ class PBClient:
             raise RuntimeError('Cannot fetch data for provisioned blueprints, %s' % resp.reason)
         return resp.json()
 
-    def get_user_key_data(self, user_id):
-        return self.do_get('users/%s/keypairs' % user_id)
-
     def get_user(self, user_id):
         resp = self.do_get('users/%s' % user_id)
         if resp.status_code != 200:

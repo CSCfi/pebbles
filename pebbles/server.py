@@ -18,7 +18,6 @@ from pebbles.views.blueprint_templates import BlueprintTemplateList, BlueprintTe
 from pebbles.views.blueprints import blueprints, BlueprintList, BlueprintView, BlueprintCopy
 from pebbles.views.plugins import plugins, PluginList, PluginView
 from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserGroupOwner
-from pebbles.views.users import KeypairList, CreateKeyPair, UploadKeyPair
 from pebbles.views.groups import groups, GroupList, GroupView, GroupJoin, GroupListExit, GroupExit, GroupUsersList
 from pebbles.views.groups import ClearUsersFromGroup
 from pebbles.views.notifications import NotificationList, NotificationView
@@ -41,9 +40,6 @@ api.add_resource(UserView, api_root + '/users/<string:user_id>')
 api.add_resource(UserActivationUrl, api_root + '/users/<string:user_id>/user_activation_url')
 api.add_resource(UserBlacklist, api_root + '/users/<string:user_id>/user_blacklist')
 api.add_resource(UserGroupOwner, api_root + '/users/<string:user_id>/user_group_owner')
-api.add_resource(KeypairList, api_root + '/users/<string:user_id>/keypairs')
-api.add_resource(CreateKeyPair, api_root + '/users/<string:user_id>/keypairs/create')
-api.add_resource(UploadKeyPair, api_root + '/users/<string:user_id>/keypairs/upload')
 api.add_resource(GroupList, api_root + '/groups')
 api.add_resource(GroupView, api_root + '/groups/<string:group_id>')
 api.add_resource(GroupJoin, api_root + '/groups/group_join/<string:join_code>')

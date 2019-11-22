@@ -1,18 +1,16 @@
-from flask_restful import marshal_with, fields, reqparse
+from flask_restful import marshal_with, reqparse
 from flask import abort, g, current_app
 from flask import Blueprint as FlaskBlueprint
-from sqlalchemy import desc
 from dateutil.relativedelta import relativedelta
 
 import datetime
 import logging
 import re
-import werkzeug
 
-from pebbles.models import db, Keypair, User, ActivationToken
+from pebbles.models import db, User, ActivationToken
 from pebbles.forms import ChangePasswordForm, UserForm
 import flask_restful as restful
-from pebbles.utils import generate_ssh_keypair, requires_admin
+from pebbles.utils import requires_admin
 from pebbles.views.commons import user_fields, auth, invite_user
 from pebbles.rules import apply_rules_users
 
@@ -130,82 +128,6 @@ class UserActivationUrl(restful.Resource):
         token = ActivationToken.query.filter_by(user_id=user_id).first()
         activation_url = '%s/#/activate/%s' % (current_app.config['BASE_URL'], token.token)
         return {'activation_url': activation_url}
-
-
-public_key_fields = {
-    'id': fields.String,
-    'public_key': fields.String
-}
-
-
-class KeypairList(restful.Resource):
-    @auth.login_required
-    @marshal_with(public_key_fields)
-    def get(self, user_id):
-        if not g.user.is_admin and user_id != g.user.id:
-            abort(403)
-
-        user = g.user
-        if user_id != g.user.id:
-            user = User.query.filter_by(id=user_id).first()
-
-        if not user:
-            abort(404)
-
-        return Keypair.query.filter_by(user_id=user.id).order_by(desc("id")).all()
-
-
-private_key_fields = {
-    'private_key': fields.String
-}
-
-
-class CreateKeyPair(restful.Resource):
-    @auth.login_required
-    @marshal_with(private_key_fields)
-    def post(self, user_id):
-        if user_id != g.user.id:
-            abort(403)
-        priv, pub = generate_ssh_keypair()
-
-        for keypair in Keypair.query.filter_by(user_id=g.user.id).all():
-            db.session.delete(keypair)
-        db.session.commit()
-
-        key = Keypair()
-        key.user_id = g.user.id
-        key.public_key = pub
-        db.session.add(key)
-        db.session.commit()
-
-        return {'private_key': priv}
-
-
-class UploadKeyPair(restful.Resource):
-    @auth.login_required
-    def post(self, user_id):
-        parser = reqparse.RequestParser()
-        parser.add_argument('file', type=werkzeug.datastructures.FileStorage, location='files')
-
-        if user_id != g.user.id:
-            abort(403)
-        args = parser.parse_args()
-        if 'file' not in args:
-            abort(422)
-
-        db.session.query(Keypair).filter_by(user_id=g.user.id).delete()
-        db.session.commit()
-
-        key = Keypair()
-        key.user_id = g.user.id
-        try:
-            uploaded_key = args['file'].read()
-            key.public_key = uploaded_key
-            db.session.add(key)
-            db.session.commit()
-        except Exception as e:
-            logging.exception(e)
-            abort(422)
 
 
 class UserBlacklist(restful.Resource):

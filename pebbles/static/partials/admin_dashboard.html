@@ -37,15 +37,12 @@
 		    </div>
 		</td>
                 <td>
-                    <a ng-click="provision(blueprint)" class="btn btn-primary" ng-hide="blueprint.config.needs_ssh_keys && !keypair_exists()" ng-disabled="maxInstanceLimitReached(blueprint)">
+                    <a ng-click="provision(blueprint)" class="btn btn-primary" ng-disabled="maxInstanceLimitReached(blueprint)">
                         <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch
                     </a>
                     <a class="btn" ng-click="showMaxInstanceLimitInfo()" ng-show="maxInstanceLimitReached(blueprint)">
                         <span class="glyphicon glyphicon-question-sign"></span>
                     </a>
-                    <span ng-show="blueprint.config.needs_ssh_keys && keypairs && !keypair_exists()">
-                        To launch instances, first <a href="/#/account">add SSH keys</a>.
-                    </span>
                 </td>
             </tr>
         </tbody>
