@@ -1,18 +1,19 @@
-from flask_restful import marshal_with, reqparse
-from flask import abort, g, current_app
-from flask import Blueprint as FlaskBlueprint
-from dateutil.relativedelta import relativedelta
-
 import datetime
 import logging
 import re
 
-from pebbles.models import db, User, ActivationToken
-from pebbles.forms import ChangePasswordForm, UserForm
 import flask_restful as restful
+from dateutil.relativedelta import relativedelta
+from flask import Blueprint as FlaskBlueprint
+from flask import abort, g, current_app
+from flask_restful import marshal_with, reqparse
+from werkzeug import exceptions
+
+from pebbles.forms import ChangePasswordForm, UserForm
+from pebbles.models import db, User, ActivationToken
+from pebbles.rules import apply_rules_users
 from pebbles.utils import requires_admin
 from pebbles.views.commons import user_fields, auth, invite_user
-from pebbles.rules import apply_rules_users
 
 users = FlaskBlueprint('users', __name__)
 
@@ -28,7 +29,7 @@ class UserList(restful.Resource):
 
     @staticmethod
     def address_list(value):
-        return set(x for x in re.split(r",| |\n|\t", value) if x)
+        return set(x for x in re.split(r"[, \n\t]", value) if x)
 
     parser.add_argument('addresses')
 
@@ -51,7 +52,7 @@ class UserList(restful.Resource):
             try:
                 args = self.parser.parse_args()
                 user_query = apply_rules_users(args)
-            except:
+            except exceptions.BadRequest:
                 logging.warning("no arguments found")
                 user_query = apply_rules_users()
             return user_query.all()
@@ -62,25 +63,28 @@ class UserList(restful.Resource):
     def patch(self):
         try:
             args = self.parser.parse_args()
-        except:
+        except exceptions.BadRequest:
             abort(422)
             return
+
         if 'expiry_date' in args and args.expiry_date:
             expiry_date = datetime.datetime.utcnow() + relativedelta(months=+args.expiry_date)
         else:
             # default expiry date is 6 months
             expiry_date = datetime.datetime.utcnow() + relativedelta(months=+6)
+
         if 'addresses' in args and args.addresses:
             addresses = self.address_list(args.addresses)
             incorrect_addresses = []
             for address in addresses:
                 try:
                     invite_user(address, password=None, is_admin=False, expiry_date=expiry_date)
-                except:
+                except RuntimeError:
                     logging.exception("cannot add user %s" % address)
                     incorrect_addresses.append(address)
             if incorrect_addresses:
                 return incorrect_addresses, 422
+
         if 'count' in args and args.count:
             user_query = apply_rules_users(args)
             return user_query.count()
