@@ -1,23 +1,20 @@
 """ Forms are made with WTForms, which is mostly acceptable but has started to
 cause gray hair.
-
-
 """
+import re
 
 from flask_wtf import Form
-from wtforms_alchemy import model_form_factory
 from wtforms import BooleanField, FloatField, StringField
 # from wtforms import FormField, FieldList
 from wtforms.validators import DataRequired, Email, Length, IPAddress, Regexp
+from wtforms_alchemy import model_form_factory
 
 from pebbles.models import (
     MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH,
     MAX_VARIABLE_KEY_LENGTH, MAX_VARIABLE_VALUE_LENGTH,
     MAX_NOTIFICATION_SUBJECT_LENGTH
 )
-
 from pebbles.models import db
-import re
 
 BaseModelForm = model_form_factory(Form)
 
@@ -80,9 +77,6 @@ class BlueprintImportForm(ModelForm):
     config = StringField('config', validators=[DataRequired()])
     template_name = StringField('template_name', validators=[DataRequired()])
     group_name = StringField('group_name', validators=[DataRequired()])
-
-# class BlueprintImportForm(Form):
-#    blueprints = FieldList(FormField(BlueprintImportFormField), min_entries=1)
 
 
 class ChangePasswordForm(ModelForm):
