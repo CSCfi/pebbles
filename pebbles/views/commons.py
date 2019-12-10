@@ -142,12 +142,12 @@ def invite_user(eppn=None, password=None, is_admin=False, expiry_date=None):
     db.session.add(token)
     db.session.commit()
 
-    if not current_app.dynamic_config['SKIP_TASK_QUEUE'] and not current_app.dynamic_config['MAIL_SUPPRESS_SEND']:
+    if not current_app.config['SKIP_TASK_QUEUE'] and not current_app.config['MAIL_SUPPRESS_SEND']:
         logging.warning('email sending not implemented')
     else:
         logging.warning(
             "email sending suppressed in config: SKIP_TASK_QUEUE:%s MAIL_SUPPRESS_SEND:%s" %
-            (current_app.dynamic_config['SKIP_TASK_QUEUE'], current_app.dynamic_config['MAIL_SUPPRESS_SEND'])
+            (current_app.config['SKIP_TASK_QUEUE'], current_app.config['MAIL_SUPPRESS_SEND'])
         )
         activation_url = '%s/#/activate/%s' % (current_app.config['BASE_URL'], token.token)
         content = render_template('invitation.txt', activation_link=activation_url)

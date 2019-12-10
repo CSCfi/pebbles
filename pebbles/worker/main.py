@@ -10,6 +10,7 @@ import yaml
 from pebbles.client import PBClient
 from pebbles.config import BaseConfig
 from pebbles.models import Instance
+from pebbles.utils import init_logging
 
 
 def load_backend_config():
@@ -180,10 +181,10 @@ if __name__ == '__main__':
         print('Worker: connected to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
 
     config = BaseConfig()
-    logging.basicConfig(
-        level=logging.DEBUG if config.DEBUG else logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+
+    init_logging(config, 'worker')
+
     worker = Worker(config)
+    logging.getLogger().name = worker.id
     worker.run()
     logging.info('worker shutting down')

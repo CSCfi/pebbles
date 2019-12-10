@@ -23,6 +23,7 @@ import yaml
 import functools
 
 CONFIG_FILE = '/etc/pebbles/config.yaml'
+LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
 
 def _parse_env_value(val):
@@ -149,6 +150,10 @@ class BaseConfig(object):
     EXTERNAL_HTTPS_PORT = 443
 
     PROVISIONING_NUM_WORKERS = 1
+
+    LOG_DIRECTORY = '/opt/log'
+
+    ENABLE_FILE_LOGGING = False
 
     # enable access by []
 

@@ -43,6 +43,8 @@ class SessionView(restful.Resource):
             else:
                 icons = json.dumps(user_icons)
 
+            logging.info("new session for user %s", user.id)
+
             return marshal({
                 'token': user.generate_auth_token(current_app.config['SECRET_KEY']),
                 'is_admin': user.is_admin,

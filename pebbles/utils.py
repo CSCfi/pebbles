@@ -1,7 +1,12 @@
 import base64
-from functools import wraps
-from flask import abort, g
+import logging
 import re
+from functools import wraps
+from logging.handlers import RotatingFileHandler
+
+from flask import abort, g
+
+from pebbles.config import LOG_FORMAT
 
 
 def requires_admin(f):
@@ -34,6 +39,7 @@ def memoize(func):
         if x not in cache:
             cache[x] = func(x)
         return cache[x]
+
     return inner
 
 
@@ -134,3 +140,17 @@ def get_blueprint_fields_from_config(blueprint, field_name):
 def b64encode_string(content):
     """convenience function to base64 encode a string to UTF-8"""
     return base64.b64encode(content.encode('utf-8')).decode('utf-8')
+
+
+# set up logging
+def init_logging(config, log_name):
+    logging.basicConfig(
+        level=logging.DEBUG if config.DEBUG else logging.INFO,
+        format=LOG_FORMAT
+    )
+    if config.ENABLE_FILE_LOGGING:
+        logfile = '%s/%s.log' % (config.LOG_DIRECTORY, log_name)
+        logging.debug('enabling file logging to %s', logfile)
+        handler = RotatingFileHandler(filename=logfile, maxBytes=10 * 1024 * 1024, backupCount=5)
+        handler.setFormatter(logging.Formatter(LOG_FORMAT))
+        logging.getLogger().addHandler(handler)

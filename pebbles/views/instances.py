@@ -152,7 +152,7 @@ class InstanceList(restful.Resource):
         existing_names = set(x.name for x in Instance.query.all())
         # Note: the potential race is solved by unique constraint in database
         while True:
-            c_name = Instance.generate_name(prefix=current_app.dynamic_config.get('INSTANCE_NAME_PREFIX'))
+            c_name = Instance.generate_name(prefix=current_app.config.get('INSTANCE_NAME_PREFIX'))
             if c_name not in existing_names:
                 instance.name = c_name
                 break

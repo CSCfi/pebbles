@@ -7,6 +7,7 @@ from flask_migrate import upgrade as flask_upgrade_db_to_head
 
 from pebbles.config import BaseConfig, TestConfig
 from pebbles.models import db, bcrypt
+from pebbles.utils import init_logging
 
 app = Flask(__name__, static_url_path='')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -58,12 +59,17 @@ test_run = (
     {'test', 'covtest'}.intersection(set(sys.argv)) or ('UNITTEST' in os.environ.keys() and os.environ['UNITTEST'])
 )
 
+# unit tests need a config with tweaked default values
 if test_run:
-    app.dynamic_config = TestConfig()
+    app_config = TestConfig()
 else:
-    app.dynamic_config = BaseConfig()
+    app_config = BaseConfig()
 
-app.config.from_object(app.dynamic_config)
+# set up logging
+init_logging(app_config, 'api')
+
+# configure flask
+app.config.from_object(app_config)
 
 # insert database password from separate source to SQLALCHEMY URL
 if app.config['DATABASE_PASSWORD']:
