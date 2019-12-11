@@ -7,11 +7,18 @@ from pebbles import models
 from pebbles.config import BaseConfig
 from pebbles.server import app
 from pebbles.views.commons import create_user, create_worker
-from pebbles.models import db
+from pebbles.models import db, BlueprintTemplate, Group, Blueprint, Plugin
 from pebbles.tests.fixtures import primary_test_setup
 
+
+import json
 import random
 import string
+
+import requests
+import base64
+import datetime
+
 # 2to3 fix for input
 try:
     input = raw_input
@@ -144,7 +151,6 @@ def createuser_bulk(user_prefix=None, domain_name=None, admin=False):
             no_of_accounts += 1
         else:
             print("User name: %s\t Password: %s" % (user, password))
-    print("\n")
 
 
 @manager.command
@@ -178,6 +184,209 @@ def list_routes():
         route_data.append(line)
 
     print(AsciiTable(route_data).table)
+
+
+methods = {
+    'GET': requests.get,
+    'POST': requests.post,
+    'PUT': requests.put,
+    'PATCH': requests.patch,
+    'DELETE': requests.delete,
+}
+
+
+def get_auth_token(creds, headers=None):
+    if not headers:
+        headers = {}
+    headers = {'Accept': 'text/plain'}
+    response = make_request('POST', 'http://api:8889/api/v1/sessions', headers=headers, data=json.dumps(creds))
+    try:
+        token = '%s:' % response.json()['token']
+        return base64.b64encode(bytes(token.encode('ascii'))).decode('utf-8')
+    except KeyError:
+        pass
+
+
+def make_request(method='GET', path='/', headers=None, data=None):
+    assert method in methods
+
+    if not headers:
+        headers = {}
+
+    if 'Content-Type' not in headers:
+        headers['Content-Type'] = 'application/json'
+
+    return methods[method](path, headers=headers, data=data)
+
+
+def make_authenticated_request(method='GET', path='/', headers=None, data=None, creds=None, auth_token=None):
+    assert method in methods
+
+    if not headers:
+        headers = {}
+
+    headers = {'Content-type': 'application/json',
+               'Accept': 'application/json',
+               'token': auth_token,
+               'Authorization': 'Basic %s' % auth_token}
+    return methods[method](path, data=data, headers=headers, verify=False)
+
+
+def make_authenticated_admin_request(method='GET', path='/', headers=None, data=None):
+    ADMIN_TOKEN = get_auth_token({'eppn': 'admin_val@example.org', 'password': 'admin_user'})
+    if ADMIN_TOKEN:
+        return make_authenticated_request(method, path, headers, data, auth_token=ADMIN_TOKEN)
+
+
+def launch_instance(user, password):
+    auth_token = get_auth_token(creds={'eppn': user, 'password': password})
+    if auth_token:
+        response = make_authenticated_request(
+            method='GET',
+            path='http://api:8889/api/v1/blueprints',
+            headers=None, auth_token=auth_token)
+        for i in response.json():
+            response = make_authenticated_request(
+                method='POST',
+                path='http://api:8889/api/v1/instances',
+                data=json.dumps({'blueprint': i['id']}),
+                headers=None, auth_token=auth_token)
+
+
+def group_join_codes():
+    group_join_code = []
+    group = Group.query.all()
+    for q in group:
+        group_join_code.append(q.join_code)
+    return group_join_code
+
+
+def create_blueprint(user, password, group_name, blueprint_template_id):
+    blueprint_prefix = "demoblueprint"
+    name = blueprint_prefix + "_" + ''.join(random.choice(string.ascii_lowercase +
+                                           string.digits) for _ in range(3))
+    group = Group.query.filter_by(name=group_name).first()
+    data = {'name': name, 'config': {'foo': 'bar'}, 'is_enabled': True, 'template_id': blueprint_template_id, 'group_id': group.id}
+    auth_token = get_auth_token(creds={'eppn': user, 'password': password})
+    if auth_token:
+        make_authenticated_request(method='POST', path='http://api:8889/api/v1/blueprints', headers=None, data=json.dumps(data), auth_token=auth_token)
+        blueprint = Blueprint.query.filter_by(name=name).first()
+        if blueprint:
+            make_authenticated_request(
+                method='PUT',
+                path='http://api:8889/api/v1/blueprints/%s' % blueprint.id, headers=None,
+                data=json.dumps(data), auth_token=auth_token)
+            print("BLUEPRINT: %s " % name)
+
+
+def create_blueprint_template(user, password, no_of_blueprint_templates=1):
+    no_of_blueprint_templates = 1
+    blueprint_template_prefix = "demoblueprinttemplate"
+    template_driver = Plugin.query.filter_by(name='DummyDriver').first()
+    for i in range(no_of_blueprint_templates):
+        name = blueprint_template_prefix + "_" + ''.join(random.choice(string.ascii_lowercase +
+                                           string.digits) for _ in range(3))
+        data = {'name': name, 'config': {"maximum_lifetime": '3m'}, 'is_enabled': True, 'plugin': template_driver.id, 'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']}}
+        make_authenticated_admin_request(
+            method='POST',
+            path='http://api:8889/api/v1/blueprint_templates',
+            data=json.dumps(data)
+        )
+        blueprint_template = BlueprintTemplate.query.filter_by(name=name).first()
+        if blueprint_template:
+            make_authenticated_admin_request(
+                method='PUT',
+                path='http://api:8889/api/v1/blueprint_templates/%s' % blueprint_template.id,
+                data=json.dumps(data))
+            print("BLUEPRINT TEMPLATE: %s" % (name))
+            return blueprint_template.id
+
+
+def create_group(user, password):
+    group_prefix = "demogroup"
+    name = group_prefix + "_" + ''.join(random.choice(string.ascii_lowercase +
+                                           string.digits) for _ in range(3))
+    data = {'name': name, 'description': 'Group Details', 'user_config': {}}
+    auth_token = get_auth_token(creds={'eppn': user, 'password': password})
+    if auth_token:
+        make_authenticated_request(method='POST', path='http://api:8889/api/v1/groups', headers=None, data=json.dumps(data), auth_token=auth_token)
+        print("GROUP: %s" % (name))
+        return name
+
+
+def create_accounts_func(domain_name=None, user_prefix=None, no_of_actual_accounts=None, make_accounts_group_owner=None, group_join_code=None, blueprint_template_id=None):
+    for i in range(no_of_actual_accounts):
+        retry = 1
+        # eg: demo_user_Rgv4@example.com
+        user = user_prefix + "_" + ''.join(random.choice(string.ascii_lowercase +
+                                           string.digits) for _ in range(3)) + "@" + domain_name
+        password = ''.join(random.choice(string.ascii_uppercase +
+                           string.ascii_lowercase + string.digits) for _ in range(8))
+        user_create = create_user(eppn=user, password=password, is_admin=False, email_id=user)
+        if not user_create:
+            continue
+        if make_accounts_group_owner:
+            response = make_authenticated_admin_request(
+                method='PUT',
+                path='http://api:8889/api/v1/users/%s/user_group_owner' % user_create.id,
+                data=json.dumps({'make_group_owner': True})
+            )
+            # create a group
+            if response.status_code == 200:
+                group_name = create_group(user, password)
+                if group_name and blueprint_template_id:
+                    create_blueprint(user, password, group_name, blueprint_template_id)
+                else:
+                    print("cannot create blueprint")
+            else:
+                print("could not make group owner %s" % user)
+
+        elif not make_accounts_group_owner:
+            auth_token = get_auth_token(creds={'eppn': user, 'password': password})
+            if auth_token:
+                response = make_authenticated_request(
+                    method='PUT',
+                    path='http://api:8889/api/v1/groups/group_join/%s' % random.choice(group_join_code[1:]),
+                    headers=None,
+                    auth_token=auth_token)
+
+        launch_instance(user, password)
+
+        if (not user_create and retry < 5):
+            retry += 1
+            no_of_actual_accounts += 1
+        else:
+            print("USER: %s\t PASSWORD: %s" % (user, password))
+
+
+@manager.command
+def create_bulk_db(admin=False):
+    print("\n")
+    group_join_code = []
+    """Creates one admin user. Admin user will create one blueprint template if chosen.
+       Creates new demo group owners and users. Each group owner will create one group,
+       one blueprint(if template was created by admin) and launch an instance. Each regular
+       user will join a random group and launch an instance if possible."""
+    no_of_group_owner_accounts = int(input("Enter the number of group owner accounts needed: "))
+    no_of_regular_accounts = int(input("Enter the number of regualar accounts needed: "))
+    start_time = datetime.datetime.now()
+    blueprint_creation = int(input("Do you want to create blueprints enter(1 or 0): "))
+    create_user('admin_val@example.org', 'admin_user', is_admin=True)
+    if blueprint_creation:
+        blueprint_template_id = create_blueprint_template('admin_val@example.org', 'admin_user', 1)
+    else:
+        blueprint_template_id = None
+    domain_name = "example.org"
+    user_prefix_owner = "demogroupowneruser"
+    user_prefix_regular = "demoregularuser"
+    create_accounts_func(domain_name=domain_name, user_prefix=user_prefix_owner, no_of_actual_accounts=no_of_group_owner_accounts, make_accounts_group_owner=True, group_join_code=None, blueprint_template_id=blueprint_template_id)
+    group_join_code = group_join_codes()
+    create_accounts_func(domain_name=domain_name, user_prefix=user_prefix_regular, no_of_actual_accounts=no_of_regular_accounts, make_accounts_group_owner=False, group_join_code=group_join_code, blueprint_template_id=None)
+    end_time = datetime.datetime.now()
+    print("************************")
+    print("Time when started is %s" % start_time)
+    print("Time now is %s" % end_time)
+    print("Total Time taken %s\n" % (end_time - start_time))
 
 
 if __name__ == '__main__':
