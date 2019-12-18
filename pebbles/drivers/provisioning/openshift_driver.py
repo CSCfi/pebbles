@@ -29,7 +29,6 @@ from six.moves.urllib.parse import urlparse, parse_qs
 
 from pebbles.client import PBClient
 from pebbles.drivers.provisioning import base_driver
-
 from pebbles.utils import parse_maximum_lifetime
 
 # maximum time to wait for pod creation before failing
@@ -739,6 +738,12 @@ class OpenShiftDriver(base_driver.ProvisioningDriverBase):
         # fetch config
         blueprint = pbclient.get_blueprint_description(instance['blueprint_id'])
         blueprint_config = blueprint['full_config']
+
+        if 'auto_authentication' in blueprint_config and blueprint_config['auto_authentication']:
+            try:
+                pbclient.instance_token_delete(instance_id)
+            except:
+                self.logger.warning("the token seems to be not present or deleted already")
 
         oc = ap.get_openshift_client(
             cluster_id=blueprint_config['openshift_cluster_id'],
