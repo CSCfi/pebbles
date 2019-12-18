@@ -70,16 +70,6 @@ def user_blueprint_cleanup():
             pbclient.blueprint_delete(blueprint['id'])
 
 
-@celery_app.task(name="pebbles.tasks.instance_token_cleanup")
-def instance_token_cleanup():
-    token = get_token()
-    pbclient = PBClient(token, local_config['INTERNAL_API_BASE_URL'], ssl_verify=False)
-    instance_tokens = pbclient.get_instance_tokens()
-    for instance_token in instance_tokens:
-        if datetime.datetime.strptime(instance_token.get('expires_on'), '%a, %d %b %Y %H:%M:%S -0000') <= datetime.datetime.utcnow():
-            pbclient.instance_token_delete(instance_token['instance_id'])
-
-
 @celery_app.task(name="pebbles.tasks.send_mails")
 def send_mails(users, text=None):
     """ ToDo: document. apparently sends activation emails.
