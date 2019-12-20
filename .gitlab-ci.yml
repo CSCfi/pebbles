@@ -37,17 +37,9 @@ ci-deploy:
     ENV_NAME: pebbles-ci
   script:
     - /opt/deployment/init_env.bash
-    # create an image for current commit
-    - cd /opt/deployment/pebbles
-    - oc get buildconfig pebbles
-      || oc new-build centos/python-36-centos7~https://github.com/CSCfi/pebbles --name pebbles
-    - oc start-build pebbles --from-dir . --follow
-    # deploy and initialize
-    - cd /opt/deployment/pebbles-deploy
-    - helm install pebbles helm_charts/pebbles -f /dev/shm/pebbles-ci/values.yaml --set overrideSecret=1
-    - "while echo 'wait for api readiness'; do oc get pod -l name=api | grep '1/1.*Running' && break; sleep 5; done"
-    - oc rsh deployment/api python manage.py initialize_system -e admin@example.org -p $CI_COMMIT_REF_NAME
-    - "while echo 'wait for worker-0 readiness'; do oc get pod worker-0 | grep '1/1.*Running' && break; sleep 5; done"
+    # build, deploy and initialize
+    - source /opt/deployment/deploy_functions.bash
+    - install-pebbles $CI_COMMIT_REF_NAME
 
 ci-test:
   stage: ci-test
@@ -71,3 +63,5 @@ ci-deprovision:
     # uninstall and cleanup
     - helm uninstall pebbles
     - oc delete secret pebbles
+    # remove logstash volume that is normally left behind
+    - "(oc get pvc logstash && oc delete pvc logstash) || true"
