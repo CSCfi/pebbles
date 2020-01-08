@@ -173,12 +173,12 @@ class Worker:
 if __name__ == '__main__':
 
     if 'REMOTE_DEBUG_SERVER' in os.environ:
-        print('trying to connect to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
+        print('trying to connect to remote debug server at %s' % os.environ['REMOTE_DEBUG_SERVER'])
         import pydevd_pycharm
 
         pydevd_pycharm.settrace(os.environ['REMOTE_DEBUG_SERVER'], port=12345, stdoutToServer=True, stderrToServer=True,
                                 suspend=False)
-        print('Worker: connected to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
+        print('Worker: connected to remote debug server at %s' % os.environ['REMOTE_DEBUG_SERVER'])
 
     config = BaseConfig()
 
@@ -186,5 +186,10 @@ if __name__ == '__main__':
 
     worker = Worker(config)
     logging.getLogger().name = worker.id
-    worker.run()
+
+    try:
+        worker.run()
+    except Exception as e:
+        logging.critical('worker exiting due to an error', exc_info=e)
+
     logging.info('worker shutting down')
