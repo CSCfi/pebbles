@@ -2,6 +2,7 @@ import datetime
 import logging
 import uuid
 
+import flask_restful as restful
 from dateutil.relativedelta import relativedelta
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
@@ -11,7 +12,6 @@ from sqlalchemy.orm.session import make_transient
 from pebbles.forms import BlueprintForm
 from pebbles.models import db, Blueprint, BlueprintTemplate, Group, Instance
 from pebbles.rules import apply_rules_blueprints
-import flask_restful as restful
 from pebbles.utils import parse_maximum_lifetime, requires_group_owner_or_admin, requires_admin
 from pebbles.views.commons import auth, requires_group_manager_or_admin, is_group_manager
 
@@ -40,14 +40,13 @@ blueprint_fields = {
 
 
 class BlueprintList(restful.Resource):
-    parser = reqparse.RequestParser()
-    parser.add_argument('expiry_time', type=int, location='args')
-    parser.add_argument('show_all', type=bool, default=False, location='args')
+    get_parser = reqparse.RequestParser()
+    get_parser.add_argument('show_all', type=bool, default=False, location='args')
 
     @auth.login_required
     @marshal_with(blueprint_fields)
     def get(self):
-        args = self.parser.parse_args()
+        args = self.get_parser.parse_args()
         user = g.user
         query = apply_rules_blueprints(user, args)
         # sort the results based on the group name first and then by blueprint name
@@ -57,6 +56,9 @@ class BlueprintList(restful.Resource):
             blueprint = process_blueprint(blueprint)
             results.append(blueprint)
         return results
+
+    post_parser = reqparse.RequestParser()
+    post_parser.add_argument('lifespan_months', type=int, location='json')
 
     @auth.login_required
     @requires_group_manager_or_admin
@@ -94,10 +96,14 @@ class BlueprintList(restful.Resource):
             ), 422
 
         blueprint.group_id = group_id
-        args = self.parser.parse_args()
+
+        # System.default blueprints won't get expiry dates
         if group.name != 'System.default':
-            if 'expiry_time' in args and args.expiry_time:
-                blueprint.expiry_time = datetime.datetime.utcnow() + relativedelta(months=+args.expiry_time)
+            args = self.post_parser.parse_args()
+            if 'lifespan_months' in args and args.lifespan_months:
+                if args.lifespan_months < 1:
+                    return dict(message="Months until expiry cannot be negative"), 422
+                blueprint.expiry_time = datetime.datetime.utcnow() + relativedelta(months=+args.lifespan_months)
             else:
                 # default expiry date is 6 months
                 blueprint.expiry_time = datetime.datetime.utcnow() + relativedelta(months=+6)
@@ -105,11 +111,13 @@ class BlueprintList(restful.Resource):
         if 'name' in form.config.data:
             form.config.data.pop('name', None)
         blueprint.config = form.config.data
+
         try:
             validate_max_lifetime_blueprint(blueprint)  # Validate the maximum lifetime from config
         except ValueError:
             timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
             return timeformat_error, 422
+
         db.session.add(blueprint)
         db.session.commit()
 

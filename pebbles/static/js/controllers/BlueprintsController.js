@@ -172,9 +172,9 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
                  });
             });
         };
-    
+
 	$scope.deleteBlueprint = function(blueprint) {
-            blueprint.get().then(function(response){ 
+            blueprint.get().then(function(response){
 	        instances.getList().then(function (response) {
 		     var blueprint_instances = _.filter(response,function(user) { return user.blueprint_id === blueprint.id });
                      $uibModal.open({
@@ -200,7 +200,7 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
             });
         };
 
- 
+
 
         $scope.deleteNotification = function(notification) {
             notification.remove().then(function() {
@@ -325,7 +325,7 @@ app.controller('ModalCreateBlueprintController', function($scope, $modalInstance
     $scope.createBlueprint = function(form, model, groupModel) {
     $scope.$broadcast('schemaFormValidate');
         if (form.$valid) {
-            blueprints.post({ template_id: $scope.template.id, name: model.name, config: model, group_id:  groupModel, expiry_time: $scope.blueprint_span}).then(function () {
+            blueprints.post({ template_id: $scope.template.id, name: model.name, config: model, group_id:  groupModel, lifespan_months: $scope.bpLifespanMonths}).then(function () {
                 $modalInstance.close(true);
             }, function(response) {
                 error_message = 'unable to create blueprint';
@@ -370,7 +370,7 @@ app.controller('ModalReconfigureBlueprintController', function($scope, $modalIns
         }
     };
 
-    
+
     $scope.cancel = function() {
         if(config_mismatch){
             $modalInstance.close(true);  // launches the result section of modal

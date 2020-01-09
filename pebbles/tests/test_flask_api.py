@@ -5,6 +5,8 @@ import json
 import uuid
 import time
 
+import dateutil
+
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.models import (
     User, Group, GroupUserAssociation, BlueprintTemplate, Blueprint,
@@ -1256,6 +1258,46 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/blueprints',
             data=json.dumps(data))
         self.assert_200(response)
+
+    def test_create_blueprint_lifespan_months(self):
+
+        data = dict(
+            name='test_blueprint_1',
+            config=dict(foo='bar'),
+            template_id=self.known_template_id,
+            group_id=self.known_group_id,
+        )
+
+        # test invalid negative lifespan
+        data['lifespan_months'] = -1
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/blueprints',
+            data=json.dumps(data))
+        self.assert_status(response, 422)
+
+        # test setting a non-default value and compare it to expected value
+        data['lifespan_months'] = '5'
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/blueprints',
+            data=json.dumps(data))
+        self.assert_status(response, 200)
+
+        blueprint = Blueprint.query.filter_by(name='test_blueprint_1').first()
+        blueprint_id = blueprint.id
+
+        get_response = self.make_authenticated_group_owner_request(
+            method='GET',
+            path='/api/v1/blueprints/%s' % blueprint_id)
+        self.assert_200(get_response)
+        blueprint_json = get_response.json
+        # drop timezone info from expiry_ts with utcfromtimestamp()
+        expiry_ts = datetime.datetime.utcfromtimestamp(dateutil.parser.parse(blueprint_json['expiry_time']).timestamp())
+        expected_expiry_ts = (datetime.datetime.utcnow() + dateutil.relativedelta.relativedelta(months=+5))
+        # two second tolerance
+        if abs(expiry_ts.timestamp() - expected_expiry_ts.timestamp()) > 2:
+            self.fail('Expiry timestamp %s does not match %s' % (expiry_ts, expected_expiry_ts))
 
     def test_create_blueprint_full_config(self):
         # Group Owner

@@ -13,9 +13,9 @@
           sf-form="template.blueprint_form"
           sf-schema="template.blueprint_schema"/>
     </form>
-    <label>Enter the expiration time for this blueprint (in months)</label>
-    <i> </br>Default expiry date is 6 months from creation</i>
-    <input ng-model="blueprint_span" class="form-control" type="number" required/>
+    <label>Enter the time in months before expiration</label>
+    <i><br/>Default expiry date is 6 months from creation</i>
+    <input ng-model="bpLifespanMonths" class="form-control" type="number"/>
 </div>
 <div class="modal-footer">
     <button ng-disabled="!groupModel" ng-click="createBlueprint(ngform, template.blueprint_model, groupModel)" class="btn btn-primary">Create</button>
