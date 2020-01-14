@@ -2,6 +2,7 @@ import importlib
 import logging
 import os
 import signal
+import traceback
 from random import randrange
 from time import sleep
 
@@ -77,12 +78,20 @@ class Worker:
                 return driver_instance
 
         # create the driver, they live in pebbles.drivers.provisioning
-        driver_class = getattr(importlib.import_module('pebbles.drivers.provisioning.kubernetes_driver'),
-                               backend.get('driver'))
-        driver_instance = driver_class(logging.getLogger(), self.config, backend)
-        backend['driver_instance'] = driver_instance
+        for module in 'kubernetes_driver', 'openshift_template_driver':
+            driver_class = getattr(
+                importlib.import_module('pebbles.drivers.provisioning.%s' % module),
+                backend.get('driver'),
+                None
+            )
+            if not driver_class:
+                continue
+            driver_instance = driver_class(logging.getLogger(), self.config, backend)
+            backend['driver_instance'] = driver_instance
 
-        return driver_instance
+            return driver_instance
+
+        raise RuntimeWarning('No matching driver %s found for %s' % (backend.get('driver'), backend_name))
 
     def update_instance(self, instance):
         logging.debug('updating %s' % instance)
@@ -160,6 +169,7 @@ class Worker:
                         self.process_instance(instance)
                     except Exception as e:
                         logging.warning(e)
+                        logging.debug(traceback.format_exc().splitlines()[-5:])
                     finally:
                         self.client.release_lock(instance.get('id'), self.id)
 

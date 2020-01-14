@@ -20,7 +20,6 @@ class PBClient:
         try:
             full_token = s.loads(self.token, return_header=True)
             remaining_time = full_token[1]['exp'] - time()
-            logging.debug("time left for worker session is %s" % remaining_time)
             if remaining_time < 900:
                 logging.info("Token will expire soon, relogin %s" % eppn)
                 self.login(eppn, password)

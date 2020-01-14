@@ -1,4 +1,5 @@
 ## Primary requirements
+dpath==1.5.0
 Flask==1.1.1
 Flask-Bcrypt==0.7.1
 Flask-HTTPAuth==3.3.0
@@ -28,7 +29,7 @@ psycopg2==2.7.1
 gunicorn==19.7.1
 
 # for pycharm remote debugging (PyCharm 2019.2.3)
-#pydevd-pycharm~=192.6817.19
+#pydevd-pycharm~=193.5662.61
 
 # for testing
 selenium==3.141.0

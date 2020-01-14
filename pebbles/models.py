@@ -493,6 +493,7 @@ class Instance(db.Model):
     name = db.Column(db.String(64), unique=True)
     public_ip = db.Column(db.String(64))
     client_ip = db.Column(db.String(64))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     provisioned_at = db.Column(db.DateTime)
     deprovisioned_at = db.Column(db.DateTime)
     errored = db.Column(db.Boolean, default=False)

@@ -20,6 +20,7 @@ USER_INSTANCE_LIMIT = 5
 instance_fields = {
     'id': fields.String,
     'name': fields.String,
+    'created_at': fields.DateTime,
     'provisioned_at': fields.DateTime,
     'lifetime_left': fields.Integer,
     'maximum_lifetime': fields.Integer,

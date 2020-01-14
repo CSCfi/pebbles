@@ -63,7 +63,7 @@ class ProvisioningDriverBase(object):
                 self.provision(token, instance_id)
                 self.logger.info('provisioning done for %s' % instance.get('name'))
             if instance['state'] in [Instance.STATE_STARTING]:
-                self.logger.info('checking readiness of %s' % instance.get('name'))
+                self.logger.debug('checking readiness of %s' % instance.get('name'))
                 self.check_readiness(token, instance_id)
             else:
                 self.logger.debug("update('%s') - nothing to do for %s" % (instance_id, instance))
@@ -125,10 +125,16 @@ class ProvisioningDriverBase(object):
         try:
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETING})
             self.logger.debug('calling subclass do_deprovision')
-            self.do_deprovision(token, instance_id)
+            state = self.do_deprovision(token, instance_id)
 
-            self.logger.debug('finishing deprovisioning')
-            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETED})
+            # check if we got STATE_DELETING from subclass, indicating a retry is needed
+            if state and state == Instance.STATE_DELETING:
+                self.logger.info('instance deletion will be retried for %s', instance_id)
+            elif state is None:
+                self.logger.debug('finishing deprovisioning')
+                pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETED})
+            else:
+                raise RuntimeError('Received invalid state %s from do_deprovision()' % state)
         except Exception as e:
             self.logger.exception('do_deprovision raised %s' % e)
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})

@@ -329,11 +329,19 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
         }
 
     def load_kube_client_config(self):
-        token = self._request_token(
-            base_url=self.backend_config.get('url'),
-            user=self.backend_config.get('user'),
-            password=self.backend_config.get('password')
-        )
+        try:
+            token = self._request_token(
+                base_url=self.backend_config.get('url'),
+                user=self.backend_config.get('user'),
+                password=self.backend_config.get('password')
+            )
+        except Exception as e:
+            self.logger.warning(
+                'Could not request token, check values for url, user and password for backend %s',
+                self.backend_config['name']
+            )
+            raise e
+
         self.logger.debug('got token %s....' % token['access_token'][:10])
         self.backend_config['token'] = token['access_token']
         self.backend_config['token_expires_at'] = token['expires_at']
