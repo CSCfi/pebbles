@@ -117,6 +117,7 @@ class Worker:
         # check if we are being terminated and drop out of the loop
         while not self.terminate:
             logging.debug('worker main loop')
+            self.client.check_and_refresh_session('worker@pebbles', self.api_key)
 
             # we query all non-deleted instances
             instances = self.client.get_instances()
