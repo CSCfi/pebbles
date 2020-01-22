@@ -60,6 +60,7 @@ DockerDriver configurations are available via the UI admin dashboard under
 import json
 import time
 import uuid
+import random
 from docker.errors import APIError
 from docker.tls import TLSConfig
 from docker.utils import parse_bytes
@@ -880,8 +881,8 @@ class DockerDriver(base_driver.ProvisioningDriverBase):
         hosts = self._get_hosts(token, cur_ts, namespace_value)
         active_hosts = self.get_active_hosts(hosts)
 
-        # first try to use the oldest active host with space and lifetime left
-        active_hosts = sorted(active_hosts, key=lambda entry: entry['spawn_ts'])
+        # randomize active hosts
+        random.shuffle(active_hosts)
         selected_hosts = []
         for host in active_hosts:
             is_fresh = host['lifetime_left'] > DD_HOST_LIFETIME_LOW
