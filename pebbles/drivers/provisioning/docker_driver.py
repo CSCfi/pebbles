@@ -342,6 +342,8 @@ class DockerDriverAccessProxy(object):
             logger.debug('UNREACHABLE HOSTS ' + str(pb_executor._unreachable_hosts))
         if getattr(pb_executor, '_failed_hosts', False):
             logger.debug('FAILED_HOSTS ' + str(pb_executor._failed_hosts))
+
+        if not run_success:
             raise RuntimeError('run_ansible_on_host(%s) failed' % host['id'])
         logger.debug('_prepare_host():  done running ansible')
 

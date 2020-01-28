@@ -44,24 +44,33 @@
   command: swapon /dev/mapper/vg_ephemeral-swap
   when: swap_configured|failed
 
-- name: Check for docker thin pool
+- name: Check for docker LV
   command: lvdisplay vg_ephemeral/docker
   register: test_lv_docker
   ignore_errors: yes
 
-- name: Create docker thin pool
+- name: Create docker volume
   lvol:
     vg: vg_ephemeral
     lv: docker
     size: 100%FREE
-    opts: --poolmetadatasize 1G -T
   when: test_lv_docker|failed
 
-- name: Upload custom docker storage configuration
-  template:
-    src=etc/sysconfig/docker-storage.j2
-    dest=/etc/sysconfig/docker-storage
-    backup=True
-  notify: restart docker
-  when: ansible_lsb.id=="CentOS" and ansible_lsb.major_release=="7"
+- name: Format docker LV with xfs
+  filesystem:
+    fstype: xfs
+    dev: /dev/mapper/vg_ephemeral-docker
 
+- name: Create /var/lib/docker
+  file:
+    dest: /var/lib/docker
+    state: directory
+    owner: root
+    group: root
+
+- name: Mount /var/lib/docker
+  mount:
+    src: /dev/mapper/vg_ephemeral-docker
+    name: /var/lib/docker
+    state: mounted
+    fstype: xfs
