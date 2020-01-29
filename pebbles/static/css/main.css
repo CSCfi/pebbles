@@ -136,7 +136,18 @@ body {
     font: bold;
 }
 
-.sortorder thead tr td:nth-of-type(-n+3):hover {
+.sortorder-bp thead tr td:nth-child(-n+3):hover,
+.sortorder-bp thead tr td:nth-child(5):hover {
+   cursor: pointer;
+   background-color: #777;
+}
+
+.sortorder-dashboardins thead tr td:nth-of-type(-n+5):nth-of-type(n+2):hover {
+   cursor: pointer;
+   background-color: #777;
+}
+
+.sortorder-dashboardbp thead tr td:nth-of-type(-n+2):hover {
    cursor: pointer;
    background-color: #777;
 }

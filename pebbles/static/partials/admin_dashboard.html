@@ -8,11 +8,11 @@
   </div>
   <div id="default" class="dashbox" ng-show="isCurrentView('default')">
     <h2>Blueprints</h2>
-    <table class="table table-striped">
+    <table class="table table-striped sortorder sortorder-dashboardbp">
         <thead>
             <tr>
-                <td>Name</td>
-                <td>Group</td>
+                <td ng-click="sortBpType='name'">Name</td>
+                <td ng-click="sortBpType='group_name'">Group</td>
                 <td>Life-time</td>
                 <td>Description</td>
                 <td>Actions</td>
@@ -22,7 +22,7 @@
             <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
                 <td colspan="4">No blueprints</td>
             </tr>
-            <tr ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }">
+            <tr ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' } | orderBy : sortBpType">
                 <td>{{ blueprint.name }}</td>
                 <td>{{ blueprint.group_name }}</td>
                 <td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
@@ -87,14 +87,14 @@
         </div>
     </form>
 
-    <table class="table table-striped">
+    <table class="table table-striped sortorder sortorder-dashboardins">
         <thead>
         <tr>
             <td><input type="checkbox" ng-model="checkAll" ng-change="markAll()"></td>
-            <td>Name</td>
-            <td>State</td>
-            <td>Blueprint</td>
-            <td>User</td>
+            <td ng-click="sortInsType='name'">Name</td>
+            <td ng-click="sortInsType='state'">State</td>
+            <td ng-click="sortInsType='blueprinttype'">Blueprint</td>
+            <td ng-click="sortInsType='user'">User</td>
             <td>Access</td>
             <td>Life-time left</td>
             <td>Actions</td>
@@ -104,7 +104,7 @@
             <tr ng-hide="instances != undefined && (instances | filter:query).length">
                 <td colspan="7">No instances</td>
             </tr>
-            <tr ng-repeat="instance in instances | filter:query">
+            <tr ng-repeat="instance in instances | filter:query | orderBy : sortInsType ">
                 <td><input type="checkbox" ng-init='marked=false' ng-model='marked' ng-checked="checkAll || isMarked(instance)" ng-disabled="instance.state=='deleting'" ng-click="markInstance(marked, instance)"></td>
                 <td><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></td>
                 <td>{{instance.state}} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>

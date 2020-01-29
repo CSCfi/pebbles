@@ -14,8 +14,7 @@
             <tr ng-hide="templates != undefined && templates.length">
                 <td colspan="2">No templates found</td>
             </tr>
-
-            <tr ng-repeat="template in templates | filter : {is_enabled : 'true'}">
+            <tr ng-repeat="template in templates | filter : {is_enabled : 'true'} ">
                 <td>{{template.name}}</td>
                 <td>{{template.config.description}}</td>
                 <td>{{template.config.maximum_lifetime}}</td>
@@ -45,14 +44,14 @@
 	Active Blueprints: <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
 	</uib-accordion-heading>
 
-	<table class="table table-striped sortorder">
+	<table class="table table-striped sortorder sortorder-bp">
 	    <thead>
 	    <tr>
-		<td ng-click="sortType='name'">Type</td>
-		<td ng-click="sortType='template_name'">Template</td>
-		<td ng-click="sortType='group_name'">Group</td>
+		<td ng-click="sortBlueprintType='name'">Type</td>
+		<td ng-click="sortBlueprintType='template_name'">Template</td>
+		<td ng-click="sortBlueprintType='group_name'">Group</td>
 		<td>Max life-time</td>
-                <td>Expiry Date</td>
+                <td ng-click="sortBlueprintType='expirydate'">Expiry Date</td>
 		<td></td>
 	    </tr>
 	    </thead>
@@ -60,7 +59,7 @@
 	    <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
 		<td colspan="3">No blueprints</td>
 	    </tr>
-	    <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType" ng-if="blueprint.is_enabled==true">
+	    <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortBlueprintType" ng-if="blueprint.is_enabled==true">
 		<td>{{blueprint.name}}</td>
 		<td>{{blueprint.template_name}}</td>
 		<td>{{blueprint.group_name}}</td>
@@ -93,14 +92,14 @@
        Deactive Blueprints: <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open1, 'glyphicon-chevron-right':!panel_open1}"></i>
        </uib-accordion-heading>
 
-       <table class="table table-striped sortorder">
+       <table class="table table-striped sortorder sortorder-bp">
 	    <thead>
 	    <tr>
-		<td ng-click="sortType='name'">Type</td>
-		<td ng-click="sortType='template_name'">Template</td>
-		<td ng-click="sortType='group_name'">Group</td>
+		<td ng-click="sortBpDeactiveType='name'">Type</td>
+		<td ng-click="sortBpDeactiveType='template_name'">Template</td>
+		<td ng-click="sortBpDeactiveType='group_name'">Group</td>
 		<td>Max life-time</td>
-                <td>Expiry Date</td>
+                <td ng-click="sortBpDeactiveType='expirydate'">Expiry Date</td>
 		<td></td>
 	    </tr>
 	    </thead>
@@ -109,7 +108,7 @@
 		<td colspan="3">No blueprints</td>
 	    </tr>
 
-	    <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType" ng-if="blueprint.is_enabled==false || blueprint.is_enabled==undefined">
+	    <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortBpDeactiveType" ng-if="blueprint.is_enabled==false || blueprint.is_enabled==undefined">
 		<td>{{blueprint.name}}</td>
 		<td>{{blueprint.template_name}}</td>
 		<td>{{blueprint.group_name}}</td>
