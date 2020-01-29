@@ -396,16 +396,6 @@ app.controller('ModalDestroyInstanceController', function($scope, $modalInstance
 app.controller('DriverConfigController', ['$scope', 'Restangular',
                               function ($scope,   Restangular) {
 
-        $scope.panel_open = false;
-
-        $scope.toggleStatusOpen = function() {
-             if ($scope.panel_open){
-                  $scope.panel_open = false;
-             }
-             else{
-                 $scope.panel_open = true;
-             }
-        }
         var configService = Restangular.all('namespaced_keyvalues');
 
         var fetchDriverConfigs = function(){
