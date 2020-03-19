@@ -119,7 +119,24 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
 
     @sso.login_handler
     def login(user_info):
-        eppn = user_info['eppn']
+        if user_info['authmethod'] == app.config['CSC_LOGIN_AUTH_METHOD']:
+            if user_info['accountlock'] and user_info['accountlock'] == 'true':
+                error_description = 'Your CSC account has been locked. \
+                    You were not authorized to access. Contact the administrator'
+                return render_template(
+                    'error.html',
+                    error_title='User not authorized',
+                    error_description=error_description
+                )
+            else:
+                """
+                Previously csc-internal-idp returned "eppn@cscuserid". Now the csc logins
+                through AAI proxy returns eppn as "eppn@csc.fi". The following manipulation
+                is required to access older accounts who logged in with cscuserid"
+                """
+                eppn = user_info['eppn'].split('@')[0] + '@cscuserid'
+        else:
+            eppn = user_info['eppn']
         user = User.query.filter_by(eppn=eppn).first()
         if not user:
             user = create_user(eppn, password=uuid.uuid4().hex, email_id=user_info['email_id'])
