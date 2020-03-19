@@ -149,6 +149,8 @@ class BaseConfig(object):
 
     PROVISIONING_NUM_WORKERS = 1
 
+    CSC_LOGIN_AUTH_METHOD = 'change_me'
+
     # enable access by []
 
     def __getitem__(self, item):
