@@ -149,7 +149,9 @@ class BaseConfig(object):
 
     PROVISIONING_NUM_WORKERS = 1
 
+    HAKA_LOGIN_AUTH_METHOD = 'change_me'
     CSC_LOGIN_AUTH_METHOD = 'change_me'
+    VIRTU_LOGIN_AUTH_METHOD = 'change_me'
 
     # enable access by []
 

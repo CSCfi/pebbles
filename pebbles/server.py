@@ -135,8 +135,23 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
                 is required to access older accounts who logged in with cscuserid"
                 """
                 eppn = user_info['eppn'].split('@')[0] + '@cscuserid'
-        else:
+        elif user_info['authmethod'] == app.config['VIRTU_LOGIN_AUTH_METHOD']:
+            """
+            virtu login does not have eppn. Eppn is only for academics. virtu has custom
+            attribute virtuPersonPrincipalname(VirtuLocalId+VirtuHomeOrg) which is lot like eppn.
+            """
+            eppn = user_info['vppn']
+        elif user_info['authmethod'] == app.config['HAKA_LOGIN_AUTH_METHOD']:
             eppn = user_info['eppn']
+        else:
+            # block all other logins
+            error_description = 'You were not authorized to access. Contact the administrator'
+            return render_template(
+                'error.html',
+                error_title='User not authorized',
+                error_description=error_description
+            )
+
         user = User.query.filter_by(eppn=eppn).first()
         if not user:
             user = create_user(eppn, password=uuid.uuid4().hex, email_id=user_info['email_id'])
