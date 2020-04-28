@@ -7,7 +7,7 @@ from flask_httpauth import HTTPBasicAuth
 from flask_restful import fields
 
 from pebbles.drivers.provisioning import dummy_driver_config, kubernetes_driver_config, openshift_template_driver_config
-from pebbles.models import db, ActivationToken, User, Group, GroupUserAssociation, Plugin
+from pebbles.models import db, ActivationToken, User, Workspace, WorkspaceUserAssociation, Plugin
 
 user_fields = {
     'id': fields.String,
@@ -15,18 +15,18 @@ user_fields = {
     'email_id': fields.String,
     'pseudonym': fields.String,
     'credits_quota': fields.Float,
-    'group_quota': fields.Float,
+    'workspace_quota': fields.Float,
     'blueprint_quota': fields.Float,
     'credits_spent': fields.Float,
     'is_active': fields.Boolean,
     'is_admin': fields.Boolean,
-    'is_group_owner': fields.Boolean,
+    'is_workspace_owner': fields.Boolean,
     'is_deleted': fields.Boolean,
     'is_blocked': fields.Boolean,
     'expiry_date': fields.DateTime,
 }
 
-group_fields = {
+workspace_fields = {
     'id': fields.String(attribute='id'),
     'name': fields.String,
     'join_code': fields.String,
@@ -37,9 +37,9 @@ group_fields = {
     'role': fields.String
 }
 
-admin_icons = ["Dashboard", "Users", "Groups", "Blueprints", "Configure", "Statistics", "Account"]
-group_owner_icons = ["Dashboard", "", "Groups", "Blueprints", "", "", "Account"]
-group_manager_icons = ["Dashboard", "", "", "Blueprints", "", "", "Account"]
+admin_icons = ["Dashboard", "Users", "Workspaces", "Blueprints", "Configure", "Statistics", "Account"]
+workspace_owner_icons = ["Dashboard", "", "Workspaces", "Blueprints", "", "", "Account"]
+workspace_manager_icons = ["Dashboard", "", "", "Blueprints", "", "", "Account"]
 user_icons = ["Dashboard", "", "", "", "", "", "Account"]
 
 auth = HTTPBasicAuth()
@@ -69,7 +69,7 @@ def create_user(eppn, password, is_admin=False, email_id=None):
 
     user = User(eppn, password, is_admin=is_admin, email_id=email_id)
     if not is_admin:
-        add_user_to_default_group(user)
+        add_user_to_default_workspace(user)
     db.session.add(user)
     db.session.commit()
     return user
@@ -161,37 +161,37 @@ def invite_user(eppn=None, password=None, is_admin=False, expiry_date=None):
     return user
 
 
-def create_system_groups(admin):
-    system_default_group = Group('System.default')
-    group_admin_obj = GroupUserAssociation(group=system_default_group, user=admin, owner=True)
-    system_default_group.users.append(group_admin_obj)
-    db.session.add(system_default_group)
+def create_system_workspaces(admin):
+    system_default_workspace = Workspace('System.default')
+    workspace_admin_obj = WorkspaceUserAssociation(workspace=system_default_workspace, user=admin, owner=True)
+    system_default_workspace.users.append(workspace_admin_obj)
+    db.session.add(system_default_workspace)
     db.session.commit()
 
 
-def add_user_to_default_group(user):
-    system_default_group = Group.query.filter_by(name='System.default').first()
-    group_user_obj = GroupUserAssociation(group=system_default_group, user=user)
-    system_default_group.users.append(group_user_obj)
-    db.session.add(system_default_group)
+def add_user_to_default_workspace(user):
+    system_default_workspace = Workspace.query.filter_by(name='System.default').first()
+    workspace_user_obj = WorkspaceUserAssociation(workspace=system_default_workspace, user=user)
+    system_default_workspace.users.append(workspace_user_obj)
+    db.session.add(system_default_workspace)
     db.session.commit()
 
 
-def requires_group_manager_or_admin(f):
+def requires_workspace_manager_or_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not g.user.is_admin and not g.user.is_group_owner and not is_group_manager(g.user):
+        if not g.user.is_admin and not g.user.is_workspace_owner and not is_workspace_manager(g.user):
             abort(403)
         return f(*args, **kwargs)
 
     return decorated
 
 
-def is_group_manager(user, group=None):
-    if group:
-        match = GroupUserAssociation.query.filter_by(user_id=user.id, group_id=group.id, manager=True).first()
+def is_workspace_manager(user, workspace=None):
+    if workspace:
+        match = WorkspaceUserAssociation.query.filter_by(user_id=user.id, workspace_id=workspace.id, manager=True).first()
     else:
-        match = GroupUserAssociation.query.filter_by(user_id=user.id, manager=True).first()
+        match = WorkspaceUserAssociation.query.filter_by(user_id=user.id, manager=True).first()
     if match:
         return True
     return False

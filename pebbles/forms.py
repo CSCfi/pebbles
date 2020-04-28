@@ -31,7 +31,7 @@ class UserForm(ModelForm):
     is_admin = BooleanField('is_admin', default=False, false_values=['false', False, ''])
 
 
-class GroupForm(ModelForm):
+class WorkspaceForm(ModelForm):
     name = StringField(
         'name',
         validators=[
@@ -61,7 +61,7 @@ class BlueprintForm(ModelForm):
     template_id = StringField('template_id', validators=[DataRequired()])
     config = StringField('config', validators=[DataRequired()])
     is_enabled = BooleanField('is_enabled', default=False)
-    group_id = StringField('group_id', validators=[DataRequired()])
+    workspace_id = StringField('workspace_id', validators=[DataRequired()])
 
 
 class BlueprintTemplateImportForm(ModelForm):
@@ -75,7 +75,7 @@ class BlueprintImportForm(ModelForm):
     name = StringField('name', validators=[DataRequired()])
     config = StringField('config', validators=[DataRequired()])
     template_name = StringField('template_name', validators=[DataRequired()])
-    group_name = StringField('group_name', validators=[DataRequired()])
+    workspace_name = StringField('workspace_name', validators=[DataRequired()])
 
 
 class ChangePasswordForm(ModelForm):

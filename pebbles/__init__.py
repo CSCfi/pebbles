@@ -42,19 +42,19 @@ User Types in Pebbles
 There are broadly four roles in a Pebbles instance:
 
 1. Admin - Which is supposed to be the superuser of the system. Ability to
-    invite new users, appoint group owners, create blueprint templates,
+    invite new users, appoint workspace owners, create blueprint templates,
     blueprints, system and normal groups. System level priviledges : Access to
     the backend database, restart or delete running services.
-2. Group Owner - Ability to create groups, appoint group managers , create
-    blueprints and manage instances running in a group
-3. Group Manager - Ability to create blueprints and manage instances
-    running in a group
-4. User - Able to launch instances if belonging to a group with
+2. Workspace Owner - Ability to create groups, appoint workspace managers , create
+    blueprints and manage instances running in a workspace
+3. Workspace Manager - Ability to create blueprints and manage instances
+    running in a workspace
+4. User - Able to launch instances if belonging to a workspace with
     blueprints.
 
-A **group owner** is typically associated with costs tracking, e.g. a
-professor or researcher. The group owner can create groups and promote other
-users to be **group managers** to run basic day-to-day tasks.
+A **workspace owner** is typically associated with costs tracking, e.g. a
+professor or researcher. The workspace owner can create groups and promote other
+users to be **workspace managers** to run basic day-to-day tasks.
 
 Use Cases
 ---------

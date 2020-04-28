@@ -14,9 +14,9 @@ credit_quota_update_functions = {
     'absolute': lambda user, value: value,
     'relative': lambda user, value: user.credits_quota + value
 }
-group_quota_update_functions = {
+workspace_quota_update_functions = {
     'absolute': lambda user, value: value,
-    'relative': lambda user, value: user.group_quota + value
+    'relative': lambda user, value: user.workspace_quota + value
 }
 blueprint_quota_update_functions = {
     'absolute': lambda user, value: value,
@@ -50,12 +50,12 @@ def update_user_quota(user, update_type, value, credits_type):
         if credits_type == 'credits_quota_value':
             fun = credit_quota_update_functions[update_type]
             user.credits_quota = fun(user, value)
-        elif credits_type == 'group_quota_value' and user.is_group_owner:
-            if not user.group_quota:
-                user.group_quota = 1  # can also add real time value from db here
-            fun = group_quota_update_functions[update_type]
-            user.group_quota = fun(user, value)
-        elif credits_type == 'blueprint_quota_value' and user.is_group_owner:
+        elif credits_type == 'workspace_quota_value' and user.is_workspace_owner:
+            if not user.workspace_quota:
+                user.workspace_quota = 1  # can also add real time value from db here
+            fun = workspace_quota_update_functions[update_type]
+            user.workspace_quota = fun(user, value)
+        elif credits_type == 'blueprint_quota_value' and user.is_workspace_owner:
             if not user.blueprint_quota:
                 user.blueprint_quota = 1
             fun = blueprint_quota_update_functions[update_type]

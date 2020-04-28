@@ -1,4 +1,4 @@
-app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$filter', 'AuthService', 'Restangular',
+app.controller('WorkspacesController', ['$q', '$scope', '$interval', '$uibModal', '$filter', 'AuthService', 'Restangular',
                           function ($q,   $scope,   $interval,   $uibModal,   $filter,   AuthService,   Restangular) {
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
         $scope.include_deleted = false;
@@ -10,21 +10,21 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             }
         };
 
-	$scope.toggleGroupList = function() {
+	$scope.toggleWorkspaceList = function() {
 
-		$scope.toggleGroupList = {
+		$scope.toggleWorkspaceList = {
 		panel_open: false
 	 	};
 	}
 
-	$scope.selectedGroup = false;
+	$scope.selectedWorkspace = false;
 	$scope.showCode = false;
-	$scope.getSelectedGroup = function(group) {
+	$scope.getSelectedWorkspace = function(workspace) {
 		
 		$scope.showCode = false;
-		$scope.selectedGroup = group;
+		$scope.selectedWorkspace = workspace;
 		
-		$scope.toggleGroupList = {
+		$scope.toggleWorkspaceList = {
                 panel_open: false
 	        };
 	}
@@ -37,16 +37,16 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
              }
 	}
 
-	$scope.removeGroupDetails = function() {
-		$scope.selectedGroup = false;
+	$scope.removeWorkspaceDetails = function() {
+		$scope.selectedWorkspace = false;
 	};
 
         $scope.isAdmin = function() {
             return AuthService.isAdmin();
         };
 
-        $scope.isGroupOwnerOrAdmin = function() {
-            return AuthService.isGroupOwnerOrAdmin();
+        $scope.isWorkspaceOwnerOrAdmin = function() {
+            return AuthService.isWorkspaceOwnerOrAdmin();
         };
 
         $scope.getIcons = function() {
@@ -58,26 +58,26 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             }
         };
 
-        if (AuthService.isGroupOwnerOrAdmin()) {
-            var groups = Restangular.all('groups');
-            groups.getList().then(function (response) {
-                $scope.groups = response;
+        if (AuthService.isWorkspaceOwnerOrAdmin()) {
+            var workspaces = Restangular.all('workspaces');
+            workspaces.getList().then(function (response) {
+                $scope.workspaces = response;
             });
 
-            var groupsSF = {};
-            groupsSF.schema = {
+            var workspacesSF = {};
+            workspacesSF.schema = {
                 "type": "object",
                 "title": "Comment",
                 "properties": {
                     "name":  {
-                    "title": "Group Name",
+                    "title": "Workspace Name",
                     "type": "string",
                     "maxLength": 32,
                     "pattern": "^(?!(?:SYSTEM|System|system)).+",  // No case sensitive flag in schemaform
                     "validationMessage": "Required Field! Max length 32 chars",
                     },
                 "description": {
-                    "title": "Group Description",
+                    "title": "Workspace Description",
                     "type": "string",
                     "maxLength": 250,
                     "validationMessage": "Maximum text limit for the description reached!"
@@ -86,76 +86,76 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
                 "required": ["name"]
 
             }
-            groupsSF.form = [
+            workspacesSF.form = [
                 {
                     "key": "name",
                     "type": "textfield",
-                    "placeholder": "Group name"
+                    "placeholder": "Workspace name"
                 },
                 {
                     "key": "description",
                     "type": "textarea",
-                    "placeholder": "Details of the group"
+                    "placeholder": "Details of the workspace"
                 }
             ]
 
-            $scope.openCreateGroupDialog=function() {
+            $scope.openCreateWorkspaceDialog=function() {
                 $uibModal.open({
-                    templateUrl: '/partials/modal_create_group.html',
-                    controller: 'ModalCreateGroupController',
+                    templateUrl: '/partials/modal_create_workspace.html',
+                    controller: 'ModalCreateWorkspaceController',
                     size: 'md',
                     resolve: {
-                        groupsSF: function() {
-                            return groupsSF;
+                        workspacesSF: function() {
+                            return workspacesSF;
                         },
-                        groups: function() {
-                            return groups;
+                        workspaces: function() {
+                            return workspaces;
                         }
                     }
                 }).result.then(function() {
-                     groups.getList().then(function (response) {
-                         $scope.groups = response;
+                     workspaces.getList().then(function (response) {
+                         $scope.workspaces = response;
                       });
                 });
             };
 
-            $scope.openModifyGroupDialog=function(group) {
+            $scope.openModifyWorkspaceDialog=function(workspace) {
                 $uibModal.open({
-                    templateUrl: '/partials/modal_modify_group.html',
-                    controller: 'ModalModifyGroupController',
+                    templateUrl: '/partials/modal_modify_workspace.html',
+                    controller: 'ModalModifyWorkspaceController',
                     size: 'md',
                     resolve: {
-                        groupsSF: function() {
-                            return groupsSF;
+                        workspacesSF: function() {
+                            return workspacesSF;
                         },
-                        group: function() {
-                            return group;
+                        workspace: function() {
+                            return workspace;
                         },
-                        group_users: function() {
-                            var group_users = Restangular.all('groups').one(group.id).all('users');
-                            return group_users;
+                        workspace_users: function() {
+                            var workspace_users = Restangular.all('workspaces').one(workspace.id).all('users');
+                            return workspace_users;
                         }
 
                     }
                 }).result.then(function() {
-                    groups.getList().then(function (response) {
-                        $scope.groups = response;
+                    workspaces.getList().then(function (response) {
+                        $scope.workspaces = response;
                      });
                 });
             };
  
 
-		$scope.openChangeOwnerDialog=function(group) {
+		$scope.openChangeOwnerDialog=function(workspace) {
                 $uibModal.open({
-                    templateUrl: '/partials/modal_change_group_owner.html',
-                    controller: 'ModalChangeGroupOwnerController',
+                    templateUrl: '/partials/modal_change_workspace_owner.html',
+                    controller: 'ModalChangeWorkspaceOwnerController',
                     size: 'md',
                     resolve: {
-                        groupsSF: function() {
-                            return groupsSF;
+                        workspacesSF: function() {
+                            return workspacesSF;
                         },
-                        group: function() {
-                            return group;
+                        workspace: function() {
+                            return workspace;
                         },
                         user_list: function() {
                             var user_list = Restangular.all('users');
@@ -164,41 +164,41 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
 
                     }
                 }).result.then(function() {
-                    groups.getList().then(function (response) {
-                        $scope.groups = response;
+                    workspaces.getList().then(function (response) {
+                        $scope.workspaces = response;
                      });
                 });
             };
 
 
-           $scope.showUsers=function(group) {
+           $scope.showUsers=function(workspace) {
                $uibModal.open({
-		   templateUrl: '/partials/modal_showusers_group.html',
-                   controller: 'ModalShowusersGroupController',
+		   templateUrl: '/partials/modal_showusers_workspace.html',
+                   controller: 'ModalShowusersWorkspaceController',
                     size: 'md',
                     resolve: {
-                        group: function() {
-                            return group;
+                        workspace: function() {
+                            return workspace;
                         },
-                        group_users: function() {
-                            var group_users = Restangular.all('groups').one(group.id).all('users');
-                            return group_users;
+                        workspace_users: function() {
+                            var workspace_users = Restangular.all('workspaces').one(workspace.id).all('users');
+                            return workspace_users;
                         }
                     }
                }).result.then(function() {
-                    groups.getList().then(function (response) {
-                        $scope.groups = response;
+                    workspaces.getList().then(function (response) {
+                        $scope.workspaces = response;
                      });
               });
            };
 
         }
 
-    $scope.archiveGroup = function(group) {
-        group.current_status = 'archived';
-        group.patch().then(function() {
-            groups.getList().then(function (response) {
-                $scope.groups = response;
+    $scope.archiveWorkspace = function(workspace) {
+        workspace.current_status = 'archived';
+        workspace.patch().then(function() {
+            workspaces.getList().then(function (response) {
+                $scope.workspaces = response;
             }, function(response) {
                    if ('error' in response.data){
                    error_message = response.data.error;
@@ -208,12 +208,12 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
         });
     };
 
-    $scope.deleteGroup=function(group) {
-        group.remove().then(function () {
-            groups.getList().then(function (response) {
-                        $scope.groups = response;
+    $scope.deleteWorkspace=function(workspace) {
+        workspace.remove().then(function () {
+            workspaces.getList().then(function (response) {
+                        $scope.workspaces = response;
                      });
-            $.notify({message: "Group: " + group.name + " is successfully deleted"}, {type: 'success'});
+            $.notify({message: "Workspace: " + workspace.name + " is successfully deleted"}, {type: 'success'});
             }, function(response) {
                    if ('error' in response.data){
                       error_message = response.data.error;
@@ -222,11 +222,11 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
             });
     }
 
-    $scope.clearUsersFromGroup = function(group) {
-        var clearGroup = Restangular.oneUrl('groups/clear_users_from_group');
-        var id = {'group_id': group.id};
-        clearGroup.remove(id).then(function () {
-            $.notify({message: "Cleared all users from Group: " + group.name}, {type: 'success'});
+    $scope.clearUsersFromWorkspace = function(workspace) {
+        var clearWorkspace = Restangular.oneUrl('workspaces/clear_users_from_workspace');
+        var id = {'workspace_id': workspace.id};
+        clearWorkspace.remove(id).then(function () {
+            $.notify({message: "Cleared all users from Workspace: " + workspace.name}, {type: 'success'});
         }, function(response) {
             if ('error' in response.data){
                error_message = response.data.error;
@@ -236,19 +236,19 @@ app.controller('GroupsController', ['$q', '$scope', '$interval', '$uibModal', '$
     }
 
  }]);
-app.controller('ModalCreateGroupController', function($scope, $modalInstance, groupsSF, groups) {
+app.controller('ModalCreateWorkspaceController', function($scope, $modalInstance, workspacesSF, workspaces) {
 
-    $scope.groupsSF = groupsSF;
-    groupsSF.model = {}
+    $scope.workspacesSF = workspacesSF;
+    workspacesSF.model = {}
 
-    $scope.createGroup = function(form, model) {
+    $scope.createWorkspace = function(form, model) {
      if (form.$valid) {
-            groups.post({ 
+            workspaces.post({
                  name: model.name, description: model.description,
             }).then(function () {
                 $modalInstance.close(true);
             }, function(response) {
-                error_message = 'unable to create group'
+                error_message = 'unable to create workspace'
                 if ('name' in response.data){
                     error_message = response.data.name
                 }
@@ -265,35 +265,35 @@ app.controller('ModalCreateGroupController', function($scope, $modalInstance, gr
     };
 });
 
-app.controller('ModalModifyGroupController', function($scope, $modalInstance, groupsSF, group, group_users) {
+app.controller('ModalModifyWorkspaceController', function($scope, $modalInstance, workspacesSF, workspace, workspace_users) {
 
-    $scope.groupsSF = groupsSF
-    $scope.group = group;
-    group_users.getList({'banned_list': true}).then(function (response) {
+    $scope.workspacesSF = workspacesSF
+    $scope.workspace = workspace;
+    workspace_users.getList({'banned_list': true}).then(function (response) {
         $scope.userData = response;
     });
-    group_users.getList().then(function (response) {
+    workspace_users.getList().then(function (response) {
         $scope.managerData = response;
     });
     $scope.userSettings = {displayProp: 'eppn', scrollable: true, enableSearch: true};
-    var old_name = group.name;
+    var old_name = workspace.name;
 
-    $scope.modifyGroup = function(form, model, user_config) {
+    $scope.modifyWorkspace = function(form, model, user_config) {
      if (form.$valid) {
-            $scope.group.name = model.name
-            $scope.group.description = model.description
-            $scope.group.user_config = {
+            $scope.workspace.name = model.name
+            $scope.workspace.description = model.description
+            $scope.workspace.user_config = {
                  "banned_users": user_config.banned_users,
                  "managers": user_config.managers,
 		 "owner": user_config.owner
             }
-            $scope.group.put().then(function () {
+            $scope.workspace.put().then(function () {
                 $modalInstance.close(true);
             }, function(response) {
-                error_message = 'unable to create group';
+                error_message = 'unable to create workspace';
                 if ('name' in response.data){
                     error_message = response.data.name;
-                    $scope.group.name = old_name;
+                    $scope.workspace.name = old_name;
                 }
                 if ('error' in response.data){
                     error_message = response.data.error;
@@ -308,36 +308,36 @@ app.controller('ModalModifyGroupController', function($scope, $modalInstance, gr
     };
 });
 
-app.controller('ModalChangeGroupOwnerController', function($scope, $modalInstance, groupsSF, group, user_list) {
+app.controller('ModalChangeWorkspaceOwnerController', function($scope, $modalInstance, workspacesSF, workspace, user_list) {
 
-    $scope.groupsSF = groupsSF
-    $scope.group = group;
+    $scope.workspacesSF = workspacesSF
+    $scope.workspace = workspace;
     user_list.getList().then(function (response) {
-	$scope.userData = _.filter(response, ['is_group_owner', true]);
+	$scope.userData = _.filter(response, ['is_workspace_owner', true]);
     });
 
  
-    var old_name = group.name;
+    var old_name = workspace.name;
     $scope.userSettings = {displayProp: 'eppn', scrollable: true, enableSearch: true, selectionLimit: '1'};
 
-    $scope.confirmNewGroupOwner = function(form, model, user_config) {
+    $scope.confirmNewWorkspaceOwner = function(form, model, user_config) {
 
      if (form.$valid) {
-            $scope.group.name = model.name
-	        $scope.group.description = model.description
-	        $scope.group.user_config = {
+            $scope.workspace.name = model.name
+	        $scope.workspace.description = model.description
+	        $scope.workspace.user_config = {
 	             "banned_users": user_config.banned_users,
                      "managers": user_config.managers,
                      "owner": user_config.owner
 		}
 	   
-            $scope.group.put().then(function () {
+            $scope.workspace.put().then(function () {
                 $modalInstance.close(true);
             }, function(response) {
-                error_message = 'unable to create group';
+                error_message = 'unable to create workspace';
                 if ('name' in response.data){
                     error_message = response.data.name;
-                    $scope.group.name = old_name;
+                    $scope.workspace.name = old_name;
                 }
                 if ('error' in response.data){
                     error_message = response.data.error;
@@ -355,19 +355,19 @@ app.controller('ModalChangeGroupOwnerController', function($scope, $modalInstanc
 
 
 
-app.controller('ModalShowusersGroupController', function($scope, $modalInstance, group, group_users) {
-    group_users.getList().then(function (response) {
-        $scope.group = group;
+app.controller('ModalShowusersWorkspaceController', function($scope, $modalInstance, workspace, workspace_users) {
+    workspace_users.getList().then(function (response) {
+        $scope.workspace = workspace;
         $scope.userData = response;
-        $scope.manageruser = _.flatten(_.map(group.user_config.managers, function(check_value){
+        $scope.manageruser = _.flatten(_.map(workspace.user_config.managers, function(check_value){
                    return _.filter(response, check_value);
          }));
-        $scope.groupowneruser = _.filter(response, {"is_group_owner": true} );
+        $scope.workspaceowneruser = _.filter(response, {"is_workspace_owner": true} );
     });
 
-    group_users.getList({'banned_list': true}).then(function (response) {
+    workspace_users.getList({'banned_list': true}).then(function (response) {
         $scope.managerData = response;
-        $scope.banneduser = _.flatten(_.map(group.user_config.banned_users, function(check_value){
+        $scope.banneduser = _.flatten(_.map(workspace.user_config.banned_users, function(check_value){
                    return _.filter(response, check_value);
         }));
     });

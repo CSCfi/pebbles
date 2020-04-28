@@ -1,0 +1,94 @@
+<div ng-show="getIcons()">
+ <h2>Workspaces</h2>
+
+ <div>
+    <ul class="nav nav-pills">
+      <li><button ng-click="openCreateWorkspaceDialog()" class="btn btn-primary">Create A New Workspace</button></li>
+    </ul>
+ </div>
+
+ <br/>
+	<form>
+         <div class="row">
+          <div class="col-md-12">
+           <div class="form-workspace>
+             <div class="input-workspace">
+              <input id="query" class="form-control" ng-model="query.name" placeholder="Search Workspace"/>
+             </div>
+            </div>
+           </div>
+          </div>
+        </form>
+ <br/>
+
+ <uib-accordion close-others="false">
+  <div uib-accordion-group class="panel-default" is-open="toggleWorkspaceList.panel_open">
+   <uib-accordion-heading>
+    List of Available Workspaces <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':toggleWorkspaceList.panel_open, 'glyphicon-chevron-right':!toggleWorkspaceList.panel_open}"></i>
+   </uib-accordion-heading> 
+
+	<table class="table table-striped">
+        <thead>
+        <tr>
+            <td><label>Name</label></td>
+            <td ng-show="isAdmin()"><label>Owner</label></td>
+        </tr>
+        </thead>
+        <tbody>
+        <tr class="workspace-list"  ng-repeat="workspace in workspaces | filter:query" ng-click="getSelectedWorkspace(workspace)">
+            <td>{{workspace.name}}</td>
+            <td ng-show="isAdmin()">{{workspace.owner_eppn}}</td>
+        </tr>
+        </tbody>
+    </table>	
+  </div>
+ </uib-accordion>
+
+ </br>
+
+ <div ng-if="selectedWorkspace!==false">
+
+  <p class="close-workspace-details" ng-click="removeWorkspaceDetails()"><span class="glyphicon glyphicon-remove"></span></p>
+  <h2>Workspace Details</h2>
+ 
+  <table class="table table-striped">
+        <thead>
+        <tr>
+            <td><label>Name</label></td>
+            <td ng-show="isAdmin()"><label>Owner</label></td>
+            <td ng-if="showCode==true"><label>Join Code</label></td>
+            <td ng-if="showCode==false"><label>Join Code</label></td>
+            <td><label>Description</label></td>
+            <td></td>
+            <td ng-show="isAdmin()"></td>
+        </tr>
+        </thead>
+  <tbody>
+        <tr>
+            <td>{{selectedWorkspace.name}}</td>
+            <td ng-show="isAdmin()">{{selectedWorkspace.owner_eppn}}</td>
+            <td ng-if="showCode==true">{{selectedWorkspace.join_code}}</td>
+            <td ng-if="showCode==false">*****</td>
+            <td>{{selectedWorkspace.description}}</td>
+            <td>
+		<button ng-if="showCode==false" ng-click="toggleJoinCode()" class="btn btn-default"><span class="glyphicon glyphicon-eye-open"></span> Join Code</button>
+		<button ng-if="showCode==true" ng-click="toggleJoinCode()" class="btn btn-default"><span class="glyphicon glyphicon-eye-close"></span> Join Code</button>
+                <button ng-click="openChangeOwnerDialog(selectedWorkspace)" type="submit" class="btn btn-default">Change Owner</button>
+                <button ng-click="openModifyWorkspaceDialog(selectedWorkspace)" type="submit" class="btn btn-default">Modify</button>
+                <span ng-show="isWorkspaceOwnerOrAdmin()">
+                     <button ng-click="showUsers(selectedWorkspace)" class="btn btn-default">Show Users</button>
+                </span>
+                <span ng-show="isAdmin() && selectedWorkspace.name !='System.default'">
+                    <button ng-show=isAdmin() ng-confirm-click="Do you want to permanently archive this workspace? Note that blueprints created in this workspace will also be archived." ng-click="archiveWorkspace(selectedWorkspace)" class="btn btn-default">Archive</button>
+                    <button ng-confirm-click="Delete this workspace?" ng-click="deleteWorkspace(selectedWorkspace)" class="btn btn-danger">Delete</button>
+                </span>
+                <span ng-show="isWorkspaceOwnerOrAdmin() && selectedWorkspace.name !='System.default'">
+                    <button ng-show="isWorkspaceOwnerOrAdmin()" ng-confirm-click="This will remove all but Workspace Owner from this workspace. Do you want to continue?"
+                    ng-click="clearUsersFromWorkspace(selectedWorkspace)" class="btn btn-danger">Clear Users</button>
+                </span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+ </div>
+</div>

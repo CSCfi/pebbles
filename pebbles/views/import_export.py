@@ -3,9 +3,9 @@ from flask_restful import fields, marshal_with
 from flask import Blueprint as FlaskBlueprint
 import logging
 
-from pebbles.models import db, Blueprint, BlueprintTemplate, Plugin, Group
+from pebbles.models import db, Blueprint, BlueprintTemplate, Plugin, Workspace
 import flask_restful as restful
-from pebbles.views.commons import auth, requires_group_manager_or_admin
+from pebbles.views.commons import auth, requires_workspace_manager_or_admin
 from pebbles.views.blueprint_templates import blueprint_schemaform_config
 from pebbles.utils import requires_admin
 from pebbles.rules import apply_rules_export_blueprints
@@ -27,7 +27,7 @@ blueprint_export_fields = {
     'is_enabled': fields.Boolean,
     'template_name': fields.String,
     'config': fields.Raw,
-    'group_name': fields.String
+    'workspace_name': fields.String
 }
 
 
@@ -85,7 +85,7 @@ class ImportExportBlueprintTemplates(restful.Resource):
 
 class ImportExportBlueprints(restful.Resource):
     @auth.login_required
-    @requires_group_manager_or_admin
+    @requires_workspace_manager_or_admin
     @marshal_with(blueprint_export_fields)
     def get(self):
         user = g.user
@@ -101,13 +101,13 @@ class ImportExportBlueprints(restful.Resource):
                 'is_enabled': blueprint.is_enabled,
                 'config': blueprint.config,
                 'template_name': template.name,
-                'group_name': blueprint.group.name
+                'workspace_name': blueprint.workspace.name
             }
             results.append(obj)
         return results
 
     @auth.login_required
-    @requires_group_manager_or_admin
+    @requires_workspace_manager_or_admin
     def post(self):
         form = BlueprintImportForm()
 
@@ -122,16 +122,16 @@ class ImportExportBlueprints(restful.Resource):
             logging.warning('no blueprint template found with name %s', template_name)
             return {"error": "No blueprint template found"}, 404
 
-        group_name = form.group_name.data
-        group = Group.query.filter_by(name=group_name).first()
-        if not group:
-            logging.warning('no group found with name %s', group_name)
-            return {"error": "No group found"}, 404
+        workspace_name = form.workspace_name.data
+        workspace = Workspace.query.filter_by(name=workspace_name).first()
+        if not workspace:
+            logging.warning('no workspace found with name %s', workspace_name)
+            return {"error": "No workspace found"}, 404
 
         blueprint = Blueprint()
         blueprint.name = form.name.data
         blueprint.template_id = template.id
-        blueprint.group_id = group.id
+        blueprint.workspace_id = workspace.id
         blueprint.config = form.config.data
 
         db.session.add(blueprint)

@@ -29,7 +29,7 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
             return false;
         }
 
-        var group_join = Restangular.all('groups').one('group_join');
+        var workspace_join = Restangular.all('workspaces').one('workspace_join');
 
         var blueprints = Restangular.all('blueprints');
         blueprints.getList().then(function (response) {
@@ -38,20 +38,20 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
                 $scope.blueprints = _.filter(response, { 'id': blueprint_id });
                 if (!$scope.blueprints.length){
                      $uibModal.open({
-                     templateUrl: '/partials/modal_group_join.html',
-                     controller: 'ModalGroupJoinController',
+                     templateUrl: '/partials/modal_workspace_join.html',
+                     controller: 'ModalWorkspaceJoinController',
                      size: 'sm',
                      backdrop  : 'static',
                      keyboard  : false,
                      resolve: {
-                         group_join: function() {
-                             return group_join;
+                         workspace_join: function() {
+                             return workspace_join;
                          },
                          join_title: function(){
                              return "Enter the join code"
                          },
                          dismiss_reason: function(){
-                             return "You need to join a valid group to see the environment"
+                             return "You need to join a valid workspace to see the environment"
                          }
                      }
                      }).result.then(function() {
@@ -127,7 +127,7 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
             if (offset) {
                 queryParams.offset = $scope.offset;
             }
-            if (AuthService.isGroupOwnerOrAdmin() && isUserDashboard) {
+            if (AuthService.isWorkspaceOwnerOrAdmin() && isUserDashboard) {
 		queryParams.show_only_mine = true;
             }
             instances.getList(queryParams).then(function (response) {

@@ -10,10 +10,10 @@
 
     <div class="row" ng-hide="isAdmin()">
        <div class="col-md-6">
-      <h3> User Groups </h3>
+      <h3> User Workspaces </h3>
           <div class="row">
               <div class="col-md-6">
-                  <button ng-click="openGroupJoinModal()" type="submit" class="btn btn-primary">Join Group</button>
+                  <button ng-click="openWorkspaceJoinModal()" type="submit" class="btn btn-primary">Join Workspace</button>
               </div>
           </div>
         <table class="table table-striped">
@@ -21,28 +21,28 @@
             <tr>
                 <td>Name</td>
                 <td>Role</td>
-            <td ng-show="isGroupManagerOrAdmin()">Join Code</td>
+            <td ng-show="isWorkspaceManagerOrAdmin()">Join Code</td>
             <td>Details</td>
             <td></td>
 
             </tr>
             </thead>
             <tbody>
-                <tr ng-hide="group_list_exit != undefined && group_list_exit.length">
-                    <td colspan="2">No groups found. Make sure you have joined a group.</td>
+                <tr ng-hide="workspace_list_exit != undefined && workspace_list_exit.length">
+                    <td colspan="2">No workspaces found. Make sure you have joined a workspace.</td>
                 </tr>
 
-                <tr ng-repeat="group in group_list_exit">
-                    <td>{{group.name}}</td>
+                <tr ng-repeat="workspace in workspace_list_exit">
+                    <td>{{workspace.name}}</td>
                     <td>
-                        <span ng-class="{user:'label label-default', manager:'label label-primary', owner:'label label-success'}[group.role]">{{group.role}}</span>
+                        <span ng-class="{user:'label label-default', manager:'label label-primary', owner:'label label-success'}[workspace.role]">{{workspace.role}}</span>
                     </td>
-                <td ng-hide="group.role=='user' || !isGroupManagerOrAdmin()">{{group.join_code}}</td>
-            <td ng-show="group.role=='user' && isGroupManagerOrAdmin()">-</td>
-            <td>{{group.description}}</td>
+                <td ng-hide="workspace.role=='user' || !isWorkspaceManagerOrAdmin()">{{workspace.join_code}}</td>
+            <td ng-show="workspace.role=='user' && isWorkspaceManagerOrAdmin()">-</td>
+            <td>{{workspace.description}}</td>
                     <td>
-                        <button ng-click="exit_group(group)" class="btn btn-danger">
-                          Exit Group
+                        <button ng-click="exit_workspace(workspace)" class="btn btn-danger">
+                          Exit Workspace
                         </button>
                     </td>
                 </tr>

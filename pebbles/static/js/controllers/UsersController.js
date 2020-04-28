@@ -14,7 +14,7 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
             var users = Restangular.all('users');
             var quota = Restangular.all('quota');
             var blueprint = Restangular.all('blueprints');
-            var group = Restangular.all('groups');
+            var workspace = Restangular.all('workspaces');
 
             quota.getList().then(function (response) {
                 $scope.credits_spent = [];
@@ -28,13 +28,13 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
                 $scope.blueprints = response;
             });
 
-            group.getList().then(function(response) {
-                $scope.groups = response;
+            workspace.getList().then(function(response) {
+                $scope.workspaces = response;
             });
 
             $scope.users = []
 
-            $scope.userTypes = ['All', 'Admins', 'Group Owners', 'Inactive', 'Active', 'Blocked']
+            $scope.userTypes = ['All', 'Admins', 'Workspace Owners', 'Inactive', 'Active', 'Blocked']
             var defaultUserType = 'All';
             $scope.selectedUserType = defaultUserType;
 
@@ -127,10 +127,10 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
 
             };
 
-            $scope.make_group_owner = function(user) {
-                var make_group_owner = !user.is_group_owner
-                var user_group_owner = Restangular.one('users', user.id).all('user_group_owner').customPUT({'make_group_owner': make_group_owner});
-                user_group_owner.then(function () {
+            $scope.make_workspace_owner = function(user) {
+                var make_workspace_owner = !user.is_workspace_owner
+                var user_workspace_owner = Restangular.one('users', user.id).all('user_workspace_owner').customPUT({'make_workspace_owner': make_workspace_owner});
+                user_workspace_owner.then(function () {
                     users.getList().then(function (response) {
                         $scope.users = response;
                     });
@@ -149,7 +149,7 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
                 });
             };
 
-            $scope.open_quota_dialog = function(users, blueprints, groups) {
+            $scope.open_quota_dialog = function(users, blueprints, workspaces) {
 		$scope.formdata = {};
 
                 var modalQuota = $uibModal.open({
@@ -164,8 +164,8 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
                         blueprints: function() {
                             return blueprints;
                         },
-                        groups: function() {
-                            return groups;
+                        workspaces: function() {
+                            return workspaces;
                         }
                     }
                 });
@@ -197,21 +197,21 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
         }
     }]);
 
-app.controller('ModalQuotaController', function ($q, $scope, $modalInstance, Restangular, users, blueprints, groups) {
+app.controller('ModalQuotaController', function ($q, $scope, $modalInstance, Restangular, users, blueprints, workspaces) {
     $scope.users = users;
 
     $scope.user_blueprint_info = function() {
-	    var user_groups = [];
+	    var user_workspaces = [];
 	    if(users.length != 0) {
 		$scope.blueprint_quota = users[0].blueprint_quota;
-		$scope.group_quota = users[0].group_quota;
-		user_groups = _.filter(groups, {'owner_eppn': users[0].eppn});
+		$scope.workspace_quota = users[0].workspace_quota;
+		user_workspaces = _.filter(workspaces, {'owner_eppn': users[0].eppn});
 	    }
           
           var user_blueprints = [];
 
-          for (var i = 0; i < user_groups.length; i++) {
-             var check_blueprints = _.filter(blueprints, {'group_id': user_groups[i].id});
+          for (var i = 0; i < user_workspaces.length; i++) {
+             var check_blueprints = _.filter(blueprints, {'workspace_id': user_workspaces[i].id});
                if(check_blueprints.length != 0) {
                    for(var j = 0; j < check_blueprints.length; j++) {
                        user_blueprints.push(check_blueprints[j])

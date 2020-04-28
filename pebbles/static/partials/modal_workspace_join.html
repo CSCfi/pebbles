@@ -1,17 +1,16 @@
 <div class="modal-header">
     <button ng-click="cancel()" type="button" class="close"><span aria-hidden="true">&times;</span></button>
-    <h4 class="modal-title">Create Group</h4>
+    <h4 class="modal-title">{{ join_title }}</h4>
 </div>
 <div class="modal-body">
     <form name="ngform">
       <div
-          sf-model="groupsSF.model"
-          sf-form="groupsSF.form"
-          sf-schema="groupsSF.schema"/>
-
+          sf-model="grp_join_sf.model"
+          sf-form="grp_join_sf.form"
+          sf-schema="grp_join_sf.schema"/>
     </form>
 </div>
 <div class="modal-footer">
-    <button ng-click="createGroup(ngform, groupsSF.model)" class="btn btn-primary">Create</button>
+    <button ng-click="joinWorkspace(ngform, grp_join_sf.model)" class="btn btn-primary">Join</button>
     <button ng-click="cancel()" class="btn btn-default" >Close</button>
 </div>

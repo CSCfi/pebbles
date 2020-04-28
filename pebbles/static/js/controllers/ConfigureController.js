@@ -185,8 +185,8 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             });
         };
 
-        $scope.emailNotificationToGroupOwner = function(notification) {
-            notification.patch({send_mail_group_owner: true}).then(function(response) {
+        $scope.emailNotificationToWorkspaceOwner = function(notification) {
+            notification.patch({send_mail_workspace_owner: true}).then(function(response) {
             });
         };
 

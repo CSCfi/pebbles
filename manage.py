@@ -8,7 +8,7 @@ from pebbles import models
 from pebbles.config import BaseConfig
 from pebbles.server import app
 from pebbles.views import commons
-from pebbles.views.commons import create_user, create_worker, create_system_groups
+from pebbles.views.commons import create_user, create_worker, create_system_workspaces
 from pebbles.models import db
 from pebbles.tests.fixtures import primary_test_setup
 
@@ -111,7 +111,7 @@ def initialize_system(eppn=None, password=None):
     db.create_all()
     admin_user = createuser(eppn=eppn, password=password, admin=True)
     create_worker()
-    create_system_groups(admin_user)
+    create_system_workspaces(admin_user)
     commons.register_plugins()
 
 @manager.command

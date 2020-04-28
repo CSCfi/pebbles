@@ -15,10 +15,10 @@
                     localStorageService.set('isAdmin', true);
                 {% endif %}
                 {% if is_group_owner %}
-                    localStorageService.set('isGroupOwner', true);
+                    localStorageService.set('isWorkspaceOwner', true);
                 {% endif %}
-                {% if is_group_manager %}
-                    localStorageService.set('isGroupManager', true);
+                {% if is_workspace_manager %}
+                    localStorageService.set('isWorkspaceManager', true);
                 {% endif %}
                 localStorageService.set('userId', '{{ userid }}');
                 localStorageService.set('iconValue', {{icon_value|safe}});

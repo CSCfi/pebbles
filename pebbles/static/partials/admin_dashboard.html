@@ -12,7 +12,7 @@
         <thead>
             <tr>
                 <td>Name</td>
-                <td>Group</td>
+                <td>Workspace</td>
                 <td>Life-time</td>
                 <td>Description</td>
                 <td>Actions</td>
@@ -24,7 +24,7 @@
             </tr>
             <tr ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }">
                 <td>{{ blueprint.name }}</td>
-                <td>{{ blueprint.group_name }}</td>
+                <td>{{ blueprint.workspace_name }}</td>
                 <td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
 		<td>
 		    <div ng-show ="showHtml">
@@ -52,11 +52,11 @@
     <form>
         <div class="row">
             <div class="col-md-12">
-                <div class="form-group">
-                    <div class="input-group">
-                        <div class="input-group-addon"><span class="glyphicon glyphicon-filter"></span></div>
+                <div class="form-workspace">
+                    <div class="input-workspace">
+                        <div class="input-workspace-addon"><span class="glyphicon glyphicon-filter"></span></div>
                         <input id="query" class="form-control" ng-model="query" placeholder="Filter instance list"/>
-                        <span class="input-group-btn">
+                        <span class="input-workspace-btn">
                             <button class="btn btn-primary" ng-click="toggleAdvancedOptions()" type="button">{{ showAdvancedOptions ? "Hide" : "Show" }}  advanced options</button>
                             <button class="btn btn-danger" ng-click="openDestroyDialog(null)" ng-disabled="noMarkedInstances()" type="button">Destroy selected instances</button>
                         </span>
@@ -64,17 +64,17 @@
                 </div>
             </div>
             <div ng-show="showAdvancedOptions" class="col-md-12">
-                <div class="form-group">
-                    <div class="input-group">
-                        <div class="input-group-addon">Offset</div>
+                <div class="form-workspace">
+                    <div class="input-workspace">
+                        <div class="input-workspace-addon">Offset</div>
                         <input type="number" class="form-control" ng-model="offset">
-                        <div class="input-group-addon">Limit</div>
+                        <div class="input-workspace-addon">Limit</div>
                         <input type="number" class="form-control" ng-model="limit">
-                        <span class="input-group-addon">
+                        <span class="input-workspace-addon">
                             Include deleted
                             <input type="checkbox" ng-click="updateInstanceList()" ng-model="include_deleted">
                         </span>
-                        <span class="input-group-btn">
+                        <span class="input-workspace-btn">
                             <button class="btn btn-primary" ng-click="applyFilters()" type="button">Refresh</button>
                             <button class="btn btn-default" ng-click="resetFilters()" type="button">Reset filters</button>
                         </span>

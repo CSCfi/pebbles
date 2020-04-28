@@ -1,0 +1,22 @@
+<div class="modal-header">
+    <button ng-click="cancel()" type="button" class="close"><span aria-hidden="true">&times;</span></button>
+    <h4 class="modal-title">Modify Workspace</h4>
+</div>
+<div class="modal-body">
+    <form name="ngform2">
+      <div
+          sf-model="workspace.config"
+          sf-form="workspacesSF.form"
+          sf-schema="workspacesSF.schema"/>
+
+             <label for="userBanSelect">Select Users to Ban</label>
+             <div id="userBanSelect" ng-dropdown-multiselect="" options="userData" selected-model="workspace.user_config.banned_users" extra-settings="userSettings"></div>
+             <label for="userOwnerSelect">Add additional workspace managers (If needed)</label>
+             <div id="userOwnerSelect" ng-dropdown-multiselect="" options="managerData" selected-model="workspace.user_config.managers" extra-settings="userSettings"></div>
+
+    </form>
+</div> 
+<div class="modal-footer">
+    <button ng-click="modifyWorkspace(ngform2, workspace.config, workspace.user_config)" class="btn btn-primary">Modify</button>
+    <button ng-click="cancel()" class="btn btn-default" >Close</button>
+</div>

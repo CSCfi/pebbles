@@ -77,7 +77,7 @@ app.config(function($routeProvider, $locationProvider, $compileProvider, Restang
 
     var notAuthenticatedP = redirectIf('AuthService', 'isNotAuthenticated', '/');
     var alreadyAuthenticatedP = redirectIf('AuthService', 'isAuthenticated', '/dashboard');
-    var isAdminP = redirectIf('AuthService', 'isGroupManagerOrAdmin', '/admin-dashboard');
+    var isAdminP = redirectIf('AuthService', 'isWorkspaceManagerOrAdmin', '/admin-dashboard');
 
     $routeProvider
         .when('/', {
@@ -132,9 +132,9 @@ app.config(function($routeProvider, $locationProvider, $compileProvider, Restang
                 redirectIfNotAuthenticated: notAuthenticatedP,
             }
         })
-        .when('/groups', {
-            controller: 'GroupsController',
-            templateUrl: partialsDir + '/groups.html',
+        .when('/workspaces', {
+            controller: 'WorkspacesController',
+            templateUrl: partialsDir + '/workspaces.html',
             resolve: {
                 redirectIfNotAuthenticated: notAuthenticatedP,
             }

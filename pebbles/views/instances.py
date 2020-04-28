@@ -9,9 +9,9 @@ from flask_restful import marshal, marshal_with, fields, reqparse
 
 from pebbles.forms import InstanceForm, UserIPForm
 from pebbles.models import db, Blueprint, Instance, InstanceLog, User
-from pebbles.rules import apply_rules_instances, get_group_blueprint_ids_for_instances
-from pebbles.utils import requires_admin, requires_group_owner_or_admin, memoize
-from pebbles.views.commons import auth, is_group_manager
+from pebbles.rules import apply_rules_instances, get_workspace_blueprint_ids_for_instances
+from pebbles.utils import requires_admin, requires_workspace_owner_or_admin, memoize
+from pebbles.views.commons import auth, is_workspace_manager
 
 instances = FlaskBlueprint('instances', __name__)
 
@@ -123,7 +123,7 @@ class InstanceList(restful.Resource):
             return form.errors, 422
 
         blueprint_id = form.blueprint.data
-        allowed_blueprint_ids = get_group_blueprint_ids_for_instances(user)
+        allowed_blueprint_ids = get_workspace_blueprint_ids_for_instances(user)
         if not user.is_admin and blueprint_id not in allowed_blueprint_ids:
             abort(403)
         blueprint = Blueprint.query.filter_by(id=blueprint_id, is_enabled=True).first()
@@ -227,13 +227,13 @@ class InstanceView(restful.Resource):
     def delete(self, instance_id):
         user = g.user
         query = Instance.query.filter_by(id=instance_id)
-        if not user.is_admin and not is_group_manager(user):
+        if not user.is_admin and not is_workspace_manager(user):
             query = query.filter_by(user_id=user.id)
         instance = query.first()
         if not instance:
             abort(404)
-        group = instance.blueprint.group
-        if not user.is_admin and not is_group_manager(user, group) and instance.user_id != user.id:
+        workspace = instance.blueprint.workspace
+        if not user.is_admin and not is_workspace_manager(user, workspace) and instance.user_id != user.id:
             abort(403)
         instance.to_be_deleted = True
         instance.deprovisioned_at = datetime.datetime.utcnow()
@@ -321,7 +321,7 @@ class InstanceLogs(restful.Resource):
         return instance_logs
 
     @auth.login_required
-    @requires_group_owner_or_admin
+    @requires_workspace_owner_or_admin
     def patch(self, instance_id):
         args = self.parser.parse_args()
         instance = Instance.query.filter_by(id=instance_id).first()

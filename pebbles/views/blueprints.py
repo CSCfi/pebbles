@@ -10,10 +10,10 @@ from flask_restful import marshal_with, fields, reqparse
 from sqlalchemy.orm.session import make_transient
 
 from pebbles.forms import BlueprintForm
-from pebbles.models import db, Blueprint, BlueprintTemplate, Group, Instance
+from pebbles.models import db, Blueprint, BlueprintTemplate, Workspace, Instance
 from pebbles.rules import apply_rules_blueprints
-from pebbles.utils import parse_maximum_lifetime, requires_group_owner_or_admin, requires_admin
-from pebbles.views.commons import auth, requires_group_manager_or_admin, is_group_manager
+from pebbles.utils import parse_maximum_lifetime, requires_workspace_owner_or_admin, requires_admin
+from pebbles.views.commons import auth, requires_workspace_manager_or_admin, is_workspace_manager
 
 blueprints = FlaskBlueprint('blueprints', __name__)
 
@@ -31,8 +31,8 @@ blueprint_fields = {
     'full_config': fields.Raw,
     'schema': fields.Raw,
     'form': fields.Raw,
-    'group_id': fields.String,
-    'group_name': fields.String,
+    'workspace_id': fields.String,
+    'workspace_name': fields.String,
     'manager': fields.Boolean,
     'current_status': fields.String,
     'expiry_time': fields.DateTime,
@@ -49,8 +49,8 @@ class BlueprintList(restful.Resource):
         args = self.get_parser.parse_args()
         user = g.user
         query = apply_rules_blueprints(user, args)
-        # sort the results based on the group name first and then by blueprint name
-        query = query.join(Group, Blueprint.group).order_by(Group.name).order_by(Blueprint.name)
+        # sort the results based on the workspace name first and then by blueprint name
+        query = query.join(Workspace, Blueprint.workspace).order_by(Workspace.name).order_by(Blueprint.name)
         results = []
         for blueprint in query.all():
             blueprint = process_blueprint(blueprint)
@@ -61,7 +61,7 @@ class BlueprintList(restful.Resource):
     post_parser.add_argument('lifespan_months', type=int, location='json')
 
     @auth.login_required
-    @requires_group_manager_or_admin
+    @requires_workspace_manager_or_admin
     def post(self):
         form = BlueprintForm()
         if not form.validate_on_submit():
@@ -75,30 +75,30 @@ class BlueprintList(restful.Resource):
         if not template:
             abort(422)
         blueprint.template_id = template_id
-        group_id = form.group_id.data
-        group = Group.query.filter_by(id=group_id).first()
-        if not group:
+        workspace_id = form.workspace_id.data
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+        if not workspace:
             abort(422)
-        if not user.is_admin and not is_group_manager(user, group):
-            logging.warning("invalid group for the user")
+        if not user.is_admin and not is_workspace_manager(user, workspace):
+            logging.warning("invalid workspace for the user")
             abort(403)
-        user_owned_blueprints = apply_rules_blueprints(user).filter_by(group_id=group_id).count()
+        user_owned_blueprints = apply_rules_blueprints(user).filter_by(workspace_id=workspace_id).count()
         if not user.blueprint_quota and not user_owned_blueprints:
             user.blueprint_quota = 1
         elif not user.blueprint_quota and user_owned_blueprints:
             user.blueprint_quota = user_owned_blueprints
 
-        if not user.is_admin and user_owned_blueprints >= user.blueprint_quota and user.is_group_owner:
+        if not user.is_admin and user_owned_blueprints >= user.blueprint_quota and user.is_workspace_owner:
             logging.warning("Maximum User_blueprint_quota %s is reached" % user_owned_blueprints)
             return dict(
                 message="You reached maximum number of blueprints that can be created."
-                        " If you wish create more groups contact administrator"
+                        " If you wish create more workspaces contact administrator"
             ), 422
 
-        blueprint.group_id = group_id
+        blueprint.workspace_id = workspace_id
 
         # System.default blueprints won't get expiry dates
-        if group.name != 'System.default':
+        if workspace.name != 'System.default':
             args = self.post_parser.parse_args()
             if 'lifespan_months' in args and args.lifespan_months:
                 if args.lifespan_months < 1:
@@ -140,7 +140,7 @@ class BlueprintView(restful.Resource):
         return blueprint
 
     @auth.login_required
-    @requires_group_manager_or_admin
+    @requires_workspace_manager_or_admin
     def put(self, blueprint_id):
         form = BlueprintForm()
         if not form.validate_on_submit():
@@ -155,8 +155,8 @@ class BlueprintView(restful.Resource):
         if blueprint.current_status == 'archived' or blueprint.current_status == 'deleted':
             abort(422)
 
-        if not user.is_admin and not is_group_manager(user, blueprint.group):
-            logging.warning("invalid group for the user")
+        if not user.is_admin and not is_workspace_manager(user, blueprint.workspace):
+            logging.warning("invalid workspace for the user")
             abort(403)
 
         blueprint.name = form.config.data.get('name') or form.name.data
@@ -190,7 +190,7 @@ class BlueprintView(restful.Resource):
             db.session.commit()
 
     @auth.login_required
-    @requires_group_owner_or_admin
+    @requires_workspace_owner_or_admin
     def delete(self, blueprint_id):
         blueprint = Blueprint.query.filter_by(id=blueprint_id).first()
         blueprint_instances = Instance.query.filter_by(blueprint_id=blueprint_id).all()
@@ -216,15 +216,15 @@ class BlueprintView(restful.Resource):
 
 class BlueprintCopy(restful.Resource):
     @auth.login_required
-    @requires_group_manager_or_admin
+    @requires_workspace_manager_or_admin
     def put(self, blueprint_id):
         user = g.user
         blueprint = Blueprint.query.get_or_404(blueprint_id)
 
         if blueprint.current_status == 'archived' or blueprint.current_status == 'deleted':
             abort(422)
-        if not user.is_admin and not is_group_manager(user, blueprint.group):
-            logging.warning("user is {} not group manager for blueprint {}".format(user.id, blueprint.group.id))
+        if not user.is_admin and not is_workspace_manager(user, blueprint.workspace):
+            logging.warning("user is {} not workspace manager for blueprint {}".format(user.id, blueprint.workspace.id))
             abort(403)
 
         db.session.expunge(blueprint)
@@ -247,10 +247,10 @@ def process_blueprint(blueprint):
     blueprint.config = blueprint_config
 
     blueprint.template_name = template.name
-    blueprint.group_name = blueprint.group.name
+    blueprint.workspace_name = blueprint.workspace.name
     # rest of the code taken for refactoring from single blueprint GET query
     blueprint.plugin = blueprint.template.plugin
-    if user.is_admin or is_group_manager(user, blueprint.group):
+    if user.is_admin or is_workspace_manager(user, blueprint.workspace):
         blueprint.manager = True
     return blueprint
 

@@ -2,7 +2,7 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
                              function($q,   $scope,   $timeout,   AuthService,   Restangular,   $uibModal) {
     var user = Restangular.one('users', AuthService.getUserId());
     var quota = Restangular.one('quota', AuthService.getUserId());
-    var group_join = Restangular.all('groups').one('group_join');
+    var workspace_join = Restangular.all('workspaces').one('workspace_join');
 
     var change_password_result = "";
     var upload_ok = null;
@@ -13,8 +13,8 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
         return AuthService.isAdmin();
     };
 
-    $scope.isGroupManagerOrAdmin = function() {
-        return AuthService.isGroupManagerOrAdmin();
+    $scope.isWorkspaceManagerOrAdmin = function() {
+        return AuthService.isWorkspaceManagerOrAdmin();
     };
 
     quota.get().then(function (response) {
@@ -22,19 +22,19 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
                 $scope.credits_quota = response.credits_quota;
             });
 
-    var group_list_exit = Restangular.all('groups').all('group_list_exit');
-    var refresh_group_list_exit = function(){
-        group_list_exit.getList().then(function (response) {
-            $scope.group_list_exit = response;
+    var workspace_list_exit = Restangular.all('workspaces').all('workspace_list_exit');
+    var refresh_workspace_list_exit = function(){
+        workspace_list_exit.getList().then(function (response) {
+            $scope.workspace_list_exit = response;
         });
     };
 
-    refresh_group_list_exit();
+    refresh_workspace_list_exit();
 
-    $scope.exit_group = function(group) {
-        var group_exit = Restangular.all('groups').one('group_exit').one(group.id);
-        group_exit.put().then(function () {
-               refresh_group_list_exit();
+    $scope.exit_workspace = function(workspace) {
+        var workspace_exit = Restangular.all('workspaces').one('workspace_exit').one(workspace.id);
+        workspace_exit.put().then(function () {
+               refresh_workspace_list_exit();
             }, function(response) {
                 $.notify({title: 'HTTP ' + response.status, message: response.data.error}, {type: 'danger'});
             });
@@ -70,29 +70,29 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
         }, 10000);
     };
 
-    $scope.openGroupJoinModal=function() {
+    $scope.openWorkspaceJoinModal=function() {
          $uibModal.open({
-         templateUrl: '/partials/modal_group_join.html',
-         controller: 'ModalGroupJoinController',
+         templateUrl: '/partials/modal_workspace_join.html',
+         controller: 'ModalWorkspaceJoinController',
          size: 'sm',
          resolve: {
-             group_join: function() {
-                 return group_join;
+             workspace_join: function() {
+                 return workspace_join;
              },
              join_title: function() {
-                 return "Join A Group";
+                 return "Join A Workspace";
              },
              dismiss_reason: function(){
-                 return "You did not join a group";
+                 return "You did not join a workspace";
              }
          }
          }).result.then(function() {
-                 refresh_group_list_exit();
+                 refresh_workspace_list_exit();
              });
      };
 }]);
 
-app.controller('ModalGroupJoinController', function($scope, $modalInstance, group_join, join_title, dismiss_reason) {
+app.controller('ModalWorkspaceJoinController', function($scope, $modalInstance, workspace_join, join_title, dismiss_reason) {
     $scope.join_title = join_title;
     var grp_join_sf = {};
     grp_join_sf.schema = {
@@ -102,7 +102,7 @@ app.controller('ModalGroupJoinController', function($scope, $modalInstance, grou
             "join_code":  {
                 "title": "Joining Code",
                 "type": "string",
-                "description": "The code/password to join your group"
+                "description": "The code/password to join your workspace"
                 }
             },
             "required": ["join_code"]
@@ -113,12 +113,12 @@ app.controller('ModalGroupJoinController', function($scope, $modalInstance, grou
     ];
     grp_join_sf.model = {};
     $scope.grp_join_sf = grp_join_sf;
-    $scope.group_join = group_join;
+    $scope.workspace_join = workspace_join;
 
-    $scope.joinGroup = function(form, model) {
+    $scope.joinWorkspace = function(form, model) {
         if (form.$valid) {
-            $scope.group_join.one(model.join_code).customPUT().then(function () {
-                $.notify({title: 'Success! ', message: 'Group Joined'}, {type: 'success'});
+            $scope.workspace_join.one(model.join_code).customPUT().then(function () {
+                $.notify({title: 'Success! ', message: 'Workspace Joined'}, {type: 'success'});
                 $modalInstance.close(true);
             }, function(response) {
                 $.notify({title: 'HTTP ' + response.status, message: response.data.error}, {type: 'danger'});

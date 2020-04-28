@@ -21,16 +21,16 @@
         
                 <h2 class="main-login-header">Login:</h2>
                 <form ng-submit="login()" >
-                    <div ng-show="invalidLogin()" class="form-group">
+                    <div ng-show="invalidLogin()" class="form-workspace">
                         <span id="invalid-login" class="label label-default"><strong>Invalid login!</strong></span>
                     </div>
-                    <div class="form-group">
+                    <div class="form-workspace">
                         <input type="email" id="email" name="email" ng-model="eppn" placeholder="Email" class="form-control" required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-workspace">
                         <input type="password" id="password" name="password" ng-model="password" placeholder="Password" class="form-control" required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-workspace">
                         <input type="submit" class="btn btn-success" value="Sign in" />
                     </div>
                 </form>
@@ -47,11 +47,11 @@
     </div>
     
     <div class="row" configurable-show key="COURSE_REQUEST_FORM"
-        name="course_request">
+        name="workspace_request">
         <div class="col-lg-7 col-md-8 col-sm-10 col-xs-10">
             <hr>
-            If you want to host your own course using <configurable-value key="INSTALLATION_NAME"></configurable-value>, please fill out the 
-      <configurable-href key="COURSE_REQUEST_FORM" name="Course Request Form" class="links-to"></configurable-href>
+            If you want to host your own workspace using <configurable-value key="INSTALLATION_NAME"></configurable-value>, please fill out the
+      <configurable-href key="COURSE_REQUEST_FORM" name="Workspace Request Form" class="links-to"></configurable-href>
             <div class="links-to">
             If you are interested in advanced usage such as creating your own environments, please have a look at our
                <a href="https://cscfi.github.io/pebbles/admin_guide.html" target="_blank" rel="noopener noreferrer">Admin Guide</a>

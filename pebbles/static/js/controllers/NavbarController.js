@@ -66,12 +66,12 @@ app.controller('NavbarController', ['$scope', '$window', '$rootScope', '$locatio
         }
     };
 
-    $scope.isGroupOwnerOrAdmin = function() {
-        return AuthService.isGroupOwnerOrAdmin();
+    $scope.isWorkspaceOwnerOrAdmin = function() {
+        return AuthService.isWorkspaceOwnerOrAdmin();
     };
 
-    $scope.isGroupManagerOrAdmin = function() {
-        return AuthService.isGroupManagerOrAdmin();
+    $scope.isWorkspaceManagerOrAdmin = function() {
+        return AuthService.isWorkspaceManagerOrAdmin();
     };
 
     $scope.logout = function() {

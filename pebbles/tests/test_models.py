@@ -1,6 +1,6 @@
 import datetime
 from pebbles.tests.base import db, BaseTestCase
-from pebbles.models import User, Group, Blueprint, BlueprintTemplate, Plugin, Instance, NamespacedKeyValue
+from pebbles.models import User, Workspace, Blueprint, BlueprintTemplate, Plugin, Instance, NamespacedKeyValue
 
 
 class ModelsTestCase(BaseTestCase):
@@ -11,7 +11,7 @@ class ModelsTestCase(BaseTestCase):
 
         db.session.add(u)
 
-        g = Group('Group1')
+        g = Workspace('Workspace1')
         self.known_group = g
         db.session.add(g)
 

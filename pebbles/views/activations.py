@@ -6,7 +6,7 @@ from flask_restful import marshal_with
 from pebbles.forms import ActivationForm, PasswordResetRequestForm
 from pebbles.models import db, ActivationToken, User
 import flask_restful as restful
-from pebbles.views.commons import user_fields, add_user_to_default_group
+from pebbles.views.commons import user_fields, add_user_to_default_workspace
 
 activations = Blueprint('activations', __name__)
 
@@ -32,7 +32,7 @@ class ActivationView(restful.Resource):
 
         if not user.is_active:
             user.is_active = True
-            add_user_to_default_group(user)
+            add_user_to_default_workspace(user)
             db.session.add(user)
             logging.info("Activating user: %s" % user.eppn)
         db.session.delete(token)

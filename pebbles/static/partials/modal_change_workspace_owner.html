@@ -1,0 +1,24 @@
+
+<div class="modal-header">
+    <button ng-click="cancel()" type="button" class="close"><span aria-hidden="true">&times;</span></button>
+    <h4 class="modal-title">Change Workspace Owner</h4>
+</div>
+<div class="modal-body">
+
+	<form name="ngform">
+     	 <div
+          sf-model="workspace.config"
+          sf-form="workspacesSF.form"
+          sf-schema="workspacesSF.schema"/>
+
+             <label for="selectNewOwner">Select New Workspace Owner</label>
+             <div id="selectNewOwner" ng-dropdown-multiselect="" options="userData" selected-model="workspace.user_config.owner" extra-settings="userSettings"></div>
+            
+	</form>
+
+</div>
+<div class="modal-footer">
+    <button ng-click="confirmNewWorkspaceOwner(ngform, workspace.config, workspace.user_config)" class="btn btn-primary">Confirm</button>
+    <button ng-click="cancel()" class="btn btn-default" >Close</button>
+</div>
+

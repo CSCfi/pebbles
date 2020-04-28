@@ -267,9 +267,9 @@ thead {
     display: none;
 }
 
-.group-list {cursor: pointer;}
+.workspace-list {cursor: pointer;}
 
-.close-group-details {
+.close-workspace-details {
 	float: right;
 	cursor: pointer;
 }

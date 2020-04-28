@@ -6,9 +6,9 @@ from pebbles.views.blueprint_templates import BlueprintTemplateList, BlueprintTe
 from pebbles.views.blueprint_templates import blueprint_templates
 from pebbles.views.blueprints import blueprints, BlueprintList, BlueprintView, BlueprintCopy
 from pebbles.views.export_stats import export_stats, ExportStatistics
-from pebbles.views.groups import ClearUsersFromGroup
-from pebbles.views.groups import GroupList, GroupView, GroupJoin, GroupListExit, GroupExit, GroupUsersList
-from pebbles.views.groups import groups
+from pebbles.views.workspaces import ClearUsersFromWorkspace
+from pebbles.views.workspaces import WorkspaceList, WorkspaceView, WorkspaceJoin, WorkspaceListExit, WorkspaceExit, WorkspaceUsersList
+from pebbles.views.workspaces import workspaces
 from pebbles.views.import_export import import_export, ImportExportBlueprintTemplates, ImportExportBlueprints
 from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pebbles.views.locks import locks, LockView, LockList
@@ -19,7 +19,7 @@ from pebbles.views.plugins import plugins, PluginList, PluginView
 from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.stats import stats, StatsList
-from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserGroupOwner
+from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserWorkspaceOwner
 from pebbles.views.variables import variables, PublicVariableList
 
 api = restful.Api(app)
@@ -28,14 +28,14 @@ api.add_resource(UserList, api_root + '/users', methods=['GET', 'POST', 'PATCH']
 api.add_resource(UserView, api_root + '/users/<string:user_id>')
 api.add_resource(UserActivationUrl, api_root + '/users/<string:user_id>/user_activation_url')
 api.add_resource(UserBlacklist, api_root + '/users/<string:user_id>/user_blacklist')
-api.add_resource(UserGroupOwner, api_root + '/users/<string:user_id>/user_group_owner')
-api.add_resource(GroupList, api_root + '/groups')
-api.add_resource(GroupView, api_root + '/groups/<string:group_id>')
-api.add_resource(GroupJoin, api_root + '/groups/group_join/<string:join_code>')
-api.add_resource(GroupListExit, api_root + '/groups/group_list_exit')
-api.add_resource(GroupExit, api_root + '/groups/group_exit/<string:group_id>')
-api.add_resource(GroupUsersList, api_root + '/groups/<string:group_id>/users')
-api.add_resource(ClearUsersFromGroup, api_root + '/groups/clear_users_from_group')
+api.add_resource(UserWorkspaceOwner, api_root + '/users/<string:user_id>/user_workspace_owner')
+api.add_resource(WorkspaceList, api_root + '/workspaces')
+api.add_resource(WorkspaceView, api_root + '/workspaces/<string:workspace_id>')
+api.add_resource(WorkspaceJoin, api_root + '/workspaces/workspace_join/<string:join_code>')
+api.add_resource(WorkspaceListExit, api_root + '/workspaces/workspace_list_exit')
+api.add_resource(WorkspaceExit, api_root + '/workspaces/workspace_exit/<string:workspace_id>')
+api.add_resource(WorkspaceUsersList, api_root + '/workspaces/<string:workspace_id>/users')
+api.add_resource(ClearUsersFromWorkspace, api_root + '/workspaces/clear_users_from_workspace')
 api.add_resource(NotificationList, api_root + '/notifications')
 api.add_resource(NotificationView, api_root + '/notifications/<string:notification_id>')
 api.add_resource(SessionView, api_root + '/sessions')
@@ -75,7 +75,7 @@ app.register_blueprint(blueprint_templates)
 app.register_blueprint(blueprints)
 app.register_blueprint(plugins)
 app.register_blueprint(users)
-app.register_blueprint(groups)
+app.register_blueprint(workspaces)
 app.register_blueprint(instances)
 app.register_blueprint(activations)
 app.register_blueprint(myip)

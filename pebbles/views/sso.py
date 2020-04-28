@@ -6,8 +6,8 @@ from flask import render_template, request
 
 from pebbles.app import app
 from pebbles.models import db, User
-from pebbles.views.commons import admin_icons, group_owner_icons, group_manager_icons, user_icons
-from pebbles.views.commons import create_user, is_group_manager
+from pebbles.views.commons import admin_icons, workspace_owner_icons, workspace_manager_icons, user_icons
+from pebbles.views.commons import create_user, is_workspace_manager
 
 
 @app.route('/oauth2')
@@ -50,10 +50,10 @@ def oauth2_login():
         )
     if user.is_admin:
         icons = admin_icons
-    elif user.is_group_owner:
-        icons = group_owner_icons
-    elif is_group_manager(user):
-        icons = group_manager_icons
+    elif user.is_workspace_owner:
+        icons = workspace_owner_icons
+    elif is_workspace_manager(user):
+        icons = workspace_manager_icons
     else:
         icons = user_icons
 
@@ -65,8 +65,8 @@ def oauth2_login():
         token=token,
         username=eppn,
         is_admin=user.is_admin,
-        is_group_owner=user.is_group_owner,
-        is_group_manager=is_group_manager(user),
+        is_group_owner=user.is_workspace_owner,
+        is_workspace_manager=is_workspace_manager(user),
         userid=user.id,
         icon_value=icons
     )

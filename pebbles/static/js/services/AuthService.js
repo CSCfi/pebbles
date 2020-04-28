@@ -9,8 +9,8 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
                 me.setToken(response.token);
                 me.setUserName(eppn);
                 me.setAdminStatus(response.is_admin);
-                me.setGroupOwnerStatus(response.is_group_owner);
-                me.setGroupManagerStatus(response.is_group_manager);
+                me.setWorkspaceOwnerStatus(response.is_workspace_owner);
+                me.setWorkspaceManagerStatus(response.is_workspace_manager);
                 me.setUserId(response.user_id);
                 me.setIcons(response.icon_value);
                 return deferred.resolve(response);
@@ -62,20 +62,20 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
             return false;
         },
 
-        isGroupOwnerOrAdmin : function() {
-            var groupOwnerStatus = this.getGroupOwnerStatus();
+        isWorkspaceOwnerOrAdmin : function() {
+            var workspaceOwnerStatus = this.getWorkspaceOwnerStatus();
             var adminStatus = this.getAdminStatus();
-            if (groupOwnerStatus === "true" || adminStatus === "true") {
+            if (workspaceOwnerStatus === "true" || adminStatus === "true") {
                 return true;
             }
             return false;
         },
 
-        isGroupManagerOrAdmin : function() {
-            var groupManagerStatus = this.getGroupManagerStatus();
-            var groupOwnerStatus = this.getGroupOwnerStatus();
+        isWorkspaceManagerOrAdmin : function() {
+            var workspaceManagerStatus = this.getWorkspaceManagerStatus();
+            var workspaceOwnerStatus = this.getWorkspaceOwnerStatus();
             var adminStatus = this.getAdminStatus();
-            if (groupManagerStatus === "true" || groupOwnerStatus === "true" || adminStatus === "true") {
+            if (workspaceManagerStatus === "true" || workspaceOwnerStatus === "true" || adminStatus === "true") {
                 return true;
             }
             return false;
@@ -113,21 +113,21 @@ app.factory('AuthService', ['$q', 'localStorageService', 'Session', 'Restangular
             return localStorageService.get('isAdmin');
         },
 
-        setGroupOwnerStatus : function(isGroupOwner) {
-            localStorageService.set('isGroupOwner', isGroupOwner);
+        setWorkspaceOwnerStatus : function(isWorkspaceOwner) {
+            localStorageService.set('isWorkspaceOwner', isWorkspaceOwner);
         },
 
 
-        getGroupOwnerStatus : function() {
-            return localStorageService.get('isGroupOwner');
+        getWorkspaceOwnerStatus : function() {
+            return localStorageService.get('isWorkspaceOwner');
         },
 
-        setGroupManagerStatus : function(isGroupManager) {
-            localStorageService.set('isGroupManager', isGroupManager);
+        setWorkspaceManagerStatus : function(isWorkspaceManager) {
+            localStorageService.set('isWorkspaceManager', isWorkspaceManager);
         },
 
-        getGroupManagerStatus : function() {
-            return localStorageService.get('isGroupManager');
+        getWorkspaceManagerStatus : function() {
+            return localStorageService.get('isWorkspaceManager');
         },
 
         setIcons : function(iconValue) {

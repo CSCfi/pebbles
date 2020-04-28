@@ -30,10 +30,10 @@
 
     <h3>Blueprints</h3>
     <div>
-        <h5>Select the group to view the respective blueprints:
+        <h5>Select the workspace to view the respective blueprints:
             <select ng-model="selectedoptionModel"
-                    ng-options="blueprint.group_name as blueprint.group_name for blueprint in blueprints | filter : {manager: 'true'} | unique:'group_name'">
-                <option value="">show-all-groups</option>
+                    ng-options="blueprint.workspace_name as blueprint.workspace_name for blueprint in blueprints | filter : {manager: 'true'} | unique:'workspace_name'">
+                <option value="">show-all-workspaces</option>
             </select>
         </h5>
     </div>
@@ -53,7 +53,7 @@
                     <tr>
                         <td ng-click="sortType='name'">Type</td>
                         <td ng-click="sortType='template_name'">Template</td>
-                        <td ng-click="sortType='group_name'">Group</td>
+                        <td ng-click="sortType='workspace_name'">Workspace</td>
                         <td>Max life-time</td>
                         <td>Expiry Date</td>
                         <td></td>
@@ -67,7 +67,7 @@
                         ng-if="blueprint.is_enabled==true">
                         <td>{{ blueprint.name }}</td>
                         <td>{{ blueprint.template_name }}</td>
-                        <td>{{ blueprint.group_name }}</td>
+                        <td>{{ blueprint.workspace_name }}</td>
                         <td>
                             <lifetime value="{{ blueprint.maximum_lifetime }}"
                                       maximum-lifetime="{{ blueprint.maximum_lifetime }}"/>
@@ -117,7 +117,7 @@
                     <tr>
                         <td ng-click="sortType='name'">Type</td>
                         <td ng-click="sortType='template_name'">Template</td>
-                        <td ng-click="sortType='group_name'">Group</td>
+                        <td ng-click="sortType='workspace_name'">Workspace</td>
                         <td>Max life-time</td>
                         <td>Expiry Date</td>
                         <td></td>
@@ -131,7 +131,7 @@
                         ng-if="blueprint.is_enabled==false || blueprint.is_enabled==undefined">
                         <td>{{ blueprint.name }}</td>
                         <td>{{ blueprint.template_name }}</td>
-                        <td>{{ blueprint.group_name }}</td>
+                        <td>{{ blueprint.workspace_name }}</td>
                         <td>
                             <lifetime value="{{ blueprint.maximum_lifetime }}"
                                       maximum-lifetime="{{ blueprint.maximum_lifetime }}"/>

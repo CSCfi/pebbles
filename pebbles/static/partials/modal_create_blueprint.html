@@ -3,9 +3,9 @@
     <h4 class="modal-title">Create Blueprint</h4>
 </div>
 <div class="modal-body">
-    <label class="control-label">Select Group</label>
-    <select name="groupSelect" class="form-control" id="groupSelect" ng-model="groupModel">
-        <option ng-repeat="group in groups" value="{{group.id}}">{{group.name}}</option>
+    <label class="control-label">Select Workspace</label>
+    <select name="workspaceSelect" class="form-control" id="workspaceSelect" ng-model="workspaceModel">
+        <option ng-repeat="workspace in workspaces" value="{{workspace.id}}">{{workspace.name}}</option>
     </select>
     <form name="ngform">
         <div
@@ -18,6 +18,6 @@
     <input ng-model="bpLifespanMonths" class="form-control" type="number"/>
 </div>
 <div class="modal-footer">
-    <button ng-disabled="!groupModel" ng-click="createBlueprint(ngform, template.blueprint_model, groupModel)" class="btn btn-primary">Create</button>
+    <button ng-disabled="!workspaceModel" ng-click="createBlueprint(ngform, template.blueprint_model, workspaceModel)" class="btn btn-primary">Create</button>
     <button ng-click="cancel()" class="btn btn-default" >Close</button>
 </div>

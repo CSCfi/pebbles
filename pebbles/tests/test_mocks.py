@@ -1,7 +1,7 @@
 import mock
 
 
-class SecurityGroup(object):
+class SecurityWorkspace(object):
     def __init__(self):
         self.id = "secgroup_1"
 
@@ -47,17 +47,17 @@ class Keypair(object):
 
 
 class NovaClientMock(object):
-    class SecurityGroupManagerMock(object):
+    class SecurityWorkspaceManagerMock(object):
         def create(self, *args, **kwargs):
-            return SecurityGroup()
+            return SecurityWorkspace()
 
         def find(self, *args, **kwargs):
-            return SecurityGroup()
+            return SecurityWorkspace()
 
         def delete(self, *args, **kwargs):
             pass
 
-    class SecurityGroupRulesManagerMock(object):
+    class SecurityWorkspaceRulesManagerMock(object):
         def create(self, *args, **kwargs):
             pass
 
@@ -117,8 +117,8 @@ class NovaClientMock(object):
             return Image()
 
     def __init__(self):
-        self.security_groups = NovaClientMock.SecurityGroupManagerMock()
-        self.security_group_rules = NovaClientMock.SecurityGroupRulesManagerMock()
+        self.security_groups = NovaClientMock.SecurityWorkspaceManagerMock()
+        self.security_group_rules = NovaClientMock.SecurityWorkspaceRulesManagerMock()
         self.images = NovaClientMock.ImageManagerMock()
         self.flavors = NovaClientMock.FlavorManagerMock()
         self.servers = NovaClientMock.ServerManagerMock()

@@ -158,27 +158,27 @@ class UserBlacklist(restful.Resource):
         db.session.commit()
 
 
-class UserGroupOwner(restful.Resource):
+class UserWorkspaceOwner(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('make_group_owner', type=bool, required=True)
+    parser.add_argument('make_workspace_owner', type=bool, required=True)
 
     @auth.login_required
     @requires_admin
     def put(self, user_id):
         args = self.parser.parse_args()
-        make_group_owner = args.make_group_owner
+        make_workspace_owner = args.make_workspace_owner
 
         user = User.query.filter_by(id=user_id).first()
         if not user:
             logging.warning("user does not exist")
             abort(404)
-        if make_group_owner:
-            logging.info("making user %s a group owner", user.eppn)
-            user.is_group_owner = True
-            user.group_quota = 1
+        if make_workspace_owner:
+            logging.info("making user %s a workspace owner", user.eppn)
+            user.is_workspace_owner = True
+            user.workspace_quota = 1
             user.blueprint_quota = 1
         else:
-            logging.info("removing user %s as a group owner", user.eppn)
-            user.is_group_owner = False
+            logging.info("removing user %s as a workspace owner", user.eppn)
+            user.is_workspace_owner = False
         db.session.add(user)
         db.session.commit()

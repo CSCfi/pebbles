@@ -6,7 +6,7 @@
         </p>
         <form name="poolForm">
         <div ng-repeat="poolConfig in poolConfigs">
-        <div ng-class="{true: 'form-group has-error', false: 'form-group'}[poolForm.poolJsonConfig_{{$index}}.$dirty && poolForm.poolJsonConfig_{{$index}}.$invalid]">
+        <div ng-class="{true: 'form-workspace has-error', false: 'form-workspace'}[poolForm.poolJsonConfig_{{$index}}.$dirty && poolForm.poolJsonConfig_{{$index}}.$invalid]">
             <label class="form-control-label">Pool VM Config - Namespace: {{poolConfig.namespace}} | Key: {{poolConfig.key}}</label>
             <textarea name="poolJsonConfig_{{$index}}" class="form-control" rows="15" cols="100" ng-model="poolConfig.value" required json-validate>
             </textarea>

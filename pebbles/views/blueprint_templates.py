@@ -12,7 +12,7 @@ from pebbles.forms import BlueprintTemplateForm
 from pebbles.models import db, BlueprintTemplate, Plugin
 from pebbles.rules import apply_rules_blueprint_templates
 from pebbles.utils import requires_admin, parse_maximum_lifetime
-from pebbles.views.commons import auth, requires_group_manager_or_admin
+from pebbles.views.commons import auth, requires_workspace_manager_or_admin
 
 blueprint_templates = FlaskBlueprint('blueprint_templates', __name__)
 
@@ -33,7 +33,7 @@ blueprint_template_fields = {
 
 class BlueprintTemplateList(restful.Resource):
     @auth.login_required
-    @requires_group_manager_or_admin
+    @requires_workspace_manager_or_admin
     @marshal_with(blueprint_template_fields)
     def get(self):
         user = g.user
@@ -86,7 +86,7 @@ class BlueprintTemplateView(restful.Resource):
     parser.add_argument('disable_blueprints', type=bool)
 
     @auth.login_required
-    @requires_group_manager_or_admin
+    @requires_workspace_manager_or_admin
     @marshal_with(blueprint_template_fields)
     def get(self, template_id):
         args = {'template_id': template_id}

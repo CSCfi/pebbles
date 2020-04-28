@@ -81,17 +81,17 @@ class User(db.Model):
     joining_date = db.Column(db.DateTime)
     expiry_date = db.Column(db.DateTime)
     is_admin = db.Column(db.Boolean, default=False)
-    is_group_owner = db.Column(db.Boolean, default=False)
+    is_workspace_owner = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
     is_blocked = db.Column(db.Boolean, default=False)
     credits_quota = db.Column(db.Float, default=1.0)
     latest_seen_notification_ts = db.Column(db.DateTime)
-    group_quota = db.Column(db.Float)
+    workspace_quota = db.Column(db.Float)
     blueprint_quota = db.Column(db.Float)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
-    groups = db.relationship("GroupUserAssociation", back_populates="user", lazy="dynamic")
+    workspaces = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy="dynamic")
 
     def __init__(self, eppn, password=None, is_admin=False, email_id=None, expiry_date=None, pseudonym=None):
         self.id = uuid.uuid4().hex
@@ -176,12 +176,12 @@ class User(db.Model):
         return not self.is_deleted and self.is_active and not self.is_blocked
 
     @hybrid_property
-    def managed_groups(self):
-        groups = []
-        group_user_objs = GroupUserAssociation.query.filter_by(user_id=self.id, manager=True).all()
-        for group_user_obj in group_user_objs:
-            groups.append(group_user_obj.group)
-        return groups
+    def managed_workspaces(self):
+        workspaces = []
+        workspace_user_objs = WorkspaceUserAssociation.query.filter_by(user_id=self.id, manager=True).all()
+        for workspace_user_obj in workspace_user_objs:
+            workspaces.append(workspace_user_obj.workspace)
+        return workspaces
 
     def unseen_notifications(self):
         q = Notification.query
@@ -207,24 +207,24 @@ class User(db.Model):
         return hash(self.eppn)
 
 
-group_banned_user = db.Table(  # Secondary Table for many-to-many mapping
-    'groups_banned_users',
-    db.Column('group_id', db.String(32), db.ForeignKey('groups.id')),
-    db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('group_id', 'user_id')
+workspace_banned_user = db.Table(  # Secondary Table for many-to-many mapping
+    'workspaces_banned_users',
+    db.Column('workspace_id', db.String(32), db.ForeignKey('workspaces.id')),
+    db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('workspace_id', 'user_id')
 )
 
 
-class GroupUserAssociation(db.Model):  # Association Object for many-to-many mapping
-    __tablename__ = 'groups_users_association'
-    group_id = db.Column(db.String(32), db.ForeignKey('groups.id'), primary_key=True)
+class WorkspaceUserAssociation(db.Model):  # Association Object for many-to-many mapping
+    __tablename__ = 'workspaces_users_association'
+    workspace_id = db.Column(db.String(32), db.ForeignKey('workspaces.id'), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'), primary_key=True)
     manager = db.Column(db.Boolean, default=False)
     owner = db.Column(db.Boolean, default=False)
-    user = db.relationship("User", back_populates="groups")
-    group = db.relationship("Group", back_populates="users")
+    user = db.relationship("User", back_populates="workspaces")
+    workspace = db.relationship("Workspace", back_populates="users")
 
 
-class Group(db.Model):
+class Workspace(db.Model):
     STATE_ACTIVE = 'active'
     STATE_ARCHIVED = 'archived'
     STATE_DELETED = 'deleted'
@@ -234,7 +234,7 @@ class Group(db.Model):
         STATE_ARCHIVED,
         STATE_DELETED
     )
-    __tablename__ = 'groups'
+    __tablename__ = 'workspaces'
 
     id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(32))
@@ -242,17 +242,17 @@ class Group(db.Model):
     description = db.Column(db.Text)
     # current_status when created is "active". Later there is option to be "archived".
     _current_status = db.Column('current_status', db.String(32), default='active')
-    users = db.relationship("GroupUserAssociation", back_populates="group", lazy='dynamic',
+    users = db.relationship("WorkspaceUserAssociation", back_populates="workspace", lazy='dynamic',
                             cascade="all, delete-orphan")
-    banned_users = db.relationship('User', secondary=group_banned_user,
-                                   backref=backref('banned_groups', lazy="dynamic"), lazy='dynamic')
-    blueprints = db.relationship('Blueprint', backref='group', lazy='dynamic')
+    banned_users = db.relationship('User', secondary=workspace_banned_user,
+                                   backref=backref('banned_workspaces', lazy="dynamic"), lazy='dynamic')
+    blueprints = db.relationship('Blueprint', backref='workspace', lazy='dynamic')
 
     def __init__(self, name):
         self.id = uuid.uuid4().hex
         self.name = name
         self.join_code = name
-        self._current_status = Group.STATE_ACTIVE
+        self._current_status = Workspace.STATE_ACTIVE
 
     @hybrid_property
     def join_code(self):
@@ -271,10 +271,10 @@ class Group(db.Model):
 
     @current_status.setter
     def current_status(self, value):
-        if value in Group.VALID_STATES:
+        if value in Workspace.VALID_STATES:
             self._current_status = value
         else:
-            raise ValueError("'%s' is not a valid state for Groups" % value)
+            raise ValueError("'%s' is not a valid state for Workspaces" % value)
 
 
 class Notification(db.Model):
@@ -414,7 +414,7 @@ class Blueprint(db.Model):
     is_enabled = db.Column(db.Boolean, default=False)
     expiry_time = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='blueprint', lazy='dynamic')
-    group_id = db.Column(db.String(32), db.ForeignKey('groups.id'))
+    workspace_id = db.Column(db.String(32), db.ForeignKey('workspaces.id'))
     # current_status when created is "active". Later there are options to be "archived" or "deleted".
     _current_status = db.Column('current_status', db.String(32), default='active')
 

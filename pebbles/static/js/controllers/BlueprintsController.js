@@ -29,10 +29,10 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
 
         var instances = Restangular.all('instances');
 
-        var groups = Restangular.all('groups');
+        var workspaces = Restangular.all('workspaces');
 
-        groups.getList().then(function (response) {
-            $scope.groups = response;
+        workspaces.getList().then(function (response) {
+            $scope.workspaces = response;
         });
 
         var importExportBlueprints = Restangular.all('import_export/blueprints');
@@ -84,8 +84,8 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
                     blueprints: function () {
                         return blueprints;
                     },
-                    groups_list: function () {
-                        return $scope.groups;
+                    workspaces_list: function () {
+                        return $scope.workspaces;
                     }
                 }
             }).result.then(function () {
@@ -104,8 +104,8 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
                         blueprint: function () {
                             return blueprint;
                         },
-                        groups_list: function () {
-                            return $scope.groups;
+                        workspaces_list: function () {
+                            return $scope.workspaces;
                         }
                     }
                 }).result.then(function () {
@@ -270,7 +270,7 @@ app.controller('ModalImportBlueprintsController', function ($scope, $modalInstan
                                 name: blueprintItem.name,
                                 config: blueprintItem.config,
                                 template_name: blueprintItem.template_name,
-                                group_name: blueprintItem.group_name,
+                                workspace_name: blueprintItem.workspace_name,
                                 index: blueprintIndex
                             };  // Send according to forms defined
 
@@ -320,17 +320,17 @@ app.controller('ModalImportBlueprintsController', function ($scope, $modalInstan
 });
 
 
-app.controller('ModalCreateBlueprintController', function ($scope, $modalInstance, template, blueprints, groups_list) {
+app.controller('ModalCreateBlueprintController', function ($scope, $modalInstance, template, blueprints, workspaces_list) {
     $scope.template = template;
-    $scope.groups = groups_list;
-    $scope.createBlueprint = function (form, model, groupModel) {
+    $scope.workspaces = workspaces_list;
+    $scope.createBlueprint = function (form, model, workspaceModel) {
         $scope.$broadcast('schemaFormValidate');
         if (form.$valid) {
             blueprints.post({
                 template_id: $scope.template.id,
                 name: model.name,
                 config: model,
-                group_id: groupModel,
+                workspace_id: workspaceModel,
                 lifespan_months: $scope.bpLifespanMonths
             }).then(function () {
                 $modalInstance.close(true);
@@ -351,7 +351,7 @@ app.controller('ModalCreateBlueprintController', function ($scope, $modalInstanc
     };
 });
 
-app.controller('ModalReconfigureBlueprintController', function ($scope, $modalInstance, blueprint, groups_list) {
+app.controller('ModalReconfigureBlueprintController', function ($scope, $modalInstance, blueprint, workspaces_list) {
     $scope.blueprint = blueprint;
     var config_mismatch = false;
     blueprint.get().then(function (response) {
@@ -365,7 +365,7 @@ app.controller('ModalReconfigureBlueprintController', function ($scope, $modalIn
     $scope.updateBlueprint = function (form, model) {
         if (form.$valid) {
             $scope.blueprint.config = model;
-            //$scope.blueprint.group_id = groupModel.id;
+            //$scope.blueprint.workspace_id = workspaceModel.id;
             $scope.blueprint.put().then(function () {
                 $modalInstance.close(true);
             }, function (response) {

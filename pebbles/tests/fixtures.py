@@ -1,7 +1,7 @@
 # Test fixture methods to be called from app context so we can access the db
 
 from pebbles.models import (
-    User, Group, GroupUserAssociation, BlueprintTemplate, Blueprint,
+    User, Workspace, WorkspaceUserAssociation, BlueprintTemplate, Blueprint,
     Plugin, Notification, Instance)
 from pebbles.tests.base import db
 
@@ -24,8 +24,8 @@ def primary_test_setup(namespace):
 
     u1 = User(namespace.known_admin_eppn, namespace.known_admin_password, is_admin=True)
     u2 = User(namespace.known_user_eppn, namespace.known_user_password, is_admin=False)
-    u3 = User("group_owner@example.org", "group_owner")
-    u4 = User("group_owner2@example.org", "group_owner2")
+    u3 = User("workspace_owner@example.org", "workspace_owner")
+    u4 = User("workspace_owner2@example.org", "workspace_owner2")
 
     # Fix user IDs to be the same for all tests, in order to reuse the same token
     # for multiple tests
@@ -35,56 +35,56 @@ def primary_test_setup(namespace):
     namespace.known_admin_id = u1.id
     namespace.known_user_id = u2.id
     u3.id = 'u3'
-    u3.is_group_owner = True
+    u3.is_workspace_owner = True
     u4.id = 'u4'
-    u4.is_group_owner = True
+    u4.is_workspace_owner = True
 
     namespace.known_admin_id = u1.id
     namespace.known_user_id = u2.id
-    namespace.known_group_owner_id = u3.id
-    namespace.known_group_owner_id_2 = u4.id
+    namespace.known_workspace_owner_id = u3.id
+    namespace.known_workspace_owner_id_2 = u4.id
 
     db.session.add(u1)
     db.session.add(u2)
     db.session.add(u3)
     db.session.add(u4)
 
-    g1 = Group('Group1')
-    g2 = Group('Group2')
-    g3 = Group('Group3')
-    g4 = Group('Group4')
-    g5 = Group('System.default')
+    g1 = Workspace('Workspace1')
+    g2 = Workspace('Workspace2')
+    g3 = Workspace('Workspace3')
+    g4 = Workspace('Workspace4')
+    g5 = Workspace('System.default')
 
     g1.id = 'g1'
-    g1u2 = GroupUserAssociation(user=u2)
-    g1u3 = GroupUserAssociation(user=u3, manager=True, owner=True)
-    g1u4 = GroupUserAssociation(user=u4, manager=True)
+    g1u2 = WorkspaceUserAssociation(user=u2)
+    g1u3 = WorkspaceUserAssociation(user=u3, manager=True, owner=True)
+    g1u4 = WorkspaceUserAssociation(user=u4, manager=True)
     g1.users.append(g1u2)
     g1.users.append(g1u3)
     g1.users.append(g1u4)
     g2.id = 'g2'
-    g2u3 = GroupUserAssociation(user=u3)
-    g2u4 = GroupUserAssociation(user=u4, owner=True)
+    g2u3 = WorkspaceUserAssociation(user=u3)
+    g2u4 = WorkspaceUserAssociation(user=u4, owner=True)
     g2.users.append(g2u3)
     g2.users.append(g2u4)
     g3.id = 'g3'
-    g3u4 = GroupUserAssociation(user=u4, owner=True)
+    g3u4 = WorkspaceUserAssociation(user=u4, owner=True)
     g3.users.append(g3u4)
     g3.banned_users.append(u2)
     g3.banned_users.append(u3)
     g4.id = 'g4'
-    g4u1 = GroupUserAssociation(user=u1, owner=True)
+    g4u1 = WorkspaceUserAssociation(user=u1, owner=True)
     g4.users.append(g4u1)
     g5.id = 'g5'
-    g5u1 = GroupUserAssociation(user=u1, owner=True)
+    g5u1 = WorkspaceUserAssociation(user=u1, owner=True)
     g5.users.append(g5u1)
 
-    namespace.known_group_id = g1.id
-    namespace.known_group_id_2 = g2.id
-    namespace.known_group_id_3 = g3.id
-    namespace.known_banned_group_join_id = g3.join_code
-    namespace.known_group_join_id = g4.join_code
-    namespace.system_default_group_id = g5.id
+    namespace.known_workspace_id = g1.id
+    namespace.known_workspace_id_2 = g2.id
+    namespace.known_workspace_id_3 = g3.id
+    namespace.known_banned_workspace_join_id = g3.join_code
+    namespace.known_workspace_join_id = g4.join_code
+    namespace.system_default_workspace_id = g5.id
     db.session.add(g1)
     db.session.add(g2)
     db.session.add(g3)
@@ -141,14 +141,14 @@ def primary_test_setup(namespace):
     b1 = Blueprint()
     b1.name = "TestBlueprint"
     b1.template_id = t2.id
-    b1.group_id = g1.id
+    b1.workspace_id = g1.id
     db.session.add(b1)
     namespace.known_blueprint_id_disabled = b1.id
 
     b2 = Blueprint()
     b2.name = "EnabledTestBlueprint"
     b2.template_id = t2.id
-    b2.group_id = g1.id
+    b2.workspace_id = g1.id
     b2.is_enabled = True
     db.session.add(b2)
     namespace.known_blueprint_id = b2.id
@@ -156,38 +156,38 @@ def primary_test_setup(namespace):
     b3 = Blueprint()
     b3.name = "EnabledTestBlueprintClientIp"
     b3.template_id = t2.id
-    b3.group_id = g1.id
+    b3.workspace_id = g1.id
     b3.is_enabled = True
     b3.config = {'allow_update_client_connectivity': True}
     db.session.add(b3)
     namespace.known_blueprint_id_2 = b3.id
 
     b4 = Blueprint()
-    b4.name = "EnabledTestBlueprintOtherGroup"
+    b4.name = "EnabledTestBlueprintOtherWorkspace"
     b4.template_id = t2.id
-    b4.group_id = g2.id
+    b4.workspace_id = g2.id
     b4.is_enabled = True
     db.session.add(b4)
     namespace.known_blueprint_id_g2 = b4.id
 
     b5 = Blueprint()
-    b5.name = "DisabledTestBlueprintOtherGroup"
+    b5.name = "DisabledTestBlueprintOtherWorkspace"
     b5.template_id = t2.id
-    b5.group_id = g2.id
+    b5.workspace_id = g2.id
     db.session.add(b5)
     namespace.known_blueprint_id_disabled_2 = b5.id
 
     b6 = Blueprint()
     b6.name = "TestArchivedBlueprint"
     b6.template_id = t2.id
-    b6.group_id = g2.id
+    b6.workspace_id = g2.id
     b6.current_status = 'archived'
     db.session.add(b6)
 
     b7 = Blueprint()
     b7.name = "TestDeletedBlueprint"
     b7.template_id = t2.id
-    b7.group_id = g2.id
+    b7.workspace_id = g2.id
     b7.current_status = 'deleted'
     db.session.add(b7)
 
@@ -224,7 +224,7 @@ def primary_test_setup(namespace):
 
     i4 = Instance(
         Blueprint.query.filter_by(id=b3.id).first(),
-        User.query.filter_by(eppn="group_owner@example.org").first())
+        User.query.filter_by(eppn="workspace_owner@example.org").first())
     db.session.add(i4)
 
     i5 = Instance(
