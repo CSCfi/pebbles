@@ -132,9 +132,30 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
                 """
                 Previously csc-internal-idp returned "eppn@cscuserid". Now the csc logins
                 through AAI proxy returns eppn as "eppn@csc.fi". The following manipulation
-                is required to access older accounts who logged in with cscuserid"
+                is required to access older accounts who logged in with cscuserid".
+
+                Check if csc account is linked to haka, then eppn user-attribute is returned.
+                if csc account is linked to virtu, then vppn user-attribute is returned.
+                For other cases use csc email_id for now and later user name attribute
+                (which is unique).
+
+                In any case no matter what/how the csc account is linked to, it is always
+                treated as separate account.
+                If csc account is linked to more than one idp (say haka and virtu), then eppn
+                from haka will be used. This will lead to a migrated-accessibilty problem(from
+                older customer-idp) if a user has first linked to haka and then revoked and
+                linked to virtu/anyother.
                 """
-                eppn = user_info['eppn'].split('@')[0] + '@cscuserid'
+                if user_info['eppn']:
+                    eppn = user_info['eppn'].split('@')[0] + '@cscuserid'
+                elif user_info['vppn']:
+                    eppn = user_info['vppn'].split('@')[0] + '@cscuserid'
+                    """ this is not implemented in csc LDAP yet.
+                    elif user_info['cscusername']:
+                    eppn = user_info['cscusername'] + '@cscuserid'
+                    """
+                else:
+                    eppn = user_info['email_id']
         elif user_info['authmethod'] == app.config['VIRTU_LOGIN_AUTH_METHOD']:
             """
             virtu login does not have eppn. Eppn is only for academics. virtu has custom
