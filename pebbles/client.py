@@ -91,17 +91,17 @@ class PBClient:
             raise RuntimeError('Unable to delete running logs for instance %s, %s' % (user_id, resp.reason))
         return resp
 
-    def blueprint_delete(self, blueprint_id):
-        resp = self.do_delete('blueprints/%s' % blueprint_id)
+    def environment_delete(self, environment_id):
+        resp = self.do_delete('environments/%s' % environment_id)
         if resp.status_code == 200:
-            return blueprint_id
+            return environment_id
 
-        raise RuntimeError('Error deleting blueprint: %s, %s' % (blueprint_id, resp.reason))
+        raise RuntimeError('Error deleting environment: %s, %s' % (environment_id, resp.reason))
 
-    def get_blueprint_description(self, blueprint_id):
-        resp = self.do_get('blueprints/%s' % blueprint_id)
+    def get_environment_description(self, environment_id):
+        resp = self.do_get('environments/%s' % environment_id)
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for provisioned blueprints, %s' % resp.reason)
+            raise RuntimeError('Cannot fetch data for provisioned environments, %s' % resp.reason)
         return resp.json()
 
     def get_user(self, user_id):
@@ -110,10 +110,10 @@ class PBClient:
             raise RuntimeError('Cannot fetch data for user %s, %s' % (user_id, resp.reason))
         return resp.json()
 
-    def get_blueprints(self):
-        resp = self.do_get('blueprints')
+    def get_environments(self):
+        resp = self.do_get('environments')
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for blueprints, %s' % resp.reason)
+            raise RuntimeError('Cannot fetch data for environments, %s' % resp.reason)
         return resp.json()
 
     def get_instances(self):
@@ -128,12 +128,12 @@ class PBClient:
             raise RuntimeError('Cannot fetch data for instances %s, %s' % (instance_id, resp.reason))
         return resp.json()
 
-    def get_instance_blueprint(self, instance_id):
-        blueprint_id = self.get_instance(instance_id)['blueprint_id']
+    def get_instance_environment(self, instance_id):
+        environment_id = self.get_instance(instance_id)['environment_id']
 
-        resp = self.do_get('blueprints/%s' % blueprint_id)
+        resp = self.do_get('environments/%s' % environment_id)
         if resp.status_code != 200:
-            raise RuntimeError('Error loading blueprint data: %s, %s' % (blueprint_id, resp.reason))
+            raise RuntimeError('Error loading environment data: %s, %s' % (environment_id, resp.reason))
 
         return resp.json()
 

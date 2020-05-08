@@ -22,12 +22,12 @@ inside a container.
     if the URL is shared.
 
 
-The resources are abstracted on two levels as Bluperint Templates and Blueprints:
-  * **Blueprint templates** are created by system administrators who maintain the
+The resources are abstracted on two levels as Bluperint Templates and Environments:
+  * **Environment templates** are created by system administrators who maintain the
     system.
-  * **Blueprints** can be created based on an existing Blueprint templates by
+  * **Environments** can be created based on an existing Environment templates by
     users with elevated but non-administrator rights. Regular users can then
-    provision and access resources based on these blueprints.
+    provision and access resources based on these environments.
 
 The purpose of this divide is to let system administrators create types of
 resource packages with limited freedom to modify the parameters delegated to
@@ -42,15 +42,15 @@ User Types in Pebbles
 There are broadly four roles in a Pebbles instance:
 
 1. Admin - Which is supposed to be the superuser of the system. Ability to
-    invite new users, appoint workspace owners, create blueprint templates,
-    blueprints, system and normal groups. System level priviledges : Access to
+    invite new users, appoint workspace owners, create environment templates,
+    environments, system and normal groups. System level priviledges : Access to
     the backend database, restart or delete running services.
 2. Workspace Owner - Ability to create groups, appoint workspace managers , create
-    blueprints and manage instances running in a workspace
-3. Workspace Manager - Ability to create blueprints and manage instances
+    environments and manage instances running in a workspace
+3. Workspace Manager - Ability to create environments and manage instances
     running in a workspace
 4. User - Able to launch instances if belonging to a workspace with
-    blueprints.
+    environments.
 
 A **workspace owner** is typically associated with costs tracking, e.g. a
 professor or researcher. The workspace owner can create groups and promote other
@@ -69,7 +69,7 @@ See pb_ for a live example.
 
 1) User navigates to page
 2) User logs in with SSO they already know
-3) User selects appropriate blueprint and clicks a button
+3) User selects appropriate environment and clicks a button
 4) System provisions a Docker container from an image
 5) System starts Jupyter/RStudio/similar inside container and forwards a port
 6) User can access the HTML UI from his own browser
@@ -79,7 +79,7 @@ Virtual machines in the cloud.
 
 1) User navigates to page
 2) User logs in with SSO they already know
-3) User selects appropriate blueprint and clicks a button
+3) User selects appropriate environment and clicks a button
 4) System provisions a virtual machine from cPouta_ using a provided base image
 5) User can remote desktop into the IP address of the remote instance
 

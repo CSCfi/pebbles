@@ -1,5 +1,5 @@
 from flask_restful import fields, marshal_with
-from flask import Blueprint
+from flask import Blueprint as FlaskBlueprint
 
 import logging
 
@@ -14,7 +14,7 @@ variable_fields = {
 }
 
 
-variables = Blueprint('variables', __name__)
+variables = FlaskBlueprint('variables', __name__)
 PUBLIC_CONFIG_VARIABLES = (
     'INSTALLATION_NAME',
     'INSTALLATION_DESCRIPTION',

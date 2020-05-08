@@ -15,23 +15,23 @@
 
         <div ng-hide="users.length==0">
 	    <h4> Workspace quota: {{workspace_quota}} </h4>
-	    <h4> Blueprint quota for each workspace: {{blueprint_quota}} </h4>
-            <h4> Total blueprints: {{user_blueprint_info()}} </h4>
+	    <h4> Environment quota for each workspace: {{environment_quota}} </h4>
+            <h4> Total environments: {{user_environment_info()}} </h4>
 
             <uib-accordion close-others="false">
               <div uib-accordion-group class="panel-default" is-open="panel_open">
                 <uib-accordion-heading>
-                Active Blueprints: {{active_blueprints.length}} <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
+                Active Environments: {{active_environments.length}} <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
                 </uib-accordion-heading> 
 	        <table class="table table-striped">
                   <thead>
                     <tr>
-                      <td><label>Blueprint Name</label></td>
+                      <td><label>Environment Name</label></td>
                       <td><label>Workspace</label></td>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr  ng-repeat="active_bp in active_blueprints">
+                    <tr  ng-repeat="active_bp in active_environments">
                       <td>{{active_bp.name}}</td>
                       <td>{{active_bp.workspace_name}}</td>
                     </tr>
@@ -43,17 +43,17 @@
             <uib-accordion close-others="false">
               <div uib-accordion-group class="panel-default" is-open="panel_open">
                 <uib-accordion-heading>
-                Archived Blueprints: {{archived_blueprints.length}} <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
+                Archived Environments: {{archived_environments.length}} <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
                 </uib-accordion-heading>
                 <table class="table table-striped">
                   <thead>
                     <tr>
-                      <td><label>Blueprint Name</label></td>
+                      <td><label>Environment Name</label></td>
                       <td><label>Workspace</label></td>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr  ng-repeat="archived_bp in archived_blueprints">
+                    <tr  ng-repeat="archived_bp in archived_environments">
                       <td>{{archived_bp.name}}</td>
                       <td>{{archived_bp.workspace_name}}</td>
                     </tr>
@@ -65,17 +65,17 @@
             <uib-accordion close-others="false">
               <div uib-accordion-group class="panel-default" is-open="panel_open">
                 <uib-accordion-heading>
-                Deleted Blueprints: {{deleted_blueprints.length}} <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
+                Deleted Environments: {{deleted_environments.length}} <i class="pull-right glyphicon"  ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
                 </uib-accordion-heading>
                 <table class="table table-striped">
                   <thead>
                     <tr>
-                      <td><label>Blueprint Name</label></td>
+                      <td><label>Environment Name</label></td>
                       <td><label>Workspace</label></td>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr  ng-repeat="deleted_bp in deleted_blueprints">
+                    <tr  ng-repeat="deleted_bp in deleted_environments">
                       <td>{{deleted_bp.name}}</td>
                       <td>{{deleted_bp.workspace_name}}</td>
                     </tr>
@@ -104,8 +104,8 @@
         </br>
         <div  ng-show="users[0].is_workspace_owner" class="radio">
            <label>
-              <h4><input ng-model="formdata.valueQuota" type="radio" name="valueQuota" value="blueprint_quota_value">
-              blueprint quota</h4>
+              <h4><input ng-model="formdata.valueQuota" type="radio" name="valueQuota" value="environment_quota_value">
+              environment quota</h4>
            </label>
         </div>
 

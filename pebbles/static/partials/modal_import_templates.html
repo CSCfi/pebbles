@@ -1,13 +1,13 @@
 <div class="modal-header">
     <button ng-hide="imported" type="button" class="close" ng-click="cancel()"><span aria-hidden="true">&times;</span></button>
-    <h4 class="modal-title">Import Blueprint Templates</h4>
+    <h4 class="modal-title">Import Environment Templates</h4>
 </div>
 <div class="modal-body">
 <div class="alert">
 <input type="file" onchange="angular.element(this).scope().importTemplates(this)"/>
 </div>
 <div class="alert alert-success" ng-show="isImportSuccess">
-  Blueprint Templates Imported Successfully 
+  Environment Templates Imported Successfully
 </div>
 
 <div class="alert alert-danger" ng-show="isImportFailed">

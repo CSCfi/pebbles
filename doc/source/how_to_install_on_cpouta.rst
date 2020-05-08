@@ -155,18 +155,18 @@ will dynamically include VM images and flavors that are available for the
 cPouta project.  Refresh the page after a minute or two, and the *Plugins*
 list on top of the page should include the driver of your choice.
 
-Create a test blueprint
+Create a test environment
 -----------------------
 
-Click 'Create Blueprint' next to OpenStackDriver in the plugin list and you
-are presented by a dialog for configuring the new blueprint. We'll create a
-blueprint for Ubuntu-14.04 based VM, using standard.tiny flavor, running for
+Click 'Create Environment' next to OpenStackDriver in the plugin list and you
+are presented by a dialog for configuring the new environment. We'll create a
+environment for Ubuntu-14.04 based VM, using standard.tiny flavor, running for
 1h maximum. We'll also test running a custom command as part of the boot
 process and allow user to open ssh access to the instance from an arbitrary
 address
  
 * Name: Ubuntu-14.04 test
-* Description: Test blueprint for launching a single core Ubuntu-14.04 VM in cPouta
+* Description: Test environment for launching a single core Ubuntu-14.04 VM in cPouta
 * Flavor: standard.tiny
 * Maximum lifetime: 1h
 * Maximum instances per user: 1
@@ -178,15 +178,15 @@ address
 Also add a Customization script, just for test purposes:
 
     #!/bin/bash
-    touch /tmp/hello_from_blueprint_config
+    touch /tmp/hello_from_environment_config
 
-Save the new blueprint and enable it in the Blueprints list.
+Save the new environment and enable it in the Environments list.
 
 Launch a test instance
 ----------------------
 
 Go to 'Dashboard' tab. If you have not uploaded your ssh public key yet,
-you'll see a notice with a link to do so in the Blueprint list. Click the link
+you'll see a notice with a link to do so in the Environment list. Click the link
 and upload or generate a public key.
 
 Go back to 'Dashboard' and launch an instance. You'll notice the new instance
@@ -201,8 +201,8 @@ Access field above and paste that to a terminal (or an ssh-client):
 
 Check if our boot time customization script worked:
 
-    $ ls -l /tmp/hello_from_blueprint_config 
-    -rw-r--r-- 1 root root 0 Nov 17 09:47 /tmp/hello_from_blueprint_config
+    $ ls -l /tmp/hello_from_environment_config
+    -rw-r--r-- 1 root root 0 Nov 17 09:47 /tmp/hello_from_environment_config
 
 
 Enable Docker Driver

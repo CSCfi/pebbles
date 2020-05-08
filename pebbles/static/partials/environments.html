@@ -1,5 +1,5 @@
 <div ng-show="getIcons()">
-    <h2>Create Blueprints</h2>
+    <h2>Create Environments</h2>
     <h3>Templates</h3>
     <table class="table table-striped">
         <thead>
@@ -20,19 +20,19 @@
             <td>{{ template.config.description }}</td>
             <td>{{ template.config.maximum_lifetime }}</td>
             <td>
-                <button ng-click="openCreateBlueprintDialog(template)" class="btn btn-default">
-                    Create Blueprint
+                <button ng-click="openCreateEnvironmentDialog(template)" class="btn btn-default">
+                    Create Environment
                 </button>
             </td>
         </tr>
         </tbody>
     </table>
 
-    <h3>Blueprints</h3>
+    <h3>Environments</h3>
     <div>
-        <h5>Select the workspace to view the respective blueprints:
+        <h5>Select the workspace to view the respective environments:
             <select ng-model="selectedoptionModel"
-                    ng-options="blueprint.workspace_name as blueprint.workspace_name for blueprint in blueprints | filter : {manager: 'true'} | unique:'workspace_name'">
+                    ng-options="environment.workspace_name as environment.workspace_name for environment in environments | filter : {manager: 'true'} | unique:'workspace_name'">
                 <option value="">show-all-workspaces</option>
             </select>
         </h5>
@@ -44,7 +44,7 @@
         <uib-accordion close-others="false">
             <div uib-accordion-group class="panel-default" is-open="panel_open">
                 <uib-accordion-heading>
-                    Active Blueprints: <i class="pull-right glyphicon"
+                    Active Environments: <i class="pull-right glyphicon"
                                           ng-class="{'glyphicon-chevron-down':panel_open, 'glyphicon-chevron-right':!panel_open}"></i>
                 </uib-accordion-heading>
 
@@ -60,40 +60,40 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
-                        <td colspan="3">No blueprints</td>
+                    <tr ng-hide="environments != undefined && (environments | filter : {is_enabled: 'true'}).length">
+                        <td colspan="3">No environments</td>
                     </tr>
-                    <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType"
-                        ng-if="blueprint.is_enabled==true">
-                        <td>{{ blueprint.name }}</td>
-                        <td>{{ blueprint.template_name }}</td>
-                        <td>{{ blueprint.workspace_name }}</td>
+                    <tr ng-repeat="environment in environments | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType"
+                        ng-if="environment.is_enabled==true">
+                        <td>{{ environment.name }}</td>
+                        <td>{{ environment.template_name }}</td>
+                        <td>{{ environment.workspace_name }}</td>
                         <td>
-                            <lifetime value="{{ blueprint.maximum_lifetime }}"
-                                      maximum-lifetime="{{ blueprint.maximum_lifetime }}"/>
+                            <lifetime value="{{ environment.maximum_lifetime }}"
+                                      maximum-lifetime="{{ environment.maximum_lifetime }}"/>
                         </td>
-                        <td>{{ blueprint.expiry_time | utcToLocale:"mediumDate"}} </td>
+                        <td>{{ environment.expiry_time | utcToLocale:"mediumDate"}} </td>
                         <td>
-                            <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)"
+                            <button ng-hide="environment.is_enabled" ng-click="activate(environment)"
                                     class="btn btn-primary">Activate
                             </button>
-                            <button ng-show="blueprint.is_enabled" ng-click="deactivate(blueprint)"
+                            <button ng-show="environment.is_enabled" ng-click="deactivate(environment)"
                                     class="btn btn-default">Deactivate
                             </button>
-                            <button ng-click="openReconfigureBlueprintDialog(blueprint)" class="btn btn-default">
+                            <button ng-click="openReconfigureEnvironmentDialog(environment)" class="btn btn-default">
                                 Reconfigure
                             </button>
-                            <button ng-show="blueprint.is_enabled" ng-click="openBlueprintLinkDialog(blueprint)"
+                            <button ng-show="environment.is_enabled" ng-click="openEnvironmentLinkDialog(environment)"
                                     class="btn btn-success">Link
                             </button>
-                            <button ng-confirm-click="Copy this blueprint?" ng-click="copyBlueprint(blueprint)"
+                            <button ng-confirm-click="Copy this environment?" ng-click="copyEnvironment(environment)"
                                     class="btn btn-default">Copy
                             </button>
                             <button ng-if=isAdmin()
-                                    ng-confirm-click="Do you want to permanently archive this blueprint?"
-                                    ng-click="archiveBlueprint(blueprint)" class="btn btn-default">Archive
+                                    ng-confirm-click="Do you want to permanently archive this environment?"
+                                    ng-click="archiveEnvironment(environment)" class="btn btn-default">Archive
                             </button>
-                            <button ng-click="deleteBlueprint(blueprint)" class="btn btn-danger">Delete</button>
+                            <button ng-click="deleteEnvironment(environment)" class="btn btn-danger">Delete</button>
                         </td>
                     </tr>
                     </tbody>
@@ -108,7 +108,7 @@
         <uib-accordion close-others="false">
             <div uib-accordion-group class="panel-default" is-open="panel_open1">
                 <uib-accordion-heading>
-                    Deactive Blueprints: <i class="pull-right glyphicon"
+                    Deactive Environments: <i class="pull-right glyphicon"
                                             ng-class="{'glyphicon-chevron-down':panel_open1, 'glyphicon-chevron-right':!panel_open1}"></i>
                 </uib-accordion-heading>
 
@@ -124,40 +124,40 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
-                        <td colspan="3">No blueprints</td>
+                    <tr ng-hide="environments != undefined && (environments | filter : {is_enabled: 'true'}).length">
+                        <td colspan="3">No environments</td>
                     </tr>
-                    <tr ng-repeat="blueprint in blueprints | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType"
-                        ng-if="blueprint.is_enabled==false || blueprint.is_enabled==undefined">
-                        <td>{{ blueprint.name }}</td>
-                        <td>{{ blueprint.template_name }}</td>
-                        <td>{{ blueprint.workspace_name }}</td>
+                    <tr ng-repeat="environment in environments | filter : {manager: 'true'} | filter: selectedoptionModel | orderBy:sortType"
+                        ng-if="environment.is_enabled==false || environment.is_enabled==undefined">
+                        <td>{{ environment.name }}</td>
+                        <td>{{ environment.template_name }}</td>
+                        <td>{{ environment.workspace_name }}</td>
                         <td>
-                            <lifetime value="{{ blueprint.maximum_lifetime }}"
-                                      maximum-lifetime="{{ blueprint.maximum_lifetime }}"/>
+                            <lifetime value="{{ environment.maximum_lifetime }}"
+                                      maximum-lifetime="{{ environment.maximum_lifetime }}"/>
                         </td>
-                        <td>{{ blueprint.expiry_time | utcToLocale:"mediumDate"}} </td>
+                        <td>{{ environment.expiry_time | utcToLocale:"mediumDate"}} </td>
                         <td>
-                            <button ng-hide="blueprint.is_enabled" ng-click="activate(blueprint)"
+                            <button ng-hide="environment.is_enabled" ng-click="activate(environment)"
                                     class="btn btn-primary">Activate
                             </button>
-                            <button ng-show="blueprint.is_enabled" ng-click="deactivate(blueprint)"
+                            <button ng-show="environment.is_enabled" ng-click="deactivate(environment)"
                                     class="btn btn-default">Deactivate
                             </button>
-                            <button ng-click="openReconfigureBlueprintDialog(blueprint)" class="btn btn-default">
+                            <button ng-click="openReconfigureEnvironmentDialog(environment)" class="btn btn-default">
                                 Reconfigure
                             </button>
-                            <button ng-show="blueprint.is_enabled" ng-click="openBlueprintLinkDialog(blueprint)"
+                            <button ng-show="environment.is_enabled" ng-click="openEnvironmentLinkDialog(environment)"
                                     class="btn btn-success">Link
                             </button>
-                            <button ng-confirm-click="Copy this blueprint?" ng-click="copyBlueprint(blueprint)"
+                            <button ng-confirm-click="Copy this environment?" ng-click="copyEnvironment(environment)"
                                     class="btn btn-default">Copy
                             </button>
                             <button ng-if=isAdmin()
-                                    ng-confirm-click="Do you want to permanently archive this blueprint?"
-                                    ng-click="archiveBlueprint(blueprint)" class="btn btn-default">Archive
+                                    ng-confirm-click="Do you want to permanently archive this environment?"
+                                    ng-click="archiveEnvironment(environment)" class="btn btn-default">Archive
                             </button>
-                            <button ng-click="deleteBlueprint(blueprint)" class="btn btn-danger">Delete</button>
+                            <button ng-click="deleteEnvironment(environment)" class="btn btn-danger">Delete</button>
                         </td>
                     </tr>
                     </tbody>
@@ -167,8 +167,8 @@
 
     </div>
 
-    <h3>Export / Import Blueprints</h3>
-    <button class="btn btn-default" ng-click="exportBlueprints()">Export</button>
-    <button class="btn btn-default" ng-click="openImportBlueprintsDialog()">Import</button>
+    <h3>Export / Import Environments</h3>
+    <button class="btn btn-default" ng-click="exportEnvironments()">Export</button>
+    <button class="btn btn-default" ng-click="openImportEnvironmentsDialog()">Import</button>
 
 </div>

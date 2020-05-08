@@ -9,7 +9,7 @@ describe('Pebbles', function() {
     element(by.model('password')).sendKeys(browser.params.login.password);
     element(by.css('[value="Sign in"]')).click();
     var title = element.all(by.tagName('h1')).first();
-    expect(title.getText()).toBe('Blueprints');
+    expect(title.getText()).toBe('Environments');
   });
 
   it('should see user list', function() {

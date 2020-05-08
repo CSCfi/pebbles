@@ -13,8 +13,8 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
                 instance = response;
                 $scope.instance = response;
             }).then(function () {
-                Restangular.one('blueprints', instance.blueprint_id).get().then(function (response) {
-                    $scope.blueprint = response;
+                Restangular.one('environments', instance.environment_id).get().then(function (response) {
+                    $scope.environment = response;
                 });
             }).then(function () {
                 $scope.fetchLogs(instance);

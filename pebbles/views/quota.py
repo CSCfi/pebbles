@@ -18,9 +18,9 @@ workspace_quota_update_functions = {
     'absolute': lambda user, value: value,
     'relative': lambda user, value: user.workspace_quota + value
 }
-blueprint_quota_update_functions = {
+environment_quota_update_functions = {
     'absolute': lambda user, value: value,
-    'relative': lambda user, value: user.blueprint_quota + value
+    'relative': lambda user, value: user.environment_quota + value
 }
 
 parser.add_argument('type')
@@ -55,11 +55,11 @@ def update_user_quota(user, update_type, value, credits_type):
                 user.workspace_quota = 1  # can also add real time value from db here
             fun = workspace_quota_update_functions[update_type]
             user.workspace_quota = fun(user, value)
-        elif credits_type == 'blueprint_quota_value' and user.is_workspace_owner:
-            if not user.blueprint_quota:
-                user.blueprint_quota = 1
-            fun = blueprint_quota_update_functions[update_type]
-            user.blueprint_quota = fun(user, value)
+        elif credits_type == 'environment_quota_value' and user.is_workspace_owner:
+            if not user.environment_quota:
+                user.environment_quota = 1
+            fun = environment_quota_update_functions[update_type]
+            user.environment_quota = fun(user, value)
 
     except:
         abort(422)

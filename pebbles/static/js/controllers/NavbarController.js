@@ -87,9 +87,9 @@ app.controller('NavbarController', ['$scope', '$window', '$rootScope', '$locatio
     };
 
     var _routeNavigator = function() {
-        if($routeParams.blueprint_id){
+        if($routeParams.environment_id){
             $location.url($location.path());  // remove query parameters when navigating further
-            $location.path("/blueprint/" + $routeParams.blueprint_id);
+            $location.path("/environment/" + $routeParams.environment_id);
         }
         else{
             $location.path("/dashboard");

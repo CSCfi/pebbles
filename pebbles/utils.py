@@ -93,22 +93,22 @@ def parse_port_range(port_range):
         raise ValueError('No port range found')
 
 
-def get_full_blueprint_config(blueprint):
-    """Get the full config for blueprint from blueprint template for allowed attributes"""
-    template = blueprint.template
+def get_full_environment_config(environment):
+    """Get the full config for environment from environment template for allowed attributes"""
+    template = environment.template
     allowed_attrs = template.allowed_attrs
     allowed_attrs = ['name', 'description'] + allowed_attrs
     full_config = template.config
-    bp_config = blueprint.config
+    bp_config = environment.config
     for attr in allowed_attrs:
         if attr in bp_config:
             full_config[attr] = bp_config[attr]
     return full_config
 
 
-def get_blueprint_fields_from_config(blueprint, field_name):
-    """Hybrid fields for Blueprint model which need processing"""
-    full_config = get_full_blueprint_config(blueprint)
+def get_environment_fields_from_config(environment, field_name):
+    """Hybrid fields for Environment model which need processing"""
+    full_config = get_full_environment_config(environment)
 
     if field_name == 'preallocated_credits':
         preallocated_credits = False  # Default value

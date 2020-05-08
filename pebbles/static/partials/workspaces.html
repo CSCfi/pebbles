@@ -79,7 +79,7 @@
                      <button ng-click="showUsers(selectedWorkspace)" class="btn btn-default">Show Users</button>
                 </span>
                 <span ng-show="isAdmin() && selectedWorkspace.name !='System.default'">
-                    <button ng-show=isAdmin() ng-confirm-click="Do you want to permanently archive this workspace? Note that blueprints created in this workspace will also be archived." ng-click="archiveWorkspace(selectedWorkspace)" class="btn btn-default">Archive</button>
+                    <button ng-show=isAdmin() ng-confirm-click="Do you want to permanently archive this workspace? Note that environments created in this workspace will also be archived." ng-click="archiveWorkspace(selectedWorkspace)" class="btn btn-default">Archive</button>
                     <button ng-confirm-click="Delete this workspace?" ng-click="deleteWorkspace(selectedWorkspace)" class="btn btn-danger">Delete</button>
                 </span>
                 <span ng-show="isWorkspaceOwnerOrAdmin() && selectedWorkspace.name !='System.default'">

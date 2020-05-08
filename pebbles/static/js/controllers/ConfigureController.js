@@ -18,7 +18,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             $scope.plugins = response;
         });
 
-        var templates = Restangular.all('blueprint_templates');
+        var templates = Restangular.all('environment_templates');
 
         templates.getList({show_deactivated: true}).then(function (response) {
             $scope.templates = response;
@@ -34,7 +34,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         updateNotificationList();
 
 
-        var importExportTemplates = Restangular.all('import_export/blueprint_templates');
+        var importExportTemplates = Restangular.all('import_export/environment_templates');
 
         $scope.exportTemplates = function () {
 
@@ -46,7 +46,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                 var anchorLink = document.createElement('a');
                 var mouseEvent = new MouseEvent('click');
 
-                anchorLink.download = "blueprint_templates.json";
+                anchorLink.download = "environment_templates.json";
                 anchorLink.href = window.URL.createObjectURL(blob);
                 anchorLink.dataset.downloadurl = ['text/json', anchorLink.download, anchorLink.href].join(':');
                 anchorLink.dispatchEvent(mouseEvent);
@@ -109,12 +109,12 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 
 
         $scope.copyTemplate = function(template) {
-            var template_copy = Restangular.all('blueprint_templates').one('template_copy', template.id).put();
+            var template_copy = Restangular.all('environment_templates').one('template_copy', template.id).put();
             template_copy.then(function () {
                 templates.getList().then(function (response) {
                       $.notify({
                           title: 'Success: ',
-                          message: 'A copy of the blueprint template was made'
+                          message: 'A copy of the environment template was made'
                           }, {type: 'success'});
                     $scope.templates = response;
                 });
@@ -122,7 +122,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         }, function (response) {
                $.notify({
                    title: 'HTTP ' + response.status,
-                   message: 'Could not copy blueprint template'
+                   message: 'Could not copy environment template'
                }, {type: 'danger'});
 
         };
@@ -151,8 +151,8 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 
         $scope.deactivate = function (template) {
             $uibModal.open({
-                templateUrl: '/partials/modal_disable_blueprints.html',
-                controller: 'ModalDisableBlueprintsController',
+                templateUrl: '/partials/modal_disable_environments.html',
+                controller: 'ModalDisableEnvironmentsController',
                 size: 'sm',
                 resolve: {
                     template: function() {
@@ -257,14 +257,14 @@ app.controller('ModalImportTemplatesController', function($scope, $modalInstance
                     }
                     if(totalItems == 0){
                         $.notify({
-                                    title: 'Blueprint Templates could not be imported!',
+                                    title: 'Environment Templates could not be imported!',
                                     message: 'No templates found'
                                 }, {type: 'danger'});
                     }
                 }
                 catch(exception){
                     $.notify({
-                        title: 'Blueprint Templates could not be imported!',
+                        title: 'Environment Templates could not be imported!',
                         message: exception
                     }, {type: 'danger'});
                 }
@@ -299,7 +299,7 @@ app.controller('ModalCreateTemplateController', function($scope, $modalInstance,
             templates.post({ plugin: $scope.plugin.id, name: model.name, config: model, allowed_attrs: allowed_attrs}).then(function () {
                 $modalInstance.close(true);
             }, function(response) {
-                $.notify({title: 'HTTP ' + response.status, message: 'unable to create blueprint template'}, {type: 'danger'});
+                $.notify({title: 'HTTP ' + response.status, message: 'unable to create environment template'}, {type: 'danger'});
             });
         }
     };
@@ -326,7 +326,7 @@ app.controller('ModalReconfigureTemplateController', function($scope, $modalInst
             $scope.template.put().then(function () {
                 $modalInstance.close(true);
             }, function(response) {
-                $.notify({title: 'HTTP ' + response.status, message: 'unable to reconfigure blueprint template'}, {type: 'danger'});
+                $.notify({title: 'HTTP ' + response.status, message: 'unable to reconfigure environment template'}, {type: 'danger'});
             });
         }
     };
@@ -371,9 +371,9 @@ app.controller('ModalEditNotificationController', function($scope, $modalInstanc
     };
 });
 
-app.controller('ModalDisableBlueprintsController', function($scope, $modalInstance, template) {
-    $scope.disableBlueprints = function() {
-        template.put({'disable_blueprints': true}).then(function () {
+app.controller('ModalDisableEnvironmentsController', function($scope, $modalInstance, template) {
+    $scope.disableEnvironments = function() {
+        template.put({'disable_environments': true}).then(function () {
             $modalInstance.close(true);
         }, function(response) {
             $.notify({title: 'HTTP ' + response.status, message: 'unable to deactivate'}, {type: 'danger'});

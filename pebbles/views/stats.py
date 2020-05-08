@@ -5,18 +5,18 @@ import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
 from flask_restful import marshal_with, fields
 
-from pebbles.models import Blueprint, Instance
+from pebbles.models import Environment, Instance
 from pebbles.utils import requires_admin, memoize
 from pebbles.views.commons import auth
 
 stats = FlaskBlueprint('stats', __name__)
 
 
-def query_blueprint(blueprint_id):
-    return Blueprint.query.filter_by(id=blueprint_id).first()
+def query_environment(environment_id):
+    return Environment.query.filter_by(id=environment_id).first()
 
 
-BLUEPRINT_FIELDS = {
+ENVIRONMENT_FIELDS = {
     'name': fields.String,
     'users': fields.Integer,
     'launched_instances': fields.Integer,
@@ -24,7 +24,7 @@ BLUEPRINT_FIELDS = {
 }
 
 RESULT_FIELDS = {
-    'blueprints': fields.List(fields.Nested(BLUEPRINT_FIELDS)),
+    'environments': fields.List(fields.Nested(ENVIRONMENT_FIELDS)),
     'overall_running_instances': fields.Integer
 }
 
@@ -37,40 +37,40 @@ class StatsList(restful.Resource):
         instances = Instance.query.all()
         overall_running_instances = Instance.query.filter(Instance.state != Instance.STATE_DELETED).count()
 
-        get_blueprint = memoize(query_blueprint)
-        per_blueprint_results = defaultdict(lambda: {'users': 0, 'launched_instances': 0, 'running_instances': 0})
+        get_environment = memoize(query_environment)
+        per_environment_results = defaultdict(lambda: {'users': 0, 'launched_instances': 0, 'running_instances': 0})
         unique_users = defaultdict(set)
 
         for instance in instances:
 
             user_id = instance.user_id
 
-            blueprint = get_blueprint(instance.blueprint_id)
-            if not blueprint:
-                logging.warning("instance %s has a reference to non-existing blueprint", instance.id)
+            environment = get_environment(instance.environment_id)
+            if not environment:
+                logging.warning("instance %s has a reference to non-existing environment", instance.id)
                 continue
 
-            if 'name' not in per_blueprint_results[blueprint.id]:
-                per_blueprint_results[blueprint.id]['name'] = blueprint.name
+            if 'name' not in per_environment_results[environment.id]:
+                per_environment_results[environment.id]['name'] = environment.name
 
-            if user_id not in unique_users[blueprint.id]:
-                unique_users[blueprint.id].add(user_id)
-                per_blueprint_results[blueprint.id]['users'] += 1
+            if user_id not in unique_users[environment.id]:
+                unique_users[environment.id].add(user_id)
+                per_environment_results[environment.id]['users'] += 1
 
             if instance.state != Instance.STATE_DELETED:
-                per_blueprint_results[blueprint.id]['running_instances'] += 1
+                per_environment_results[environment.id]['running_instances'] += 1
 
-            per_blueprint_results[blueprint.id]['launched_instances'] += 1
-            # per_blueprint_results[blueprint.id]['overall_running_instances'] = overall_running_instances
+            per_environment_results[environment.id]['launched_instances'] += 1
+            # per_environment_results[environment.id]['overall_running_instances'] = overall_running_instances
 
         results = []
-        for blueprint_id in per_blueprint_results:
-            results.append(per_blueprint_results[blueprint_id])
+        for environment_id in per_environment_results:
+            results.append(per_environment_results[environment_id])
 
         results.sort(
             key=lambda results_entry: (results_entry["launched_instances"], results_entry["users"]),
             reverse=True
         )
-        final = {"blueprints": results, "overall_running_instances": overall_running_instances}
+        final = {"environments": results, "overall_running_instances": overall_running_instances}
 
         return final

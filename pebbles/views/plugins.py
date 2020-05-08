@@ -1,7 +1,8 @@
 import json
 import logging
 
-from flask import abort, Blueprint
+from flask import abort
+from flask import Blueprint as FlaskBlueprint
 from flask_restful import fields, marshal_with
 
 from pebbles.forms import PluginForm
@@ -10,7 +11,7 @@ import flask_restful as restful
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth
 
-plugins = Blueprint('plugins', __name__)
+plugins = FlaskBlueprint('plugins', __name__)
 
 plugin_fields = {
     'id': fields.String,
@@ -33,7 +34,7 @@ class PluginList(restful.Resource):
     def post(self):
         form = PluginForm()
         if not form.validate_on_submit():
-            logging.warning("validation error on update blueprint config")
+            logging.warning("validation error on update environment config")
             return form.errors, 422
 
         plugin = Plugin.query.filter_by(name=form.plugin.data).first()

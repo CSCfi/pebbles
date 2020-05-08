@@ -51,7 +51,7 @@ This document defines concepts in Pebbles software.
 
 ### Environment template
 
-- A blueprint for Environments
+- A environment for Environments
 - Created by Admin
 - Tied to a Cluster
 - Has attributes needed by Cluster

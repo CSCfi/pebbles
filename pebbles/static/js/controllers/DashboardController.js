@@ -31,12 +31,12 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
 
         var workspace_join = Restangular.all('workspaces').one('workspace_join');
 
-        var blueprints = Restangular.all('blueprints');
-        blueprints.getList().then(function (response) {
-            if($routeParams.blueprint_id){  // Case when the blueprint link is given
-                var blueprint_id = $routeParams.blueprint_id;
-                $scope.blueprints = _.filter(response, { 'id': blueprint_id });
-                if (!$scope.blueprints.length){
+        var environments = Restangular.all('environments');
+        environments.getList().then(function (response) {
+            if($routeParams.environment_id){  // Case when the environment link is given
+                var environment_id = $routeParams.environment_id;
+                $scope.environments = _.filter(response, { 'id': environment_id });
+                if (!$scope.environments.length){
                      $uibModal.open({
                      templateUrl: '/partials/modal_workspace_join.html',
                      controller: 'ModalWorkspaceJoinController',
@@ -55,19 +55,19 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
                          }
                      }
                      }).result.then(function() {
-                         refresh_blueprints_for_link(blueprint_id);
+                         refresh_environments_for_link(environment_id);
                      });
                 }
             }
-            else{  // Fetch all blueprints
-                $scope.blueprints = response;
+            else{  // Fetch all environments
+                $scope.environments = response;
             }
         });
 
-        var refresh_blueprints_for_link = function(blueprint_id){
-            blueprints.getList().then(function (response) {
-            $scope.blueprints = _.filter(response, {'id': blueprint_id, 'is_enabled': true });
-            if(!$scope.blueprints.length){
+        var refresh_environments_for_link = function(environment_id){
+            environments.getList().then(function (response) {
+            $scope.environments = _.filter(response, {'id': environment_id, 'is_enabled': true });
+            if(!$scope.environments.length){
                 $.notify({
                     title: "INVALID LINK!", message: "The link provided appears to be invalid. Could not retrieve any information."}, {type: "danger"});
             }
@@ -169,11 +169,11 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
 
         $scope.updateInstanceList();
 
-        $scope.maxInstanceLimitReached = function(blueprint) {
-            var max_instance_limit = blueprint.full_config['maximum_instances_per_user'];
+        $scope.maxInstanceLimitReached = function(environment) {
+            var max_instance_limit = environment.full_config['maximum_instances_per_user'];
             var own_instances = _.filter($scope.instances, {'user_id': AuthService.getUserId()});
-            var instance_counts = _.countBy(own_instances, 'blueprint_id');
-            var running_instances = instance_counts[blueprint.id];
+            var instance_counts = _.countBy(own_instances, 'environment_id');
+            var running_instances = instance_counts[environment.id];
             if (typeof running_instances == 'undefined') {
                 running_instances = 0;
             }
@@ -184,11 +184,11 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
         };
 
         $scope.showMaxInstanceLimitInfo = function() {
-            $.notify({title: 'LAUNCH BUTTON DISABLED : ', message: 'Maximum number of running instances for the selected blueprint reached'}, {type: 'danger'});
+            $.notify({title: 'LAUNCH BUTTON DISABLED : ', message: 'Maximum number of running instances for the selected environment reached'}, {type: 'danger'});
         }
 
-        $scope.provision = function (blueprint) {
-            instances.post({blueprint: blueprint.id}).then(function (response) {
+        $scope.provision = function (environment) {
+            instances.post({environment: environment.id}).then(function (response) {
                 $scope.updateInstanceList();
                 //Check if the instance is still in queueing state after 10 mins, if so send email to admins. 
                 $timeout(function () {
@@ -214,7 +214,7 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
                     } else if (response.data.error == 'USER_BLOCKED') {
                         $.notify({title: 'HTTP ' + response.status, message: 'You have been blocked, contact your administrator'}, {type: 'danger'});
                     } else {
-                        $.notify({title: 'HTTP ' + response.status, message: 'Maximum number of running instances for the selected blueprint reached.'}, {type: 'danger'});
+                        $.notify({title: 'HTTP ' + response.status, message: 'Maximum number of running instances for the selected environment reached.'}, {type: 'danger'});
                     }
                 }
             });
@@ -242,8 +242,8 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
                            return instance;
                         },
 
-                        blueprint: function(){
-                           return _.filter($scope.blueprints, { 'id': instance.blueprint_id });
+                        environment: function(){
+                           return _.filter($scope.environments, { 'id': instance.environment_id });
                         },
                     }   
                 }).result.then(function(markedInstances) {
@@ -322,9 +322,9 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
         $scope.startPolling();
     }]);
 
-app.controller('ModalShowPasswordController', function($scope, $modalInstance, instance, blueprint) {
+app.controller('ModalShowPasswordController', function($scope, $modalInstance, instance, environment) {
     $scope.instance = instance;
-    $scope.blueprint = blueprint;
+    $scope.environment = environment;
     $scope.copyAndClose = function() {
         try {
             var passwordField = document.querySelector('#password');

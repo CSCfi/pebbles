@@ -164,9 +164,9 @@ class OpenShiftTemplateDriver(OpenShiftRemoteDriver):
     def render_template_objects(self, namespace, instance):
         """ Render the template for the instance. This is done on OpenShift server.
         """
-        blueprint_config = instance['blueprint']['full_config']
+        environment_config = instance['environment']['full_config']
 
-        template_url = blueprint_config['os_template']
+        template_url = environment_config['os_template']
         if not template_url:
             raise RuntimeError('No template url given')
 
@@ -181,10 +181,10 @@ class OpenShiftTemplateDriver(OpenShiftRemoteDriver):
 
         if 'parameters' in template_yaml:
             # create a dict out of space separated list of VAR=VAL entries
-            env_var_array = blueprint_config.get('environment_vars', '').split()
+            env_var_array = environment_config.get('environment_vars', '').split()
             env_var_dict = {k: v for k, v in [x.split('=') for x in env_var_array]}
 
-            # fill template parameters from blueprint environment variables
+            # fill template parameters from environment environment variables
             for template_param in template_yaml['parameters']:
                 if template_param['name'] in env_var_dict:
                     env_template_param_val = env_var_dict[template_param['name']]

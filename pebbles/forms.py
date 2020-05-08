@@ -48,7 +48,7 @@ class NotificationForm(ModelForm):
     message = StringField('message', validators=[DataRequired()])
 
 
-class BlueprintTemplateForm(ModelForm):
+class EnvironmentTemplateForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
     config = StringField('config', validators=[DataRequired()])
     plugin = StringField('plugin', validators=[DataRequired()])
@@ -56,7 +56,7 @@ class BlueprintTemplateForm(ModelForm):
     is_enabled = BooleanField('is_enabled', default=False)
 
 
-class BlueprintForm(ModelForm):
+class EnvironmentForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
     template_id = StringField('template_id', validators=[DataRequired()])
     config = StringField('config', validators=[DataRequired()])
@@ -64,14 +64,14 @@ class BlueprintForm(ModelForm):
     workspace_id = StringField('workspace_id', validators=[DataRequired()])
 
 
-class BlueprintTemplateImportForm(ModelForm):
+class EnvironmentTemplateImportForm(ModelForm):
     name = StringField('name', validators=[DataRequired()])
     config = StringField('config', validators=[DataRequired()])
     plugin_name = StringField('plugin_name', validators=[DataRequired()])
     allowed_attrs = StringField('allowed_attrs')
 
 
-class BlueprintImportForm(ModelForm):
+class EnvironmentImportForm(ModelForm):
     name = StringField('name', validators=[DataRequired()])
     config = StringField('config', validators=[DataRequired()])
     template_name = StringField('template_name', validators=[DataRequired()])
@@ -98,7 +98,7 @@ class PasswordResetRequestForm(ModelForm):
 
 
 class InstanceForm(ModelForm):
-    blueprint = StringField('blueprint_id', validators=[DataRequired()])
+    environment = StringField('environment_id', validators=[DataRequired()])
 
 
 class SessionCreateForm(ModelForm):

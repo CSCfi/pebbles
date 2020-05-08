@@ -96,10 +96,10 @@ class Worker:
     def update_instance(self, instance):
         logging.debug('updating %s' % instance)
         instance_id = instance['id']
-        blueprint = self.client.get_instance_blueprint(instance_id)
-        plugin_id = blueprint['plugin']
+        environment = self.client.get_instance_environment(instance_id)
+        plugin_id = environment['plugin']
         plugin_name = self.client.get_plugin_data(plugin_id)['name']
-        backend_name = blueprint.get('full_config').get('backend')
+        backend_name = environment.get('full_config').get('backend')
         if backend_name is None:
             backend_name = plugin_name
             logging.warning('Guessing backend name to be driver name for instance %s' % instance.get('name'))

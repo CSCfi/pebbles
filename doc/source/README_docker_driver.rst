@@ -54,10 +54,10 @@ There is a PREFIX setting that sets the prefix to use when generating pool
 hosts.
 
 
-Create a test blueprint
+Create a test environment
 =======================
 
-Go to Web UI, select 'Configure' tab, click on 'Create Blueprint' next to DockerDriver
+Go to Web UI, select 'Configure' tab, click on 'Create Environment' next to DockerDriver
 
 Settings:
 
@@ -85,7 +85,7 @@ and the driver will delete the resources in the pool. In case there is an runawa
 empty, you will have to manually delete the VM, security group and volume from OpenStack.
 
 
-Custom blueprints
+Custom environments
 =================
 
 There is/will be a repository with the notebook images we use. It's located at

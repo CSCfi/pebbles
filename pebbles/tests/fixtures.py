@@ -1,7 +1,7 @@
 # Test fixture methods to be called from app context so we can access the db
 
 from pebbles.models import (
-    User, Workspace, WorkspaceUserAssociation, BlueprintTemplate, Blueprint,
+    User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
     Plugin, Notification, Instance)
 from pebbles.tests.base import db
 
@@ -113,13 +113,13 @@ def primary_test_setup(namespace):
     namespace.known_plugin_id = p1.id
     db.session.add(p1)
 
-    t1 = BlueprintTemplate()
+    t1 = EnvironmentTemplate()
     t1.name = 'TestTemplate'
     t1.plugin = p1.id
     db.session.add(t1)
     namespace.known_template_id_disabled = t1.id
 
-    t2 = BlueprintTemplate()
+    t2 = EnvironmentTemplate()
     t2.name = 'EnabledTestTemplate'
     t2.plugin = p1.id
     t2.config = {
@@ -138,54 +138,54 @@ def primary_test_setup(namespace):
     db.session.add(t2)
     namespace.known_template_id = t2.id
 
-    b1 = Blueprint()
-    b1.name = "TestBlueprint"
+    b1 = Environment()
+    b1.name = "TestEnvironment"
     b1.template_id = t2.id
     b1.workspace_id = g1.id
     db.session.add(b1)
-    namespace.known_blueprint_id_disabled = b1.id
+    namespace.known_environment_id_disabled = b1.id
 
-    b2 = Blueprint()
-    b2.name = "EnabledTestBlueprint"
+    b2 = Environment()
+    b2.name = "EnabledTestEnvironment"
     b2.template_id = t2.id
     b2.workspace_id = g1.id
     b2.is_enabled = True
     db.session.add(b2)
-    namespace.known_blueprint_id = b2.id
+    namespace.known_environment_id = b2.id
 
-    b3 = Blueprint()
-    b3.name = "EnabledTestBlueprintClientIp"
+    b3 = Environment()
+    b3.name = "EnabledTestEnvironmentClientIp"
     b3.template_id = t2.id
     b3.workspace_id = g1.id
     b3.is_enabled = True
     b3.config = {'allow_update_client_connectivity': True}
     db.session.add(b3)
-    namespace.known_blueprint_id_2 = b3.id
+    namespace.known_environment_id_2 = b3.id
 
-    b4 = Blueprint()
-    b4.name = "EnabledTestBlueprintOtherWorkspace"
+    b4 = Environment()
+    b4.name = "EnabledTestEnvironmentOtherWorkspace"
     b4.template_id = t2.id
     b4.workspace_id = g2.id
     b4.is_enabled = True
     db.session.add(b4)
-    namespace.known_blueprint_id_g2 = b4.id
+    namespace.known_environment_id_g2 = b4.id
 
-    b5 = Blueprint()
-    b5.name = "DisabledTestBlueprintOtherWorkspace"
+    b5 = Environment()
+    b5.name = "DisabledTestEnvironmentOtherWorkspace"
     b5.template_id = t2.id
     b5.workspace_id = g2.id
     db.session.add(b5)
-    namespace.known_blueprint_id_disabled_2 = b5.id
+    namespace.known_environment_id_disabled_2 = b5.id
 
-    b6 = Blueprint()
-    b6.name = "TestArchivedBlueprint"
+    b6 = Environment()
+    b6.name = "TestArchivedEnvironment"
     b6.template_id = t2.id
     b6.workspace_id = g2.id
     b6.current_status = 'archived'
     db.session.add(b6)
 
-    b7 = Blueprint()
-    b7.name = "TestDeletedBlueprint"
+    b7 = Environment()
+    b7.name = "TestDeletedEnvironment"
     b7.template_id = t2.id
     b7.workspace_id = g2.id
     b7.current_status = 'deleted'
@@ -205,30 +205,30 @@ def primary_test_setup(namespace):
     db.session.commit()
 
     i1 = Instance(
-        Blueprint.query.filter_by(id=b2.id).first(),
+        Environment.query.filter_by(id=b2.id).first(),
         User.query.filter_by(eppn="user@example.org").first())
     db.session.add(i1)
     namespace.known_instance_id = i1.id
 
     i2 = Instance(
-        Blueprint.query.filter_by(id=b3.id).first(),
+        Environment.query.filter_by(id=b3.id).first(),
         User.query.filter_by(eppn="user@example.org").first())
     db.session.add(i2)
     namespace.known_instance_id_2 = i2.id
 
     i3 = Instance(
-        Blueprint.query.filter_by(id=b3.id).first(),
+        Environment.query.filter_by(id=b3.id).first(),
         User.query.filter_by(eppn="user@example.org").first())
     db.session.add(i3)
     i3.state = Instance.STATE_DELETED
 
     i4 = Instance(
-        Blueprint.query.filter_by(id=b3.id).first(),
+        Environment.query.filter_by(id=b3.id).first(),
         User.query.filter_by(eppn="workspace_owner@example.org").first())
     db.session.add(i4)
 
     i5 = Instance(
-        Blueprint.query.filter_by(id=b4.id).first(),
+        Environment.query.filter_by(id=b4.id).first(),
         User.query.filter_by(eppn="admin@example.org").first())
     db.session.add(i5)
     db.session.commit()

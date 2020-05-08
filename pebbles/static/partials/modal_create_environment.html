@@ -1,6 +1,6 @@
 <div class="modal-header">
     <button ng-click="cancel()" type="button" class="close"><span aria-hidden="true">&times;</span></button>
-    <h4 class="modal-title">Create Blueprint</h4>
+    <h4 class="modal-title">Create Environment</h4>
 </div>
 <div class="modal-body">
     <label class="control-label">Select Workspace</label>
@@ -9,15 +9,15 @@
     </select>
     <form name="ngform">
         <div
-          sf-model="template.blueprint_model"
-          sf-form="template.blueprint_form"
-          sf-schema="template.blueprint_schema"/>
+          sf-model="template.environment_model"
+          sf-form="template.environment_form"
+          sf-schema="template.environment_schema"/>
     </form>
     <label>Enter the time in months before expiration</label>
     <i><br/>Default expiry date is 6 months from creation</i>
     <input ng-model="bpLifespanMonths" class="form-control" type="number"/>
 </div>
 <div class="modal-footer">
-    <button ng-disabled="!workspaceModel" ng-click="createBlueprint(ngform, template.blueprint_model, workspaceModel)" class="btn btn-primary">Create</button>
+    <button ng-disabled="!workspaceModel" ng-click="createEnvironment(ngform, template.environment_model, workspaceModel)" class="btn btn-primary">Create</button>
     <button ng-click="cancel()" class="btn btn-default" >Close</button>
 </div>

@@ -15,7 +15,7 @@ from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.orm import backref
 from sqlalchemy.schema import MetaData
 
-from pebbles.utils import get_full_blueprint_config, get_blueprint_fields_from_config
+from pebbles.utils import get_full_environment_config, get_environment_fields_from_config
 
 MAX_USER_PSEUDONYM_LENGTH = 32
 MAX_PASSWORD_LENGTH = 100
@@ -88,7 +88,7 @@ class User(db.Model):
     credits_quota = db.Column(db.Float, default=1.0)
     latest_seen_notification_ts = db.Column(db.DateTime)
     workspace_quota = db.Column(db.Float)
-    blueprint_quota = db.Column(db.Float)
+    environment_quota = db.Column(db.Float)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     workspaces = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy="dynamic")
@@ -246,7 +246,7 @@ class Workspace(db.Model):
                             cascade="all, delete-orphan")
     banned_users = db.relationship('User', secondary=workspace_banned_user,
                                    backref=backref('banned_workspaces', lazy="dynamic"), lazy='dynamic')
-    blueprints = db.relationship('Blueprint', backref='workspace', lazy='dynamic')
+    environments = db.relationship('Environment', backref='workspace', lazy='dynamic')
 
     def __init__(self, name):
         self.id = uuid.uuid4().hex
@@ -338,17 +338,17 @@ class Plugin(db.Model):
         self._model = json.dumps(value)
 
 
-class BlueprintTemplate(db.Model):
-    __tablename__ = 'blueprint_templates'
+class EnvironmentTemplate(db.Model):
+    __tablename__ = 'environment_templates'
     id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(MAX_NAME_LENGTH))
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     plugin = db.Column(db.String(32), db.ForeignKey('plugins.id'))
-    blueprints = db.relationship('Blueprint', backref='template', lazy='dynamic')
-    _blueprint_schema = db.Column('blueprint_schema', db.Text)
-    _blueprint_form = db.Column('blueprint_form', db.Text)
-    _blueprint_model = db.Column('blueprint_model', db.Text)
+    environments = db.relationship('Environment', backref='template', lazy='dynamic')
+    _environment_schema = db.Column('environment_schema', db.Text)
+    _environment_form = db.Column('environment_form', db.Text)
+    _environment_model = db.Column('environment_model', db.Text)
     _allowed_attrs = db.Column('allowed_attrs', db.Text)
 
     def __init__(self):
@@ -363,28 +363,28 @@ class BlueprintTemplate(db.Model):
         self._config = json.dumps(value)
 
     @hybrid_property
-    def blueprint_schema(self):
-        return load_column(self._blueprint_schema)
+    def environment_schema(self):
+        return load_column(self._environment_schema)
 
-    @blueprint_schema.setter
-    def blueprint_schema(self, value):
-        self._blueprint_schema = json.dumps(value)
-
-    @hybrid_property
-    def blueprint_form(self):
-        return load_column(self._blueprint_form)
-
-    @blueprint_form.setter
-    def blueprint_form(self, value):
-        self._blueprint_form = json.dumps(value)
+    @environment_schema.setter
+    def environment_schema(self, value):
+        self._environment_schema = json.dumps(value)
 
     @hybrid_property
-    def blueprint_model(self):
-        return load_column(self._blueprint_model)
+    def environment_form(self):
+        return load_column(self._environment_form)
 
-    @blueprint_model.setter
-    def blueprint_model(self, value):
-        self._blueprint_model = json.dumps(value)
+    @environment_form.setter
+    def environment_form(self, value):
+        self._environment_form = json.dumps(value)
+
+    @hybrid_property
+    def environment_model(self):
+        return load_column(self._environment_model)
+
+    @environment_model.setter
+    def environment_model(self, value):
+        self._environment_model = json.dumps(value)
 
     @hybrid_property
     def allowed_attrs(self):
@@ -395,7 +395,7 @@ class BlueprintTemplate(db.Model):
         self._allowed_attrs = json.dumps(value)
 
 
-class Blueprint(db.Model):
+class Environment(db.Model):
     STATE_ACTIVE = 'active'
     STATE_ARCHIVED = 'archived'
     STATE_DELETED = 'deleted'
@@ -406,21 +406,21 @@ class Blueprint(db.Model):
         STATE_DELETED,
     )
 
-    __tablename__ = 'blueprints'
+    __tablename__ = 'environments'
     id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(MAX_NAME_LENGTH))
-    template_id = db.Column(db.String(32), db.ForeignKey('blueprint_templates.id'))
+    template_id = db.Column(db.String(32), db.ForeignKey('environment_templates.id'))
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     expiry_time = db.Column(db.DateTime)
-    instances = db.relationship('Instance', backref='blueprint', lazy='dynamic')
+    instances = db.relationship('Instance', backref='environment', lazy='dynamic')
     workspace_id = db.Column(db.String(32), db.ForeignKey('workspaces.id'))
     # current_status when created is "active". Later there are options to be "archived" or "deleted".
     _current_status = db.Column('current_status', db.String(32), default='active')
 
     def __init__(self):
         self.id = uuid.uuid4().hex
-        self._current_status = Blueprint.STATE_ACTIVE
+        self._current_status = Environment.STATE_ACTIVE
 
     @hybrid_property
     def config(self):
@@ -430,10 +430,10 @@ class Blueprint(db.Model):
     def config(self, value):
         self._config = json.dumps(value)
 
-    # 'full_config' property of Blueprint model will take the template attributes into account too
+    # 'full_config' property of Environment model will take the template attributes into account too
     @hybrid_property
     def full_config(self):
-        return get_full_blueprint_config(self)
+        return get_full_environment_config(self)
 
     @hybrid_property
     def current_status(self):
@@ -441,22 +441,22 @@ class Blueprint(db.Model):
 
     @current_status.setter
     def current_status(self, value):
-        if value in Blueprint.VALID_STATES:
+        if value in Environment.VALID_STATES:
             self._current_status = value
         else:
-            raise ValueError("'%s' is not a valid status for Blueprint" % value)
+            raise ValueError("'%s' is not a valid status for Environment" % value)
 
     @hybrid_property
     def maximum_lifetime(self):
-        return get_blueprint_fields_from_config(self, 'maximum_lifetime')
+        return get_environment_fields_from_config(self, 'maximum_lifetime')
 
     @hybrid_property
     def preallocated_credits(self):
-        return get_blueprint_fields_from_config(self, 'preallocated_credits')
+        return get_environment_fields_from_config(self, 'preallocated_credits')
 
     @hybrid_property
     def cost_multiplier(self):
-        return get_blueprint_fields_from_config(self, 'cost_multiplier')
+        return get_environment_fields_from_config(self, 'cost_multiplier')
 
     def cost(self, duration=None):
         if not duration:
@@ -464,7 +464,7 @@ class Blueprint(db.Model):
         return self.cost_multiplier * duration / 3600
 
     def __repr__(self):
-        return self.name or "Unnamed blueprint"
+        return self.name or "Unnamed environment"
 
 
 class Instance(db.Model):
@@ -489,7 +489,7 @@ class Instance(db.Model):
     __tablename__ = 'instances'
     id = db.Column(db.String(32), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
-    blueprint_id = db.Column(db.String(32), db.ForeignKey('blueprints.id'))
+    environment_id = db.Column(db.String(32), db.ForeignKey('environments.id'))
     name = db.Column(db.String(64), unique=True)
     public_ip = db.Column(db.String(64))
     client_ip = db.Column(db.String(64))
@@ -502,10 +502,10 @@ class Instance(db.Model):
     error_msg = db.Column(db.String(256))
     _instance_data = db.Column('instance_data', db.Text)
 
-    def __init__(self, blueprint, user):
+    def __init__(self, environment, user):
         self.id = uuid.uuid4().hex
-        self.blueprint_id = blueprint.id
-        self.blueprint = blueprint
+        self.environment_id = environment.id
+        self.environment = environment
         self.user_id = user.id
         self._state = Instance.STATE_QUEUEING
 
@@ -516,11 +516,11 @@ class Instance(db.Model):
         if not duration:
             duration = self.runtime
 
-        if self.blueprint.preallocated_credits:
-            duration = self.blueprint.maximum_lifetime
+        if self.environment.preallocated_credits:
+            duration = self.environment.maximum_lifetime
 
         try:
-            cost_multiplier = self.blueprint.cost_multiplier
+            cost_multiplier = self.environment.cost_multiplier
         except:
             cost_multiplier = 1.0
         return cost_multiplier * duration / 3600

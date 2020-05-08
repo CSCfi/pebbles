@@ -1,6 +1,7 @@
 import logging
 
-from flask import abort, Blueprint
+from flask import abort
+from flask import Blueprint as FlaskBlueprint
 from flask_restful import marshal_with
 
 from pebbles.forms import ActivationForm, PasswordResetRequestForm
@@ -8,7 +9,7 @@ from pebbles.models import db, ActivationToken, User
 import flask_restful as restful
 from pebbles.views.commons import user_fields, add_user_to_default_workspace
 
-activations = Blueprint('activations', __name__)
+activations = FlaskBlueprint('activations', __name__)
 
 MAX_ACTIVATION_TOKENS_PER_USER = 3
 

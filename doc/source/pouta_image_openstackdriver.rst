@@ -30,23 +30,23 @@ Settings:
 * At the bottom, check the "Allow user to request instance firewall to allow access to user's IP address" option, if you want the users to be able to change the local IP used to connect to the virtual machine.
 * Leave the rest as defaults
 
-Click on ´Create´, your new template is added to the Blueprint Templates list. Click on `Activate` next 
-to your template's name so that the template is available to create Blueprints.
+Click on ´Create´, your new template is added to the Environment Templates list. Click on `Activate` next
+to your template's name so that the template is available to create Environments.
 
-Go to `Blueprints` tab where you can find your new template. Click on `Create Blueprint` next to it.
+Go to `Environments` tab where you can find your new template. Click on `Create Environment` next to it.
 
 Settings:
 
-* Select Group: System.default (or another group for which this blueprint will be available).
+* Select Group: System.default (or another group for which this environment will be available).
 * name: CentOS-7 virtual machine
 * description: Launches a virtual machine with basic CentOS-7 OS
 
-Find your new blueprint from the Blueprints list and click on `Activate`.
+Find your new environment from the Environments list and click on `Activate`.
 
 Finally go to the 'Dashboard' tab and launch an instance. Once the instance is running, click on 'Details' to give your local IP access to the virtual machine. To get access to the virtual machine click on "Query client IP", then on "Change client IP".
 
 In the example case, the cPouta image is configured to allow only SSH access using a rsa key for user cloud-user. 
-Note also, that the firewall rules has been set in the blueprint template so that only the SSH port ( port 22) is open.
+Note also, that the firewall rules has been set in the environment template so that only the SSH port ( port 22) is open.
 
 Now you can connect to this machine using the indicated ssh connection (you can also use Putty)::
     
@@ -58,7 +58,7 @@ The virtual machine can only be accessed your via SSH and using the Pebbles priv
 Creating your own cPouta images for Pebbles
 ===========================================
 
-You can create blueprint templates and bluprints in Pebbles from your own custom images. The instructions below
+You can create environment templates and bluprints in Pebbles from your own custom images. The instructions below
 describe what basic configuration your virtual machine should have and how the cPouta image should be created.
 
 Virtual machine settings

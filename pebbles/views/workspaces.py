@@ -152,9 +152,9 @@ class WorkspaceView(restful.Resource):
 
         if args.get('current_status'):
             workspace.current_status = args['current_status']
-            blueprint_instances = workspace.blueprints.all()
-            for blueprint in blueprint_instances:
-                blueprint.current_status = 'archived'
+            environment_instances = workspace.environments.all()
+            for environment in environment_instances:
+                environment.current_status = 'archived'
             db.session.commit()
 
     @auth.login_required
@@ -169,20 +169,20 @@ class WorkspaceView(restful.Resource):
             logging.warning("cannot delete the default system workspace")
             return {"error": "Cannot delete the default system workspace"}, 422
 
-        workspace_blueprints = workspace.blueprints.all()
+        workspace_environments = workspace.environments.all()
 
-        if not workspace_blueprints:
+        if not workspace_environments:
             db.session.delete(workspace)
             db.session.commit()
         else:
-            for workspace_blueprint in workspace_blueprints:
-                blueprint_instances = Instance.query.filter_by(blueprint_id=workspace_blueprint.id).all()
-                if blueprint_instances:
-                    for instance in blueprint_instances:
+            for workspace_environment in workspace_environments:
+                environment_instances = Instance.query.filter_by(environment_id=workspace_environment.id).all()
+                if environment_instances:
+                    for instance in environment_instances:
                         instance.to_be_deleted = True
                         instance.state = Instance.STATE_DELETING
                         instance.deprovisioned_at = datetime.datetime.utcnow()
-                        workspace_blueprint.current_status = workspace_blueprint.STATE_DELETED
+                        workspace_environment.current_status = workspace_environment.STATE_DELETED
             workspace.current_status = workspace.STATE_DELETED
             db.session.commit()
 

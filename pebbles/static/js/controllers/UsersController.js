@@ -13,7 +13,7 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
         if (AuthService.isAdmin()) {
             var users = Restangular.all('users');
             var quota = Restangular.all('quota');
-            var blueprint = Restangular.all('blueprints');
+            var environment = Restangular.all('environments');
             var workspace = Restangular.all('workspaces');
 
             quota.getList().then(function (response) {
@@ -24,8 +24,8 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
                 $scope.quotas = response;
             });
 
-            blueprint.getList({show_all: true}).then(function(response) {
-                $scope.blueprints = response;
+            environment.getList({show_all: true}).then(function(response) {
+                $scope.environments = response;
             });
 
             workspace.getList().then(function(response) {
@@ -149,7 +149,7 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
                 });
             };
 
-            $scope.open_quota_dialog = function(users, blueprints, workspaces) {
+            $scope.open_quota_dialog = function(users, environments, workspaces) {
 		$scope.formdata = {};
 
                 var modalQuota = $uibModal.open({
@@ -161,8 +161,8 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
                                 return !value.is_deleted;
                             });
                         },
-                        blueprints: function() {
-                            return blueprints;
+                        environments: function() {
+                            return environments;
                         },
                         workspaces: function() {
                             return workspaces;
@@ -197,32 +197,32 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
         }
     }]);
 
-app.controller('ModalQuotaController', function ($q, $scope, $modalInstance, Restangular, users, blueprints, workspaces) {
+app.controller('ModalQuotaController', function ($q, $scope, $modalInstance, Restangular, users, environments, workspaces) {
     $scope.users = users;
 
-    $scope.user_blueprint_info = function() {
+    $scope.user_environment_info = function() {
 	    var user_workspaces = [];
 	    if(users.length != 0) {
-		$scope.blueprint_quota = users[0].blueprint_quota;
+		$scope.environment_quota = users[0].environment_quota;
 		$scope.workspace_quota = users[0].workspace_quota;
 		user_workspaces = _.filter(workspaces, {'owner_eppn': users[0].eppn});
 	    }
           
-          var user_blueprints = [];
+          var user_environments = [];
 
           for (var i = 0; i < user_workspaces.length; i++) {
-             var check_blueprints = _.filter(blueprints, {'workspace_id': user_workspaces[i].id});
-               if(check_blueprints.length != 0) {
-                   for(var j = 0; j < check_blueprints.length; j++) {
-                       user_blueprints.push(check_blueprints[j])
+             var check_environments = _.filter(environments, {'workspace_id': user_workspaces[i].id});
+               if(check_environments.length != 0) {
+                   for(var j = 0; j < check_environments.length; j++) {
+                       user_environments.push(check_environments[j])
                    }
                  }
           }
-          $scope.active_blueprints = _.filter(user_blueprints, {'current_status': 'active'});
-          $scope.archived_blueprints = _.filter(user_blueprints, {'current_status': 'archived'});
-          $scope.deleted_blueprints = _.filter(user_blueprints, {'current_status': 'deleted'}); 
+          $scope.active_environments = _.filter(user_environments, {'current_status': 'active'});
+          $scope.archived_environments = _.filter(user_environments, {'current_status': 'archived'});
+          $scope.deleted_environments = _.filter(user_environments, {'current_status': 'deleted'});
 
-          return user_blueprints.length;
+          return user_environments.length;
     };
 
     var change_quota = function(amount, change) {

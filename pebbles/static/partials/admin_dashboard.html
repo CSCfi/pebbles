@@ -1,13 +1,13 @@
 <div id="admin-dashboard" ng-show="getIcons()">
   <div>
     <ul class="nav nav-pills">
-      <li ng-class="toggleClass('default')"><a href="" ng-click="currentView='default'">Blueprints/Instances</a></li>
+      <li ng-class="toggleClass('default')"><a href="" ng-click="currentView='default'">Environments/Instances</a></li>
       <li ng-class="toggleClass('driverconfigs')"><a ng-show="isAdmin()" ui-sref="hello" ng-click="currentView='driverconfigs'">Driver Configs</a></li>
       <li ng-class="toggleClass('pools')"><a ng-show="isAdmin()" href = "" ng-click="currentView='pools'">Driver Hosts</a></li>
     </ul>
   </div>
   <div id="default" class="dashbox" ng-show="isCurrentView('default')">
-    <h2>Blueprints</h2>
+    <h2>Environments</h2>
     <table class="table table-striped">
         <thead>
             <tr>
@@ -19,28 +19,28 @@
             </tr>
         </thead>
         <tbody>
-            <tr ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
-                <td colspan="4">No blueprints</td>
+            <tr ng-hide="environments != undefined && (environments | filter : {is_enabled: 'true'}).length">
+                <td colspan="4">No environments</td>
             </tr>
-            <tr ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }">
-                <td>{{ blueprint.name }}</td>
-                <td>{{ blueprint.workspace_name }}</td>
-                <td><lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/></td>
+            <tr ng-repeat="environment in environments | filter : { is_enabled: 'true' }">
+                <td>{{ environment.name }}</td>
+                <td>{{ environment.workspace_name }}</td>
+                <td><lifetime value="{{ environment.maximum_lifetime }}" maximum-lifetime="{{ environment.maximum_lifetime }}"/></td>
 		<td>
 		    <div ng-show ="showHtml">
-		        <span id="admin-pre-background" ng-bind-html="blueprint.config.description"></span>
+		        <span id="admin-pre-background" ng-bind-html="environment.config.description"></span>
 			<a href ng-click="showHtml=!showHtml">(render PLAINTEXT)</a>
 	            </div>
 		    <div ng-hide ="showHtml">
-		        {{blueprint.config.description}}
+		        {{environment.config.description}}
 		        <a href ng-click="showHtml=!showHtml">(render HTML)</a>
 		    </div>
 		</td>
                 <td>
-                    <a ng-click="provision(blueprint)" class="btn btn-primary" ng-disabled="maxInstanceLimitReached(blueprint)">
+                    <a ng-click="provision(environment)" class="btn btn-primary" ng-disabled="maxInstanceLimitReached(environment)">
                         <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch
                     </a>
-                    <a class="btn" ng-click="showMaxInstanceLimitInfo()" ng-show="maxInstanceLimitReached(blueprint)">
+                    <a class="btn" ng-click="showMaxInstanceLimitInfo()" ng-show="maxInstanceLimitReached(environment)">
                         <span class="glyphicon glyphicon-question-sign"></span>
                     </a>
                 </td>
@@ -90,7 +90,7 @@
             <td><input type="checkbox" ng-model="checkAll" ng-change="markAll()"></td>
             <td>Name</td>
             <td>State</td>
-            <td>Blueprint</td>
+            <td>Environment</td>
             <td>User</td>
             <td>Access</td>
             <td>Life-time left</td>
@@ -105,7 +105,7 @@
                 <td><input type="checkbox" ng-init='marked=false' ng-model='marked' ng-checked="checkAll || isMarked(instance)" ng-disabled="instance.state=='deleting'" ng-click="markInstance(marked, instance)"></td>
                 <td><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></td>
                 <td>{{instance.state}} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>
-                <td>{{instance.blueprint}}</td>
+                <td>{{instance.environment}}</td>
                 <td>{{instance.username}}</td>
                 <td>
                     <a ng-show="['http', 'https'].indexOf(instance.instance_data['endpoints'][0]['name']) >= 0"

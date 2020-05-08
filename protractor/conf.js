@@ -1,5 +1,5 @@
 config = {
-    specs: ['blueprints-spec.js'],
+    specs: ['environments-spec.js'],
     params: {
         login: {
             user: 'admin@example.org',

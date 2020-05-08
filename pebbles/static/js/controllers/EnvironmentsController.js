@@ -1,4 +1,4 @@
-app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$uibModal', 'AuthService', 'Restangular',
+app.controller('EnvironmentsController', ['$q', '$scope', '$http', '$interval', '$uibModal', 'AuthService', 'Restangular',
                                function ($q,   $scope,   $http,   $interval,   $uibModal,   AuthService,   Restangular) {
 
         $scope.isAdmin = function () {
@@ -15,16 +15,16 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
 
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
 
-        var templates = Restangular.all('blueprint_templates');
+        var templates = Restangular.all('environment_templates');
 
         templates.getList().then(function (response) {
             $scope.templates = response;
         });
 
-        var blueprints = Restangular.all('blueprints');
+        var environments = Restangular.all('environments');
 
-        blueprints.getList({show_deactivated: true}).then(function (response) {
-            $scope.blueprints = response;
+        environments.getList({show_deactivated: true}).then(function (response) {
+            $scope.environments = response;
         });
 
         var instances = Restangular.all('instances');
@@ -35,11 +35,11 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
             $scope.workspaces = response;
         });
 
-        var importExportBlueprints = Restangular.all('import_export/blueprints');
+        var importExportEnvironments = Restangular.all('import_export/environments');
 
-        $scope.exportBlueprints = function () {
+        $scope.exportEnvironments = function () {
 
-            importExportBlueprints.getList().then(function (response) {
+            importExportEnvironments.getList().then(function (response) {
 
                 var jsonStr = JSON.stringify(response, null, 2); // Pretty print
 
@@ -47,155 +47,155 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
                 var anchorLink = document.createElement('a');
                 var mouseEvent = new MouseEvent('click');
 
-                anchorLink.download = "blueprints.json";
+                anchorLink.download = "environments.json";
                 anchorLink.href = window.URL.createObjectURL(blob);
                 anchorLink.dataset.downloadurl = ['text/json', anchorLink.download, anchorLink.href].join(':');
                 anchorLink.dispatchEvent(mouseEvent);
             });
         };
 
-        $scope.openImportBlueprintsDialog = function () {
+        $scope.openImportEnvironmentsDialog = function () {
             $uibModal.open({
-                templateUrl: '/partials/modal_import_blueprints.html',
-                controller: 'ModalImportBlueprintsController',
+                templateUrl: '/partials/modal_import_environments.html',
+                controller: 'ModalImportEnvironmentsController',
                 resolve: {
-                    importExportBlueprints: function () {
-                        return importExportBlueprints;
+                    importExportEnvironments: function () {
+                        return importExportEnvironments;
                     },
-                    blueprints: function () {
-                        return blueprints;
+                    environments: function () {
+                        return environments;
                     }
                 }
             }).result.then(function () {
-                blueprints.getList().then(function (response) {
-                    $scope.blueprints = response;
+                environments.getList().then(function (response) {
+                    $scope.environments = response;
                 });
             });
         };
 
-        $scope.openCreateBlueprintDialog = function (template) {
+        $scope.openCreateEnvironmentDialog = function (template) {
             $uibModal.open({
-                templateUrl: '/partials/modal_create_blueprint.html',
-                controller: 'ModalCreateBlueprintController',
+                templateUrl: '/partials/modal_create_environment.html',
+                controller: 'ModalCreateEnvironmentController',
                 resolve: {
                     template: function () {
                         return template;
                     },
-                    blueprints: function () {
-                        return blueprints;
+                    environments: function () {
+                        return environments;
                     },
                     workspaces_list: function () {
                         return $scope.workspaces;
                     }
                 }
             }).result.then(function () {
-                blueprints.getList().then(function (response) {
-                    $scope.blueprints = response;
+                environments.getList().then(function (response) {
+                    $scope.environments = response;
                 });
             });
         };
 
-        $scope.openReconfigureBlueprintDialog = function (blueprint) {
-            blueprint.get().then(function (response) {
+        $scope.openReconfigureEnvironmentDialog = function (environment) {
+            environment.get().then(function (response) {
                 $uibModal.open({
-                    templateUrl: '/partials/modal_reconfigure_blueprint.html',
-                    controller: 'ModalReconfigureBlueprintController',
+                    templateUrl: '/partials/modal_reconfigure_environment.html',
+                    controller: 'ModalReconfigureEnvironmentController',
                     resolve: {
-                        blueprint: function () {
-                            return blueprint;
+                        environment: function () {
+                            return environment;
                         },
                         workspaces_list: function () {
                             return $scope.workspaces;
                         }
                     }
                 }).result.then(function () {
-                    blueprints.getList().then(function (response) {
-                        $scope.blueprints = response;
+                    environments.getList().then(function (response) {
+                        $scope.environments = response;
                     });
                 });
             }, function (response) {
                 if (response.status === 422) {
                     $.notify({
                         title: 'HTTP ' + response.status,
-                        message: " Cannot reconfigure blueprint."
+                        message: " Cannot reconfigure environment."
                     }, {type: 'danger'});
                 }
             });
         };
 
-        $scope.openBlueprintLinkDialog = function (blueprint) {
-            blueprint.get().then(function (response) {
+        $scope.openEnvironmentLinkDialog = function (environment) {
+            environment.get().then(function (response) {
                 $uibModal.open({
                     size: 'lg',
                     templateUrl: '/partials/modal_url.html',
-                    controller: 'ModalBlueprintUrlController',
+                    controller: 'ModalEnvironmentUrlController',
                     resolve: {
-                        blueprint: blueprint
+                        environment: environment
                     }
                 });
             }, function (response) {
                 if (response.status === 422) {
                     $.notify({
                         title: 'HTTP ' + response.status,
-                        message: " Cannot get the link for blueprint."
+                        message: " Cannot get the link for environment."
                     }, {type: 'danger'});
                 }
             });
         };
 
-        $scope.copyBlueprint = function (blueprint) {
-            var blueprint_copy = Restangular.all('blueprints').one('blueprint_copy', blueprint.id).put();
-            blueprint_copy.then(function () {
-                blueprints.getList().then(function (response) {
+        $scope.copyEnvironment = function (environment) {
+            var environment_copy = Restangular.all('environments').one('environment_copy', environment.id).put();
+            environment_copy.then(function () {
+                environments.getList().then(function (response) {
                     $.notify({
                         title: 'Success: ',
-                        message: 'A copy of the blueprint was made'
+                        message: 'A copy of the environment was made'
                     }, {type: 'success'});
-                    $scope.blueprints = response;
+                    $scope.environments = response;
                 });
             }, function (response) {
                 $.notify({
                     title: 'HTTP ' + response.status,
-                    message: 'Cannot copy blueprint'
+                    message: 'Cannot copy environment'
                 }, {type: 'danger'});
             });
         };
 
-        $scope.archiveBlueprint = function (blueprint) {
-            blueprint.current_status = 'archived';
-            blueprint.patch().then(function () {
-                blueprints.getList().then(function (response) {
-                    $scope.blueprints = response;
+        $scope.archiveEnvironment = function (environment) {
+            environment.current_status = 'archived';
+            environment.patch().then(function () {
+                environments.getList().then(function (response) {
+                    $scope.environments = response;
                 });
             });
         };
 
-        $scope.deleteBlueprint = function (blueprint) {
-            blueprint.get().then(function (response) {
+        $scope.deleteEnvironment = function (environment) {
+            environment.get().then(function (response) {
                 instances.getList().then(function (response) {
-                    var blueprint_instances = _.filter(response, function (user) {
-                        return user.blueprint_id === blueprint.id
+                    var environment_instances = _.filter(response, function (user) {
+                        return user.environment_id === environment.id
                     });
                     $uibModal.open({
                         templateUrl: 'partials/modal_check_running_instance_confirm.html',
-                        controller: 'ModalDeleteBlueprintsController',
+                        controller: 'ModalDeleteEnvironmentsController',
                         size: 'sm',
                         resolve: {
-                            blueprint: function () {
-                                return blueprint;
+                            environment: function () {
+                                return environment;
                             },
-                            blueprint_instances: function () {
-                                return blueprint_instances;
+                            environment_instances: function () {
+                                return environment_instances;
                             }
                         }
                     }).result.then(function () {
-                        blueprints.getList().then(function (response) {
-                            $scope.blueprints = response;
+                        environments.getList().then(function (response) {
+                            $scope.environments = response;
                         });
                     });
                 });
             }, function (response) {
-                $.notify({title: 'HTTP ' + response.status, message: " Cannot delete blueprint."}, {type: 'danger'});
+                $.notify({title: 'HTTP ' + response.status, message: " Cannot delete environment."}, {type: 'danger'});
             });
         };
 
@@ -206,39 +206,39 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
             });
         };
 
-        $scope.selectBlueprint = function (blueprint) {
-            $scope.selectedBlueprint = blueprint;
+        $scope.selectEnvironment = function (environment) {
+            $scope.selectedEnvironment = environment;
             $scope.$broadcast('schemaFormRedraw');
         };
 
         $scope.updateConfig = function () {
-            $scope.selectedBlueprint.put();
-            $('#blueprintConfig').modal('hide');
+            $scope.selectedEnvironment.put();
+            $('#environmentConfig').modal('hide');
         };
 
-        $scope.activate = function (blueprint) {
-            blueprint.get().then(function (response) {
-                blueprint.is_enabled = true;
-                blueprint.put();
+        $scope.activate = function (environment) {
+            environment.get().then(function (response) {
+                environment.is_enabled = true;
+                environment.put();
             }, function (response) {
                 if (response.status === 422) {
                     $.notify({
                         title: 'HTTP ' + response.status,
-                        message: 'Cannot activate blueprint'
+                        message: 'Cannot activate environment'
                     }, {type: 'danger'});
                 }
             });
         };
 
-        $scope.deactivate = function (blueprint) {
-            blueprint.get().then(function () {
-                blueprint.is_enabled = undefined;
-                blueprint.put();
+        $scope.deactivate = function (environment) {
+            environment.get().then(function () {
+                environment.is_enabled = undefined;
+                environment.put();
             }, function (response) {
                 if (response.status === 422) {
                     $.notify({
                         title: 'HTTP ' + response.status,
-                        message: 'Cannot deactivate blueprint'
+                        message: 'Cannot deactivate environment'
                     }, {type: 'danger'});
                 }
             });
@@ -247,13 +247,13 @@ app.controller('BlueprintsController', ['$q', '$scope', '$http', '$interval', '$
     }]);
 
 
-app.controller('ModalImportBlueprintsController', function ($scope, $modalInstance, importExportBlueprints, blueprints) {
+app.controller('ModalImportEnvironmentsController', function ($scope, $modalInstance, importExportEnvironments, environments) {
 
-    $scope.importBlueprints = function (element) {
+    $scope.importEnvironments = function (element) {
 
         $scope.isImportSuccess = false;
         $scope.isImportFailed = false;
-        var errorResponse = "Indexes of blueprints which were not imported: ";
+        var errorResponse = "Indexes of environments which were not imported: ";
         var requestsCount = 0;
         var file = element.files[0];
         var reader = new FileReader();
@@ -261,27 +261,27 @@ app.controller('ModalImportBlueprintsController', function ($scope, $modalInstan
             $scope.$apply(function () {
                 try {
                     // Read from the file and convert to JSON object
-                    var blueprintsJson = JSON.parse(String(reader.result));
-                    var totalItems = blueprintsJson.length;
-                    for (var blueprintIndex in blueprintsJson) {
-                        if (blueprintsJson.hasOwnProperty(blueprintIndex)) {
-                            var blueprintItem = blueprintsJson[blueprintIndex];
+                    var environmentsJson = JSON.parse(String(reader.result));
+                    var totalItems = environmentsJson.length;
+                    for (var environmentIndex in environmentsJson) {
+                        if (environmentsJson.hasOwnProperty(environmentIndex)) {
+                            var environmentItem = environmentsJson[environmentIndex];
                             var obj = {
-                                name: blueprintItem.name,
-                                config: blueprintItem.config,
-                                template_name: blueprintItem.template_name,
-                                workspace_name: blueprintItem.workspace_name,
-                                index: blueprintIndex
+                                name: environmentItem.name,
+                                config: environmentItem.config,
+                                template_name: environmentItem.template_name,
+                                workspace_name: environmentItem.workspace_name,
+                                index: environmentIndex
                             };  // Send according to forms defined
 
-                            importExportBlueprints.post(obj).then(function () {  // Post to the REST API
+                            importExportEnvironments.post(obj).then(function () {  // Post to the REST API
                                 requestsCount++;
                                 $scope.imported = true;
                                 if (requestsCount === totalItems) {  // Check if all the requests were OK
                                     $scope.isImportSuccess = true;
                                 }
                             }, function (response) {
-                                // Attach the indices of blueprint items which are corrupt
+                                // Attach the indices of environment items which are corrupt
                                 errorResponse = errorResponse + response.config.data.index + ' ';
                                 $.notify({
                                     title: 'HTTP ' + response.status,
@@ -294,13 +294,13 @@ app.controller('ModalImportBlueprintsController', function ($scope, $modalInstan
                     }
                     if (totalItems === 0) {
                         $.notify({
-                            title: 'Blueprints could not be imported!',
-                            message: 'No blueprints found'
+                            title: 'Environments could not be imported!',
+                            message: 'No environments found'
                         }, {type: 'danger'});
                     }
                 } catch (exception) {
                     $.notify({
-                        title: 'Blueprints could not be imported!',
+                        title: 'Environments could not be imported!',
                         message: exception
                     }, {type: 'danger'});
                 }
@@ -320,13 +320,13 @@ app.controller('ModalImportBlueprintsController', function ($scope, $modalInstan
 });
 
 
-app.controller('ModalCreateBlueprintController', function ($scope, $modalInstance, template, blueprints, workspaces_list) {
+app.controller('ModalCreateEnvironmentController', function ($scope, $modalInstance, template, environments, workspaces_list) {
     $scope.template = template;
     $scope.workspaces = workspaces_list;
-    $scope.createBlueprint = function (form, model, workspaceModel) {
+    $scope.createEnvironment = function (form, model, workspaceModel) {
         $scope.$broadcast('schemaFormValidate');
         if (form.$valid) {
-            blueprints.post({
+            environments.post({
                 template_id: $scope.template.id,
                 name: model.name,
                 config: model,
@@ -335,7 +335,7 @@ app.controller('ModalCreateBlueprintController', function ($scope, $modalInstanc
             }).then(function () {
                 $modalInstance.close(true);
             }, function (response) {
-                error_message = 'unable to create blueprint';
+                error_message = 'unable to create environment';
                 if ('name' in response.data) {
                     error_message = response.data.name;
                 } else if ('message' in response.data) {
@@ -351,27 +351,27 @@ app.controller('ModalCreateBlueprintController', function ($scope, $modalInstanc
     };
 });
 
-app.controller('ModalReconfigureBlueprintController', function ($scope, $modalInstance, blueprint, workspaces_list) {
-    $scope.blueprint = blueprint;
+app.controller('ModalReconfigureEnvironmentController', function ($scope, $modalInstance, environment, workspaces_list) {
+    $scope.environment = environment;
     var config_mismatch = false;
-    blueprint.get().then(function (response) {
-        if (!_.isEqual($scope.blueprint['config'], response['config'])) {  // Object equality check
-            alert('Blueprint configuration has been changed from the previous configuration');
-            $scope.blueprint = response;
+    environment.get().then(function (response) {
+        if (!_.isEqual($scope.environment['config'], response['config'])) {  // Object equality check
+            alert('Environment configuration has been changed from the previous configuration');
+            $scope.environment = response;
             config_mismatch = true; //Concurrency
         }
     });
 
-    $scope.updateBlueprint = function (form, model) {
+    $scope.updateEnvironment = function (form, model) {
         if (form.$valid) {
-            $scope.blueprint.config = model;
-            //$scope.blueprint.workspace_id = workspaceModel.id;
-            $scope.blueprint.put().then(function () {
+            $scope.environment.config = model;
+            //$scope.environment.workspace_id = workspaceModel.id;
+            $scope.environment.put().then(function () {
                 $modalInstance.close(true);
             }, function (response) {
                 $.notify({
                     title: 'HTTP ' + response.status,
-                    message: 'unable to reconfigure blueprint'
+                    message: 'unable to reconfigure environment'
                 }, {type: 'danger'});
             });
         }
@@ -386,11 +386,11 @@ app.controller('ModalReconfigureBlueprintController', function ($scope, $modalIn
     };
 });
 
-app.controller('ModalBlueprintUrlController', function ($scope, $modalInstance, blueprint) {
+app.controller('ModalEnvironmentUrlController', function ($scope, $modalInstance, environment) {
 
-    $scope.url_type = "Blueprint Link (To be given to the users)" + ' - ' + blueprint.name;
+    $scope.url_type = "Environment Link (To be given to the users)" + ' - ' + environment.name;
     var hostname = window.location.hostname;
-    $scope.url = 'https://' + hostname + '/#/blueprint/' + blueprint.id;
+    $scope.url = 'https://' + hostname + '/#/environment/' + environment.id;
 
     $scope.cancel = function () {
         $modalInstance.dismiss('cancel');
@@ -398,16 +398,16 @@ app.controller('ModalBlueprintUrlController', function ($scope, $modalInstance, 
 });
 
 
-app.controller('ModalDeleteBlueprintsController', function ($scope, $modalInstance, blueprint, blueprint_instances) {
-    $scope.blueprint_instances = blueprint_instances;
-    $scope.removeBlueprints = function () {
-        blueprint.remove().then(function () {
-            $.notify({message: "Blueprint: " + blueprint.name + " is successfully deleted"}, {type: 'success'});
+app.controller('ModalDeleteEnvironmentsController', function ($scope, $modalInstance, environment, environment_instances) {
+    $scope.environment_instances = environment_instances;
+    $scope.removeEnvironments = function () {
+        environment.remove().then(function () {
+            $.notify({message: "Environment: " + environment.name + " is successfully deleted"}, {type: 'success'});
             $modalInstance.close(true);
         }, function (response) {
             $.notify({
                 title: 'HTTP ' + response.status,
-                message: 'Unable to delete the blueprint: ' + blueprint.name
+                message: 'Unable to delete the environment: ' + environment.name
             }, {type: 'danger'});
             $modalInstance.close(true);
         });

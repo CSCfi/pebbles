@@ -68,17 +68,17 @@
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <td>Blueprint Name</td>
+                    <td>Environment Name</td>
                     <td>Launched Instances</td>
                     <td>Running Instances</td>
                     <td>Unique Users</td>
                 </tr>
             </thead>
             <tbody>
-            <tr ng-hide="stats != undefined && stats.blueprints.length">
+            <tr ng-hide="stats != undefined && stats.environments.length">
                     <td colspan="4">No Instances to Show</td>
                 </tr>
-                <tr ng-repeat="stats_item in stats.blueprints">
+                <tr ng-repeat="stats_item in stats.environments">
                     <td>{{ stats_item.name }}</td>
                     <td>{{ stats_item.launched_instances }}</td>
                     <td>{{ stats_item.running_instances }}</td>
@@ -87,7 +87,7 @@
             </tbody>
         </table>
 
-            <span ng-show="stats != undefined && stats.blueprints.length"> Total Number of Running Instances: {{ stats.overall_running_instances }} </span>
+            <span ng-show="stats != undefined && stats.environments.length"> Total Number of Running Instances: {{ stats.overall_running_instances }} </span>
     </div>
     
     <div id="institutionView" class="dashbox" ng-show="isCurrentView('institutionView')">

@@ -9,7 +9,7 @@ import dateutil
 
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.models import (
-    User, Workspace, WorkspaceUserAssociation, BlueprintTemplate, Blueprint,
+    User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
     ActivationToken, Instance, NamespacedKeyValue)
 from pebbles.views import activations
 
@@ -151,7 +151,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             method='POST',
             path='/api/v1/instances',
-            data=json.dumps({'blueprint': self.known_blueprint_id}),
+            data=json.dumps({'environment': self.known_environment_id}),
             headers=headers)
         self.assert_200(response)
         # Delete the user with admin credentials
@@ -164,7 +164,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             method='POST',
             path='/api/v1/instances',
-            data=json.dumps({'blueprint': self.known_blueprint_id}),
+            data=json.dumps({'environment': self.known_environment_id}),
             headers=headers)
         self.assert_401(response)
 
@@ -330,7 +330,7 @@ class FlaskApiTestCase(BaseTestCase):
         db.session.add(u2)
         db.session.add(u3)
 
-        bp = Blueprint()
+        bp = Environment()
         i1 = Instance(bp, u1)
         i1.provisioned_at = dt2
         db.session.add(i1)
@@ -1010,95 +1010,95 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(data))
         self.assertStatus(response, 422)
 
-    def test_get_blueprint_templates(self):
+    def test_get_environment_templates(self):
         # Anonymous
-        response = self.make_request(path='/api/v1/blueprint_templates')
+        response = self.make_request(path='/api/v1/environment_templates')
         self.assert_401(response)
         # Authenticated User
-        response = self.make_authenticated_user_request(path='/api/v1/blueprint_templates')
+        response = self.make_authenticated_user_request(path='/api/v1/environment_templates')
         self.assert_403(response)
         # Authenticated Workspace Owner
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/blueprint_templates')
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environment_templates')
         self.assert_200(response)
         self.assertEqual(len(response.json), 1)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/blueprint_templates')
+        response = self.make_authenticated_admin_request(path='/api/v1/environment_templates')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
 
-    def test_get_blueprint_template(self):
-        # Existing blueprint
+    def test_get_environment_template(self):
+        # Existing environment
         # Anonymous
-        response = self.make_request(path='/api/v1/blueprint_templates/%s' % self.known_blueprint_id)
+        response = self.make_request(path='/api/v1/environment_templates/%s' % self.known_environment_id)
         self.assert_401(response)
         # Authenticated User
-        response = self.make_authenticated_user_request(path='/api/v1/blueprint_templates/%s' % self.known_template_id)
+        response = self.make_authenticated_user_request(path='/api/v1/environment_templates/%s' % self.known_template_id)
         self.assert_403(response)
         # Workspace Owner
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/blueprint_templates/%s' % self.known_template_id)
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environment_templates/%s' % self.known_template_id)
         self.assert_200(response)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/blueprint_templates/%s' % self.known_template_id)
+        response = self.make_authenticated_admin_request(path='/api/v1/environment_templates/%s' % self.known_template_id)
         self.assert_200(response)
 
-        # non-existing blueprint
+        # non-existing environment
         # Anonymous
-        response = self.make_request(path='/api/v1/blueprint_templates/%s' % uuid.uuid4().hex)
+        response = self.make_request(path='/api/v1/environment_templates/%s' % uuid.uuid4().hex)
         self.assert_401(response)
         # Authenticated User
-        response = self.make_authenticated_user_request(path='/api/v1/blueprint_templates/%s' % uuid.uuid4().hex)
+        response = self.make_authenticated_user_request(path='/api/v1/environment_templates/%s' % uuid.uuid4().hex)
         self.assert_403(response)
         # Workspace Owner
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/blueprint_templates/%s' % uuid.uuid4().hex)
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environment_templates/%s' % uuid.uuid4().hex)
         self.assert_404(response)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/blueprint_templates/%s' % uuid.uuid4().hex)
+        response = self.make_authenticated_admin_request(path='/api/v1/environment_templates/%s' % uuid.uuid4().hex)
         self.assert_404(response)
 
-    def test_create_blueprint_template(self):
+    def test_create_environment_template(self):
         # Anonymous
-        data = {'name': 'test_blueprint_template_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': '', 'plugin': 'dummy'}
         response = self.make_request(
             method='POST',
-            path='/api/v1/blueprint_templates',
+            path='/api/v1/environment_templates',
             data=json.dumps(data))
         self.assert_401(response)
         # Authenticated User
-        data = {'name': 'test_blueprint_template_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': '', 'plugin': 'dummy'}
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/blueprint_templates',
+            path='/api/v1/environment_templates',
             data=json.dumps(data))
         self.assert_403(response)
         # Authenticated Workspace Owner
-        data = {'name': 'test_blueprint_template_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': '', 'plugin': 'dummy'}
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/blueprint_templates',
+            path='/api/v1/environment_templates',
             data=json.dumps(data))
         self.assert_403(response)
         # Admin
-        data = {'name': 'test_blueprint_template_1', 'config': {'foo': 'bar'}, 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': {'foo': 'bar'}, 'plugin': 'dummy'}
         response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/blueprint_templates',
+            path='/api/v1/environment_templates',
             data=json.dumps(data))
         self.assert_200(response)
         # Admin
         data = {
-            'name': 'test_blueprint_template_2',
+            'name': 'test_environment_template_2',
             'config': {'foo': 'bar', 'maximum_lifetime': '1h'},
             'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']},
             'plugin': self.known_plugin_id
         }
         response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/blueprint_templates',
+            path='/api/v1/environment_templates',
             data=json.dumps(data))
         self.assert_200(response)
 
-    def test_modify_blueprint_template(self):
-        t = BlueprintTemplate()
+    def test_modify_environment_template(self):
+        t = EnvironmentTemplate()
         t.name = 'TestTemplate'
         t.plugin = self.known_plugin_id
         t.config = {'memory_limit': '512m', 'maximum_lifetime': '1h'}
@@ -1108,161 +1108,161 @@ class FlaskApiTestCase(BaseTestCase):
         db.session.commit()
 
         # Anonymous
-        data = {'name': 'test_blueprint_template_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': '', 'plugin': 'dummy'}
         response = self.make_request(
             method='PUT',
-            path='/api/v1/blueprint_templates/%s' % t.id,
+            path='/api/v1/environment_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_401(response)
         # Authenticated User
-        data = {'name': 'test_blueprint_template_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': '', 'plugin': 'dummy'}
         response = self.make_authenticated_user_request(
             method='PUT',
-            path='/api/v1/blueprint_templates/%s' % t.id,
+            path='/api/v1/environment_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_403(response)
         # Authenticated Workspace Owner
-        data = {'name': 'test_blueprint_template_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': '', 'plugin': 'dummy'}
         response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/blueprint_templates/%s' % t.id,
+            path='/api/v1/environment_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_403(response)
         # Admin
-        data = {'name': 'test_blueprint_template_1', 'config': {'foo': 'bar'}, 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': {'foo': 'bar'}, 'plugin': 'dummy'}
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/blueprint_templates/%s' % t.id,
+            path='/api/v1/environment_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_200(response)
         # Admin
         data = {
-            'name': 'test_blueprint_template_2',
+            'name': 'test_environment_template_2',
             'config': {'foo': 'bar', 'maximum_lifetime': '1h'},
             'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']},
             'plugin': self.known_plugin_id
         }
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/blueprint_templates/%s' % t.id,
+            path='/api/v1/environment_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_200(response)
 
-    def test_copy_blueprint_template(self):
+    def test_copy_environment_template(self):
 
         # Authenticated User
         response = self.make_authenticated_user_request(
             method='PUT',
-            path='/api/v1/blueprint_templates/template_copy/%s' % self.known_template_id)
+            path='/api/v1/environment_templates/template_copy/%s' % self.known_template_id)
         self.assert_403(response)
         # Authenticated Workspace Owner
         response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/blueprint_templates/template_copy/%s' % self.known_template_id)
+            path='/api/v1/environment_templates/template_copy/%s' % self.known_template_id)
         self.assert_403(response)
         # Admin
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/blueprint_templates/template_copy/%s' % self.known_template_id)
+            path='/api/v1/environment_templates/template_copy/%s' % self.known_template_id)
         self.assert_200(response)
 
-    def test_get_blueprints(self):
+    def test_get_environments(self):
         # Anonymous
-        response = self.make_request(path='/api/v1/blueprints')
+        response = self.make_request(path='/api/v1/environments')
         self.assert_401(response)
         # Authenticated User for Workspace 1
-        response = self.make_authenticated_user_request(path='/api/v1/blueprints')
+        response = self.make_authenticated_user_request(path='/api/v1/environments')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
         # Authenticated Workspace Owner for Workspace 1 and Normal User for Workspace 2
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/blueprints')
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environments')
         self.assert_200(response)
         self.assertEqual(len(response.json), 4)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/blueprints')
+        response = self.make_authenticated_admin_request(path='/api/v1/environments')
         self.assert_200(response)
         self.assertEqual(len(response.json), 5)
-        response = self.make_authenticated_admin_request(path='/api/v1/blueprints?show_all=true')
+        response = self.make_authenticated_admin_request(path='/api/v1/environments?show_all=true')
         self.assert_200(response)
         self.assertEqual(len(response.json), 7)
 
-    def test_get_blueprint(self):
-        # Existing blueprint
+    def test_get_environment(self):
+        # Existing environment
         # Anonymous
-        response = self.make_request(path='/api/v1/blueprints/%s' % self.known_blueprint_id)
+        response = self.make_request(path='/api/v1/environments/%s' % self.known_environment_id)
         self.assert_401(response)
         # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/blueprints/%s' % self.known_blueprint_id)
+        response = self.make_authenticated_user_request(path='/api/v1/environments/%s' % self.known_environment_id)
         self.assert_200(response)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/blueprints/%s' % self.known_blueprint_id)
+        response = self.make_authenticated_admin_request(path='/api/v1/environments/%s' % self.known_environment_id)
         self.assert_200(response)
 
-        # non-existing blueprint
+        # non-existing environment
         # Anonymous
-        response = self.make_request(path='/api/v1/blueprints/%s' % uuid.uuid4().hex)
+        response = self.make_request(path='/api/v1/environments/%s' % uuid.uuid4().hex)
         self.assert_401(response)
         # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/blueprints/%s' % uuid.uuid4().hex)
+        response = self.make_authenticated_user_request(path='/api/v1/environments/%s' % uuid.uuid4().hex)
         self.assert_404(response)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/blueprints/%s' % uuid.uuid4().hex)
+        response = self.make_authenticated_admin_request(path='/api/v1/environments/%s' % uuid.uuid4().hex)
         self.assert_404(response)
 
-    def test_create_blueprint(self):
-        # Set blueprint_quota_value
+    def test_create_environment(self):
+        # Set environment_quota_value
         response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/quota',
-            data=json.dumps({'type': 'absolute', 'value': 5, 'credits_type': 'blueprint_quota_value'}))
+            data=json.dumps({'type': 'absolute', 'value': 5, 'credits_type': 'environment_quota_value'}))
         self.assertEqual(response.status_code, 200)
 
         # Anonymous
-        data = {'name': 'test_blueprint_1', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
+        data = {'name': 'test_environment_1', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
         response = self.make_request(
             method='POST',
-            path='/api/v1/blueprints',
+            path='/api/v1/environments',
             data=json.dumps(data))
         self.assert_401(response)
         # Authenticated
-        data = {'name': 'test_blueprint_1', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
+        data = {'name': 'test_environment_1', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/blueprints',
+            path='/api/v1/environments',
             data=json.dumps(data))
         self.assert_403(response)
         # Workspace Owner 1
-        data = {'name': 'test_blueprint_1', 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
-        data_2 = {'name': 'test_blueprint_2', 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
+        data = {'name': 'test_environment_1', 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
+        data_2 = {'name': 'test_environment_2', 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/blueprints',
+            path='/api/v1/environments',
             data=json.dumps(data))
         self.assert_200(response)
         # Workspace Owner 2 (extra owner added to workspace 1)
         response = self.make_authenticated_workspace_owner2_request(
             method='POST',
-            path='/api/v1/blueprints',
+            path='/api/v1/environments',
             data=json.dumps(data))
         self.assert_200(response)
-        # check if possible to create more blueprint than quota
+        # check if possible to create more environment than quota
         response = self.make_authenticated_workspace_owner2_request(
             method='POST',
-            path='/api/v1/blueprints',
+            path='/api/v1/environments',
             data=json.dumps(data_2))
         self.assertStatus(response, 422)
         # Admin
-        data = {'name': 'test_blueprint_1', 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
+        data = {'name': 'test_environment_1', 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
         response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/blueprints',
+            path='/api/v1/environments',
             data=json.dumps(data))
         self.assert_200(response)
 
-    def test_create_blueprint_lifespan_months(self):
+    def test_create_environment_lifespan_months(self):
 
         data = dict(
-            name='test_blueprint_1',
+            name='test_environment_1',
             config=dict(foo='bar'),
             template_id=self.known_template_id,
             workspace_id=self.known_workspace_id,
@@ -1272,7 +1272,7 @@ class FlaskApiTestCase(BaseTestCase):
         data['lifespan_months'] = -1
         response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/blueprints',
+            path='/api/v1/environments',
             data=json.dumps(data))
         self.assert_status(response, 422)
 
@@ -1280,29 +1280,29 @@ class FlaskApiTestCase(BaseTestCase):
         data['lifespan_months'] = '5'
         response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/blueprints',
+            path='/api/v1/environments',
             data=json.dumps(data))
         self.assert_status(response, 200)
 
-        blueprint = Blueprint.query.filter_by(name='test_blueprint_1').first()
-        blueprint_id = blueprint.id
+        environment = Environment.query.filter_by(name='test_environment_1').first()
+        environment_id = environment.id
 
         get_response = self.make_authenticated_workspace_owner_request(
             method='GET',
-            path='/api/v1/blueprints/%s' % blueprint_id)
+            path='/api/v1/environments/%s' % environment_id)
         self.assert_200(get_response)
-        blueprint_json = get_response.json
+        environment_json = get_response.json
         # drop timezone info from expiry_ts with utcfromtimestamp()
-        expiry_ts = datetime.datetime.utcfromtimestamp(dateutil.parser.parse(blueprint_json['expiry_time']).timestamp())
+        expiry_ts = datetime.datetime.utcfromtimestamp(dateutil.parser.parse(environment_json['expiry_time']).timestamp())
         expected_expiry_ts = (datetime.datetime.utcnow() + dateutil.relativedelta.relativedelta(months=+5))
         # two second tolerance
         if abs(expiry_ts.timestamp() - expected_expiry_ts.timestamp()) > 2:
             self.fail('Expiry timestamp %s does not match %s' % (expiry_ts, expected_expiry_ts))
 
-    def test_create_blueprint_full_config(self):
+    def test_create_environment_full_config(self):
         # Workspace Owner
         data = {
-            'name': 'test_blueprint_2',
+            'name': 'test_environment_2',
             'config': {
                 'foo': 'bar',
                 'memory_limit': '1024m',
@@ -1311,46 +1311,46 @@ class FlaskApiTestCase(BaseTestCase):
             'template_id': self.known_template_id,
             'workspace_id': self.known_workspace_id
         }
-        # set blueprint quota
+        # set environment quota
         response12 = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/quota',
-            data=json.dumps({'type': 'absolute', 'value': 42, 'credits_type': 'blueprint_quota_value'}))
+            data=json.dumps({'type': 'absolute', 'value': 42, 'credits_type': 'environment_quota_value'}))
         self.assertEqual(response12.status_code, 200)
 
         post_response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/blueprints',
+            path='/api/v1/environments',
             data=json.dumps(data))
         self.assert_200(post_response)
 
-        blueprint = Blueprint.query.filter_by(name='test_blueprint_2').first()
-        blueprint_id = blueprint.id
+        environment = Environment.query.filter_by(name='test_environment_2').first()
+        environment_id = environment.id
 
         get_response = self.make_authenticated_workspace_owner_request(
             method='GET',
-            path='/api/v1/blueprints/%s' % blueprint_id)
+            path='/api/v1/environments/%s' % environment_id)
         self.assert_200(get_response)
-        blueprint_json = get_response.json
-        self.assertNotIn('foo', blueprint_json['full_config'])  # 'foo' exists in blueprint config but not in template config
-        self.assertNotEqual(blueprint_json['full_config']['memory_limit'], '1024m')  # blueprint config value (memory_limit is not an allowed attribute)
-        self.assertEquals(blueprint_json['full_config']['memory_limit'], '512m')  # blueprint template value (memory_limit is not an allowed attribute)
-        self.assertEquals(blueprint_json['full_config']['maximum_lifetime'], '10h')  # blueprint config value overrides template value (allowed attribute)
+        environment_json = get_response.json
+        self.assertNotIn('foo', environment_json['full_config'])  # 'foo' exists in environment config but not in template config
+        self.assertNotEqual(environment_json['full_config']['memory_limit'], '1024m')  # environment config value (memory_limit is not an allowed attribute)
+        self.assertEquals(environment_json['full_config']['memory_limit'], '512m')  # environment template value (memory_limit is not an allowed attribute)
+        self.assertEquals(environment_json['full_config']['maximum_lifetime'], '10h')  # environment config value overrides template value (allowed attribute)
 
-    def test_create_modify_blueprint_timeformat(self):
+    def test_create_modify_environment_timeformat(self):
 
         form_data = [
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d 1h 40m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d1h40m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '30m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '5h30m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d12h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1d 10m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1h 1m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '0d2h 30m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": ''}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '1d 1h 40m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '1d1h40m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '1d'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '30m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '5h30m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '1d12h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '1d 10m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '1h 1m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '0d2h 30m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": ''}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
         ]
         expected_lifetimes = [92400, 92400, 86400, 36000, 1800, 19800, 129600, 87000, 3660, 9000, 3600]
 
@@ -1359,23 +1359,23 @@ class FlaskApiTestCase(BaseTestCase):
         for data, expected_lifetime in zip(form_data, expected_lifetimes):
             response = self.make_authenticated_admin_request(
                 method='POST',
-                path='/api/v1/blueprints',
+                path='/api/v1/environments',
                 data=json.dumps(data))
             self.assert_200(response,
                             'testing time %s,%d failed' % (data['config']['maximum_lifetime'], expected_lifetime))
 
             put_response = self.make_authenticated_admin_request(
                 method='PUT',
-                path='/api/v1/blueprints/%s' % self.known_blueprint_id_2,
+                path='/api/v1/environments/%s' % self.known_environment_id_2,
                 data=json.dumps(data))
             self.assert_200(put_response)
 
-            blueprint = Blueprint.query.filter_by(id=self.known_blueprint_id_2).first()
-            self.assertEqual(blueprint.maximum_lifetime, expected_lifetime)
+            environment = Environment.query.filter_by(id=self.known_environment_id_2).first()
+            self.assertEqual(environment.maximum_lifetime, expected_lifetime)
 
-    def test_modify_blueprint_activate(self):
+    def test_modify_environment_activate(self):
         data = {
-            'name': 'test_blueprint_activate',
+            'name': 'test_environment_activate',
             'config': {
                 "maximum_lifetime": "0h"
             },
@@ -1386,46 +1386,46 @@ class FlaskApiTestCase(BaseTestCase):
         # Authenticated Normal User
         put_response = self.make_authenticated_user_request(
             method='PUT',
-            path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled,
+            path='/api/v1/environments/%s' % self.known_environment_id_disabled,
             data=json.dumps(data))
         self.assert_403(put_response)
-        # Workspace owner not an owner of the blueprint workspace 2
+        # Workspace owner not an owner of the environment workspace 2
         put_response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled_2,
+            path='/api/v1/environments/%s' % self.known_environment_id_disabled_2,
             data=json.dumps(data))
         self.assert_403(put_response)
-        # Workspace Owner is an owner of the blueprint workspace 1
+        # Workspace Owner is an owner of the environment workspace 1
         put_response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled,
+            path='/api/v1/environments/%s' % self.known_environment_id_disabled,
             data=json.dumps(data))
         self.assert_200(put_response)
-        # Workspace owner 2 is part of the blueprint workspace 1 as an additional owner
+        # Workspace owner 2 is part of the environment workspace 1 as an additional owner
         put_response = self.make_authenticated_workspace_owner2_request(
             method='PUT',
-            path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled,
+            path='/api/v1/environments/%s' % self.known_environment_id_disabled,
             data=json.dumps(data))
         self.assert_200(put_response)
-        # Workspace owner 2 owner of the blueprint workspace 2
+        # Workspace owner 2 owner of the environment workspace 2
         put_response = self.make_authenticated_workspace_owner2_request(
             method='PUT',
-            path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled,
+            path='/api/v1/environments/%s' % self.known_environment_id_disabled,
             data=json.dumps(data))
         self.assert_200(put_response)
         # Admin
         put_response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/blueprints/%s' % self.known_blueprint_id_disabled,
+            path='/api/v1/environments/%s' % self.known_environment_id_disabled,
             data=json.dumps(data))
         self.assert_200(put_response)
 
-        blueprint = Blueprint.query.filter_by(id=self.known_blueprint_id_disabled).first()
-        self.assertEqual(blueprint.is_enabled, False)
+        environment = Environment.query.filter_by(id=self.known_environment_id_disabled).first()
+        self.assertEqual(environment.is_enabled, False)
 
-    def test_modify_blueprint_config_magic_vars_admin(self):
+    def test_modify_environment_config_magic_vars_admin(self):
         data = {
-            'name': 'test_blueprint_2',
+            'name': 'test_environment_2',
             'config': {
                 "name": "foo_modify",
                 "maximum_lifetime": '0d2h30m',
@@ -1437,39 +1437,39 @@ class FlaskApiTestCase(BaseTestCase):
         }
         put_response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/blueprints/%s' % self.known_blueprint_id_2,
+            path='/api/v1/environments/%s' % self.known_environment_id_2,
             data=json.dumps(data))
         self.assert_200(put_response)
 
-        blueprint = Blueprint.query.filter_by(id=self.known_blueprint_id_2).first()
-        self.assertEqual(blueprint.maximum_lifetime, 9000)
-        self.assertEqual(blueprint.cost_multiplier, 0.1)
-        self.assertEqual(blueprint.preallocated_credits, True)
+        environment = Environment.query.filter_by(id=self.known_environment_id_2).first()
+        self.assertEqual(environment.maximum_lifetime, 9000)
+        self.assertEqual(environment.cost_multiplier, 0.1)
+        self.assertEqual(environment.preallocated_credits, True)
 
-    def test_create_blueprint_admin_invalid_data(self):
+    def test_create_environment_admin_invalid_data(self):
         invalid_form_data = [
             {'name': '', 'config': 'foo: bar', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': 'foo: bar', 'template_id': self.known_template_id},
-            {'name': 'test_blueprint_2', 'config': 'foo: bar', 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": ' '}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10 100'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '1hh'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '-1m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '-10h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '2d -10h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '30s'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'workspace_id': 'unknown'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': 'unknown', 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': 'foo: bar', 'template_id': self.known_template_id},
+            {'name': 'test_environment_2', 'config': 'foo: bar', 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": ' '}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '10 100'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '1hh'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '-1m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '-10h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '2d -10h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '30s'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'workspace_id': 'unknown'},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': 'unknown', 'workspace_id': self.known_workspace_id},
         ]
         for data in invalid_form_data:
             response = self.make_authenticated_admin_request(
                 method='POST',
-                path='/api/v1/blueprints',
+                path='/api/v1/environments',
                 data=json.dumps(data))
             self.assertStatus(response, 422)
 
-    def test_create_blueprint_template_admin_invalid_data(self):
+    def test_create_environment_template_admin_invalid_data(self):
         invalid_form_data = [
             {'name': '', 'config': 'foo: bar'},
             {'name': 'test_template_2', 'config': ''},
@@ -1486,56 +1486,56 @@ class FlaskApiTestCase(BaseTestCase):
         for data in invalid_form_data:
             response = self.make_authenticated_admin_request(
                 method='POST',
-                path='/api/v1/blueprint_templates',
+                path='/api/v1/environment_templates',
                 data=json.dumps(data))
             self.assertStatus(response, 422)
 
-    def test_create_blueprint_workspace_owner_invalid_data(self):
+    def test_create_environment_workspace_owner_invalid_data(self):
         invalid_form_data = [
             {'name': '', 'config': 'foo: bar', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': 'foo: bar', 'template_id': self.known_template_id},
-            {'name': 'test_blueprint_2', 'config': 'foo: bar', 'workspace_id': self.known_workspace_id},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'workspace_id': 'unknown'},
-            {'name': 'test_blueprint_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': 'unknown', 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': 'foo: bar', 'template_id': self.known_template_id},
+            {'name': 'test_environment_2', 'config': 'foo: bar', 'workspace_id': self.known_workspace_id},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'workspace_id': 'unknown'},
+            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': 'unknown', 'workspace_id': self.known_workspace_id},
         ]
         for data in invalid_form_data:
             response = self.make_authenticated_workspace_owner_request(
                 method='POST',
-                path='/api/v1/blueprints',
+                path='/api/v1/environments',
                 data=json.dumps(data))
             self.assertStatus(response, 422)
 
         # Workspace owner is a user but not the owner of the workspace with id : known_workspace_id_2
-        invalid_workspace_data = {'name': 'test_blueprint_2', 'config': {"name": "foo"}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id_2}
+        invalid_workspace_data = {'name': 'test_environment_2', 'config': {"name": "foo"}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id_2}
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/blueprints',
+            path='/api/v1/environments',
             data=json.dumps(invalid_workspace_data))
         self.assertStatus(response, 403)
 
         put_response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/blueprints/%s' % self.known_blueprint_id_g2,
+            path='/api/v1/environments/%s' % self.known_environment_id_g2,
             data=json.dumps(invalid_workspace_data))
         self.assertStatus(put_response, 403)
 
-    def test_copy_blueprints(self):
+    def test_copy_environments(self):
 
         # Authenticated User
         response = self.make_authenticated_user_request(
             method='PUT',
-            path='/api/v1/blueprints/blueprint_copy/%s' % self.known_blueprint_id)
+            path='/api/v1/environments/environment_copy/%s' % self.known_environment_id)
         self.assert_403(response)
         # Authenticated Workspace Owner
         response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/blueprints/blueprint_copy/%s' % self.known_blueprint_id)
+            path='/api/v1/environments/environment_copy/%s' % self.known_environment_id)
         self.assert_200(response)
         # Admin
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/blueprints/blueprint_copy/%s' % self.known_blueprint_id)
+            path='/api/v1/environments/environment_copy/%s' % self.known_environment_id)
         self.assert_200(response)
 
     def test_anonymous_invite_user(self):
@@ -1662,7 +1662,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_404(response)
 
     def test_anonymous_create_instance(self):
-        data = {'blueprint_id': self.known_blueprint_id}
+        data = {'environment_id': self.known_environment_id}
         response = self.make_request(
             method='POST',
             path='/api/v1/instances',
@@ -1671,25 +1671,25 @@ class FlaskApiTestCase(BaseTestCase):
 
     def test_user_create_instance(self):
         # User is not a part of the workspace (Workspace2)
-        data = {'blueprint': self.known_blueprint_id_g2}
+        data = {'environment': self.known_environment_id_g2}
         response = self.make_authenticated_user_request(
             method='POST',
             path='/api/v1/instances',
             data=json.dumps(data))
         self.assert_403(response)
         # User is a part of the workspace (Workspace1)
-        data = {'blueprint': self.known_blueprint_id}
+        data = {'environment': self.known_environment_id}
         response = self.make_authenticated_user_request(
             method='POST',
             path='/api/v1/instances',
             data=json.dumps(data))
         self.assert_200(response)
 
-    def test_user_create_instance_blueprint_disabled(self):
+    def test_user_create_instance_environment_disabled(self):
         response = self.make_authenticated_user_request(
             method='POST',
             path='/api/v1/instances',
-            data=json.dumps({'blueprint': self.known_blueprint_id_disabled}),
+            data=json.dumps({'environment': self.known_environment_id_disabled}),
         )
         self.assert_404(response)
 
@@ -1702,7 +1702,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_401(response)
 
     def test_update_client_ip(self):
-        # first test with an instance from a blueprint that does not allow setting client ip
+        # first test with an instance from a environment that does not allow setting client ip
         data = {'client_ip': '1.1.1.1'}
         response = self.make_authenticated_user_request(
             method='PUT',
@@ -1783,9 +1783,9 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
 
     def test_delete_instance(self):
-        blueprint = Blueprint.query.filter_by(id=self.known_blueprint_id).first()
+        environment = Environment.query.filter_by(id=self.known_environment_id).first()
         user = User.query.filter_by(id=self.known_user_id).first()
-        i1 = Instance(blueprint, user)
+        i1 = Instance(environment, user)
         db.session.add(i1)
         db.session.commit()
         # Anonymous
@@ -1801,7 +1801,7 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_202(response)
 
-        i2 = Instance(blueprint, user)
+        i2 = Instance(environment, user)
         db.session.add(i2)
         db.session.commit()
         # Authenticated Workspace Owner of the instance
@@ -1811,7 +1811,7 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_202(response)
 
-        i3 = Instance(blueprint, user)
+        i3 = Instance(environment, user)
         db.session.add(i3)
         db.session.commit()
         # Authenticated Workspace Manager of the instance
@@ -1821,7 +1821,7 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_202(response)
 
-        i4 = Instance(blueprint, user)
+        i4 = Instance(environment, user)
         db.session.add(i4)
         db.session.commit()
         # Admin
@@ -1831,9 +1831,9 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_202(response)
 
-        blueprint2 = Blueprint.query.filter_by(id=self.known_blueprint_id_g2).first()
+        environment2 = Environment.query.filter_by(id=self.known_environment_id_g2).first()
         user2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
-        i5 = Instance(blueprint2, user2)
+        i5 = Instance(environment2, user2)
         db.session.add(i5)
         db.session.commit()
         # User is not part of the workspace
@@ -1911,7 +1911,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_404(response2)
 
     def test_user_over_quota_cannot_launch_instances(self):
-        data = {'blueprint': self.known_blueprint_id}
+        data = {'environment': self.known_environment_id}
         response = self.make_authenticated_user_request(
             method='POST',
             path='/api/v1/instances',
@@ -2091,22 +2091,22 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assertStatus(response, 200)
 
-    def test_user_and_workspace_owner_export_blueprint_templates(self):
-        response = self.make_authenticated_user_request(path='/api/v1/import_export/blueprint_templates')
+    def test_user_and_workspace_owner_export_environment_templates(self):
+        response = self.make_authenticated_user_request(path='/api/v1/import_export/environment_templates')
         self.assertStatus(response, 403)
 
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/import_export/blueprint_templates')
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/import_export/environment_templates')
         self.assertStatus(response, 403)
 
-    def test_admin_export_blueprint_templates(self):
+    def test_admin_export_environment_templates(self):
 
-        response = self.make_authenticated_admin_request(path='/api/v1/import_export/blueprint_templates')
+        response = self.make_authenticated_admin_request(path='/api/v1/import_export/environment_templates')
         self.assertStatus(response, 200)
         self.assertEquals(len(response.json), 2)  # There were total 2 templates initialized during setup
 
-    def test_user_and_workspace_owner_import_blueprint_templates(self):
+    def test_user_and_workspace_owner_import_environment_templates(self):
 
-        blueprints_data = [
+        environments_data = [
             {'name': 'foo',
              'config': {
                  'maximum_lifetime': '1h'
@@ -2116,30 +2116,30 @@ class FlaskApiTestCase(BaseTestCase):
              },
             {'name': 'foobar',
              'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
              },
              'plugin_name': 'TestPlugin',
              'allowed_attrs': []
              }
         ]
         # Authenticated User
-        for blueprint_item in blueprints_data:
+        for environment_item in environments_data:
             response = self.make_authenticated_user_request(
                 method='POST',
-                path='/api/v1/import_export/blueprint_templates',
-                data=json.dumps(blueprint_item))
+                path='/api/v1/import_export/environment_templates',
+                data=json.dumps(environment_item))
             self.assertEqual(response.status_code, 403)
         # Workspace Owner
-        for blueprint_item in blueprints_data:
+        for environment_item in environments_data:
             response = self.make_authenticated_workspace_owner_request(
                 method='POST',
-                path='/api/v1/import_export/blueprint_templates',
-                data=json.dumps(blueprint_item))
+                path='/api/v1/import_export/environment_templates',
+                data=json.dumps(environment_item))
             self.assertEqual(response.status_code, 403)
 
-    def test_admin_import_blueprint_templates(self):
+    def test_admin_import_environment_templates(self):
 
-        blueprints_data = [
+        environments_data = [
             {'name': 'foo',
              'config': {
                  'maximum_lifetime': '1h'
@@ -2149,42 +2149,42 @@ class FlaskApiTestCase(BaseTestCase):
              },
             {'name': 'foobar',
              'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
              },
              'plugin_name': 'TestPlugin',
              'allowed_attrs': []
              }
         ]
         # Admin
-        for blueprint_item in blueprints_data:
+        for environment_item in environments_data:
             response = self.make_authenticated_admin_request(
                 method='POST',
-                path='/api/v1/import_export/blueprint_templates',
-                data=json.dumps(blueprint_item))
+                path='/api/v1/import_export/environment_templates',
+                data=json.dumps(environment_item))
             self.assertEqual(response.status_code, 200)
 
-    def test_anonymous_export_blueprints(self):
-        response = self.make_request(path='/api/v1/import_export/blueprints')
+    def test_anonymous_export_environments(self):
+        response = self.make_request(path='/api/v1/import_export/environments')
         self.assertStatus(response, 401)
 
-    def test_user_export_blueprints(self):
-        response = self.make_authenticated_user_request(path='/api/v1/import_export/blueprints')
+    def test_user_export_environments(self):
+        response = self.make_authenticated_user_request(path='/api/v1/import_export/environments')
         self.assertStatus(response, 403)
 
-    def test_workspace_owner_export_blueprints(self):
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/import_export/blueprints')
+    def test_workspace_owner_export_environments(self):
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/import_export/environments')
         self.assertStatus(response, 200)
         self.assertEquals(len(response.json), 3)
 
-    def test_admin_export_blueprints(self):
+    def test_admin_export_environments(self):
 
-        response = self.make_authenticated_admin_request(path='/api/v1/import_export/blueprints')
+        response = self.make_authenticated_admin_request(path='/api/v1/import_export/environments')
         self.assertStatus(response, 200)
-        self.assertEquals(len(response.json), 7)  # There were total 7 blueprints initialized during setup
+        self.assertEquals(len(response.json), 7)  # There were total 7 environments initialized during setup
 
-    def test_anonymous_import_blueprints(self):
+    def test_anonymous_import_environments(self):
 
-        blueprints_data = [
+        environments_data = [
             {'name': 'foo',
              'config': {
                  'maximum_lifetime': '1h'
@@ -2194,23 +2194,23 @@ class FlaskApiTestCase(BaseTestCase):
              },
             {'name': 'foobar',
              'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
              },
              'template_name': 'TestTemplate',
              'workspace_name': 'Workspace1'
              }
         ]
 
-        for blueprint_item in blueprints_data:
+        for environment_item in environments_data:
             response = self.make_request(  # Test for authenticated user
                 method='POST',
-                path='/api/v1/import_export/blueprints',
-                data=json.dumps(blueprint_item))
+                path='/api/v1/import_export/environments',
+                data=json.dumps(environment_item))
             self.assertEqual(response.status_code, 401)
 
-    def test_user_import_blueprints(self):
+    def test_user_import_environments(self):
 
-        blueprints_data = [
+        environments_data = [
             {'name': 'foo',
              'config': {
                  'maximum_lifetime': '1h'
@@ -2220,23 +2220,23 @@ class FlaskApiTestCase(BaseTestCase):
              },
             {'name': 'foobar',
              'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
              },
              'template_name': 'TestTemplate',
              'workspace_name': 'Workspace1'
              }
         ]
 
-        for blueprint_item in blueprints_data:
+        for environment_item in environments_data:
             response = self.make_authenticated_user_request(  # Test for authenticated user
                 method='POST',
-                path='/api/v1/import_export/blueprints',
-                data=json.dumps(blueprint_item))
+                path='/api/v1/import_export/environments',
+                data=json.dumps(environment_item))
             self.assertEqual(response.status_code, 403)
 
-    def test_admin_import_blueprints(self):
+    def test_admin_import_environments(self):
 
-        blueprints_data = [
+        environments_data = [
             {'name': 'foo',
              'config': {
                  'maximum_lifetime': '1h'
@@ -2246,46 +2246,46 @@ class FlaskApiTestCase(BaseTestCase):
              },
             {'name': 'foobar',
              'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy blueprint'
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
              },
              'template_name': 'EnabledTestTemplate',
              'workspace_name': 'Workspace1'
              }
         ]
 
-        for blueprint_item in blueprints_data:
+        for environment_item in environments_data:
             response = self.make_authenticated_admin_request(
                 method='POST',
-                path='/api/v1/import_export/blueprints',
-                data=json.dumps(blueprint_item))
+                path='/api/v1/import_export/environments',
+                data=json.dumps(environment_item))
             self.assertEqual(response.status_code, 200)
 
-        blueprint_invalid1 = {'name': 'foo', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'}
+        environment_invalid1 = {'name': 'foo', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'}
         response1 = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/import_export/blueprints',
-            data=json.dumps(blueprint_invalid1))
+            path='/api/v1/import_export/environments',
+            data=json.dumps(environment_invalid1))
         self.assertEqual(response1.status_code, 422)
 
-        blueprint_invalid2 = {'name': '', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'}
+        environment_invalid2 = {'name': '', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'}
         response2 = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/import_export/blueprints',
-            data=json.dumps(blueprint_invalid2))
+            path='/api/v1/import_export/environments',
+            data=json.dumps(environment_invalid2))
         self.assertEqual(response2.status_code, 422)
 
-        blueprint_invalid3 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': '', 'workspace_name': 'Workspace1'}
+        environment_invalid3 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': '', 'workspace_name': 'Workspace1'}
         response3 = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/import_export/blueprints',
-            data=json.dumps(blueprint_invalid3))
+            path='/api/v1/import_export/environments',
+            data=json.dumps(environment_invalid3))
         self.assertEqual(response3.status_code, 422)
 
-        blueprint_invalid4 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': 'EnabledTestTemplate', 'workspace_name': ''}
+        environment_invalid4 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': 'EnabledTestTemplate', 'workspace_name': ''}
         response3 = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/import_export/blueprints',
-            data=json.dumps(blueprint_invalid4))
+            path='/api/v1/import_export/environments',
+            data=json.dumps(environment_invalid4))
         self.assertEqual(response3.status_code, 422)
 
     def test_anonymous_get_notifications(self):
@@ -2376,23 +2376,23 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/stats')
         self.assertStatus(response, 200)
 
-        self.assertEqual(len(response.json['blueprints']), 3)  # 2 items as the instances are running across three blueprints
-        for blueprint in response.json['blueprints']:
-            # Tests for blueprint b2 EnabledTestBlueprint'
-            if blueprint['name'] == 'EnabledTestBlueprint':
-                self.assertEqual(blueprint['users'], 1)
-                self.assertEqual(blueprint['launched_instances'], 1)
-                self.assertEqual(blueprint['running_instances'], 1)
-            # Tests for blueprint b3 EnabledTestBlueprintClientIp
-            elif blueprint['name'] == 'EnabledTestBlueprintClientIp':
-                self.assertEqual(blueprint['users'], 2)
-                self.assertEqual(blueprint['launched_instances'], 3)
-                self.assertEqual(blueprint['running_instances'], 2)
-            # b4 EnabledTestBlueprintOtherWorkspace
+        self.assertEqual(len(response.json['environments']), 3)  # 2 items as the instances are running across three environments
+        for environment in response.json['environments']:
+            # Tests for environment b2 EnabledTestEnvironment'
+            if environment['name'] == 'EnabledTestEnvironment':
+                self.assertEqual(environment['users'], 1)
+                self.assertEqual(environment['launched_instances'], 1)
+                self.assertEqual(environment['running_instances'], 1)
+            # Tests for environment b3 EnabledTestEnvironmentClientIp
+            elif environment['name'] == 'EnabledTestEnvironmentClientIp':
+                self.assertEqual(environment['users'], 2)
+                self.assertEqual(environment['launched_instances'], 3)
+                self.assertEqual(environment['running_instances'], 2)
+            # b4 EnabledTestEnvironmentOtherWorkspace
             else:
-                self.assertEqual(blueprint['users'], 1)
-                self.assertEqual(blueprint['launched_instances'], 1)
-                self.assertEqual(blueprint['running_instances'], 1)
+                self.assertEqual(environment['users'], 1)
+                self.assertEqual(environment['launched_instances'], 1)
+                self.assertEqual(environment['running_instances'], 1)
 
         self.assertEqual(response.json['overall_running_instances'], 4)
 

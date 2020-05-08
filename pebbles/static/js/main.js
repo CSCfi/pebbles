@@ -139,9 +139,9 @@ app.config(function($routeProvider, $locationProvider, $compileProvider, Restang
                 redirectIfNotAuthenticated: notAuthenticatedP,
             }
         })
-         .when('/blueprints', {
-            controller: 'BlueprintsController',
-            templateUrl: partialsDir + '/blueprints.html',
+         .when('/environments', {
+            controller: 'EnvironmentsController',
+            templateUrl: partialsDir + '/environments.html',
             resolve: {
                 redirectIfNotAuthenticated: notAuthenticatedP,
             }
@@ -178,7 +178,7 @@ app.config(function($routeProvider, $locationProvider, $compileProvider, Restang
             controller: 'ResetPasswordController',
             templateUrl: partialsDir + '/reset_password.html'
         })
-        .when('/blueprint/:blueprint_id', {
+        .when('/environment/:environment_id', {
             controller: 'DashboardController',
             templateUrl: partialsDir + '/user_dashboard.html',
             resolve: {

@@ -16,7 +16,7 @@ user_fields = {
     'pseudonym': fields.String,
     'credits_quota': fields.Float,
     'workspace_quota': fields.Float,
-    'blueprint_quota': fields.Float,
+    'environment_quota': fields.Float,
     'credits_spent': fields.Float,
     'is_active': fields.Boolean,
     'is_admin': fields.Boolean,
@@ -37,9 +37,9 @@ workspace_fields = {
     'role': fields.String
 }
 
-admin_icons = ["Dashboard", "Users", "Workspaces", "Blueprints", "Configure", "Statistics", "Account"]
-workspace_owner_icons = ["Dashboard", "", "Workspaces", "Blueprints", "", "", "Account"]
-workspace_manager_icons = ["Dashboard", "", "", "Blueprints", "", "", "Account"]
+admin_icons = ["Dashboard", "Users", "Workspaces", "Environments", "Configure", "Statistics", "Account"]
+workspace_owner_icons = ["Dashboard", "", "Workspaces", "Environments", "", "", "Account"]
+workspace_manager_icons = ["Dashboard", "", "", "Environments", "", "", "Account"]
 user_icons = ["Dashboard", "", "", "", "", "", "Account"]
 
 auth = HTTPBasicAuth()

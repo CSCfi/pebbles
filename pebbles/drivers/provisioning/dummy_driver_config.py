@@ -78,7 +78,7 @@ CONFIG = {
     ],
     "model": {
         "name": "bar",
-        "description": "dummy blueprint",
+        "description": "dummy environment",
         "capabilities": ["Capability A"],
     }
 }

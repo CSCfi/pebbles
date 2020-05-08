@@ -18,7 +18,7 @@ from pebbles.utils import b64encode_string
 @unique
 class VolumePersistenceLevel(Enum):
     INSTANCE_LIFETIME = 1
-    BLUEPRINT_LIFETIME = 2
+    ENVIRONMENT_LIFETIME = 2
     USER_LIFETIME = 3
 
 
@@ -168,23 +168,23 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
     def create_deployment(self, namespace, instance):
 
-        blueprint_config = instance['blueprint']['full_config']
+        environment_config = instance['environment']['full_config']
 
         # create a dict out of space separated list of VAR=VAL entries
-        env_var_array = blueprint_config.get('environment_vars', '').split()
+        env_var_array = environment_config.get('environment_vars', '').split()
         env_var_dict = {k: v for k, v in [x.split('=') for x in env_var_array]}
         env_var_dict['INSTANCE_ID'] = instance['id']
         env_var_list = [dict(name=x, value=env_var_dict[x]) for x in env_var_dict.keys()]
 
         deployment_yaml = parse_template('deployment.yaml', dict(
             name=instance['name'],
-            image=blueprint_config['image'],
-            volume_mount_path=blueprint_config['volume_mount_path'],
+            image=environment_config['image'],
+            volume_mount_path=environment_config['volume_mount_path'],
             pvc_name=get_volume_name(instance)
         ))
         deployment_dict = yaml.safe_load(deployment_yaml)
         deployment_dict['spec']['template']['spec']['containers'][0]['env'] = env_var_list
-        deployment_dict['spec']['template']['spec']['containers'][0]['args'] = blueprint_config['args'].split()
+        deployment_dict['spec']['template']['spec']['containers'][0]['args'] = environment_config['args'].split()
 
         self.logger.debug('creating deployment\n%s' % yaml.safe_dump(deployment_dict))
 
@@ -199,7 +199,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def create_service(self, namespace, instance):
         service_yaml = parse_template('service.yaml', dict(
             name=instance['name'],
-            target_port=instance['blueprint']['full_config']['port']
+            target_port=instance['environment']['full_config']['port']
         ))
         self.logger.debug('creating service\n%s' % service_yaml)
 
@@ -266,7 +266,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def fetch_and_populate_instance(self, token, instance_id):
         pbclient = self.get_pb_client(token)
         instance = pbclient.get_instance(instance_id)
-        instance['blueprint'] = pbclient.get_instance_blueprint(instance_id)
+        instance['environment'] = pbclient.get_instance_environment(instance_id)
         instance['user'] = pbclient.get_user(instance['user_id'])
 
         return instance

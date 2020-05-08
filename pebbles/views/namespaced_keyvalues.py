@@ -1,5 +1,6 @@
 from flask_restful import fields, marshal_with, reqparse
-from flask import abort, Blueprint
+from flask import abort
+from flask import Blueprint as FlaskBlueprint
 
 import logging
 import time
@@ -10,7 +11,7 @@ import flask_restful as restful
 from pebbles.views.commons import auth
 from pebbles.utils import requires_admin
 
-namespaced_keyvalues = Blueprint('namespaced_keyvalues', __name__)
+namespaced_keyvalues = FlaskBlueprint('namespaced_keyvalues', __name__)
 
 
 namespace_fields = {

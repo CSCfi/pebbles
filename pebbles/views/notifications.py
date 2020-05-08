@@ -2,7 +2,8 @@ import datetime
 import logging
 
 import flask_restful as restful
-from flask import abort, g, Blueprint
+from flask import abort, g
+from flask import Blueprint as FlaskBlueprint
 from flask_restful import reqparse, fields, marshal_with
 
 from pebbles.forms import NotificationForm
@@ -10,7 +11,7 @@ from pebbles.models import db, Notification, User
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth
 
-notifications = Blueprint('notifications', __name__)
+notifications = FlaskBlueprint('notifications', __name__)
 
 NOTIFICATION_FIELDS = {
     'id': fields.String,

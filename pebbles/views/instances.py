@@ -8,8 +8,8 @@ from flask import abort, g, current_app
 from flask_restful import marshal, marshal_with, fields, reqparse
 
 from pebbles.forms import InstanceForm, UserIPForm
-from pebbles.models import db, Blueprint, Instance, InstanceLog, User
-from pebbles.rules import apply_rules_instances, get_workspace_blueprint_ids_for_instances
+from pebbles.models import db, Environment, Instance, InstanceLog, User
+from pebbles.rules import apply_rules_instances, get_workspace_environment_ids_for_instances
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin, memoize
 from pebbles.views.commons import auth, is_workspace_manager
 
@@ -30,8 +30,8 @@ instance_fields = {
     'error_msg': fields.String,
     'username': fields.String,
     'user_id': fields.String,
-    'blueprint': fields.String,
-    'blueprint_id': fields.String,
+    'environment': fields.String,
+    'environment_id': fields.String,
     'cost_multiplier': fields.Float(default=1.0),
     'can_update_connectivity': fields.Boolean(default=False),
     'instance_data': fields.Raw,
@@ -50,8 +50,8 @@ instance_log_fields = {
 }
 
 
-def query_blueprint(blueprint_id):
-    return Blueprint.query.filter_by(id=blueprint_id).first()
+def query_environment(environment_id):
+    return Environment.query.filter_by(id=environment_id).first()
 
 
 def query_user(user_id):
@@ -86,7 +86,7 @@ class InstanceList(restful.Resource):
         q = q.order_by(Instance.provisioned_at)
         instances = q.all()
 
-        get_blueprint = memoize(query_blueprint)
+        get_environment = memoize(query_environment)
         get_user = memoize(query_user)
         for instance in instances:
             instance_logs = get_logs_from_db(instance.id)
@@ -96,17 +96,17 @@ class InstanceList(restful.Resource):
             if user:
                 instance.username = user.eppn
 
-            blueprint = get_blueprint(instance.blueprint_id)
-            if not blueprint:
-                logging.warning("instance %s has a reference to non-existing blueprint" % instance.id)
+            environment = get_environment(instance.environment_id)
+            if not environment:
+                logging.warning("instance %s has a reference to non-existing environment" % instance.id)
                 continue
 
             age = 0
             if instance.provisioned_at:
                 age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
-            instance.lifetime_left = max(blueprint.maximum_lifetime - age, 0)
-            instance.maximum_lifetime = blueprint.maximum_lifetime
-            instance.cost_multiplier = blueprint.cost_multiplier
+            instance.lifetime_left = max(environment.maximum_lifetime - age, 0)
+            instance.maximum_lifetime = environment.maximum_lifetime
+            instance.cost_multiplier = environment.cost_multiplier
 
             if instance.to_be_deleted:
                 instance.state = Instance.STATE_DELETING
@@ -122,32 +122,32 @@ class InstanceList(restful.Resource):
             logging.warning("validation error on user login")
             return form.errors, 422
 
-        blueprint_id = form.blueprint.data
-        allowed_blueprint_ids = get_workspace_blueprint_ids_for_instances(user)
-        if not user.is_admin and blueprint_id not in allowed_blueprint_ids:
+        environment_id = form.environment.data
+        allowed_environment_ids = get_workspace_environment_ids_for_instances(user)
+        if not user.is_admin and environment_id not in allowed_environment_ids:
             abort(403)
-        blueprint = Blueprint.query.filter_by(id=blueprint_id, is_enabled=True).first()
-        if not blueprint:
+        environment = Environment.query.filter_by(id=environment_id, is_enabled=True).first()
+        if not environment:
             abort(404)
         if user.quota_exceeded():
             return {'error': 'USER_OVER_QUOTA'}, 409
 
-        if blueprint.preallocated_credits:
-            preconsumed_amount = blueprint.cost()
+        if environment.preallocated_credits:
+            preconsumed_amount = environment.cost()
             total_credits_spent = preconsumed_amount + user.credits_spent
             if user.credits_quota < total_credits_spent:
                 return {'error': 'USER_OVER_QUOTA'}, 409
 
         instances_for_user = Instance.query.filter_by(
-            blueprint_id=blueprint.id,
+            environment_id=environment.id,
             user_id=user.id
         ).filter(Instance.state != 'deleted').all()
 
-        user_instance_limit = blueprint.full_config.get('maximum_instances_per_user', USER_INSTANCE_LIMIT)
+        user_instance_limit = environment.full_config.get('maximum_instances_per_user', USER_INSTANCE_LIMIT)
         if instances_for_user and len(instances_for_user) >= user_instance_limit:
-            return {'error': 'BLUEPRINT_INSTANCE_LIMIT_REACHED'}, 409
+            return {'error': 'ENVIRONMENT_INSTANCE_LIMIT_REACHED'}, 409
 
-        instance = Instance(blueprint, user)
+        instance = Instance(environment, user)
         # XXX: Choosing the name should be done in the model's constructor method
         # decide on a name that is not used currently
         existing_names = set(x.name for x in Instance.query.all())
@@ -183,22 +183,22 @@ class InstanceView(restful.Resource):
         if not instance:
             abort(404)
 
-        blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
-        instance.blueprint_id = blueprint.id
+        environment = Environment.query.filter_by(id=instance.environment_id).first()
+        instance.environment_id = environment.id
         instance.username = instance.user
         instance_logs = get_logs_from_db(instance.id)
         instance.logs = marshal(instance_logs, instance_log_fields)
 
-        if 'allow_update_client_connectivity' in blueprint.full_config \
-                and blueprint.full_config['allow_update_client_connectivity']:
+        if 'allow_update_client_connectivity' in environment.full_config \
+                and environment.full_config['allow_update_client_connectivity']:
             instance.can_update_connectivity = True
 
         age = 0
         if instance.provisioned_at:
             age = (datetime.datetime.utcnow() - instance.provisioned_at).total_seconds()
-        instance.lifetime_left = max(blueprint.maximum_lifetime - age, 0)
-        instance.maximum_lifetime = blueprint.maximum_lifetime
-        instance.cost_multiplier = blueprint.cost_multiplier
+        instance.lifetime_left = max(environment.maximum_lifetime - age, 0)
+        instance.maximum_lifetime = environment.maximum_lifetime
+        instance.cost_multiplier = environment.cost_multiplier
 
         return instance
 
@@ -232,7 +232,7 @@ class InstanceView(restful.Resource):
         instance = query.first()
         if not instance:
             abort(404)
-        workspace = instance.blueprint.workspace
+        workspace = instance.environment.workspace
         if not user.is_admin and not is_workspace_manager(user, workspace) and instance.user_id != user.id:
             abort(403)
         instance.to_be_deleted = True
@@ -254,9 +254,9 @@ class InstanceView(restful.Resource):
         if not instance:
             abort(404)
 
-        blueprint = Blueprint.query.filter_by(id=instance.blueprint_id).first()
-        if 'allow_update_client_connectivity' in blueprint.full_config \
-                and blueprint.full_config['allow_update_client_connectivity']:
+        environment = Environment.query.filter_by(id=instance.environment_id).first()
+        if 'allow_update_client_connectivity' in environment.full_config \
+                and environment.full_config['allow_update_client_connectivity']:
             instance.client_ip = form.client_ip.data
             db.session.commit()
 

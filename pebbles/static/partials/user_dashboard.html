@@ -2,24 +2,24 @@
     <h2 class="pad-with-container">Environments</h2>
     <br><br>
     <div class="row">
-        <div id="align-with-container" class="alert alert-warning" ng-hide="blueprints != undefined && (blueprints | filter : {is_enabled: 'true'}).length">
+        <div id="align-with-container" class="alert alert-warning" ng-hide="environments != undefined && (environments | filter : {is_enabled: 'true'}).length">
             No environments available
         </div>
         <div ng-repeat="choice in oddEvenRange()" class="col-md-6">
-            <div ng-repeat="blueprint in blueprints | filter : { is_enabled: 'true' }" ng-if="filterOddEven($index, choice)" class="col-md-12">
+            <div ng-repeat="environment in environments | filter : { is_enabled: 'true' }" ng-if="filterOddEven($index, choice)" class="col-md-12">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        <h3 class="panel-title">{{ blueprint.name }}</h3>
+                        <h3 class="panel-title">{{ environment.name }}</h3>
                     </div>
                     <div class="panel-body specialCollapse sp">
                         <div style="padding: 15px">
                             <p>
-			       <span class="pre-background" ng-bind-html="blueprint.config.description"></span>
+			       <span class="pre-background" ng-bind-html="environment.config.description"></span>
 			    </p>
-                            <p><b>Lifetime:</b> <lifetime value="{{ blueprint.maximum_lifetime }}" maximum-lifetime="{{ blueprint.maximum_lifetime }}"/> </p>
+                            <p><b>Lifetime:</b> <lifetime value="{{ environment.maximum_lifetime }}" maximum-lifetime="{{ environment.maximum_lifetime }}"/> </p>
                         </div>
 			<div class="table-responsive">
-                        <table class="table table-hover table-striped goup" ng-show="(instances | filter : blueprint.id).length">
+                        <table class="table table-hover table-striped goup" ng-show="(instances | filter : environment.id).length">
                             <thead>
                                 <tr>
                                     <th class="col-md-1"><center><small>State</small></center></th>
@@ -31,7 +31,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr ng-repeat="instance in instances | filter : blueprint.id">
+                                <tr ng-repeat="instance in instances | filter : environment.id">
                                     <td>
                                         <center>
                                             <instance-status></instance-status>
@@ -74,11 +74,11 @@
                     <div class="panel-footer text-center">
                         <div class="row">
                             <div class="col-md-11 centered-btn">
-                        <a ng-click="provision(blueprint)" class="btn btn-block btn-primary" ng-disabled="maxInstanceLimitReached(blueprint)">
+                        <a ng-click="provision(environment)" class="btn btn-block btn-primary" ng-disabled="maxInstanceLimitReached(environment)">
                             <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch new
                         </a>
                             </div>
-                            <div class="col" ng-show="maxInstanceLimitReached(blueprint)">
+                            <div class="col" ng-show="maxInstanceLimitReached(environment)">
                                <a class="btn" ng-click="showMaxInstanceLimitInfo()">
                                <span class="glyphicon glyphicon-question-sign"></span>
                                </a>

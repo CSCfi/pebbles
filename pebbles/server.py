@@ -2,14 +2,14 @@ import flask_restful as restful
 
 from pebbles.app import app
 from pebbles.views.activations import activations, ActivationList, ActivationView
-from pebbles.views.blueprint_templates import BlueprintTemplateList, BlueprintTemplateView, BlueprintTemplateCopy
-from pebbles.views.blueprint_templates import blueprint_templates
-from pebbles.views.blueprints import blueprints, BlueprintList, BlueprintView, BlueprintCopy
+from pebbles.views.environment_templates import EnvironmentTemplateList, EnvironmentTemplateView, EnvironmentTemplateCopy
+from pebbles.views.environment_templates import environment_templates
+from pebbles.views.environments import environments, EnvironmentList, EnvironmentView, EnvironmentCopy
 from pebbles.views.export_stats import export_stats, ExportStatistics
 from pebbles.views.workspaces import ClearUsersFromWorkspace
 from pebbles.views.workspaces import WorkspaceList, WorkspaceView, WorkspaceJoin, WorkspaceListExit, WorkspaceExit, WorkspaceUsersList
 from pebbles.views.workspaces import workspaces
-from pebbles.views.import_export import import_export, ImportExportBlueprintTemplates, ImportExportBlueprints
+from pebbles.views.import_export import import_export, ImportExportEnvironmentTemplates, ImportExportEnvironments
 from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.myip import myip, WhatIsMyIp
@@ -41,12 +41,12 @@ api.add_resource(NotificationView, api_root + '/notifications/<string:notificati
 api.add_resource(SessionView, api_root + '/sessions')
 api.add_resource(ActivationList, api_root + '/activations')
 api.add_resource(ActivationView, api_root + '/activations/<string:token_id>')
-api.add_resource(BlueprintTemplateList, api_root + '/blueprint_templates')
-api.add_resource(BlueprintTemplateView, api_root + '/blueprint_templates/<string:template_id>')
-api.add_resource(BlueprintTemplateCopy, api_root + '/blueprint_templates/template_copy/<string:template_id>')
-api.add_resource(BlueprintList, api_root + '/blueprints')
-api.add_resource(BlueprintView, api_root + '/blueprints/<string:blueprint_id>')
-api.add_resource(BlueprintCopy, api_root + '/blueprints/blueprint_copy/<string:blueprint_id>')
+api.add_resource(EnvironmentTemplateList, api_root + '/environment_templates')
+api.add_resource(EnvironmentTemplateView, api_root + '/environment_templates/<string:template_id>')
+api.add_resource(EnvironmentTemplateCopy, api_root + '/environment_templates/template_copy/<string:template_id>')
+api.add_resource(EnvironmentList, api_root + '/environments')
+api.add_resource(EnvironmentView, api_root + '/environments/<string:environment_id>')
+api.add_resource(EnvironmentCopy, api_root + '/environments/environment_copy/<string:environment_id>')
 api.add_resource(InstanceList, api_root + '/instances')
 api.add_resource(
     InstanceView,
@@ -64,15 +64,15 @@ api.add_resource(Quota, api_root + '/quota')
 api.add_resource(UserQuota, api_root + '/quota/<string:user_id>')
 api.add_resource(LockList, api_root + '/locks')
 api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
-api.add_resource(ImportExportBlueprintTemplates, api_root + '/import_export/blueprint_templates')
-api.add_resource(ImportExportBlueprints, api_root + '/import_export/blueprints')
+api.add_resource(ImportExportEnvironmentTemplates, api_root + '/import_export/environment_templates')
+api.add_resource(ImportExportEnvironments, api_root + '/import_export/environments')
 api.add_resource(StatsList, api_root + '/stats')
 api.add_resource(ExportStatistics, api_root + '/export_stats/export_statistics')
 api.add_resource(NamespacedKeyValueList, api_root + '/namespaced_keyvalues')
 api.add_resource(NamespacedKeyValueView, api_root + '/namespaced_keyvalues/<string:namespace>/<string:key>')
 
-app.register_blueprint(blueprint_templates)
-app.register_blueprint(blueprints)
+app.register_blueprint(environment_templates)
+app.register_blueprint(environments)
 app.register_blueprint(plugins)
 app.register_blueprint(users)
 app.register_blueprint(workspaces)

@@ -1,6 +1,6 @@
 <div class="modal-header">
     <button type="button" class="close" ng-click="cancel()"><span aria-hidden="true">&times;</span></button>
-    <h4 class="modal-title">Update Blueprint Config</h4>
+    <h4 class="modal-title">Update Environment Config</h4>
 </div>
 <div class="modal-body">
     <!--<label class="control-label">Select Workspace</label>
@@ -8,14 +8,14 @@
     </select>-->
     <form name="ngform2">
         <div class="form-activate"
-          sf-model="blueprint.config"
-          sf-form="blueprint.form"
-          sf-schema="blueprint.schema"/>
+          sf-model="environment.config"
+          sf-form="environment.form"
+          sf-schema="environment.schema"/>
         </div>
     </form>
 </div>
 <div class="modal-footer">
-    <!--<button ng-click="updateBlueprint(ngform2, blueprint.config, workspaceModel)" class="btn btn-primary">Update</button>-->
-    <button ng-click="updateBlueprint(ngform2, blueprint.config)" class="btn btn-primary">Update</button>
+    <!--<button ng-click="updateEnvironment(ngform2, environment.config, workspaceModel)" class="btn btn-primary">Update</button>-->
+    <button ng-click="updateEnvironment(ngform2, environment.config)" class="btn btn-primary">Update</button>
     <button ng-click="cancel()" type="button" class="btn btn-default" >Close</button>
 </div>
