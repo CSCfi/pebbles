@@ -301,50 +301,13 @@ class ActivationToken(db.Model):
         self.user_id = user.id
 
 
-class Plugin(db.Model):
-    __tablename__ = 'plugins'
-
-    id = db.Column(db.String(32), primary_key=True)
-    name = db.Column(db.String(32))
-    _schema = db.Column('schema', db.Text)
-    _form = db.Column('form', db.Text)
-    _model = db.Column('model', db.Text)
-
-    def __init__(self):
-        self.id = uuid.uuid4().hex
-
-    @hybrid_property
-    def schema(self):
-        return load_column(self._schema)
-
-    @schema.setter
-    def schema(self, value):
-        self._schema = json.dumps(value)
-
-    @hybrid_property
-    def form(self):
-        return load_column(self._form)
-
-    @form.setter
-    def form(self, value):
-        self._form = json.dumps(value)
-
-    @hybrid_property
-    def model(self):
-        return load_column(self._model)
-
-    @model.setter
-    def model(self, value):
-        self._model = json.dumps(value)
-
-
 class EnvironmentTemplate(db.Model):
     __tablename__ = 'environment_templates'
     id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(MAX_NAME_LENGTH))
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
-    plugin = db.Column(db.String(32), db.ForeignKey('plugins.id'))
+    backend = db.Column(db.String(32))
     environments = db.relationship('Environment', backref='template', lazy='dynamic')
     _environment_schema = db.Column('environment_schema', db.Text)
     _environment_form = db.Column('environment_form', db.Text)

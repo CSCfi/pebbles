@@ -1,6 +1,6 @@
 import datetime
 from pebbles.tests.base import db, BaseTestCase
-from pebbles.models import User, Workspace, Environment, EnvironmentTemplate, Plugin, Instance, NamespacedKeyValue
+from pebbles.models import User, Workspace, Environment, EnvironmentTemplate, Instance, NamespacedKeyValue
 
 
 class ModelsTestCase(BaseTestCase):
@@ -15,14 +15,9 @@ class ModelsTestCase(BaseTestCase):
         self.known_group = g
         db.session.add(g)
 
-        p1 = Plugin()
-        p1.name = "TestPlugin"
-        self.known_plugin_id = p1.id
-        db.session.add(p1)
-
         t1 = EnvironmentTemplate()
         t1.name = 'EnabledTestTemplate'
-        t1.plugin = p1.id
+        t1.backend = 'OpenShiftLocalDriver'
         t1.is_enabled = True
         t1.allowed_attrs = ['cost_multiplier']
         db.session.add(t1)

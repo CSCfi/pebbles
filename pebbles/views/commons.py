@@ -7,7 +7,7 @@ from flask_httpauth import HTTPBasicAuth
 from flask_restful import fields
 
 from pebbles.drivers.provisioning import dummy_driver_config, kubernetes_driver_config, openshift_template_driver_config
-from pebbles.models import db, ActivationToken, User, Workspace, WorkspaceUserAssociation, Plugin
+from pebbles.models import db, ActivationToken, User, Workspace, WorkspaceUserAssociation
 
 user_fields = {
     'id': fields.String,
@@ -75,49 +75,46 @@ def create_user(eppn, password, is_admin=False, email_id=None):
     return user
 
 
-def register_plugins():
-    plugin_data = [
+def get_backends():
+    backend_data = [
         dict(
-            id='1',
             name='DummyDriver',
-            conf=dummy_driver_config.CONFIG
+            conf=dummy_driver_config.CONFIG,
+            schema=dummy_driver_config.CONFIG['schema'],
+            model=dummy_driver_config.CONFIG['model'],
+            form=dummy_driver_config.CONFIG['form']
         ),
         dict(
-            id='2',
             name='KubernetesLocalDriver',
-            conf=kubernetes_driver_config.CONFIG
+            conf=kubernetes_driver_config.CONFIG,
+            schema=kubernetes_driver_config.CONFIG['schema'],
+            model=kubernetes_driver_config.CONFIG['model'],
+            form=kubernetes_driver_config.CONFIG['form']
         ),
         dict(
-            id='3',
             name='OpenShiftLocalDriver',
-            conf=kubernetes_driver_config.CONFIG
+            conf=kubernetes_driver_config.CONFIG,
+            schema=kubernetes_driver_config.CONFIG['schema'],
+            model=kubernetes_driver_config.CONFIG['model'],
+            form=kubernetes_driver_config.CONFIG['form']
         ),
         dict(
-            id='4',
             name='OpenShiftRemoteDriver',
-            conf=kubernetes_driver_config.CONFIG
+            conf=kubernetes_driver_config.CONFIG,
+            schema=kubernetes_driver_config.CONFIG['schema'],
+            model=kubernetes_driver_config.CONFIG['model'],
+            form=kubernetes_driver_config.CONFIG['form']
         ),
         dict(
-            id='5',
             name='OpenShiftTemplateDriver',
-            conf=openshift_template_driver_config.CONFIG
+            conf=openshift_template_driver_config.CONFIG,
+            schema=openshift_template_driver_config.CONFIG['schema'],
+            model=openshift_template_driver_config.CONFIG['model'],
+            form=openshift_template_driver_config.CONFIG['form']
+
         ),
     ]
-
-    for pd in plugin_data:
-        current_app.logger.debug('processing plugin %s' % pd['name'])
-        plugin = Plugin.query.filter_by(id=pd['id']).first()
-        if not plugin:
-            plugin = Plugin()
-            plugin.id = pd['id']
-
-        plugin.name = pd['name']
-        plugin.schema = pd['conf']['schema']
-        plugin.form = pd['conf']['form']
-        plugin.model = pd['conf']['model']
-        db.session.add(plugin)
-
-    db.session.commit()
+    return backend_data
 
 
 def update_email(eppn, email_id=None):
@@ -195,3 +192,12 @@ def is_workspace_manager(user, workspace=None):
     if match:
         return True
     return False
+
+
+def match_backend(backend_name):
+    backends = get_backends()
+    if not backends:
+        logging.warning('No backends found')
+    for backend in backends:
+        if backend["name"] == backend_name:
+            return backend

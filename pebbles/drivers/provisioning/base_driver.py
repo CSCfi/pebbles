@@ -162,7 +162,7 @@ class ProvisioningDriverBase(object):
 
     @abc.abstractmethod
     def do_update_connectivity(self, token, instance_id):
-        """ Each plugin must implement this method but it doesn't have to do
+        """ Each driver must implement this method but it doesn't have to do
         anything.
 
         This can be used to e.g. open holes in firewalls or to update a proxy

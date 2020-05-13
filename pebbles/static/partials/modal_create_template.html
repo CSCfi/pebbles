@@ -7,12 +7,12 @@
         <label class="control-label">Select Attributes to be Overriden by Workspace Owners</label>
         <div id="allowed_attrs" ng-dropdown-multiselect="" options="attrsData" selected-model="attrsModel" extra-settings="attrsSettings"></div>
         <div
-          sf-model="plugin.model"
-          sf-form="plugin.form"
-          sf-schema="plugin.schema"/>
+          sf-model="backend.model"
+          sf-form="backend.form"
+          sf-schema="backend.schema"/>
     </form>
 </div>
 <div class="modal-footer">
-    <button ng-click="createTemplate(ngform, plugin.model, attrsModel)" class="btn btn-primary">Create</button>
+    <button ng-click="createTemplate(ngform, backend.model, attrsModel)" class="btn btn-primary">Create</button>
     <button ng-click="cancel()" class="btn btn-default" >Close</button>
 </div>

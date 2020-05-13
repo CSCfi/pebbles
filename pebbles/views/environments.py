@@ -26,7 +26,7 @@ environment_fields = {
     'template_id': fields.String,
     'template_name': fields.String,
     'is_enabled': fields.Boolean,
-    'plugin': fields.String,
+    'backend': fields.String,
     'config': fields.Raw,
     'full_config': fields.Raw,
     'schema': fields.Raw,
@@ -249,7 +249,7 @@ def process_environment(environment):
     environment.template_name = template.name
     environment.workspace_name = environment.workspace.name
     # rest of the code taken for refactoring from single environment GET query
-    environment.plugin = environment.template.plugin
+    environment.backend = environment.template.backend
     if user.is_admin or is_workspace_manager(user, environment.workspace):
         environment.manager = True
     return environment

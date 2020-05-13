@@ -112,12 +112,7 @@ def initialize_system(eppn=None, password=None):
     admin_user = createuser(eppn=eppn, password=password, admin=True)
     create_worker()
     create_system_workspaces(admin_user)
-    commons.register_plugins()
 
-@manager.command
-def register_plugins(plugin_name=None):
-    """Registers all known plugins"""
-    commons.register_plugins()
 
 @manager.command
 def purgehost(name):

@@ -97,12 +97,9 @@ class Worker:
         logging.debug('updating %s' % instance)
         instance_id = instance['id']
         environment = self.client.get_instance_environment(instance_id)
-        plugin_id = environment['plugin']
-        plugin_name = self.client.get_plugin_data(plugin_id)['name']
-        backend_name = environment.get('full_config').get('backend')
+        backend_name = environment.get('backend')
         if backend_name is None:
-            backend_name = plugin_name
-            logging.warning('Guessing backend name to be driver name for instance %s' % instance.get('name'))
+            logging.warning('Backend/driver config for the instance %s is not found' % instance.get('name'))
         driver_instance = self.get_driver(backend_name)
         driver_instance.update(self.client.token, instance_id)
 

@@ -23,7 +23,7 @@ class OpenShiftTemplateDriver(OpenShiftRemoteDriver):
 
     def get_configuration(self):
         """ Return the default config values which are needed for the
-            plugin creation (via schemaform)
+            driver creation (via schemaform)
         """
         from pebbles.drivers.provisioning.openshift_template_driver_config import CONFIG
 

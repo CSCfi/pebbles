@@ -147,13 +147,6 @@ class PBClient:
             raise RuntimeError('Unable to delete running logs for instance %s, %s' % (instance_id, resp.reason))
         return resp
 
-    def get_plugin_data(self, plugin_id):
-        resp = self.do_get('plugins/%s' % plugin_id)
-        if resp.status_code != 200:
-            raise RuntimeError('Error loading plugin data: %s, %s' % (plugin_id, resp.reason))
-
-        return resp.json()
-
     def query_locks(self, lock_id=None):
         if lock_id:
             resp = self.do_get('locks/%s' % lock_id)

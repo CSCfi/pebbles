@@ -1,6 +1,6 @@
 <div ng-show="getIcons()">
     <h2>Configure Environment Templates</h2>
-    <h3>Plugins</h3>
+    <h3>Backends</h3>
     <table class="table table-striped">
         <thead>
         <tr>
@@ -9,14 +9,14 @@
         </tr>
         </thead>
         <tbody>
-        <tr ng-hide="plugins != undefined && plugins.length">
-            <td colspan="2">No enabled plugins are reported by workers</td>
+        <tr ng-hide="backends != undefined && backends.length">
+            <td colspan="2">No enabled backends are reported by workers</td>
         </tr>
 
-        <tr ng-repeat="plugin in plugins">
-            <td>{{ plugin.name }}</td>
+        <tr ng-repeat="backend in backends">
+            <td>{{ backend.name }}</td>
             <td>
-                <button ng-click="openCreateTemplateDialog(plugin)" class="btn btn-default">
+                <button ng-click="openCreateTemplateDialog(backend)" class="btn btn-default">
                     Create Template
                 </button>
             </td>

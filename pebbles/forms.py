@@ -51,7 +51,7 @@ class NotificationForm(ModelForm):
 class EnvironmentTemplateForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
     config = StringField('config', validators=[DataRequired()])
-    plugin = StringField('plugin', validators=[DataRequired()])
+    backend = StringField('backend', validators=[DataRequired()])
     allowed_attrs = StringField('allowed_attrs')
     is_enabled = BooleanField('is_enabled', default=False)
 
@@ -67,7 +67,7 @@ class EnvironmentForm(ModelForm):
 class EnvironmentTemplateImportForm(ModelForm):
     name = StringField('name', validators=[DataRequired()])
     config = StringField('config', validators=[DataRequired()])
-    plugin_name = StringField('plugin_name', validators=[DataRequired()])
+    backend_name = StringField('backend_name', validators=[DataRequired()])
     allowed_attrs = StringField('allowed_attrs')
 
 
@@ -118,13 +118,6 @@ class ActivationForm(ModelForm):
             )
         ]
     )
-
-
-class PluginForm(ModelForm):
-    plugin = StringField('plugin', validators=[DataRequired()])
-    schema = StringField('schema', validators=[DataRequired()])
-    form = StringField('form', validators=[DataRequired()])
-    model = StringField('model', validators=[DataRequired()])
 
 
 class UserIPForm(ModelForm):

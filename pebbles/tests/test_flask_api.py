@@ -948,67 +948,16 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response)
 
-    def test_get_plugins(self):
+    def test_get_backends(self):
         # Anonymous
-        response = self.make_request(path='/api/v1/plugins')
+        response = self.make_request(path='/api/v1/backends')
         self.assert_401(response)
         # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/plugins')
+        response = self.make_authenticated_user_request(path='/api/v1/backends')
         self.assert_403(response)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/plugins')
+        response = self.make_authenticated_admin_request(path='/api/v1/backends')
         self.assert_200(response)
-
-    def test_get_single_plugin(self):
-        # Anonymous
-        response = self.make_request(path='/api/v1/plugins/%s' % self.known_plugin_id)
-        self.assert_401(response)
-        # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/plugins/%s' % self.known_plugin_id)
-        self.assert_403(response)
-        # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/plugins/%s' % self.known_plugin_id)
-        self.assert_200(response)
-
-        response = self.make_authenticated_admin_request(path='/api/v1/plugins/%s' % 'doesnotexists')
-        self.assert_404(response)
-
-    def test_admin_create_plugin(self):
-        data = {
-            'plugin': 'TestPlugin',
-            'schema': json.dumps({}),
-            'form': json.dumps({}),
-            'model': json.dumps({})
-        }
-        response = self.make_authenticated_admin_request(
-            method='POST',
-            path='/api/v1/plugins',
-            data=json.dumps(data))
-        self.assert_200(response)
-
-        data = {
-            'plugin': 'TestPluginNew',
-            'schema': json.dumps({}),
-            'form': json.dumps({}),
-            'model': json.dumps({})
-        }
-        response = self.make_authenticated_admin_request(
-            method='POST',
-            path='/api/v1/plugins',
-            data=json.dumps(data))
-        self.assert_200(response)
-
-        data = {
-            'plugin': 'TestPlugin',
-            'schema': None,
-            'form': json.dumps({}),
-            'model': json.dumps({})
-        }
-        response = self.make_authenticated_admin_request(
-            method='POST',
-            path='/api/v1/plugins',
-            data=json.dumps(data))
-        self.assertStatus(response, 422)
 
     def test_get_environment_templates(self):
         # Anonymous
@@ -1057,28 +1006,28 @@ class FlaskApiTestCase(BaseTestCase):
 
     def test_create_environment_template(self):
         # Anonymous
-        data = {'name': 'test_environment_template_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': '', 'backend': 'dummy'}
         response = self.make_request(
             method='POST',
             path='/api/v1/environment_templates',
             data=json.dumps(data))
         self.assert_401(response)
         # Authenticated User
-        data = {'name': 'test_environment_template_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': '', 'backend': 'dummy'}
         response = self.make_authenticated_user_request(
             method='POST',
             path='/api/v1/environment_templates',
             data=json.dumps(data))
         self.assert_403(response)
         # Authenticated Workspace Owner
-        data = {'name': 'test_environment_template_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': '', 'backend': 'dummy'}
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
             path='/api/v1/environment_templates',
             data=json.dumps(data))
         self.assert_403(response)
         # Admin
-        data = {'name': 'test_environment_template_1', 'config': {'foo': 'bar'}, 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': {'foo': 'bar'}, 'backend': 'dummy'}
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/environment_templates',
@@ -1089,7 +1038,7 @@ class FlaskApiTestCase(BaseTestCase):
             'name': 'test_environment_template_2',
             'config': {'foo': 'bar', 'maximum_lifetime': '1h'},
             'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']},
-            'plugin': self.known_plugin_id
+            'backend': 'OpenShiftLocalDriver'
         }
         response = self.make_authenticated_admin_request(
             method='POST',
@@ -1100,7 +1049,7 @@ class FlaskApiTestCase(BaseTestCase):
     def test_modify_environment_template(self):
         t = EnvironmentTemplate()
         t.name = 'TestTemplate'
-        t.plugin = self.known_plugin_id
+        t.backend = 'OpenShiftLocalDriver'
         t.config = {'memory_limit': '512m', 'maximum_lifetime': '1h'}
         t.allowed_attrs = ['maximum_lifetime']
         t.is_enabled = True
@@ -1108,28 +1057,28 @@ class FlaskApiTestCase(BaseTestCase):
         db.session.commit()
 
         # Anonymous
-        data = {'name': 'test_environment_template_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': '', 'backend': 'dummy'}
         response = self.make_request(
             method='PUT',
             path='/api/v1/environment_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_401(response)
         # Authenticated User
-        data = {'name': 'test_environment_template_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': '', 'backend': 'dummy'}
         response = self.make_authenticated_user_request(
             method='PUT',
             path='/api/v1/environment_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_403(response)
         # Authenticated Workspace Owner
-        data = {'name': 'test_environment_template_1', 'config': '', 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': '', 'backend': 'dummy'}
         response = self.make_authenticated_workspace_owner_request(
             method='PUT',
             path='/api/v1/environment_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_403(response)
         # Admin
-        data = {'name': 'test_environment_template_1', 'config': {'foo': 'bar'}, 'plugin': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'config': {'foo': 'bar'}, 'backend': 'dummy'}
         response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/environment_templates/%s' % t.id,
@@ -1140,7 +1089,7 @@ class FlaskApiTestCase(BaseTestCase):
             'name': 'test_environment_template_2',
             'config': {'foo': 'bar', 'maximum_lifetime': '1h'},
             'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']},
-            'plugin': self.known_plugin_id
+            'backend': 'OpenShiftLocalDriver'
         }
         response = self.make_authenticated_admin_request(
             method='PUT',
@@ -2111,14 +2060,14 @@ class FlaskApiTestCase(BaseTestCase):
              'config': {
                  'maximum_lifetime': '1h'
              },
-             'plugin_name': 'TestPlugin',
+             'backend_name': 'OpenShiftLocalDriver',
              'allowed_attrs': ['maximum_lifetime']
              },
             {'name': 'foobar',
              'config': {
                  'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
              },
-             'plugin_name': 'TestPlugin',
+             'backend_name': 'OpenShiftLocalDriver',
              'allowed_attrs': []
              }
         ]
@@ -2144,14 +2093,14 @@ class FlaskApiTestCase(BaseTestCase):
              'config': {
                  'maximum_lifetime': '1h'
              },
-             'plugin_name': 'TestPlugin',
+             'backend_name': 'OpenShiftLocalDriver',
              'allowed_attrs': ['maximum_lifetime']
              },
             {'name': 'foobar',
              'config': {
                  'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
              },
-             'plugin_name': 'TestPlugin',
+             'backend_name': 'OpenShiftLocalDriver',
              'allowed_attrs': []
              }
         ]

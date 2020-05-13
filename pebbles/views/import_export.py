@@ -3,9 +3,9 @@ from flask_restful import fields, marshal_with
 from flask import Blueprint as FlaskBlueprint
 import logging
 
-from pebbles.models import db, Environment, EnvironmentTemplate, Plugin, Workspace
+from pebbles.models import db, Environment, EnvironmentTemplate, Workspace
 import flask_restful as restful
-from pebbles.views.commons import auth, requires_workspace_manager_or_admin
+from pebbles.views.commons import auth, requires_workspace_manager_or_admin, match_backend
 from pebbles.views.environment_templates import environment_schemaform_config
 from pebbles.utils import requires_admin
 from pebbles.rules import apply_rules_export_environments
@@ -16,7 +16,7 @@ import_export = FlaskBlueprint('import_export', __name__)
 template_export_fields = {
     'name': fields.String,
     'is_enabled': fields.Boolean,
-    'plugin_name': fields.String,
+    'backend_name': fields.String,
     'config': fields.Raw,
     'allowed_attrs': fields.Raw
 }
@@ -42,13 +42,13 @@ class ImportExportEnvironmentTemplates(restful.Resource):
 
         results = []
         for template in templates:
-            plugin = Plugin.query.filter_by(id=template.plugin).first()
+            selected_backend = match_backend(template.backend)
             obj = {
                 'name': template.name,
                 'is_enabled': template.is_enabled,
                 'config': template.config,
                 'allowed_attrs': template.allowed_attrs,
-                'plugin_name': plugin.name
+                'backend_name': selected_backend['name']
             }
             results.append(obj)
 
@@ -64,17 +64,10 @@ class ImportExportEnvironmentTemplates(restful.Resource):
             logging.warning("validation error on create environment")
             return form.errors, 422
 
-        plugin_name = form.plugin_name.data
-        plugin = Plugin.query.filter_by(name=plugin_name).first()
-
-        if not plugin:
-            logging.warning('no plugins found with name %s', plugin_name)
-            return {"error": "No plugins found"}, 404
-
         template = EnvironmentTemplate()
         template.name = form.name.data
-        template.plugin = plugin.id
-        template.config = form.config.data
+        selected_backend = match_backend(form.backend_name.data)
+        template.backend = selected_backend["name"]
 
         if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
             template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']

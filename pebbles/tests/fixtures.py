@@ -2,7 +2,7 @@
 
 from pebbles.models import (
     User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
-    Plugin, Notification, Instance)
+    Notification, Instance)
 from pebbles.tests.base import db
 
 
@@ -92,36 +92,15 @@ def primary_test_setup(namespace):
     db.session.add(g5)
     db.session.commit()
 
-    p1 = Plugin()
-    p1.name = "TestPlugin"
-    p1.schema = {
-        "type": "object",
-        "title": "Comment",
-        "description": "Description",
-        "properties": {
-            "name": {
-                "type": "string"
-            },
-            "description": {
-                "type": "string"
-            },
-            "maximum_lifetime": {
-                "type": "string"
-            }
-        }
-    }
-    namespace.known_plugin_id = p1.id
-    db.session.add(p1)
-
     t1 = EnvironmentTemplate()
     t1.name = 'TestTemplate'
-    t1.plugin = p1.id
+    t1.backend = 'OpenShiftLocalDriver'
     db.session.add(t1)
     namespace.known_template_id_disabled = t1.id
 
     t2 = EnvironmentTemplate()
     t2.name = 'EnabledTestTemplate'
-    t2.plugin = p1.id
+    t2.backend = 'OpenShiftRemoteDriver'
     t2.config = {
         'cost_multiplier': '1.0',
         'maximum_lifetime': '1h',
