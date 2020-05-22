@@ -104,6 +104,7 @@ CONFIG = {
         'description': 'k8s testing template',
         'cost_multiplier': 0.0,
         'port': 8888,
+        'volume_mount_path': '/data',
         'image': 'jupyter/minimal-notebook',
         'memory_limit': '512M',
     }

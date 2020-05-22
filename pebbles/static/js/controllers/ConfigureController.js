@@ -296,7 +296,7 @@ app.controller('ModalCreateTemplateController', function($scope, $modalInstance,
         if (form.$valid) {
             attrsModel = _(attrsModel).map(function(attr){ return attr.id }).value();  // Get the data back as an array of attrs
             var allowed_attrs = {'allowed_attrs': attrsModel} // Sending array in an obj, Only to please WTForms
-            templates.post({ backend: $scope.backend.id, name: model.name, config: model, allowed_attrs: allowed_attrs}).then(function () {
+            templates.post({ backend: $scope.backend.name, name: model.name, config: model, allowed_attrs: allowed_attrs}).then(function () {
                 $modalInstance.close(true);
             }, function(response) {
                 $.notify({title: 'HTTP ' + response.status, message: 'unable to create environment template'}, {type: 'danger'});

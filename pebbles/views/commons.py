@@ -85,7 +85,7 @@ def get_backends():
             form=dummy_driver_config.CONFIG['form']
         ),
         dict(
-            name='KubernetesLocalDriver',
+            name='local_kubernetes',
             conf=kubernetes_driver_config.CONFIG,
             schema=kubernetes_driver_config.CONFIG['schema'],
             model=kubernetes_driver_config.CONFIG['model'],
