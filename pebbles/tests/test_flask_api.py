@@ -379,16 +379,12 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response)
         # Authenticated admin
-        """
-        # TODO: Once issue #770 is resolved this test case should be updated
         response = self.make_authenticated_admin_request(
             path='/api/v1/export_stats/export_statistics',
             method='GET',
             data=json.dumps({'start': None, 'end': None, 'stat': 'quartals'})
         )
         self.assert_200(response)
-        # TODO: The environment variable - institution list had to be given oterwise it returns 404
-        # self.assertStatus(response, 404)
         # Authenticated admin
         response = self.make_authenticated_admin_request(
             path='/api/v1/export_stats/export_statistics',
@@ -396,7 +392,6 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps({'start': None, 'end': None, 'stat': 'quartals_by_org'})
         )
         self.assert_200(response)
-        """
         # Authenticated admin, invalid date input
         response = self.make_authenticated_admin_request(
             path='/api/v1/export_stats/export_statistics',

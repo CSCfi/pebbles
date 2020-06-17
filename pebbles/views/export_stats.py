@@ -267,7 +267,7 @@ class ExportStatistics(restful.Resource):
         return [data]
 
     def list_sum(self, a, b):
-        return map(lambda x, y: x + y, a, b)
+        return list(map(lambda x, y: x + y, a, b))
 
     def domain_filter(self, domain, filter, exclude):
         if exclude:

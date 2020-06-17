@@ -136,7 +136,10 @@ class BaseConfig(object):
         'An image URL for branding the installation'
     )
     COURSE_REQUEST_FORM = 'http://link-to-form'
-    HAKA_INSTITUTION_LIST = ({}, 'Dictionary of institution types and corresponding domains')
+    HAKA_INSTITUTION_LIST = (
+        '{"university": [], "polytechnic": [], "institution": []}',
+        'Dictionary of institution types and corresponding domains'
+    )
 
     PLUGIN_WHITELIST = (
         'DummyDriver',
