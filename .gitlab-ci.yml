@@ -34,7 +34,7 @@ ci-deploy:
   stage: ci-deploy
   image: $CI_REGISTRY/pebbles/pebbles-deploy/pebbles-deployer
   variables:
-    ENV_NAME: pebbles-ci
+    ENV_NAME: pebbles-ci-2
   script:
     - /opt/deployment/init_env.bash
     # build, deploy and initialize
@@ -45,18 +45,18 @@ ci-test:
   stage: ci-test
   image: $CI_REGISTRY/pebbles/pebbles-deploy/pebbles-deployer
   variables:
-    ENV_NAME: pebbles-ci
+    ENV_NAME: pebbles-ci-2
   script:
     - /opt/deployment/init_env.bash
     # tests
-    - curl https://pebbles-ci.oso-qa-app.csc.fi/api/v1/config | grep INSTALLATION_NAME
+    - curl https://pebbles-ci-2.rahti-int-app.csc.fi/api/v1/config | grep INSTALLATION_NAME
     - oc rsh deployment/api python manage.py test
 
 ci-deprovision:
   stage: ci-deprovision
   image: $CI_REGISTRY/pebbles/pebbles-deploy/pebbles-deployer
   variables:
-    ENV_NAME: pebbles-ci
+    ENV_NAME: pebbles-ci-2
   when: always
   script:
     - /opt/deployment/init_env.bash
