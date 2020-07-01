@@ -12,7 +12,7 @@ from pebbles.forms import EnvironmentTemplateForm
 from pebbles.models import db, EnvironmentTemplate
 from pebbles.rules import apply_rules_environment_templates
 from pebbles.utils import requires_admin, parse_maximum_lifetime
-from pebbles.views.commons import auth, requires_workspace_manager_or_admin, match_backend
+from pebbles.views.commons import auth, requires_workspace_manager_or_admin, match_cluster
 
 environment_templates = FlaskBlueprint('environment_templates', __name__)
 
@@ -20,7 +20,7 @@ environment_template_fields = {
     'id': fields.String(attribute='id'),
     'name': fields.String,
     'is_enabled': fields.Boolean,
-    'backend': fields.String,
+    'cluster': fields.String,
     'config': fields.Raw,
     'schema': fields.Raw,
     'form': fields.Raw,
@@ -41,9 +41,9 @@ class EnvironmentTemplateList(restful.Resource):
         query = query.order_by(EnvironmentTemplate.name)
         results = []
         for environment_template in query.all():
-            selected_backend = match_backend(environment_template.backend)
-            environment_template.schema = selected_backend["schema"]
-            environment_template.form = selected_backend["form"]
+            selected_cluster = match_cluster(environment_template.cluster)
+            environment_template.schema = selected_cluster["schema"]
+            environment_template.form = selected_cluster["form"]
             # Due to immutable nature of config field, whole dict needs to be reassigned.
             # Issue #444 in github
             environment_template_config = environment_template.config
@@ -62,7 +62,7 @@ class EnvironmentTemplateList(restful.Resource):
             return form.errors, 422
         environment_template = EnvironmentTemplate()
         environment_template.name = form.name.data
-        environment_template.backend = form.backend.data
+        environment_template.cluster = form.cluster.data
 
         config = form.config.data
         config.pop('name', None)
@@ -108,7 +108,7 @@ class EnvironmentTemplateView(restful.Resource):
         if not environment_template:
             abort(404)
         environment_template.name = form.config.data.get('name') or form.name.data
-        environment_template.backend = form.backend.data
+        environment_template.cluster = form.cluster.data
 
         config = form.config.data
         config.pop('name', None)
@@ -159,7 +159,7 @@ def toggle_enable_template(form, args, environment_template):
 
 def environment_schemaform_config(environment_template):
     """Generates config,schema and model objects used in schemaform ui component for environments"""
-    selected_backend = match_backend(environment_template.backend)
+    selected_cluster = match_cluster(environment_template.cluster)
     environment_schema = dict(
         type='object',
         title='Comment',
@@ -174,7 +174,7 @@ def environment_schemaform_config(environment_template):
     environment_form = allowed_attrs
     allowed_attrs = ['name', 'description'] + allowed_attrs
     for attr in allowed_attrs:
-        environment_schema['properties'][attr] = selected_backend['schema']['properties'][attr]
+        environment_schema['properties'][attr] = selected_cluster['schema']['properties'][attr]
         if attr in ('name', 'description'):
             environment_model[attr] = ''
         else:

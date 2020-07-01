@@ -5,7 +5,7 @@ CONFIG = {
         'description': 'Description',
         'required': [
             'name',
-            'backend',
+            'cluster',
             'image',
             'port',
             'memory_limit',
@@ -20,8 +20,8 @@ CONFIG = {
             'image': {
                 'type': 'string',
             },
-            'backend': {
-                'title': 'Name of the backend resource to use. Match this with backend credentials',
+            'cluster': {
+                'title': 'Name of the cluster resource to use. Match this with cluster credentials',
                 'type': 'string',
                 'default': 'local_kubernetes',
             },
@@ -85,7 +85,7 @@ CONFIG = {
         },
         'name',
         'description',
-        'backend',
+        'cluster',
         'image',
         'args',
         'port',

@@ -397,7 +397,7 @@ app.controller('DriverConfigController', ['$scope', 'Restangular',
         var configService = Restangular.all('namespaced_keyvalues');
 
         var fetchDriverConfigs = function(){
-            configService.getList({'key': 'backend_config'}).then(function (response) {
+            configService.getList({'key': 'cluster_config'}).then(function (response) {
                 $scope.driverConfigs = response;
             });
         };

@@ -1,6 +1,6 @@
 <div ng-show="getIcons()">
     <h2>Configure Environment Templates</h2>
-    <h3>Backends</h3>
+    <h3>Clusters</h3>
     <table class="table table-striped">
         <thead>
         <tr>
@@ -9,14 +9,14 @@
         </tr>
         </thead>
         <tbody>
-        <tr ng-hide="backends != undefined && backends.length">
-            <td colspan="2">No enabled backends are reported by workers</td>
+        <tr ng-hide="clusters != undefined && clusters.length">
+            <td colspan="2">No enabled clusters are reported by workers</td>
         </tr>
 
-        <tr ng-repeat="backend in backends">
-            <td>{{ backend.name }}</td>
+        <tr ng-repeat="cluster in clusters">
+            <td>{{ cluster.name }}</td>
             <td>
-                <button ng-click="openCreateTemplateDialog(backend)" class="btn btn-default">
+                <button ng-click="openCreateTemplateDialog(cluster)" class="btn btn-default">
                     Create Template
                 </button>
             </td>

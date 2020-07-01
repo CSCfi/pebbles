@@ -51,7 +51,7 @@ class NotificationForm(ModelForm):
 class EnvironmentTemplateForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
     config = StringField('config', validators=[DataRequired()])
-    backend = StringField('backend', validators=[DataRequired()])
+    cluster = StringField('cluster', validators=[DataRequired()])
     allowed_attrs = StringField('allowed_attrs')
     is_enabled = BooleanField('is_enabled', default=False)
 
@@ -67,7 +67,7 @@ class EnvironmentForm(ModelForm):
 class EnvironmentTemplateImportForm(ModelForm):
     name = StringField('name', validators=[DataRequired()])
     config = StringField('config', validators=[DataRequired()])
-    backend_name = StringField('backend_name', validators=[DataRequired()])
+    cluster_name = StringField('cluster_name', validators=[DataRequired()])
     allowed_attrs = StringField('allowed_attrs')
 
 

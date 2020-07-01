@@ -75,8 +75,8 @@ def create_user(eppn, password, is_admin=False, email_id=None):
     return user
 
 
-def get_backends():
-    backend_data = [
+def get_clusters():
+    cluster_data = [
         dict(
             name='DummyDriver',
             conf=dummy_driver_config.CONFIG,
@@ -114,7 +114,7 @@ def get_backends():
 
         ),
     ]
-    return backend_data
+    return cluster_data
 
 
 def update_email(eppn, email_id=None):
@@ -194,10 +194,10 @@ def is_workspace_manager(user, workspace=None):
     return False
 
 
-def match_backend(backend_name):
-    backends = get_backends()
-    if not backends:
-        logging.warning('No backends found')
-    for backend in backends:
-        if backend["name"] == backend_name:
-            return backend
+def match_cluster(cluster_name):
+    clusters = get_clusters()
+    if not clusters:
+        logging.warning('No clusters found')
+    for cluster in clusters:
+        if cluster["name"] == cluster_name:
+            return cluster

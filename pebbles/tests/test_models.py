@@ -17,7 +17,7 @@ class ModelsTestCase(BaseTestCase):
 
         t1 = EnvironmentTemplate()
         t1.name = 'EnabledTestTemplate'
-        t1.backend = 'OpenShiftLocalDriver'
+        t1.cluster = 'OpenShiftLocalDriver'
         t1.is_enabled = True
         t1.allowed_attrs = ['cost_multiplier']
         db.session.add(t1)
@@ -101,18 +101,18 @@ class ModelsTestCase(BaseTestCase):
             'INT_VAR': 1,
         }
         # Normal data
-        n1 = NamespacedKeyValue('TestDriver_1', 'backend_config', schema)
+        n1 = NamespacedKeyValue('TestDriver_1', 'cluster_config', schema)
         n1_value = value.copy()
         n1.value = n1_value
 
         # Optional field can have empty value
-        n2 = NamespacedKeyValue('TestDriver_2', 'backend_config', schema)
+        n2 = NamespacedKeyValue('TestDriver_2', 'cluster_config', schema)
         n2_value = value.copy()
         n2_value['STR_OPTIONAL_VAR'] = ''
         n2.value = n2_value
 
         # Not providing all the fields mentioned in the schema
-        n3 = NamespacedKeyValue('TestDriver_3', 'backend_config', schema)
+        n3 = NamespacedKeyValue('TestDriver_3', 'cluster_config', schema)
         n3_value = value.copy()
         del n3_value['BOOL_VAR']
         try:
@@ -121,7 +121,7 @@ class ModelsTestCase(BaseTestCase):
             self.assertRaises(KeyError)
 
         # Providing a new field which doesn't exist in the schema
-        n4 = NamespacedKeyValue('TestDriver_4', 'backend_config', schema)
+        n4 = NamespacedKeyValue('TestDriver_4', 'cluster_config', schema)
         n4_value = value.copy()
         n4_value['NEW_VAR'] = 'NEW_VAL'
         try:
@@ -130,7 +130,7 @@ class ModelsTestCase(BaseTestCase):
             self.assertRaises(ValueError)
 
         # Incorrect value type for the variable
-        n5 = NamespacedKeyValue('TestDriver_5', 'backend_config', schema)
+        n5 = NamespacedKeyValue('TestDriver_5', 'cluster_config', schema)
         n5_value = value.copy()
         n5_value['INT_VAR'] = 'Truth'
         try:
@@ -139,7 +139,7 @@ class ModelsTestCase(BaseTestCase):
             self.assertRaises(TypeError)
 
         # Field in schema changed but no corresponding value added
-        n6 = NamespacedKeyValue('TestDriver_6', 'backend_config', schema)
+        n6 = NamespacedKeyValue('TestDriver_6', 'cluster_config', schema)
         n6_value = value.copy()
         n6_schema = schema.copy()
         n6_schema['properties']['INT_NEW_VAR'] = {'type': 'integer'}

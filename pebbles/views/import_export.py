@@ -5,7 +5,7 @@ import logging
 
 from pebbles.models import db, Environment, EnvironmentTemplate, Workspace
 import flask_restful as restful
-from pebbles.views.commons import auth, requires_workspace_manager_or_admin, match_backend
+from pebbles.views.commons import auth, requires_workspace_manager_or_admin, match_cluster
 from pebbles.views.environment_templates import environment_schemaform_config
 from pebbles.utils import requires_admin
 from pebbles.rules import apply_rules_export_environments
@@ -16,7 +16,7 @@ import_export = FlaskBlueprint('import_export', __name__)
 template_export_fields = {
     'name': fields.String,
     'is_enabled': fields.Boolean,
-    'backend_name': fields.String,
+    'cluster_name': fields.String,
     'config': fields.Raw,
     'allowed_attrs': fields.Raw
 }
@@ -42,13 +42,13 @@ class ImportExportEnvironmentTemplates(restful.Resource):
 
         results = []
         for template in templates:
-            selected_backend = match_backend(template.backend)
+            selected_cluster = match_cluster(template.cluster)
             obj = {
                 'name': template.name,
                 'is_enabled': template.is_enabled,
                 'config': template.config,
                 'allowed_attrs': template.allowed_attrs,
-                'backend_name': selected_backend['name']
+                'cluster_name': selected_cluster['name']
             }
             results.append(obj)
 
@@ -66,8 +66,8 @@ class ImportExportEnvironmentTemplates(restful.Resource):
 
         template = EnvironmentTemplate()
         template.name = form.name.data
-        selected_backend = match_backend(form.backend_name.data)
-        template.backend = selected_backend["name"]
+        selected_cluster = match_cluster(form.cluster_name.data)
+        template.cluster = selected_cluster["name"]
 
         if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
             template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']

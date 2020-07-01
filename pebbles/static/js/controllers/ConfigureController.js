@@ -12,10 +12,10 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 
         Restangular.setDefaultHeaders({token: AuthService.getToken()});
 
-        var backends = Restangular.all('backends');
+        var clusters = Restangular.all('clusters');
 
-        backends.getList().then(function (response) {
-            $scope.backends = response;
+        clusters.getList().then(function (response) {
+            $scope.clusters = response;
         });
 
         var templates = Restangular.all('environment_templates');
@@ -72,13 +72,13 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                });
         };
 
-        $scope.openCreateTemplateDialog = function(backend) {
+        $scope.openCreateTemplateDialog = function(cluster) {
             $uibModal.open({
                 templateUrl: '/partials/modal_create_template.html',
                 controller: 'ModalCreateTemplateController',
                 resolve: {
-                    backend: function() {
-                        return backend;
+                    cluster: function() {
+                        return cluster;
                     },
                     templates: function() {
                         return templates;
@@ -232,7 +232,7 @@ app.controller('ModalImportTemplatesController', function($scope, $modalInstance
                             var obj = {
                                 name: templateItem.name,
                                 config: templateItem.config,
-                                backend_name: templateItem.backend_name,
+                                cluster_name: templateItem.cluster_name,
                                 allowed_attrs: {'allowed_attrs': templateItem.allowed_attrs},  // WTForms needs dict
                                 index: templateIndex
                             };  // Send according to forms defined
@@ -284,9 +284,9 @@ app.controller('ModalImportTemplatesController', function($scope, $modalInstance
 });
 
 
-app.controller('ModalCreateTemplateController', function($scope, $modalInstance, backend, templates) {
-    $scope.backend = backend;
-    var attrsData = Object.keys(backend.schema.properties);
+app.controller('ModalCreateTemplateController', function($scope, $modalInstance, cluster, templates) {
+    $scope.cluster = cluster;
+    var attrsData = Object.keys(cluster.schema.properties);
     attrsData = attrsData.filter(function(attr){ return !['name', 'description'].includes(attr)});
     $scope.attrsData =  _(attrsData).map(function(attr){ return {'id': attr} }).value(); // Data for angular multiselect
     $scope.attrsModel = []
@@ -296,7 +296,7 @@ app.controller('ModalCreateTemplateController', function($scope, $modalInstance,
         if (form.$valid) {
             attrsModel = _(attrsModel).map(function(attr){ return attr.id }).value();  // Get the data back as an array of attrs
             var allowed_attrs = {'allowed_attrs': attrsModel} // Sending array in an obj, Only to please WTForms
-            templates.post({ backend: $scope.backend.name, name: model.name, config: model, allowed_attrs: allowed_attrs}).then(function () {
+            templates.post({ cluster: $scope.cluster.name, name: model.name, config: model, allowed_attrs: allowed_attrs}).then(function () {
                 $modalInstance.close(true);
             }, function(response) {
                 $.notify({title: 'HTTP ' + response.status, message: 'unable to create environment template'}, {type: 'danger'});

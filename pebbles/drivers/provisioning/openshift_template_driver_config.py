@@ -22,8 +22,8 @@ CONFIG = {
                 'pattern': '^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&\'\(\)\*\+,;=.]+$',
                 'validationMessage': 'Invalid URL'
             },
-            'backend': {
-                'title': 'Name of the backend resource to use. Match this with backend credentials',
+            'cluster': {
+                'title': 'Name of the cluster resource to use. Match this with cluster credentials',
                 'type': 'string',
                 'default': 'local_kubernetes',
             },
@@ -64,7 +64,7 @@ CONFIG = {
         'name',
         'description',
         'os_template',
-        'backend',
+        'cluster',
         'environment_vars',
         'maximum_instances_per_user',
         'maximum_lifetime',

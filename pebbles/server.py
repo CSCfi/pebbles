@@ -15,7 +15,7 @@ from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.myip import myip, WhatIsMyIp
 from pebbles.views.namespaced_keyvalues import namespaced_keyvalues, NamespacedKeyValueList, NamespacedKeyValueView
 from pebbles.views.notifications import NotificationList, NotificationView
-from pebbles.views.backends import backends, BackendList
+from pebbles.views.clusters import clusters, ClusterList
 from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.stats import stats, StatsList
@@ -56,7 +56,7 @@ api.add_resource(
     InstanceLogs,
     api_root + '/instances/<string:instance_id>/logs',
     methods=['GET', 'PATCH', 'DELETE'])
-api.add_resource(BackendList, api_root + '/backends')
+api.add_resource(ClusterList, api_root + '/clusters')
 api.add_resource(PublicVariableList, api_root + '/config')
 api.add_resource(WhatIsMyIp, api_root + '/what_is_my_ip')
 api.add_resource(Quota, api_root + '/quota')
@@ -72,7 +72,7 @@ api.add_resource(NamespacedKeyValueView, api_root + '/namespaced_keyvalues/<stri
 
 app.register_blueprint(environment_templates)
 app.register_blueprint(environments)
-app.register_blueprint(backends)
+app.register_blueprint(clusters)
 app.register_blueprint(users)
 app.register_blueprint(workspaces)
 app.register_blueprint(instances)

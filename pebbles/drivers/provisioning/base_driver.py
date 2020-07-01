@@ -18,11 +18,11 @@ class ProvisioningDriverBase(object):
     """
     config = {}
 
-    def __init__(self, logger, config, backend_config):
+    def __init__(self, logger, config, cluster_config):
         self.logger = logger
         self.config = config
-        self.backend_config = backend_config
-        self.logger.info('driver for backend %s created' % backend_config.get('name'))
+        self.cluster_config = cluster_config
+        self.logger.info('driver for cluster %s created' % cluster_config.get('name'))
 
     def get_pb_client(self, token):
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)

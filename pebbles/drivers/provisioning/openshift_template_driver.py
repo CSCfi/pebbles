@@ -16,7 +16,7 @@ class OpenShiftTemplateDriver(OpenShiftRemoteDriver):
         using an Openshift Template. All the templates require a label defined in the template,
         like - "label: app: <app_label>"
 
-        Similar to the openshift driver, it needs credentials for the cluster in the backend config
+        Similar to the openshift driver, it needs credentials for the cluster in the cluster config
 
         Since this driver is subclassed from OpenShiftRemoteDriver, it uses a lot of methods from it.
     """
@@ -39,10 +39,10 @@ class OpenShiftTemplateDriver(OpenShiftRemoteDriver):
         self.ensure_namespace(namespace)
 
         self.logger.info(
-            'provisioning %s in namespace %s on backend %s',
+            'provisioning %s in namespace %s on cluster %s',
             instance['name'],
             namespace,
-            self.backend_config['name']
+            self.cluster_config['name']
         )
 
         template_objects = self.render_template_objects(namespace, instance)
@@ -120,10 +120,10 @@ class OpenShiftTemplateDriver(OpenShiftRemoteDriver):
         namespace = self.get_instance_namespace(instance)
 
         self.logger.info(
-            'deprovisioning %s in namespace %s on backend %s',
+            'deprovisioning %s in namespace %s on cluster %s',
             instance['name'],
             namespace,
-            self.backend_config['name']
+            self.cluster_config['name']
         )
 
         template_objects = self.render_template_objects(namespace, instance)

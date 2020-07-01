@@ -3,11 +3,11 @@ from flask_restful import fields, marshal_with
 
 import flask_restful as restful
 from pebbles.utils import requires_admin
-from pebbles.views.commons import auth, get_backends
+from pebbles.views.commons import auth, get_clusters
 
-backends = FlaskBlueprint('backends', __name__)
+clusters = FlaskBlueprint('clusters', __name__)
 
-backend_fields = {
+cluster_fields = {
     'name': fields.String,
     'schema': fields.Raw,
     'form': fields.Raw,
@@ -15,10 +15,10 @@ backend_fields = {
 }
 
 
-class BackendList(restful.Resource):
+class ClusterList(restful.Resource):
     @auth.login_required
     @requires_admin
-    @marshal_with(backend_fields)
+    @marshal_with(cluster_fields)
     def get(self):
-        backends = get_backends()
-        return backends
+        clusters = get_clusters()
+        return clusters

@@ -94,13 +94,13 @@ def primary_test_setup(namespace):
 
     t1 = EnvironmentTemplate()
     t1.name = 'TestTemplate'
-    t1.backend = 'OpenShiftLocalDriver'
+    t1.cluster = 'OpenShiftLocalDriver'
     db.session.add(t1)
     namespace.known_template_id_disabled = t1.id
 
     t2 = EnvironmentTemplate()
     t2.name = 'EnabledTestTemplate'
-    t2.backend = 'OpenShiftRemoteDriver'
+    t2.cluster = 'OpenShiftRemoteDriver'
     t2.config = {
         'cost_multiplier': '1.0',
         'maximum_lifetime': '1h',

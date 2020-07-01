@@ -44,7 +44,7 @@ There are broadly four roles in a Pebbles instance:
 1. Admin - Which is supposed to be the superuser of the system. Ability to
     invite new users, appoint workspace owners, create environment templates,
     environments, system and normal groups. System level priviledges : Access to
-    the backend database, restart or delete running services.
+    the database, restart or delete running services.
 2. Workspace Owner - Ability to create groups, appoint workspace managers , create
     environments and manage instances running in a workspace
 3. Workspace Manager - Ability to create environments and manage instances

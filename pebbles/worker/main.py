@@ -14,27 +14,27 @@ from pebbles.models import Instance
 from pebbles.utils import init_logging
 
 
-def load_backend_config():
-    backend_config_file = '/run/secrets/pebbles/backend-config.yaml'
-    backend_passwords_file = '/run/secrets/pebbles/backend-passwords.yaml'
+def load_cluster_config():
+    cluster_config_file = '/run/secrets/pebbles/cluster-config.yaml'
+    cluster_passwords_file = '/run/secrets/pebbles/cluster-passwords.yaml'
 
     try:
-        backend_config = yaml.safe_load(open(backend_config_file, 'r'))
-        backend_passwords = yaml.safe_load(open(backend_passwords_file, 'r'))
+        cluster_config = yaml.safe_load(open(cluster_config_file, 'r'))
+        cluster_passwords = yaml.safe_load(open(cluster_passwords_file, 'r'))
     except (IOError, ValueError) as e:
-        logging.warning("Unable to parse backend data from path "
-                        "%s %s" % (backend_config_file, backend_passwords_file))
+        logging.warning("Unable to parse cluster data from path "
+                        "%s %s" % (cluster_config_file, cluster_passwords_file))
         raise e
 
-    for backend in backend_config.get('backends'):
-        backend_name = backend.get('name')
-        logging.debug('found backend %s' % backend_name)
-        password = backend_passwords.get(backend_name)
+    for cluster in cluster_config.get('clusters'):
+        cluster_name = cluster.get('name')
+        logging.debug('found cluster %s' % cluster_name)
+        password = cluster_passwords.get(cluster_name)
         if password:
-            logging.debug('setting password for backend %s' % backend_name)
-            backend['password'] = password
+            logging.debug('setting password for cluster %s' % cluster_name)
+            cluster['password'] = password
 
-    return backend_config
+    return cluster_config
 
 
 class Worker:
@@ -50,8 +50,8 @@ class Worker:
         # Wire our handler to SIGTERM for controlled pod shutdowns
         signal.signal(signal.SIGTERM, self.handle_signals)
 
-        self.backends = {}
-        self.backend_config = load_backend_config()
+        self.clusters = {}
+        self.cluster_config = load_cluster_config()
 
     def handle_signals(self, signum, frame):
         """
@@ -61,19 +61,19 @@ class Worker:
         logging.info('got signal %s frame %s, terminating worker' % (signum, frame))
         self.terminate = True
 
-    def get_driver(self, backend_name):
+    def get_driver(self, cluster_name):
 
-        backend = None
-        for b in self.backend_config['backends']:
-            if b.get('name') == backend_name:
-                backend = b
+        cluster = None
+        for b in self.cluster_config['clusters']:
+            if b.get('name') == cluster_name:
+                cluster = b
                 break
-        if backend is None:
-            raise RuntimeWarning('No matching backend in configuration for %s' % backend_name)
+        if cluster is None:
+            raise RuntimeWarning('No matching cluster in configuration for %s' % cluster_name)
 
-        if 'driver_instance' in backend.keys():
+        if 'driver_instance' in cluster.keys():
             # we found an existing instance, use that if it is still valid
-            driver_instance = backend.get('driver_instance')
+            driver_instance = cluster.get('driver_instance')
             if not driver_instance.is_expired():
                 return driver_instance
 
@@ -81,26 +81,26 @@ class Worker:
         for module in 'kubernetes_driver', 'openshift_template_driver':
             driver_class = getattr(
                 importlib.import_module('pebbles.drivers.provisioning.%s' % module),
-                backend.get('driver'),
+                cluster.get('driver'),
                 None
             )
             if not driver_class:
                 continue
-            driver_instance = driver_class(logging.getLogger(), self.config, backend)
-            backend['driver_instance'] = driver_instance
+            driver_instance = driver_class(logging.getLogger(), self.config, cluster)
+            cluster['driver_instance'] = driver_instance
 
             return driver_instance
 
-        raise RuntimeWarning('No matching driver %s found for %s' % (backend.get('driver'), backend_name))
+        raise RuntimeWarning('No matching driver %s found for %s' % (cluster.get('driver'), cluster_name))
 
     def update_instance(self, instance):
         logging.debug('updating %s' % instance)
         instance_id = instance['id']
         environment = self.client.get_instance_environment(instance_id)
-        backend_name = environment.get('backend')
-        if backend_name is None:
-            logging.warning('Backend/driver config for the instance %s is not found' % instance.get('name'))
-        driver_instance = self.get_driver(backend_name)
+        cluster_name = environment.get('cluster')
+        if cluster_name is None:
+            logging.warning('Cluster/driver config for the instance %s is not found' % instance.get('name'))
+        driver_instance = self.get_driver(cluster_name)
         driver_instance.update(self.client.token, instance_id)
 
     def process_instance(self, instance):

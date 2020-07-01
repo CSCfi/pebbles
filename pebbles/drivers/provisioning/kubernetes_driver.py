@@ -36,11 +36,11 @@ def get_volume_name(instance, persistence_level=VolumePersistenceLevel.INSTANCE_
 
 
 class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
-    def __init__(self, logger, config, backend_config):
-        super().__init__(logger, config, backend_config)
+    def __init__(self, logger, config, cluster_config):
+        super().__init__(logger, config, cluster_config)
 
-        self.ingress_app_domain = backend_config.get('appDomain', '127.0.0.1.nip.io')
-        self.endpoint_protocol = backend_config.get('endpointProtocol', 'http')
+        self.ingress_app_domain = cluster_config.get('appDomain', '127.0.0.1.nip.io')
+        self.endpoint_protocol = cluster_config.get('endpointProtocol', 'http')
         self._namespace = None
 
         # this is implemented in subclass
@@ -161,8 +161,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         pass
 
     def is_expired(self):
-        if 'token_expires_at' in self.backend_config.keys():
-            if self.backend_config.get('token_expires_at') < time.time() + 600:
+        if 'token_expires_at' in self.cluster_config.keys():
+            if self.cluster_config.get('token_expires_at') < time.time() + 600:
                 return True
         return False
 
@@ -247,7 +247,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             storage_size='1Gi',
         ))
         pvc_dict = yaml.safe_load(pvc_yaml)
-        storage_class_name = self.backend_config.get('storageClassName')
+        storage_class_name = self.cluster_config.get('storageClassName')
         if storage_class_name is not None:
             pvc_dict['spec']['storageClassName'] = storage_class_name
 
@@ -331,24 +331,24 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
     def load_kube_client_config(self):
         try:
             token = self._request_token(
-                base_url=self.backend_config.get('url'),
-                user=self.backend_config.get('user'),
-                password=self.backend_config.get('password')
+                base_url=self.cluster_config.get('url'),
+                user=self.cluster_config.get('user'),
+                password=self.cluster_config.get('password')
             )
         except Exception as e:
             self.logger.warning(
-                'Could not request token, check values for url, user and password for backend %s',
-                self.backend_config['name']
+                'Could not request token, check values for url, user and password for cluster %s',
+                self.cluster_config['name']
             )
             raise e
 
         self.logger.debug('got token %s....' % token['access_token'][:10])
-        self.backend_config['token'] = token['access_token']
-        self.backend_config['token_expires_at'] = token['expires_at']
+        self.cluster_config['token'] = token['access_token']
+        self.cluster_config['token_expires_at'] = token['expires_at']
 
         conf = kubernetes.client.Configuration()
-        conf.host = self.backend_config.get('url')
-        conf.api_key = dict(authorization='Bearer %s' % self.backend_config['token'])
+        conf.host = self.cluster_config.get('url')
+        conf.api_key = dict(authorization='Bearer %s' % self.cluster_config['token'])
         kubernetes.client.Configuration.set_default(conf)
 
     def get_instance_namespace(self, instance):
@@ -356,13 +356,13 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
             # instance already has namespace assigned in instance_data
             namespace = instance['instance_data']['namespace']
             self.logger.debug('found namespace %s for instance %s' % (namespace, instance.get('name')))
-        elif 'namespace' in self.backend_config.keys():
+        elif 'namespace' in self.cluster_config.keys():
             # if we have a single namespace configured, use that
-            namespace = self.backend_config['namespace']
+            namespace = self.cluster_config['namespace']
             self.logger.debug('using fixed namespace %s for instance %s' % (namespace, instance.get('name')))
         else:
             # generate namespace name based on prefix and user pseudonym
-            namespace_prefix = self.backend_config.get('namespacePrefix', 'pb-')
+            namespace_prefix = self.cluster_config.get('namespacePrefix', 'pb-')
             namespace = '%s%s' % (namespace_prefix, instance['user']['pseudonym'])
             self.logger.debug('assigned namespace %s to instance %s' % (namespace, instance.get('name')))
         return namespace

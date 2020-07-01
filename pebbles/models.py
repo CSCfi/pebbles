@@ -307,7 +307,7 @@ class EnvironmentTemplate(db.Model):
     name = db.Column(db.String(MAX_NAME_LENGTH))
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
-    backend = db.Column(db.String(32))
+    cluster = db.Column(db.String(32))
     environments = db.relationship('Environment', backref='template', lazy='dynamic')
     _environment_schema = db.Column('environment_schema', db.Text)
     _environment_form = db.Column('environment_form', db.Text)
