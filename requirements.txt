@@ -24,8 +24,8 @@ Werkzeug==0.15.5
 WTForms==2.2.1
 WTForms-Alchemy==0.16.9
 
-# for s2i
-psycopg2==2.7.1
+# for s2i builds
+psycopg2==2.8.6
 gunicorn==19.7.1
 
 # for pycharm remote debugging (PyCharm 2019.2.3)

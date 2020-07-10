@@ -1,24 +1,41 @@
 ---
-image: python:3.6
+image: python:3.8
 
 stages:
-  - syntax
+  - build image
   - analysis and tests
-  - ci-deploy
-  - ci-test
-  - ci-deprovision
+  - ci-pipeline
+
+variables:
+  PRIVATE_IMAGE: $CI_DOCKER_REPOSITORY_PRIVATE/pebbles
+  PUBLIC_IMAGE: $CI_DOCKER_REPOSITORY_PUBLIC/pebbles
 
 flake8:
-  stage: syntax
+  stage: analysis and tests
   script:
     - pip install flake8
     - flake8 --extend-ignore E722,W605 pebbles
 
-analysis-and-tests:
+pylint:
   stage: analysis and tests
   # cache pip downloads and installed packages
   variables:
-      PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  cache:
+    key: "${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .cache/pip
+      - venv/
+  script:
+    - pip install -r requirements.txt
+    - pip install pylint
+    - "pylint -j0 pebbles || true" # no failures ATM
+
+tests:
+  stage: analysis and tests
+  # cache pip downloads and installed packages
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   cache:
     key: "${CI_COMMIT_REF_SLUG}"
     paths:
@@ -27,41 +44,50 @@ analysis-and-tests:
   script:
     - pip install -r requirements.txt
     - python manage.py test
-    - pip install pylint
-    - "pylint -j0 pebbles || true" # no failures ATM
 
-ci-deploy:
-  stage: ci-deploy
-  image: $CI_REGISTRY/pebbles/pebbles-deploy/pebbles-deployer
-  variables:
-    ENV_NAME: pebbles-ci-2
+build-image:
+  stage: build image
+  image: docker:git
   script:
-    - /opt/deployment/init_env.bash
-    # build, deploy and initialize
-    - source /opt/deployment/deploy_functions.bash
-    - install-pebbles $CI_COMMIT_REF_NAME
+    - echo "Going to build and push ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME}"
+    - docker build --tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} . --file=deployment/pebbles-s2i.Dockerfile
+    - docker push ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME}
 
-ci-test:
-  stage: ci-test
-  image: $CI_REGISTRY/pebbles/pebbles-deploy/pebbles-deployer
-  variables:
-    ENV_NAME: pebbles-ci-2
-  script:
-    - /opt/deployment/init_env.bash
-    # tests
-    - curl https://pebbles-ci-2.rahti-int-app.csc.fi/api/v1/config | grep INSTALLATION_NAME
-    - oc rsh deployment/api python manage.py test
+    # push to public registry
+    - docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLIC_IMAGE}:${CI_COMMIT_REF_NAME}
+    - docker push ${PUBLIC_IMAGE}:${CI_COMMIT_REF_NAME}
+    # if we are on master branch, push this also as latest + create a versioned tag
+    - |
+      if [[ ${CI_COMMIT_REF_NAME} == 'gitlab.ci_pipeline_update' ]]; then
+        echo "Tagging and pushing ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} as latest"
+        docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PRIVATE_IMAGE}:latest
+        docker push ${PRIVATE_IMAGE}:latest
 
-ci-deprovision:
-  stage: ci-deprovision
-  image: $CI_REGISTRY/pebbles/pebbles-deploy/pebbles-deployer
+        # push to public registry
+        docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLIC_IMAGE}:latest
+        docker push ${PUBLIC_IMAGE}:latest
+
+        export IMAGE_TAG="${CI_COMMIT_REF_NAME}-$(date +%Y-%m-%d_%H%M)"
+        echo "Tagging and pushing ${PRIVATE_IMAGE}:${IMAGE_TAG}"
+        docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PRIVATE_IMAGE}:${IMAGE_TAG}
+        docker push ${PRIVATE_IMAGE}:${IMAGE_TAG}
+
+        # push to public registry
+        docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLIC_IMAGE}:${IMAGE_TAG}
+        docker push ${PUBLIC_IMAGE}:${IMAGE_TAG}
+      fi
+
+# call pipeline project
+ci-pipeline:
+  stage: ci-pipeline
   variables:
-    ENV_NAME: pebbles-ci-2
-  when: always
-  script:
-    - /opt/deployment/init_env.bash
-    # uninstall and cleanup
-    - helm uninstall pebbles
-    - oc delete secret pebbles
-    # remove logstash volume that is normally left behind
-    - "(oc get pvc logstash && oc delete pvc logstash) || true"
+    ENV_NAME: "${CI_ENV_NAME}"
+    DEPROVISION_ENVIRONMENT: 1
+    PEBBLES_IMAGE_TAG: "${CI_COMMIT_REF_NAME}"
+    PEBBLES_COMMIT_REF_NAME: "${CI_COMMIT_REF_NAME}"
+    PEBBLES_ENVIRONMENTS_COMMIT_REF_NAME: "${CI_COMMIT_REF_NAME}"
+    PEBBLES_DEPLOY_COMMIT_REF_NAME: "${CI_COMMIT_REF_NAME}"
+  trigger:
+    project: pebbles/cicd-pipeline
+    branch: master
+    strategy: depend
