@@ -1,19 +1,18 @@
-import unittest
-import datetime
 import base64
+import datetime
 import json
-import uuid
 import time
+import unittest
+import uuid
 
 import dateutil
 
-from pebbles.tests.base import db, BaseTestCase
 from pebbles.models import (
     User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
     ActivationToken, Instance, NamespacedKeyValue)
-from pebbles.views import activations
-
+from pebbles.tests.base import db, BaseTestCase
 from pebbles.tests.fixtures import primary_test_setup
+from pebbles.views import activations
 
 ADMIN_TOKEN = None
 USER_TOKEN = None
@@ -2513,6 +2512,19 @@ class FlaskApiTestCase(BaseTestCase):
         required_headers = ('Cache-Control', 'Expires', 'Strict-Transport-Security', 'Content-Security-Policy')
         for h in required_headers:
             self.assertIn(h, response.headers.keys())
+
+    def test_anonymous_get_environment_categories(self):
+        response = self.make_request(
+            path='/api/v1/environment_categories'
+        )
+        self.assert_401(response)
+
+    def test_user_environment_categories(self):
+        response = self.make_authenticated_user_request(
+            path='/api/v1/environment_categories'
+        )
+        self.assert_200(response)
+        self.assertGreater(len(response.json), 0)
 
 
 if __name__ == '__main__':

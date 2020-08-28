@@ -2,25 +2,28 @@ import flask_restful as restful
 
 from pebbles.app import app
 from pebbles.views.activations import activations, ActivationList, ActivationView
-from pebbles.views.environment_templates import EnvironmentTemplateList, EnvironmentTemplateView, EnvironmentTemplateCopy
+from pebbles.views.clusters import clusters, ClusterList
+from pebbles.views.environment_categories import EnvironmentCategoryList
+from pebbles.views.environment_templates import EnvironmentTemplateList, EnvironmentTemplateView, \
+    EnvironmentTemplateCopy
 from pebbles.views.environment_templates import environment_templates
 from pebbles.views.environments import environments, EnvironmentList, EnvironmentView, EnvironmentCopy
 from pebbles.views.export_stats import export_stats, ExportStatistics
-from pebbles.views.workspaces import ClearUsersFromWorkspace
-from pebbles.views.workspaces import WorkspaceList, WorkspaceView, WorkspaceJoin, WorkspaceListExit, WorkspaceExit, WorkspaceUsersList
-from pebbles.views.workspaces import workspaces
 from pebbles.views.import_export import import_export, ImportExportEnvironmentTemplates, ImportExportEnvironments
 from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.myip import myip, WhatIsMyIp
 from pebbles.views.namespaced_keyvalues import namespaced_keyvalues, NamespacedKeyValueList, NamespacedKeyValueView
 from pebbles.views.notifications import NotificationList, NotificationView
-from pebbles.views.clusters import clusters, ClusterList
 from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.stats import stats, StatsList
 from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserWorkspaceOwner
 from pebbles.views.variables import variables, PublicVariableList
+from pebbles.views.workspaces import ClearUsersFromWorkspace
+from pebbles.views.workspaces import WorkspaceList, WorkspaceView, WorkspaceJoin, WorkspaceListExit, WorkspaceExit, \
+    WorkspaceUsersList
+from pebbles.views.workspaces import workspaces
 
 api = restful.Api(app)
 api_root = '/api/v1'
@@ -69,6 +72,7 @@ api.add_resource(StatsList, api_root + '/stats')
 api.add_resource(ExportStatistics, api_root + '/export_stats/export_statistics')
 api.add_resource(NamespacedKeyValueList, api_root + '/namespaced_keyvalues')
 api.add_resource(NamespacedKeyValueView, api_root + '/namespaced_keyvalues/<string:namespace>/<string:key>')
+api.add_resource(EnvironmentCategoryList, api_root + '/environment_categories')
 
 app.register_blueprint(environment_templates)
 app.register_blueprint(environments)
@@ -88,4 +92,5 @@ app.register_blueprint(export_stats)
 app.register_blueprint(namespaced_keyvalues)
 
 from pebbles.views.sso import oauth2_login
+
 app.add_url_rule('/oauth2', oauth2_login)
