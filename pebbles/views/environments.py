@@ -23,6 +23,7 @@ environment_fields = {
     'id': fields.String(attribute='id'),
     'maximum_lifetime': fields.Integer,
     'name': fields.String,
+    'labels': fields.List(fields.String),
     'template_id': fields.String,
     'template_name': fields.String,
     'is_enabled': fields.Boolean,
@@ -240,6 +241,7 @@ def process_environment(environment):
     template = environment.template
     environment.schema = template.environment_schema
     environment.form = template.environment_form
+
     # Due to immutable nature of config field, whole dict needs to be reassigned.
     # Issue #444 in github
     environment_config = environment.config
@@ -252,6 +254,12 @@ def process_environment(environment):
     environment.cluster = environment.template.cluster
     if user.is_admin or is_workspace_manager(user, environment.workspace):
         environment.manager = True
+
+    environment.labels = []
+    if 'labels' in environment.full_config:
+        for label in environment.full_config['labels'].split(','):
+            environment.labels.append(label.strip())
+
     return environment
 
 

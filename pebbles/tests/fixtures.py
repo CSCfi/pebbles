@@ -102,6 +102,7 @@ def primary_test_setup(namespace):
     t2.name = 'EnabledTestTemplate'
     t2.cluster = 'OpenShiftRemoteDriver'
     t2.config = {
+        'labels': 'label1, label with space, label2',
         'cost_multiplier': '1.0',
         'maximum_lifetime': '1h',
         'memory_limit': '512m',

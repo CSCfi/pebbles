@@ -17,6 +17,10 @@ CONFIG = {
             'description': {
                 'type': 'string'
             },
+            'labels': {
+                'title': 'Labels, separated with a comma (",")',
+                'type': 'string'
+            },
             'image': {
                 'type': 'string',
             },
@@ -85,6 +89,7 @@ CONFIG = {
         },
         'name',
         'description',
+        'labels',
         'cluster',
         'image',
         'args',
@@ -102,6 +107,7 @@ CONFIG = {
     'model': {
         'name': 'k8s_testing',
         'description': 'k8s testing template',
+        'labels': 'Data Analytics, Python, Jupyter',
         'cost_multiplier': 0.0,
         'port': 8888,
         'volume_mount_path': '/data',

@@ -1152,6 +1152,14 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/environments/%s' % uuid.uuid4().hex)
         self.assert_404(response)
 
+    def test_get_environment_labels(self):
+        # Authenticated
+        response = self.make_authenticated_user_request(path='/api/v1/environments/%s' % self.known_environment_id)
+        self.assert_200(response)
+        labels = response.json['labels']
+        expected_labels = ['label1', 'label with space', 'label2']
+        self.assertEquals(labels, expected_labels, 'label array matches')
+
     def test_create_environment(self):
         # Set environment_quota_value
         response = self.make_authenticated_admin_request(

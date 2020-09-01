@@ -13,6 +13,10 @@ CONFIG = {
             "description": {
                 "type": "string"
             },
+            'labels': {
+                'title': 'Labels, separated with a comma (",")',
+                'type': 'string'
+            },
             "secgroup-rules": {
                 "type": "array",
                 "title": "Security Groups",
@@ -70,6 +74,7 @@ CONFIG = {
             "key": "description",
             "type": "textarea"
         },
+        "labels",
         "capabilities",
         "maximum_lifetime",
         "maximum_instances_per_user",

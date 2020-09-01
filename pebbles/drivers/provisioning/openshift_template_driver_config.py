@@ -16,6 +16,10 @@ CONFIG = {
             'description': {
                 'type': 'string'
             },
+            'labels': {
+                'title': 'Labels, separated with a comma (",")',
+                'type': 'string'
+            },
             'os_template': {
                 'type': 'string',
                 'title': 'Openshift template URL',
@@ -63,6 +67,7 @@ CONFIG = {
         },
         'name',
         'description',
+        'labels',
         'os_template',
         'cluster',
         'environment_vars',
