@@ -174,9 +174,9 @@ if app.config['ENABLE_SHIBBOLETH_LOGIN']:
             )
 
         user = User.query.filter_by(eppn=eppn).first()
-        if not user:
+        if not user and eppn:
             user = create_user(eppn, password=uuid.uuid4().hex, email_id=user_info['email_id'])
-        if not user.email_id:
+        if not user.email_id and eppn:
             user = update_email(eppn, email_id=user_info['email_id'])
         if not user.is_active:
             user.is_active = True
