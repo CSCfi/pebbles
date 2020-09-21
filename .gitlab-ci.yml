@@ -12,12 +12,15 @@ variables:
 
 flake8:
   stage: analysis and tests
+  needs: []
   script:
     - pip install flake8
     - flake8 --extend-ignore E722,W605 pebbles
 
+
 pylint:
   stage: analysis and tests
+  needs: []
   # cache pip downloads and installed packages
   variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
@@ -33,6 +36,7 @@ pylint:
 
 tests:
   stage: analysis and tests
+  needs: []
   # cache pip downloads and installed packages
   variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
@@ -47,6 +51,7 @@ tests:
 
 build-image:
   stage: build image
+  needs: []
   image: docker:git
   script:
     - echo "Going to build and push ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME}"
@@ -80,6 +85,7 @@ build-image:
 # call pipeline project
 ci-pipeline:
   stage: ci-pipeline
+  needs: ['build-image']
   variables:
     ENV_NAME: "${CI_ENV_NAME}"
     DEPROVISION_ENVIRONMENT: 1
