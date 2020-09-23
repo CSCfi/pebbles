@@ -1,35 +1,36 @@
-app.directive('pbNotifications', ['Restangular', 'AuthService', 'config', '$interval', 'DesktopNotifications', function(Restangular, AuthService, config, $interval, DesktopNotifications) {
+app.directive('pbMessages', ['Restangular', 'AuthService', 'config', '$interval', 'DesktopNotifications',
+                     function(Restangular,   AuthService,   config,   $interval,   DesktopNotifications) {
     return {
         restrict: 'E',
         templateUrl: config.partialsDir + '/broadcast_block.html',
         link: function(scope) {
-            var notifications = Restangular.all('notifications');
-            var updateNotifications = function() {
-                notifications.getList().then(function(response) {
+            var messages = Restangular.all('messages');
+            var updateMessages = function() {
+                messages.getList().then(function(response) {
                     if (response.length) {
-                        scope.selectedNotification = response[0];
+                        scope.selectedMessage = response[0];
                     } else {
-                        scope.selectedNotification = undefined;
+                        scope.selectedMessage = undefined;
                     }
                 });
             };
-            scope.markAsSeen = function(notification) {
-                notification.patch().then(updateNotifications);
+            scope.markAsSeen = function(message) {
+                message.patch().then(updateMessages);
             };
 
             scope.$on('userLoggedIn', function() {
-                updateNotifications();
+                updateMessages();
             });
 
             scope.$on('userLoggedOut', function() {
-                scope.selectedNotification = undefined;
+                scope.selectedMessage = undefined;
             });
 
             if (AuthService.isAuthenticated()) {
-               updateNotifications();
+               updateMessages();
             }
 
-	    /* To send new notifications also as desktop notifications */
+	    /* To send new messages also as desktop notifications */
             var stop;
             scope.startPolling = function() {
                 if (angular.isDefined(stop)) {
@@ -37,11 +38,11 @@ app.directive('pbNotifications', ['Restangular', 'AuthService', 'config', '$inte
                 }
                 stop = $interval(function () {
                 if (AuthService.isAuthenticated()) {
-                    notifications.getList({show_recent: true}).then(function(response) {
-                        var newnotifications = response.plain();
+                    messages.getList({show_recent: true}).then(function(response) {
+                        var newMessages = response.plain();
                         if(response.length) {
                             for(i = response.length-1; i>=0; i--) {
-                                DesktopNotifications.notifyNotifications(newnotifications[i]);
+                                DesktopNotifications.notifyNotifications(newMessages[i]);
                             }
                         }
                     });

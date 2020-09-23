@@ -11,7 +11,7 @@ from wtforms_alchemy import model_form_factory
 from pebbles.models import (
     MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH,
     MAX_VARIABLE_KEY_LENGTH, MAX_VARIABLE_VALUE_LENGTH,
-    MAX_NOTIFICATION_SUBJECT_LENGTH
+    MAX_MESSAGE_SUBJECT_LENGTH
 )
 from pebbles.models import db
 
@@ -43,8 +43,8 @@ class WorkspaceForm(ModelForm):
     user_config = StringField('user_config')
 
 
-class NotificationForm(ModelForm):
-    subject = StringField('subject', validators=[DataRequired(), Length(max=MAX_NOTIFICATION_SUBJECT_LENGTH)])
+class MessageForm(ModelForm):
+    subject = StringField('subject', validators=[DataRequired(), Length(max=MAX_MESSAGE_SUBJECT_LENGTH)])
     message = StringField('message', validators=[DataRequired()])
 
 

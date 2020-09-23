@@ -2239,85 +2239,85 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(environment_invalid4))
         self.assertEqual(response3.status_code, 422)
 
-    def test_anonymous_get_notifications(self):
+    def test_anonymous_get_messages(self):
         response = self.make_request(
-            path='/api/v1/notifications'
+            path='/api/v1/messages'
         )
         self.assert_401(response)
 
-    def test_user_get_notifications(self):
+    def test_user_get_messages(self):
         response = self.make_authenticated_user_request(
-            path='/api/v1/notifications'
+            path='/api/v1/messages'
         )
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
 
-    def test_anonymous_post_notification(self):
+    def test_anonymous_post_message(self):
         response = self.make_request(
             method='POST',
-            path='/api/v1/notifications',
+            path='/api/v1/messages',
             data=json.dumps({'subject': 'test subject', 'message': 'test message'})
         )
         self.assert_401(response)
 
-    def test_user_post_notification(self):
+    def test_user_post_message(self):
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/notifications',
+            path='/api/v1/messages',
             data=json.dumps({'subject': 'test subject', 'message': 'test message'})
         )
         self.assert_403(response)
 
-    def test_admin_post_notification(self):
+    def test_admin_post_message(self):
         response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/notifications',
+            path='/api/v1/messages',
             data=json.dumps({'subject': 'test subject', 'message': 'test message'})
         )
         self.assert_200(response)
         response = self.make_authenticated_user_request(
-            path='/api/v1/notifications'
+            path='/api/v1/messages'
         )
         self.assert_200(response)
         self.assertEqual(len(response.json), 3)
 
-    def test_user_mark_notification_as_seen(self):
+    def test_user_mark_message_as_seen(self):
         response = self.make_authenticated_user_request(
             method='PATCH',
-            path='/api/v1/notifications/%s' % self.known_notification_id,
+            path='/api/v1/messages/%s' % self.known_message_id,
             data=json.dumps({'send_mail': False})
         )
         self.assert_200(response)
 
         response = self.make_authenticated_user_request(
-            path='/api/v1/notifications'
+            path='/api/v1/messages'
         )
         self.assert_200(response)
         self.assertEqual(len(response.json), 1)
 
         response = self.make_authenticated_user_request(
             method='PATCH',
-            path='/api/v1/notifications/%s' % self.known_notification2_id,
+            path='/api/v1/messages/%s' % self.known_message2_id,
             data=json.dumps({'send_mail': False})
         )
         self.assert_200(response)
 
         response = self.make_authenticated_user_request(
-            path='/api/v1/notifications'
+            path='/api/v1/messages'
         )
         self.assert_200(response)
         self.assertEqual(len(response.json), 0)
 
-    def test_admin_update_notification(self):
+    def test_admin_update_message(self):
         subject_topic = 'NotificationABC'
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/notifications/%s' % self.known_notification_id,
+            path='/api/v1/messages/%s' % self.known_message_id,
             data=json.dumps({'subject': subject_topic, 'message': 'XXX'}))
         self.assert_200(response)
 
         response = self.make_authenticated_admin_request(
-            path='/api/v1/notifications/%s' % self.known_notification_id)
+            path='/api/v1/messages/%s' % self.known_message_id)
         self.assert_200(response)
         self.assertEqual(response.json['subject'], subject_topic)
 

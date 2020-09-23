@@ -199,13 +199,6 @@ app.controller('EnvironmentsController', ['$q', '$scope', '$http', '$interval', 
             });
         };
 
-
-        $scope.deleteNotification = function (notification) {
-            notification.remove().then(function () {
-                updateNotificationList();
-            });
-        };
-
         $scope.selectEnvironment = function (environment) {
             $scope.selectedEnvironment = environment;
             $scope.$broadcast('schemaFormRedraw');

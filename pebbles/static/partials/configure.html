@@ -9,7 +9,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr ng-hide="clusters != undefined && clusters.length">
+        <tr ng-hide="clusters != undefined && clusters.length">
             <td colspan="2">No enabled clusters are reported by workers</td>
         </tr>
 
@@ -34,7 +34,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr ng-hide="templates != undefined && (templates | filter : {is_enabled: 'true'}).length">
+        <tr ng-hide="templates != undefined && (templates | filter : {is_enabled: 'true'}).length">
             <td colspan="3">No templates</td>
         </tr>
 
@@ -59,7 +59,7 @@
     <button class="btn btn-default" ng-click="exportTemplates()">Export</button>
     <button class="btn btn-default" ng-click="openImportTemplatesDialog()">Import</button>
 
-    <h3>Notifications</h3>
+    <h3>Messages</h3>
     <table class="table table-striped">
         <thead>
         <tr>
@@ -70,34 +70,34 @@
         </tr>
         </thead>
         <tbody>
-        <tr ng-hide="notifications != undefined && notifications.length">
-            <td colspan="4">No notifications</td>
+        <tr ng-hide="messages != undefined && messages.length">
+            <td colspan="4">No messages</td>
         </tr>
 
-        <tr ng-repeat="notification in notifications">
-            <td>{{ notification.subject }}</td>
-            <td>{{ notification.broadcasted | utcToLocale:"mediumDate"}}</td>
-            <td>{{ notification.message }}</td>
+        <tr ng-repeat="message in messages">
+            <td>{{ message.subject }}</td>
+            <td>{{ message.broadcasted | utcToLocale:"mediumDate"}}</td>
+            <td>{{ message.message }}</td>
             <td>
-                <button ng-confirm-click="Do you want to email this notification to all the active users?"
-                        ng-click="emailNotification(notification)" class="btn btn-default">Email Active Users
+                <button ng-confirm-click="Do you want to email this message to all the active users?"
+                        ng-click="emailMessage(message)" class="btn btn-default">Email Active Users
                 </button>
-                <button ng-confirm-click="Do you want to email this notification to all the workspace owners?"
-                        ng-click="emailNotificationToWorkspaceOwner(notification)" class="btn btn-default">Email Workspace
+                <button ng-confirm-click="Do you want to email this message to all the workspace owners?"
+                        ng-click="emailMessageToWorkspaceOwner(message)" class="btn btn-default">Email Workspace
                     Owners
                 </button>
             </td>
             <td>
-                <button ng-click="openEditNotification(notification)" class="btn btn-primary btn-xs" type="button">
+                <button ng-click="openEditMessage(message)" class="btn btn-primary btn-xs" type="button">
                     <span class="glyphicon glyphicon-edit"></span>
                 </button>
 
-                <button ng-click="deleteNotification(notification)" class="btn btn-danger btn-xs" type="button">
+                <button ng-click="deleteMessage(message)" class="btn btn-danger btn-xs" type="button">
                     <span class="glyphicon glyphicon-remove"></span>
                 </button>
             </td>
         </tr>
         </tbody>
     </table>
-    <button class="btn btn-primary" ng-click="openCreateNotification()">Add notification</button>
+    <button class="btn btn-primary" ng-click="openCreateMessage()">Add message</button>
 </div>

@@ -2,7 +2,7 @@
 
 from pebbles.models import (
     User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
-    Notification, Instance)
+    Message, Instance)
 from pebbles.tests.base import db
 
 
@@ -171,16 +171,16 @@ def primary_test_setup(namespace):
     b7.current_status = 'deleted'
     db.session.add(b7)
 
-    n1 = Notification()
-    n1.subject = "First notification"
-    n1.message = "First notification message"
-    namespace.known_notification_id = n1.id
+    n1 = Message()
+    n1.subject = "First message"
+    n1.message = "First message message"
+    namespace.known_message_id = n1.id
     db.session.add(n1)
 
-    n2 = Notification()
-    n2.subject = "Second notification"
-    n2.message = "Second notification message"
-    namespace.known_notification2_id = n2.id
+    n2 = Message()
+    n2.subject = "Second message"
+    n2.message = "Second message message"
+    namespace.known_message2_id = n2.id
     db.session.add(n2)
     db.session.commit()
 

@@ -14,7 +14,7 @@ from pebbles.views.instances import instances, InstanceList, InstanceView, Insta
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.myip import myip, WhatIsMyIp
 from pebbles.views.namespaced_keyvalues import namespaced_keyvalues, NamespacedKeyValueList, NamespacedKeyValueView
-from pebbles.views.notifications import NotificationList, NotificationView
+from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.stats import stats, StatsList
@@ -39,8 +39,8 @@ api.add_resource(WorkspaceListExit, api_root + '/workspaces/workspace_list_exit'
 api.add_resource(WorkspaceExit, api_root + '/workspaces/workspace_exit/<string:workspace_id>')
 api.add_resource(WorkspaceUsersList, api_root + '/workspaces/<string:workspace_id>/users')
 api.add_resource(ClearUsersFromWorkspace, api_root + '/workspaces/clear_users_from_workspace')
-api.add_resource(NotificationList, api_root + '/notifications')
-api.add_resource(NotificationView, api_root + '/notifications/<string:notification_id>')
+api.add_resource(MessageList, api_root + '/messages')
+api.add_resource(MessageView, api_root + '/messages/<string:message_id>')
 api.add_resource(SessionView, api_root + '/sessions')
 api.add_resource(ActivationList, api_root + '/activations')
 api.add_resource(ActivationView, api_root + '/activations/<string:token_id>')

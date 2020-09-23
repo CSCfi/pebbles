@@ -25,13 +25,13 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         });
 
 
-        var notifications = Restangular.all('notifications');
-        var updateNotificationList = function() {
-            notifications.getList({show_all: true}).then(function (response){
-                $scope.notifications = response;
+        var messages = Restangular.all('messages');
+        var updateMessageList = function() {
+            messages.getList({show_all: true}).then(function (response){
+                $scope.messages = response;
             });
         };
-        updateNotificationList();
+        updateMessageList();
 
 
         var importExportTemplates = Restangular.all('import_export/environment_templates');
@@ -128,9 +128,9 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         };
 
 
-        $scope.deleteNotification = function(notification) {
-            notification.remove().then(function() {
-                updateNotificationList();
+        $scope.deleteMessage = function(message) {
+            message.remove().then(function() {
+                updateMessageList();
             });
         };
 
@@ -165,43 +165,43 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
             template.put();
         };
 
-        $scope.openCreateNotification= function() {
+        $scope.openCreateMessage= function() {
             $uibModal.open({
-                templateUrl: '/partials/modal_create_notification.html',
-                controller: 'ModalCreateNotificationController',
+                templateUrl: '/partials/modal_create_message.html',
+                controller: 'ModalCreateMessageController',
                 size: 'sm',
                 resolve: {
-                    notifications: function() {
-                        return notifications;
+                    messages: function() {
+                        return messages;
                     }
                 }
             }).result.then(function() {
-                updateNotificationList()
+                updateMessageList()
             });
         };
 
-        $scope.emailNotification = function(notification) {
-            notification.patch({send_mail: true}).then(function(response) {
+        $scope.emailMessage = function(message) {
+            message.patch({send_mail: true}).then(function(response) {
             });
         };
 
-        $scope.emailNotificationToWorkspaceOwner = function(notification) {
-            notification.patch({send_mail_workspace_owner: true}).then(function(response) {
+        $scope.emailMessageToWorkspaceOwner = function(message) {
+            message.patch({send_mail_workspace_owner: true}).then(function(response) {
             });
         };
 
-        $scope.openEditNotification = function(notification) {
+        $scope.openEditMessage = function(message) {
             $uibModal.open({
-                templateUrl: '/partials/modal_edit_notification.html',
-                controller: 'ModalEditNotificationController',
+                templateUrl: '/partials/modal_edit_message.html',
+                controller: 'ModalEditmessageController',
                 size: 'sm',
                 resolve: {
-                    notification: function() {
-                        return notification;
+                    message: function() {
+                        return message;
                     }
                 }
             }).result.then(function() {
-                updateNotificationList();
+                updateMessageList();
             });
         };
 
@@ -336,12 +336,12 @@ app.controller('ModalReconfigureTemplateController', function($scope, $modalInst
     };
 });
 
-app.controller('ModalCreateNotificationController', function($scope, $modalInstance, notifications) {
-    $scope.createNotification = function(notification) {
-        notifications.post({ subject: notification.subject, message: notification.message }).then(function () {
+app.controller('ModalCreateMessageController', function($scope, $modalInstance, messages) {
+    $scope.createMessage = function(message) {
+        messages.post({ subject: message.subject, message: message.message }).then(function () {
             $modalInstance.close(true);
         }, function(response) {
-            $.notify({title: 'HTTP ' + response.status, message: 'unable to create notification'}, {type: 'danger'});
+            $.notify({title: 'HTTP ' + response.status, message: 'unable to create message'}, {type: 'danger'});
         });
     };
 
@@ -350,19 +350,19 @@ app.controller('ModalCreateNotificationController', function($scope, $modalInsta
     };
 });
 
-app.controller('ModalEditNotificationController', function($scope, $modalInstance, Restangular, notification) {
-    $scope.notification = Restangular.copy(notification);
-    $scope.notification.subject = notification.subject;
-    $scope.notification.message = notification.message;
+app.controller('ModalEditMessageController', function($scope, $modalInstance, Restangular, message) {
+    $scope.message = Restangular.copy(message);
+    $scope.message.subject = message.subject;
+    $scope.message.message = message.message;
 
-    $scope.editNotification = function(notification) {
-        notification.subject = $scope.notification.subject;
-        notification.message = $scope.notification.message;
+    $scope.editMessage = function(message) {
+        message.subject = $scope.message.subject;
+        message.message = $scope.message.message;
 
-        notification.put().then(function() {
+        message.put().then(function() {
             $modalInstance.close(true);
         }, function(response) {
-            $.notify({title: 'HTTP ' + response.status, message: 'unable to edit notification'}, {type: 'danger'});
+            $.notify({title: 'HTTP ' + response.status, message: 'unable to edit message'}, {type: 'danger'});
         });
     };
 
