@@ -1,6 +1,5 @@
 from unittest import TestCase
 from flask import Flask
-import six
 from collections import OrderedDict
 from contextlib import contextmanager
 from flask import request_started, request
@@ -26,7 +25,7 @@ class TestSSO(TestCase):
             od = OrderedDict()
             for k, v in sorted(attr.items()):
                 od[k] = v
-            return six.b('{0}'.format(od))
+            return '{0}'.format(od).encode('latin-1')
 
         @contextmanager
         def request_environ_set(app, data):
@@ -46,8 +45,7 @@ class TestSSO(TestCase):
                     od = OrderedDict()
                     for k, v in sorted(expected_data.items()):
                         od[k] = v
-                    self.assertEqual(resp.data,
-                                     six.b('{0}'.format(od)))
+                    self.assertEqual(resp.data, '{0}'.format(od).encode('latin-1'))
 
         conf = {'HTTP_AJP_SHIB_EPPN': (True, 'eppn'), 'HTTP_AJP_SHIB_MAIL': (False, 'mail')}
         data = {'HTTP_AJP_SHIB_EPPN': 'user@example.org'}

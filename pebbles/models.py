@@ -6,7 +6,6 @@ import string
 import uuid
 
 import names
-import six
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -607,7 +606,7 @@ class NamespacedKeyValue(db.Model):
                     if field_type == "integer":
                         val[field] = int(val[field])
                     elif field_type == "boolean":
-                        if type(val[field]) in (six.text_type, str):
+                        if type(val[field]) in (str,):
                             val[field] = NamespacedKeyValue.str_to_bool(val[field])
                         else:
                             val[field] = bool(val[field])

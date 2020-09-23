@@ -3,11 +3,9 @@ from flask_script import Manager, Server, Shell
 from flask_migrate import MigrateCommand, Migrate
 from werkzeug.middleware.profiler import ProfilerMiddleware
 import getpass
-from six.moves import input
 from pebbles import models
 from pebbles.config import BaseConfig
 from pebbles.server import app
-from pebbles.views import commons
 from pebbles.views.commons import create_user, create_worker, create_system_workspaces
 from pebbles.models import db
 from pebbles.tests.fixtures import primary_test_setup
