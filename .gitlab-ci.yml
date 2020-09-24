@@ -63,7 +63,7 @@ build-image:
     - docker push ${PUBLIC_IMAGE}:${CI_COMMIT_REF_NAME}
     # if we are on master branch, push this also as latest + create a versioned tag
     - |
-      if [[ ${CI_COMMIT_REF_NAME} == 'gitlab.ci_pipeline_update' ]]; then
+      if [[ ${CI_COMMIT_REF_NAME} == 'master' ]]; then
         echo "Tagging and pushing ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} as latest"
         docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PRIVATE_IMAGE}:latest
         docker push ${PRIVATE_IMAGE}:latest
