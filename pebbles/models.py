@@ -84,10 +84,9 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
     is_blocked = db.Column(db.Boolean, default=False)
-    credits_quota = db.Column(db.Float, default=1.0)
     latest_seen_message_ts = db.Column(db.DateTime)
-    workspace_quota = db.Column(db.Float)
-    environment_quota = db.Column(db.Float)
+    workspace_quota = db.Column(db.Integer, default=0)
+    environment_quota = db.Column(db.Integer, default=0)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     workspaces = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy="dynamic")
@@ -164,12 +163,6 @@ class User(db.Model):
     def generate_auth_token(self, app_secret, expires_in=43200):
         s = Serializer(app_secret, expires_in=expires_in)
         return s.dumps({'id': self.id}).decode('utf-8')
-
-    def calculate_credits_spent(self):
-        return sum(instance.credits_spent() for instance in self.instances.all())
-
-    def quota_exceeded(self):
-        return self.calculate_credits_spent() >= self.credits_quota
 
     def can_login(self):
         return not self.is_deleted and self.is_active and not self.is_blocked
@@ -407,10 +400,6 @@ class Environment(db.Model):
         return get_environment_fields_from_config(self, 'maximum_lifetime')
 
     @hybrid_property
-    def preallocated_credits(self):
-        return get_environment_fields_from_config(self, 'preallocated_credits')
-
-    @hybrid_property
     def cost_multiplier(self):
         return get_environment_fields_from_config(self, 'cost_multiplier')
 
@@ -447,8 +436,6 @@ class Instance(db.Model):
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
     environment_id = db.Column(db.String(32), db.ForeignKey('environments.id'))
     name = db.Column(db.String(64), unique=True)
-    public_ip = db.Column(db.String(64))
-    client_ip = db.Column(db.String(64))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     provisioned_at = db.Column(db.DateTime)
     deprovisioned_at = db.Column(db.DateTime)
@@ -464,22 +451,6 @@ class Instance(db.Model):
         self.environment = environment
         self.user_id = user.id
         self._state = Instance.STATE_QUEUEING
-
-    def credits_spent(self, duration=None):
-        if self.errored:
-            return 0.0
-
-        if not duration:
-            duration = self.runtime
-
-        if self.environment.preallocated_credits:
-            duration = self.environment.maximum_lifetime
-
-        try:
-            cost_multiplier = self.environment.cost_multiplier
-        except:
-            cost_multiplier = 1.0
-        return cost_multiplier * duration / 3600
 
     @hybrid_property
     def runtime(self):

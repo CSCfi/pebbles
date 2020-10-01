@@ -1,19 +1,16 @@
-from flask import abort, g
+import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
+from flask import abort, g
 from flask_restful import marshal_with, fields, reqparse
 
-import flask_restful as restful
-from pebbles.views.commons import auth
-from pebbles.utils import requires_admin
 from pebbles.models import db, User
+from pebbles.utils import requires_admin
+from pebbles.views.commons import auth
 
 quota = FlaskBlueprint('quota', __name__)
 
 parser = reqparse.RequestParser()
-credit_quota_update_functions = {
-    'absolute': lambda user, value: value,
-    'relative': lambda user, value: user.credits_quota + value
-}
+
 workspace_quota_update_functions = {
     'absolute': lambda user, value: value,
     'relative': lambda user, value: user.workspace_quota + value
@@ -29,35 +26,31 @@ parser.add_argument('credits_type', type=str)
 
 quota_fields = {
     'id': fields.String,
-    'credits_quota': fields.Float,
-    'credits_spent': fields.Float,
+    'environment_quota': fields.Integer,
+    'workspace_quota': fields.Integer,
 }
 
 
 def parse_arguments():
     try:
         args = parser.parse_args()
-        if not args['type'] in credit_quota_update_functions.keys():
+        if not args['type'] in ('absolute', 'relative'):
             raise RuntimeError("Invalid arguement type = %s" % args['type'])
+        return args
     except:
         abort(422)
-
-    return args
 
 
 def update_user_quota(user, update_type, value, credits_type):
     try:
-        if credits_type == 'credits_quota_value':
-            fun = credit_quota_update_functions[update_type]
-            user.credits_quota = fun(user, value)
-        elif credits_type == 'workspace_quota_value' and user.is_workspace_owner:
+        if credits_type == 'workspace_quota_value' and user.is_workspace_owner:
             if not user.workspace_quota:
-                user.workspace_quota = 1  # can also add real time value from db here
+                user.workspace_quota = 0  # can also add real time value from db here
             fun = workspace_quota_update_functions[update_type]
             user.workspace_quota = fun(user, value)
         elif credits_type == 'environment_quota_value' and user.is_workspace_owner:
             if not user.environment_quota:
-                user.environment_quota = 1
+                user.environment_quota = 0
             fun = environment_quota_update_functions[update_type]
             user.environment_quota = fun(user, value)
 
@@ -69,27 +62,12 @@ class Quota(restful.Resource):
     @auth.login_required
     @requires_admin
     @marshal_with(quota_fields)
-    def put(self):
-        args = parse_arguments()
-        results = []
-        for user in User.query.all():
-            update_user_quota(user, args['type'], args['value'], args['credits_type'])
-            results.append({'id': user.id, 'credits_quota': user.credits_quota})
-
-        db.session.commit()
-        return results
-
-    @auth.login_required
-    @requires_admin
-    @marshal_with(quota_fields)
     def get(self):
         results = []
         for user in User.query.all():
-            results.append({
-                'id': user.id,
-                'credits_quota': user.credits_quota,
-                'credits_spent': user.calculate_credits_spent()
-            })
+            results.append(
+                dict(id=user.id, environment_quota=user.environment_quota, workspace_quota=user.workspace_quota)
+            )
 
         return results
 
@@ -107,7 +85,7 @@ class UserQuota(restful.Resource):
         update_user_quota(user, args['type'], args['value'], args['credits_type'])
 
         db.session.commit()
-        return {'id': user.id, 'credits_quota': user.credits_quota}
+        return dict(id=user.id, environment_quota=user.environment_quota, workspace_quota=user.workspace_quota)
 
     @auth.login_required
     @marshal_with(quota_fields)
@@ -118,4 +96,4 @@ class UserQuota(restful.Resource):
         if not g.user.is_admin and user_id != g.user.id:
             abort(403)
 
-        return {'id': user.id, 'credits_quota': user.credits_quota, 'credits_spent': user.calculate_credits_spent()}
+        return dict(id=user.id, environment_quota=user.environment_quota, workspace_quota=user.workspace_quota)

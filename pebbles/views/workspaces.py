@@ -195,8 +195,8 @@ def workspace_users_add(workspace, user_config, owner, workspace_owner_obj):
     managers_list.append(g.user)  # always add the user creating/modifying the workspace
     # add new workspace owner
     if 'owner' in user_config:
-        newOwner = user_config['owner']
-        for new_owner_item in newOwner:
+        new_owner = user_config['owner']
+        for new_owner_item in new_owner:
             new_owner_id = new_owner_item['id']
             new_owner = User.query.filter_by(id=new_owner_id).first()
             if new_owner != owner:

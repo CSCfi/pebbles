@@ -129,14 +129,6 @@ class InstanceList(restful.Resource):
         environment = Environment.query.filter_by(id=environment_id, is_enabled=True).first()
         if not environment:
             abort(404)
-        if user.quota_exceeded():
-            return {'error': 'USER_OVER_QUOTA'}, 409
-
-        if environment.preallocated_credits:
-            preconsumed_amount = environment.cost()
-            total_credits_spent = preconsumed_amount + user.credits_spent
-            if user.credits_quota < total_credits_spent:
-                return {'error': 'USER_OVER_QUOTA'}, 409
 
         instances_for_user = Instance.query.filter_by(
             environment_id=environment.id,

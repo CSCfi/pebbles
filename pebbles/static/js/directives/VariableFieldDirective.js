@@ -24,7 +24,7 @@ app.directive('editablefield', function() {
                 input[0].focus();
             });
 
-            cancel.bind('click', function(event) {
+            cancel.bind('click', function(event) {
                 disableEdit();
             });
 

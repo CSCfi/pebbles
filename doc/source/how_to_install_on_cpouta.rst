@@ -170,7 +170,6 @@ address
 * Flavor: standard.tiny
 * Maximum lifetime: 1h
 * Maximum instances per user: 1
-* Pre-allocate credits for the instance from the user quota: unchecked
 * Cost multiplier: 0
 * Remove the example Frontend firewall rule
 * Allow user to request instance firewall to allow access to user's IP address: check

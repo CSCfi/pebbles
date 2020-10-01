@@ -110,15 +110,6 @@ def get_environment_fields_from_config(environment, field_name):
     """Hybrid fields for Environment model which need processing"""
     full_config = get_full_environment_config(environment)
 
-    if field_name == 'preallocated_credits':
-        preallocated_credits = False  # Default value
-        if 'preallocated_credits' in full_config:
-            try:
-                preallocated_credits = bool(full_config['preallocated_credits'])
-            except ValueError:
-                pass
-        return preallocated_credits
-
     if field_name == 'maximum_lifetime':
         maximum_lifetime = 3600  # Default value of 1 hour
         if 'maximum_lifetime' in full_config:

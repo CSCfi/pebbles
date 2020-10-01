@@ -22,12 +22,7 @@
 
 import os
 import sys
-try:
-# py2
-    from ConfigParser import ConfigParser
-except ImportError:
-# py3
-    from configparser import ConfigParser
+import configparser
 
 #semver doesn't understand the last dot in
 # 0.1.1.dev1
@@ -80,7 +75,7 @@ author = u'CSC - Center for Scientific Computing Ltd.'
 #
 
 #HackHack: read version from setup.cfg to have it in one place
-cfparser = ConfigParser()
+cfparser = configparser.ConfigParser()
 cfparser.read("../../setup.cfg")
 release = cfparser.get("metadata", "version")
 version_info = SemanticVersion(release)

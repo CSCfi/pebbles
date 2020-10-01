@@ -17,10 +17,6 @@ app.controller('UsersController', ['$q', '$scope', '$interval', '$uibModal', '$f
             var workspace = Restangular.all('workspaces');
 
             quota.getList().then(function (response) {
-                $scope.credits_spent = [];
-                angular.forEach(response, function(value, key) {
-                    $scope.credits_spent[value.id] = value.credits_spent;
-                });
                 $scope.quotas = response;
             });
 

@@ -6,7 +6,7 @@ from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
 from flask_restful import fields
 from flask_restful import marshal_with, reqparse
-from sqlalchemy.orm.session import make_transient
+from sqlalchemy.orm import make_transient
 
 from pebbles.forms import EnvironmentTemplateForm
 from pebbles.models import db, EnvironmentTemplate

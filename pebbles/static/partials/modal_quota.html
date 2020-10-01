@@ -6,8 +6,8 @@
     <form class="form-inline">
         <h4>Users affected by quota change:</h4>
         <ul>
-            <li ng-repeat="user in users | filter:includeRow">
-                {{ user.eppn }}
+            <li ng-repeat="user in users | filter:includeRow">
+                {{ user.eppn }}
             </li>
             <li ng-hide="users.length"><strong>All users</strong></li>
         </ul>
@@ -87,35 +87,29 @@
         </div>
         <hr>
 
-        <h4> Choose the quota to update: </h4>
-        <div class="radio">
-          <label>
-             <h4><input ng-model="formdata.valueQuota" type="radio" name="valueQuota" value="credits_quota_value">
-             credits quota</h4>
-          </label>
-        </div>
-        </br>
-        <div  ng-show="users[0].is_workspace_owner" class="radio">
-           <label>
-              <h4><input ng-model="formdata.valueQuota" type="radio" name="valueQuota" value="workspace_quota_value">
-              workspace quota</h4>
-           </label>
-        </div>
-        </br>
-        <div  ng-show="users[0].is_workspace_owner" class="radio">
-           <label>
-              <h4><input ng-model="formdata.valueQuota" type="radio" name="valueQuota" value="environment_quota_value">
-              environment quota</h4>
-           </label>
-        </div>
-
-        <div ng-show ="formdata.valueQuota" >
-           </br>
-           <i><p>Add or set given amount of credits to quota(s)</p></i>
-           <label>Amount:</label>
-           <input ng-model="addedAmount" class="form-control" type="number" required/>
-           <button ng-click="increase_quota(addedAmount)" class="btn btn-primary">Add</button>
-           <button ng-click="set_quota(addedAmount)" class="btn btn-primary">Set</button>
+        <div ng-show="users[0].is_workspace_owner">
+          <h4> Choose the quota to update: </h4>
+          <div  class="radio">
+             <label>
+                <h4><input ng-model="formdata.valueQuota" type="radio" name="valueQuota" value="workspace_quota_value">
+                workspace quota</h4>
+             </label>
+          </div>
+          </br>
+          <div class="radio">
+             <label>
+                <h4><input ng-model="formdata.valueQuota" type="radio" name="valueQuota" value="environment_quota_value">
+                environment quota</h4>
+             </label>
+          </div>
+          <div ng-show ="formdata.valueQuota" >
+             </br>
+             <i><p>Add or set given amount of credits to quota(s)</p></i>
+             <label>Amount:</label>
+             <input ng-model="addedAmount" class="form-control" type="number" required/>
+             <button ng-click="increase_quota(addedAmount)" class="btn btn-primary">Add</button>
+             <button ng-click="set_quota(addedAmount)" class="btn btn-primary">Set</button>
+          </div>
         </div>
     </form>
 </div>

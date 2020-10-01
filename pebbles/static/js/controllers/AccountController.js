@@ -17,11 +17,6 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
         return AuthService.isWorkspaceManagerOrAdmin();
     };
 
-    quota.get().then(function (response) {
-                $scope.credits_spent = response.credits_spent;
-                $scope.credits_quota = response.credits_quota;
-            });
-
     var workspace_list_exit = Restangular.all('workspaces').all('workspace_list_exit');
     var refresh_workspace_list_exit = function(){
         workspace_list_exit.getList().then(function (response) {

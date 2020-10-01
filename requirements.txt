@@ -1,4 +1,5 @@
 ## Primary requirements
+alembic==1.4.3
 dpath==1.5.0
 Flask==1.1.1
 Flask-Bcrypt==0.7.1
@@ -33,7 +34,12 @@ gunicorn==19.7.1
 # for testing
 selenium==3.141.0
 mock==3.0.5
+coverage==5.3
+flake8==3.8.3
 
 # for drivers
 kubernetes==11.0.0
 openshift==0.11.2
+
+# for documentation
+pbr==5.5.0

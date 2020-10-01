@@ -507,12 +507,13 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(data))
         self.assertStatus(response, 403)
 
-        # set workspace_quota for the workspace_owner
-        response = self.make_authenticated_admin_request(
+        # increase workspace quota to 4 for owner 1
+        response2 = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/quota',
-            data=json.dumps({'type': 'absolute', 'value': 4, 'credits_type': 'workspace_quota_value'}))
-        self.assertEqual(response.status_code, 200)
+            path='/api/v1/quota/%s' % self.known_workspace_owner_id,
+            data=json.dumps({'type': "absolute", 'value': 4, 'credits_type': 'workspace_quota_value'}))
+        self.assert_200(response2)
+
         # Workspace Owner
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
@@ -1161,13 +1162,6 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertEquals(labels, expected_labels, 'label array matches')
 
     def test_create_environment(self):
-        # Set environment_quota_value
-        response = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/quota',
-            data=json.dumps({'type': 'absolute', 'value': 5, 'credits_type': 'environment_quota_value'}))
-        self.assertEqual(response.status_code, 200)
-
         # Anonymous
         data = {'name': 'test_environment_1', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
         response = self.make_request(
@@ -1262,12 +1256,6 @@ class FlaskApiTestCase(BaseTestCase):
             'template_id': self.known_template_id,
             'workspace_id': self.known_workspace_id
         }
-        # set environment quota
-        response12 = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/quota',
-            data=json.dumps({'type': 'absolute', 'value': 42, 'credits_type': 'environment_quota_value'}))
-        self.assertEqual(response12.status_code, 200)
 
         post_response = self.make_authenticated_workspace_owner_request(
             method='POST',
@@ -1381,7 +1369,6 @@ class FlaskApiTestCase(BaseTestCase):
                 "name": "foo_modify",
                 "maximum_lifetime": '0d2h30m',
                 "cost_multiplier": '0.1',
-                "preallocated_credits": "true",
             },
             'template_id': self.known_template_id,
             'workspace_id': self.known_workspace_id
@@ -1395,7 +1382,6 @@ class FlaskApiTestCase(BaseTestCase):
         environment = Environment.query.filter_by(id=self.known_environment_id_2).first()
         self.assertEqual(environment.maximum_lifetime, 9000)
         self.assertEqual(environment.cost_multiplier, 0.1)
-        self.assertEqual(environment.preallocated_credits, True)
 
     def test_create_environment_admin_invalid_data(self):
         invalid_form_data = [
@@ -1861,79 +1847,31 @@ class FlaskApiTestCase(BaseTestCase):
         response2 = self.make_authenticated_admin_request(path='/api/v1/users/%s/activation_url' % '0xBogus')
         self.assert_404(response2)
 
-    def test_user_over_quota_cannot_launch_instances(self):
-        data = {'environment': self.known_environment_id}
-        response = self.make_authenticated_user_request(
-            method='POST',
-            path='/api/v1/instances',
-            data=json.dumps(data)).json
-        instance = Instance.query.filter_by(id=response['id']).first()
-        instance.provisioned_at = datetime.datetime(2015, 1, 1, 0, 0, 0)
-        instance.deprovisioned_at = datetime.datetime(2015, 1, 1, 1, 0, 0)
-
-        db.session.commit()
-        response2 = self.make_authenticated_user_request(
-            method='POST',
-            path='/api/v1/instances',
-            data=json.dumps(data))
-        self.assertEqual(response2.status_code, 409)
-
     def test_update_admin_quota_relative(self):
         response = self.make_authenticated_admin_request(
             path='/api/v1/users'
         )
-        assert abs(response.json[0]['credits_quota'] - 1) < 0.001
-        user_id = response.json[0]['id']
+        # entry 3 is the workspace owner
+        assert response.json[2]['workspace_quota'] == 2
+        user_id = response.json[2]['id']
         response2 = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/quota/%s' % user_id,
-            data=json.dumps({'type': 'relative', 'value': 10, 'credits_type': 'credits_quota_value'}))
+            data=json.dumps({'type': 'relative', 'value': 10, 'credits_type': 'workspace_quota_value'}))
         self.assertEqual(response2.status_code, 200)
         response = self.make_authenticated_admin_request(
             path='/api/v1/users'
         )
-        self.assertEqual(user_id, response.json[0]['id'])
-        assert abs(response.json[0]['credits_quota'] - 11) < 0.001
-
-    def test_update_quota_absolute(self):
-        response = self.make_authenticated_admin_request(
-            path='/api/v1/users'
-        )
-
-        for user in response.json:
-            assert abs(user['credits_quota'] - 1) < 0.001
-
-        response2 = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/quota',
-            data=json.dumps({'type': 'absolute', 'value': 42, 'credits_type': 'credits_quota_value'}))
-        self.assertEqual(response2.status_code, 200)
-
-        response3 = self.make_authenticated_admin_request(
-            path='/api/v1/users'
-        )
-
-        for user in response3.json:
-            assert abs(user['credits_quota'] - 42) < 0.001
+        self.assertEqual(user_id, response.json[2]['id'])
+        self.assertEqual(response.json[2]['workspace_quota'], 12)
 
     def test_user_cannot_update_user_quota_absolute(self):
-        response = self.make_authenticated_user_request(
-            path='/api/v1/users'
-        )
-        self.assertEqual(len(response.json), 1)
-        user_id = response.json[0]['id']
+        user_id = self.known_workspace_owner_id_2
         response2 = self.make_authenticated_user_request(
             method='PUT',
             path='/api/v1/quota/%s' % user_id,
-            data=json.dumps({'type': "absolute", 'value': 10}))
+            data=json.dumps({'type': "absolute", 'value': 10, 'credits_type': 'workspace_quota_value'}))
         self.assert_403(response2)
-
-    def test_user_cannot_update_quotas(self):
-        response = self.make_authenticated_user_request(
-            method='PUT',
-            path='/api/v1/quota',
-            data=json.dumps({'type': "absolute", 'value': 10}))
-        self.assert_403(response)
 
     def test_anonymous_cannot_see_quota_list(self):
         response = self.make_request(
@@ -1968,12 +1906,12 @@ class FlaskApiTestCase(BaseTestCase):
     def test_parse_invalid_quota_update(self):
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/quota',
+            path='/api/v1/quota/%s' % self.known_user_id,
             data=json.dumps({'type': "invalid_type", 'value': 10}))
         self.assertStatus(response, 422)
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/quota',
+            path='/api/v1/quota/%s' % self.known_user_id,
             data=json.dumps({'type': "relative", 'value': "foof"}))
         self.assertStatus(response, 422)
 

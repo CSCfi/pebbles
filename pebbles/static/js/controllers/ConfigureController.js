@@ -171,7 +171,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
                 controller: 'ModalCreateMessageController',
                 size: 'sm',
                 resolve: {
-                    messages: function() {
+                    messages: function() {
                         return messages;
                     }
                 }

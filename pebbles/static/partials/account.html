@@ -3,7 +3,6 @@
     <div class="row">
         <div class="col-md-12">
             <p><strong>User:</strong> {{ getUserName() }}</p>
-            <!--<p><strong>Credits Spent:</strong>  {{ credits_spent | number }} /  <strong>Total Credits:</strong> {{ credits_quota | number}}</p>-->
         </div>
     </div>
 
@@ -28,7 +27,7 @@
             </tr>
             </thead>
             <tbody>
-                <tr ng-hide="workspace_list_exit != undefined && workspace_list_exit.length">
+                <tr ng-hide="workspace_list_exit != undefined && workspace_list_exit.length">
                     <td colspan="2">No workspaces found. Make sure you have joined a workspace.</td>
                 </tr>
 

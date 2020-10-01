@@ -1,4 +1,3 @@
-import datetime
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.models import User, Workspace, Environment, EnvironmentTemplate, Instance, NamespacedKeyValue
 
@@ -55,13 +54,6 @@ class ModelsTestCase(BaseTestCase):
         db.session.add(u2)
         with self.assertRaises(Exception):
             db.session.commit()
-
-    def test_calculate_instance_cost(self):
-        i1 = Instance(self.known_environment, self.known_user)
-        i1.provisioned_at = datetime.datetime(2015, 1, 1, 12, 0)
-        i1.deprovisioned_at = datetime.datetime(2015, 1, 1, 12, 5)
-        expected_cost = (1.5 * 5 * 60 / 3600)
-        assert (expected_cost - 0.01) < i1.credits_spent() < (expected_cost + 0.01)
 
     def test_instance_states(self):
         i1 = Instance(self.known_environment, self.known_user)

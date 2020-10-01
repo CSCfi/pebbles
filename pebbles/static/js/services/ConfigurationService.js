@@ -7,7 +7,7 @@ app.service('ConfigurationService', ['Restangular', function(Restangular) {
             this._config = pbconfig.getList().then(function(response) {
                 var config = {};
                 angular.forEach(response, function(v, k) {
-                    config[v.key] = v.value;
+                    config[v.key] = v.value;
                 });
                 return config;
             });
