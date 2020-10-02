@@ -18,6 +18,7 @@ token_fields = {
     'is_admin': fields.Boolean,
     'is_workspace_owner': fields.Boolean,
     'is_workspace_manager': fields.Boolean,
+    # TODO: remove when AngularJS based old UI has been phased out
     'icon_value': fields.String
 }
 
