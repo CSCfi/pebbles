@@ -35,11 +35,9 @@ def primary_test_setup(namespace):
     namespace.known_admin_id = u1.id
     namespace.known_user_id = u2.id
     u3.id = 'u3'
-    u3.is_workspace_owner = True
     u3.workspace_quota = 2
     u3.environment_quota = 5
     u4.id = 'u4'
-    u4.is_workspace_owner = True
     u4.workspace_quota = 2
     u4.environment_quota = 5
 

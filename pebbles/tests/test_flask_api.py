@@ -240,6 +240,18 @@ class FlaskApiTestCase(BaseTestCase):
         user = User.query.filter_by(id=u.id).first()
         self.assertFalse(user.is_workspace_owner)
 
+    def test_remove_workspace_ownership(self):
+        user = User.query.filter_by(id=self.known_workspace_owner_id).first()
+        self.assertTrue(user.is_workspace_owner)
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/users/%s/user_workspace_owner' % user.id,
+            data=json.dumps({'make_workspace_owner': False})
+        )
+        self.assert_200(response)
+        user = User.query.filter_by(id=self.known_workspace_owner_id).first()
+        self.assertFalse(user.is_workspace_owner)
+
     def test_block_user(self):
         eppn = "test@example.org"
         u = User(eppn, "testuser", is_admin=False)

@@ -172,13 +172,16 @@ class UserWorkspaceOwner(restful.Resource):
         if not user:
             logging.warning("user does not exist")
             abort(404)
+        # promote
         if make_workspace_owner:
-            logging.info("making user %s a workspace owner", user.eppn)
-            user.is_workspace_owner = True
-            user.workspace_quota = 1
-            user.environment_quota = 1
+            if user.workspace_quota == 0:
+                logging.info("making user %s a workspace owner by granting workspace quota", user.eppn)
+                user.workspace_quota = 2
+        # demote
         else:
-            logging.info("removing user %s as a workspace owner", user.eppn)
-            user.is_workspace_owner = False
+            user.workspace_quota = 0
+            for ws in user.get_owned_workspaces():
+                logging.info('removing user %s ownership from workspace %s' % (ws.user_id, ws.workspace_id))
+                ws.owner = False
         db.session.add(user)
         db.session.commit()

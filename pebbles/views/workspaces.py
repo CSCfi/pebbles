@@ -66,15 +66,11 @@ class WorkspaceList(restful.Resource):
         user = g.user
         user_workspaces = WorkspaceUserAssociation.query.filter_by(user_id=user.id, owner=True)
         user_owned_workspaces = [uw.workspace.current_status == 'active' for uw in user_workspaces].count(True)
-        if not user.workspace_quota and user.is_workspace_owner and not user_owned_workspaces:
-            user.workspace_quota = 1
-        elif not user.workspace_quota and user.is_workspace_owner and user_owned_workspaces:
-            user.workspace_quota = user_owned_workspaces
-        if not user.is_admin and user_owned_workspaces >= user.workspace_quota and user.is_workspace_owner:
-            logging.warning("Maximum User_workspace_quota %s is reached" % user_owned_workspaces)
+        if not user.is_admin and user_owned_workspaces >= user.workspace_quota:
+            logging.warning("Maximum workspace quota %s is reached" % user.workspace_quota)
             return dict(
                 message="You reached maximum number of workspaces that can be created."
-                        " If you wish create more workspaces contact administrator"
+                        " If you wish create more workspaces please contact the support"
             ), 422
         form = WorkspaceForm()
         if not form.validate_on_submit():

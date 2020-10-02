@@ -80,7 +80,6 @@ class User(db.Model):
     joining_date = db.Column(db.DateTime)
     expiry_date = db.Column(db.DateTime)
     is_admin = db.Column(db.Boolean, default=False)
-    is_workspace_owner = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
     is_blocked = db.Column(db.Boolean, default=False)
@@ -89,7 +88,7 @@ class User(db.Model):
     environment_quota = db.Column(db.Integer, default=0)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
-    workspaces = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy="dynamic")
+    workspaces = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
 
     def __init__(self, eppn, password=None, is_admin=False, email_id=None, expiry_date=None, pseudonym=None):
         self.id = uuid.uuid4().hex
@@ -141,6 +140,15 @@ class User(db.Model):
     def email_id(cls):
         return CaseInsensitiveComparator(cls._email_id)
 
+    @hybrid_property
+    def is_workspace_owner(self):
+        # we are a workspace owner if we have existing workspaces or have quota to create one
+        return self.workspace_quota > 0 or self.get_owned_workspaces()
+
+    @is_workspace_owner.setter
+    def is_workspace_owner(self, value):
+        raise RuntimeError('Set workspace owner status through workspace quota and membership')
+
     def delete(self):
         if self.is_deleted:
             return
@@ -167,13 +175,11 @@ class User(db.Model):
     def can_login(self):
         return not self.is_deleted and self.is_active and not self.is_blocked
 
-    @hybrid_property
-    def managed_workspaces(self):
-        workspaces = []
-        workspace_user_objs = WorkspaceUserAssociation.query.filter_by(user_id=self.id, manager=True).all()
-        for workspace_user_obj in workspace_user_objs:
-            workspaces.append(workspace_user_obj.workspace)
-        return workspaces
+    def get_owned_workspaces(self):
+        return [x for x in self.workspaces if x.owner]
+
+    def get_managed_workspaces(self):
+        return [x for x in self.workspaces if x.manager]
 
     @staticmethod
     def verify_auth_token(token, app_secret):
