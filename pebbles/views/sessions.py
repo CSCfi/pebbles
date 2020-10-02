@@ -16,7 +16,7 @@ token_fields = {
     'token': fields.String,
     'user_id': fields.String,
     'is_admin': fields.Boolean,
-    'is_group_owner': fields.Boolean,
+    'is_workspace_owner': fields.Boolean,
     'is_workspace_manager': fields.Boolean,
     'icon_value': fields.String
 }
@@ -48,7 +48,7 @@ class SessionView(restful.Resource):
             return marshal({
                 'token': user.generate_auth_token(current_app.config['SECRET_KEY']),
                 'is_admin': user.is_admin,
-                'is_group_owner': user.is_workspace_owner,
+                'is_workspace_owner': user.is_workspace_owner,
                 'is_workspace_manager': is_workspace_manager(user),
                 'user_id': user.id,
                 'icon_value': icons

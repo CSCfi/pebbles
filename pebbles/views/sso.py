@@ -65,7 +65,7 @@ def oauth2_login():
         token=token,
         username=eppn,
         is_admin=user.is_admin,
-        is_group_owner=user.is_workspace_owner,
+        is_workspace_owner=user.is_workspace_owner,
         is_workspace_manager=is_workspace_manager(user),
         userid=user.id,
         icon_value=icons

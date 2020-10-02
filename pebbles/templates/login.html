@@ -14,7 +14,7 @@
                 {% if is_admin %}
                     localStorageService.set('isAdmin', true);
                 {% endif %}
-                {% if is_group_owner %}
+                {% if is_workspace_owner %}
                     localStorageService.set('isWorkspaceOwner', true);
                 {% endif %}
                 {% if is_workspace_manager %}

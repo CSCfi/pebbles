@@ -10,9 +10,9 @@ class ModelsTestCase(BaseTestCase):
 
         db.session.add(u)
 
-        g = Workspace('Workspace1')
-        self.known_group = g
-        db.session.add(g)
+        ws = Workspace('Workspace1')
+        self.known_group = ws
+        db.session.add(ws)
 
         t1 = EnvironmentTemplate()
         t1.name = 'EnabledTestTemplate'
@@ -25,7 +25,7 @@ class ModelsTestCase(BaseTestCase):
         b1 = Environment()
         b1.name = "TestEnvironment"
         b1.template_id = t1.id
-        b1.group_id = g.id
+        b1.workspace_id = ws.id
         # b1.cost_multiplier = 1.5
         b1.config = {
             'cost_multiplier': '1.5'

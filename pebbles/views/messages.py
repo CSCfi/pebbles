@@ -74,7 +74,7 @@ class MessageList(restful.Resource):
 class MessageView(restful.Resource):
     parser = restful.reqparse.RequestParser()
     parser.add_argument('send_mail', type=bool, default=False)
-    parser.add_argument('send_mail_group_owner', type=bool, default=False)
+    parser.add_argument('send_mail_workspace_owner', type=bool, default=False)
 
     @auth.login_required
     @marshal_with(MESSAGE_FIELDS)
@@ -100,8 +100,8 @@ class MessageView(restful.Resource):
                     text['subject'] = message.subject
                     text['message'] = message.message
                     logging.warning('email sending not implemented')
-        if current_user.is_admin is True and args.get('send_mail_group_owner'):
-            users = User.query.filter_by(is_group_owner='t')
+        if current_user.is_admin is True and args.get('send_mail_workspace_owner'):
+            users = User.query.filter_by(is_workspace_owner='t')
             for user in users:
                 if user.eppn != 'worker@pebbles':
                     text['subject'] = message.subject

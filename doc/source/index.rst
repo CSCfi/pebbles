@@ -20,8 +20,8 @@ called CSC Notebooks.
 Group owner documentation
 =========================
 
-Documentation relevant to group owners and managers is gathered under
-:doc:`group_owners_guide`
+Documentation relevant to workspace owners and managers is gathered under
+:doc:`workspace_owners_guide`
 
 Administrators and Developers
 =============================
