@@ -15,7 +15,6 @@ user_fields = {
     'email_id': fields.String,
     'pseudonym': fields.String,
     'workspace_quota': fields.Integer,
-    'environment_quota': fields.Integer,
     'is_active': fields.Boolean,
     'is_admin': fields.Boolean,
     'is_workspace_owner': fields.Boolean,
@@ -32,7 +31,8 @@ workspace_fields = {
     'config': fields.Raw,
     'user_config': fields.Raw,
     'owner_eppn': fields.String,
-    'role': fields.String
+    'role': fields.String,
+    'environment_quota': fields.Integer,
 }
 
 admin_icons = ["Dashboard", "Users", "Workspaces", "Environments", "Configure", "Statistics", "Account"]

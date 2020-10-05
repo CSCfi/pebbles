@@ -36,10 +36,8 @@ def primary_test_setup(namespace):
     namespace.known_user_id = u2.id
     u3.id = 'u3'
     u3.workspace_quota = 2
-    u3.environment_quota = 5
     u4.id = 'u4'
     u4.workspace_quota = 2
-    u4.environment_quota = 5
 
     namespace.known_admin_id = u1.id
     namespace.known_user_id = u2.id
@@ -51,47 +49,43 @@ def primary_test_setup(namespace):
     db.session.add(u3)
     db.session.add(u4)
 
-    g1 = Workspace('Workspace1')
-    g2 = Workspace('Workspace2')
-    g3 = Workspace('Workspace3')
-    g4 = Workspace('Workspace4')
-    g5 = Workspace('System.default')
+    ws0 = Workspace('System.default')
+    ws0.id = 'ws0'
+    ws0.users.append(WorkspaceUserAssociation(user=u1, owner=True))
 
-    g1.id = 'g1'
-    g1u2 = WorkspaceUserAssociation(user=u2)
-    g1u3 = WorkspaceUserAssociation(user=u3, manager=True, owner=True)
-    g1u4 = WorkspaceUserAssociation(user=u4, manager=True)
-    g1.users.append(g1u2)
-    g1.users.append(g1u3)
-    g1.users.append(g1u4)
-    g2.id = 'g2'
-    g2u3 = WorkspaceUserAssociation(user=u3)
-    g2u4 = WorkspaceUserAssociation(user=u4, owner=True)
-    g2.users.append(g2u3)
-    g2.users.append(g2u4)
-    g3.id = 'g3'
-    g3u4 = WorkspaceUserAssociation(user=u4, owner=True)
-    g3.users.append(g3u4)
-    g3.banned_users.append(u2)
-    g3.banned_users.append(u3)
-    g4.id = 'g4'
-    g4u1 = WorkspaceUserAssociation(user=u1, owner=True)
-    g4.users.append(g4u1)
-    g5.id = 'g5'
-    g5u1 = WorkspaceUserAssociation(user=u1, owner=True)
-    g5.users.append(g5u1)
+    ws1 = Workspace('Workspace1')
+    ws1.id = 'ws1'
+    ws1.environment_quota = 5
+    ws1.users.append(WorkspaceUserAssociation(user=u2))
+    ws1.users.append(WorkspaceUserAssociation(user=u3, manager=True, owner=True))
+    ws1.users.append(WorkspaceUserAssociation(user=u4, manager=True))
 
-    namespace.known_workspace_id = g1.id
-    namespace.known_workspace_id_2 = g2.id
-    namespace.known_workspace_id_3 = g3.id
-    namespace.known_banned_workspace_join_id = g3.join_code
-    namespace.known_workspace_join_id = g4.join_code
-    namespace.system_default_workspace_id = g5.id
-    db.session.add(g1)
-    db.session.add(g2)
-    db.session.add(g3)
-    db.session.add(g4)
-    db.session.add(g5)
+    ws2 = Workspace('Workspace2')
+    ws2.id = 'ws2'
+    ws2.users.append(WorkspaceUserAssociation(user=u3))
+    ws2.users.append(WorkspaceUserAssociation(user=u4, owner=True))
+
+    ws3 = Workspace('Workspace3')
+    ws3.id = 'ws3'
+    ws3.users.append(WorkspaceUserAssociation(user=u4, owner=True))
+    ws3.banned_users.append(u2)
+    ws3.banned_users.append(u3)
+
+    ws4 = Workspace('Workspace4')
+    ws4.id = 'ws4'
+    ws4.users.append(WorkspaceUserAssociation(user=u1, owner=True))
+
+    namespace.known_workspace_id = ws1.id
+    namespace.known_workspace_id_2 = ws2.id
+    namespace.known_workspace_id_3 = ws3.id
+    namespace.known_banned_workspace_join_id = ws3.join_code
+    namespace.known_workspace_join_id = ws4.join_code
+    namespace.system_default_workspace_id = ws0.id
+    db.session.add(ws1)
+    db.session.add(ws2)
+    db.session.add(ws3)
+    db.session.add(ws4)
+    db.session.add(ws0)
     db.session.commit()
 
     t1 = EnvironmentTemplate()
@@ -122,14 +116,14 @@ def primary_test_setup(namespace):
     b1 = Environment()
     b1.name = "TestEnvironment"
     b1.template_id = t2.id
-    b1.workspace_id = g1.id
+    b1.workspace_id = ws1.id
     db.session.add(b1)
     namespace.known_environment_id_disabled = b1.id
 
     b2 = Environment()
     b2.name = "EnabledTestEnvironment"
     b2.template_id = t2.id
-    b2.workspace_id = g1.id
+    b2.workspace_id = ws1.id
     b2.is_enabled = True
     db.session.add(b2)
     namespace.known_environment_id = b2.id
@@ -137,7 +131,7 @@ def primary_test_setup(namespace):
     b3 = Environment()
     b3.name = "EnabledTestEnvironmentClientIp"
     b3.template_id = t2.id
-    b3.workspace_id = g1.id
+    b3.workspace_id = ws1.id
     b3.is_enabled = True
     b3.config = {'allow_update_client_connectivity': True}
     db.session.add(b3)
@@ -146,7 +140,7 @@ def primary_test_setup(namespace):
     b4 = Environment()
     b4.name = "EnabledTestEnvironmentOtherWorkspace"
     b4.template_id = t2.id
-    b4.workspace_id = g2.id
+    b4.workspace_id = ws2.id
     b4.is_enabled = True
     db.session.add(b4)
     namespace.known_environment_id_g2 = b4.id
@@ -154,21 +148,21 @@ def primary_test_setup(namespace):
     b5 = Environment()
     b5.name = "DisabledTestEnvironmentOtherWorkspace"
     b5.template_id = t2.id
-    b5.workspace_id = g2.id
+    b5.workspace_id = ws2.id
     db.session.add(b5)
     namespace.known_environment_id_disabled_2 = b5.id
 
     b6 = Environment()
     b6.name = "TestArchivedEnvironment"
     b6.template_id = t2.id
-    b6.workspace_id = g2.id
+    b6.workspace_id = ws2.id
     b6.current_status = 'archived'
     db.session.add(b6)
 
     b7 = Environment()
     b7.name = "TestDeletedEnvironment"
     b7.template_id = t2.id
-    b7.workspace_id = g2.id
+    b7.workspace_id = ws2.id
     b7.current_status = 'deleted'
     db.session.add(b7)
 

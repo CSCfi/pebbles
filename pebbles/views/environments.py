@@ -83,17 +83,12 @@ class EnvironmentList(restful.Resource):
         if not user.is_admin and not is_workspace_manager(user, workspace):
             logging.warning("invalid workspace for the user")
             abort(403)
-        user_owned_environments = apply_rules_environments(user).filter_by(workspace_id=workspace_id).count()
-        if not user.environment_quota and not user_owned_environments:
-            user.environment_quota = 1
-        elif not user.environment_quota and user_owned_environments:
-            user.environment_quota = user_owned_environments
-
-        if not user.is_admin and user_owned_environments >= user.environment_quota and user.is_workspace_owner:
-            logging.warning("Maximum User_environment_quota %s is reached" % user_owned_environments)
+        # check workspace quota
+        if not user.is_admin and len([e for e in workspace.environments]) >= workspace.environment_quota:
+            logging.warning("Maximum number of environments in workspace reached %s" + workspace.id)
             return dict(
-                message="You reached maximum number of environments that can be created."
-                        " If you wish create more workspaces contact administrator"
+                message="You have reached the maximum number of environments for this workspace."
+                        "Contact support if you need more."
             ), 422
 
         environment.workspace_id = workspace_id

@@ -1202,13 +1202,13 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/environments',
             data=json.dumps(data))
         self.assert_200(response)
-        # check if possible to create more environment than quota
+        # check if possible to create more environments than quota in the workspace
         response = self.make_authenticated_workspace_owner2_request(
             method='POST',
             path='/api/v1/environments',
             data=json.dumps(data_2))
         self.assertStatus(response, 422)
-        # Admin
+        # Admin ignores quota
         data = {'name': 'test_environment_1', 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
         response = self.make_authenticated_admin_request(
             method='POST',

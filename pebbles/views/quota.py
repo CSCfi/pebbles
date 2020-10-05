@@ -15,10 +15,6 @@ workspace_quota_update_functions = {
     'absolute': lambda user, value: value,
     'relative': lambda user, value: user.workspace_quota + value
 }
-environment_quota_update_functions = {
-    'absolute': lambda user, value: value,
-    'relative': lambda user, value: user.environment_quota + value
-}
 
 parser.add_argument('type')
 parser.add_argument('value', type=float)
@@ -26,7 +22,6 @@ parser.add_argument('credits_type', type=str)
 
 quota_fields = {
     'id': fields.String,
-    'environment_quota': fields.Integer,
     'workspace_quota': fields.Integer,
 }
 
@@ -48,12 +43,6 @@ def update_user_quota(user, update_type, value, credits_type):
                 user.workspace_quota = 0  # can also add real time value from db here
             fun = workspace_quota_update_functions[update_type]
             user.workspace_quota = fun(user, value)
-        elif credits_type == 'environment_quota_value' and user.is_workspace_owner:
-            if not user.environment_quota:
-                user.environment_quota = 0
-            fun = environment_quota_update_functions[update_type]
-            user.environment_quota = fun(user, value)
-
     except:
         abort(422)
 
@@ -66,7 +55,7 @@ class Quota(restful.Resource):
         results = []
         for user in User.query.all():
             results.append(
-                dict(id=user.id, environment_quota=user.environment_quota, workspace_quota=user.workspace_quota)
+                dict(id=user.id, workspace_quota=user.workspace_quota)
             )
 
         return results
@@ -85,7 +74,7 @@ class UserQuota(restful.Resource):
         update_user_quota(user, args['type'], args['value'], args['credits_type'])
 
         db.session.commit()
-        return dict(id=user.id, environment_quota=user.environment_quota, workspace_quota=user.workspace_quota)
+        return dict(id=user.id, workspace_quota=user.workspace_quota)
 
     @auth.login_required
     @marshal_with(quota_fields)
@@ -96,4 +85,4 @@ class UserQuota(restful.Resource):
         if not g.user.is_admin and user_id != g.user.id:
             abort(403)
 
-        return dict(id=user.id, environment_quota=user.environment_quota, workspace_quota=user.workspace_quota)
+        return dict(id=user.id, workspace_quota=user.workspace_quota)

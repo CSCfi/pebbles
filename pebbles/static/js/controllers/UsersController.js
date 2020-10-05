@@ -199,7 +199,6 @@ app.controller('ModalQuotaController', function ($q, $scope, $modalInstance, Res
     $scope.user_environment_info = function() {
 	    var user_workspaces = [];
 	    if(users.length != 0) {
-		$scope.environment_quota = users[0].environment_quota;
 		$scope.workspace_quota = users[0].workspace_quota;
 		user_workspaces = _.filter(workspaces, {'owner_eppn': users[0].eppn});
 	    }

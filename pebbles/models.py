@@ -85,7 +85,6 @@ class User(db.Model):
     is_blocked = db.Column(db.Boolean, default=False)
     latest_seen_message_ts = db.Column(db.DateTime)
     workspace_quota = db.Column(db.Integer, default=0)
-    environment_quota = db.Column(db.Integer, default=0)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     workspaces = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
@@ -238,6 +237,7 @@ class Workspace(db.Model):
                             cascade="all, delete-orphan")
     banned_users = db.relationship('User', secondary=workspace_banned_user,
                                    backref=backref('banned_workspaces', lazy="dynamic"), lazy='dynamic')
+    environment_quota = db.Column(db.Integer, default=10)
     environments = db.relationship('Environment', backref='workspace', lazy='dynamic')
 
     def __init__(self, name):

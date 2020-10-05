@@ -15,7 +15,7 @@
 
         <div ng-hide="users.length==0">
 	    <h4> Workspace quota: {{workspace_quota}} </h4>
-	    <h4> Environment quota for each workspace: {{environment_quota}} </h4>
+	    <h4> Environment quota for each workspace by default: 10 </h4>
             <h4> Total environments: {{user_environment_info()}} </h4>
 
             <uib-accordion close-others="false">
@@ -96,12 +96,6 @@
              </label>
           </div>
           </br>
-          <div class="radio">
-             <label>
-                <h4><input ng-model="formdata.valueQuota" type="radio" name="valueQuota" value="environment_quota_value">
-                environment quota</h4>
-             </label>
-          </div>
           <div ng-show ="formdata.valueQuota" >
              </br>
              <i><p>Add or set given amount of credits to quota(s)</p></i>
