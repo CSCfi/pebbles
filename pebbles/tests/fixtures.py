@@ -1,5 +1,10 @@
 # Test fixture methods to be called from app context so we can access the db
+import importlib
+import inspect
 
+import yaml
+
+import pebbles
 from pebbles.models import (
     User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
     Message, Instance)
@@ -52,6 +57,7 @@ def primary_test_setup(namespace):
     ws0 = Workspace('System.default')
     ws0.id = 'ws0'
     ws0.users.append(WorkspaceUserAssociation(user=u1, owner=True))
+    db.session.add(ws0)
 
     ws1 = Workspace('Workspace1')
     ws1.id = 'ws1'
@@ -59,21 +65,25 @@ def primary_test_setup(namespace):
     ws1.users.append(WorkspaceUserAssociation(user=u2))
     ws1.users.append(WorkspaceUserAssociation(user=u3, manager=True, owner=True))
     ws1.users.append(WorkspaceUserAssociation(user=u4, manager=True))
+    db.session.add(ws1)
 
     ws2 = Workspace('Workspace2')
     ws2.id = 'ws2'
     ws2.users.append(WorkspaceUserAssociation(user=u3))
     ws2.users.append(WorkspaceUserAssociation(user=u4, owner=True))
+    db.session.add(ws2)
 
     ws3 = Workspace('Workspace3')
     ws3.id = 'ws3'
     ws3.users.append(WorkspaceUserAssociation(user=u4, owner=True))
     ws3.banned_users.append(u2)
     ws3.banned_users.append(u3)
+    db.session.add(ws3)
 
     ws4 = Workspace('Workspace4')
     ws4.id = 'ws4'
     ws4.users.append(WorkspaceUserAssociation(user=u1, owner=True))
+    db.session.add(ws4)
 
     namespace.known_workspace_id = ws1.id
     namespace.known_workspace_id_2 = ws2.id
@@ -81,12 +91,6 @@ def primary_test_setup(namespace):
     namespace.known_banned_workspace_join_id = ws3.join_code
     namespace.known_workspace_join_id = ws4.join_code
     namespace.system_default_workspace_id = ws0.id
-    db.session.add(ws1)
-    db.session.add(ws2)
-    db.session.add(ws3)
-    db.session.add(ws4)
-    db.session.add(ws0)
-    db.session.commit()
 
     t1 = EnvironmentTemplate()
     t1.name = 'TestTemplate'
@@ -177,7 +181,6 @@ def primary_test_setup(namespace):
     n2.message = "Second message message"
     namespace.known_message2_id = n2.id
     db.session.add(n2)
-    db.session.commit()
 
     i1 = Instance(
         Environment.query.filter_by(id=b2.id).first(),
@@ -206,4 +209,42 @@ def primary_test_setup(namespace):
         Environment.query.filter_by(id=b4.id).first(),
         User.query.filter_by(eppn="admin@example.org").first())
     db.session.add(i5)
+
     db.session.commit()
+
+
+def load_yaml(yaml_data):
+    """
+    A function to load annotated yaml data into the database.
+    Example can be found in devel_dataset.yaml
+    """
+
+    # callback function for constructing custom objects from yaml
+    def model_object_constructor(loader, node):
+        values = loader.construct_mapping(node, deep=True)
+        # figure out class and use its constructor
+        cls = getattr(
+            importlib.import_module('pebbles.models'),
+            node.tag[1:],
+            None
+        )
+        # we could not find a matching class, return value dict
+        if not cls:
+            return values
+
+        if 'id' in values:
+            id = values.pop('id')
+            obj = cls(**values)
+            obj.id = id
+        else:
+            obj = cls(**values)
+
+        return obj
+
+    # wire custom construction for all pebbles.models classes
+    for class_info in inspect.getmembers(pebbles.models, inspect.isclass):
+        yaml.add_constructor('!' + class_info[0], model_object_constructor)
+
+    data = yaml.unsafe_load(yaml_data)
+
+    return data

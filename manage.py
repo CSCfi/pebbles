@@ -1,17 +1,18 @@
-from flask import url_for
-from flask_script import Manager, Server, Shell
-from flask_migrate import MigrateCommand, Migrate
-from werkzeug.middleware.profiler import ProfilerMiddleware
 import getpass
-from pebbles import models
-from pebbles.config import BaseConfig
-from pebbles.server import app
-from pebbles.views.commons import create_user, create_worker, create_system_workspaces
-from pebbles.models import db
-from pebbles.tests.fixtures import primary_test_setup
-
 import random
 import string
+
+from flask import url_for
+from flask_migrate import MigrateCommand, Migrate
+from flask_script import Manager, Server, Shell
+from werkzeug.middleware.profiler import ProfilerMiddleware
+
+import pebbles.tests.fixtures
+from pebbles import models
+from pebbles.config import BaseConfig
+from pebbles.models import db, User
+from pebbles.server import app
+from pebbles.views.commons import create_user, create_worker, create_system_workspaces
 
 manager = Manager(app)
 migrate = Migrate(app, models.db)
@@ -88,13 +89,6 @@ def profile():
 
 
 @manager.command
-def fixtures():
-    """ Insert the same fixtures as in tests to make manually testing UI simpler.
-    """
-    primary_test_setup(type('', (), {})())
-
-
-@manager.command
 def createuser(eppn=None, password=None, admin=False):
     """Creates new user"""
     if not eppn:
@@ -103,10 +97,17 @@ def createuser(eppn=None, password=None, admin=False):
         password = getpass.getpass("password: ")
     return create_user(eppn=eppn, password=password, is_admin=admin, email_id=eppn)
 
+
+@manager.command
+def create_database():
+    """Creates database"""
+    db.create_all()
+
+
 @manager.command
 def initialize_system(eppn=None, password=None):
     """Initializes the system using provided admin credentials"""
-    db.create_all()
+    create_database()
     admin_user = createuser(eppn=eppn, password=password, admin=True)
     create_worker()
     create_system_workspaces(admin_user)
@@ -138,11 +139,11 @@ def createuser_bulk(user_prefix=None, domain_name=None, admin=False):
         retry = 1
         # eg: demo_user_Rgv4@example.com
         user = user_prefix + "_" + ''.join(random.choice(string.ascii_lowercase +
-                                           string.digits) for _ in range(3)) + "@" + domain_name
+                                                         string.digits) for _ in range(3)) + "@" + domain_name
         password = ''.join(random.choice(string.ascii_uppercase +
-                           string.ascii_lowercase + string.digits) for _ in range(8))
+                                         string.ascii_lowercase + string.digits) for _ in range(8))
         a = create_user(user, password, is_admin=admin)
-        if (not a and retry < 5):
+        if not a and retry < 5:
             retry += 1
             no_of_accounts += 1
         else:
@@ -152,13 +153,12 @@ def createuser_bulk(user_prefix=None, domain_name=None, admin=False):
 
 @manager.command
 def createworker():
-    """Creates background worker"""
+    """Creates an admin account for worker"""
     create_worker()
 
 
 @manager.command
 def list_routes():
-
     # noinspection PyCompatibility
     from urllib.parse import unquote
 
@@ -178,6 +178,25 @@ def list_routes():
 
     for line in route_data:
         print('%-40s %-40s %-100s' % (line[0], line[1], line[2]))
+
+
+@manager.command
+def load_test_data(file):
+    """Loads an annotated YAML file into database"""
+    with open(file, 'r') as f:
+        data = pebbles.tests.fixtures.load_yaml(f)
+        for obj in data['data']:
+            db.session.add(obj)
+        db.session.commit()
+
+
+@manager.command
+def reset_worker_password():
+    """Resets worker password to application secret key"""
+    worker = User.query.filter_by(eppn='worker@pebbles').first()
+    worker.set_password(app.config['SECRET_KEY'])
+    db.session.add(worker)
+    db.session.commit()
 
 
 if __name__ == '__main__':

@@ -99,10 +99,10 @@ def get_full_environment_config(environment):
     allowed_attrs = template.allowed_attrs
     allowed_attrs = ['name', 'description'] + allowed_attrs
     full_config = template.config
-    bp_config = environment.config
+    env_config = environment.config if environment.config else {}
     for attr in allowed_attrs:
-        if attr in bp_config:
-            full_config[attr] = bp_config[attr]
+        if attr in env_config:
+            full_config[attr] = env_config[attr]
     return full_config
 
 

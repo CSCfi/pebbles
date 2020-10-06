@@ -45,8 +45,7 @@ class EnvironmentTemplateList(restful.Resource):
             environment_template.schema = selected_cluster["schema"]
             environment_template.form = selected_cluster["form"]
             # Due to immutable nature of config field, whole dict needs to be reassigned.
-            # Issue #444 in github
-            environment_template_config = environment_template.config
+            environment_template_config = environment_template.config if environment_template.config else {}
             environment_template_config['name'] = environment_template.name
             environment_template.config = environment_template_config
 

@@ -66,7 +66,7 @@ class EnvironmentList(restful.Resource):
     def post(self):
         form = EnvironmentForm()
         if not form.validate_on_submit():
-            logging.warning("validation error on create environment")
+            logging.warning("Form validation error on create environment %s" % form.errors)
             return form.errors, 422
         user = g.user
         environment = Environment()
@@ -238,8 +238,7 @@ def process_environment(environment):
     environment.form = template.environment_form
 
     # Due to immutable nature of config field, whole dict needs to be reassigned.
-    # Issue #444 in github
-    environment_config = environment.config
+    environment_config = environment.config if environment.config else {}
     environment_config['name'] = environment.name
     environment.config = environment_config
 

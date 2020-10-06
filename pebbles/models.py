@@ -89,7 +89,8 @@ class User(db.Model):
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     workspaces = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
 
-    def __init__(self, eppn, password=None, is_admin=False, email_id=None, expiry_date=None, pseudonym=None):
+    def __init__(self, eppn, password=None, is_admin=False, email_id=None, expiry_date=None, pseudonym=None,
+                 workspace_quota=None):
         self.id = uuid.uuid4().hex
         self.eppn = eppn
         self.is_admin = is_admin
@@ -109,6 +110,8 @@ class User(db.Model):
             # the probability of collision is low enough. There are 400 pseudonyms for all inhabitants on earth
             # with 36**8 alternatives
             self.pseudonym = ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(8))
+        if workspace_quota:
+            self.workspace_quota = workspace_quota
 
     def __eq__(self, other):
         return self.id == other.id
@@ -229,7 +232,7 @@ class Workspace(db.Model):
 
     id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(32))
-    _join_code = db.Column(db.String(64))
+    _join_code = db.Column('join_code', db.String(64))
     description = db.Column(db.Text)
     # current_status when created is "active". Later there is option to be "archived".
     _current_status = db.Column('current_status', db.String(32), default='active')
@@ -306,8 +309,18 @@ class EnvironmentTemplate(db.Model):
     _environment_model = db.Column('environment_model', db.Text)
     _allowed_attrs = db.Column('allowed_attrs', db.Text)
 
-    def __init__(self):
+    def __init__(self, name=None, cluster=None, allowed_attrs=None, config=None, is_enabled=False,
+                 environment_schema=None, environment_form=None, environment_model=None):
+
         self.id = uuid.uuid4().hex
+        self.name = name
+        self.cluster = cluster
+        self._allowed_attrs = json.dumps(allowed_attrs)
+        self._config = json.dumps(config)
+        self.is_enabled = is_enabled
+        self._environment_schema = json.dumps(environment_schema)
+        self._environment_form = json.dumps(environment_form)
+        self._environment_model = json.dumps(environment_model)
 
     @hybrid_property
     def config(self):
@@ -373,8 +386,13 @@ class Environment(db.Model):
     # current_status when created is "active". Later there are options to be "archived" or "deleted".
     _current_status = db.Column('current_status', db.String(32), default='active')
 
-    def __init__(self):
+    def __init__(self, name=None, template_id=None, workspace_id=None, is_enabled=False, config=None):
         self.id = uuid.uuid4().hex
+        self.name = name
+        self.template_id = template_id
+        self.workspace_id = workspace_id
+        self.is_enabled = is_enabled
+        self._config = json.dumps(config)
         self._current_status = Environment.STATE_ACTIVE
 
     @hybrid_property
