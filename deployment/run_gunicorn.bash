@@ -4,4 +4,5 @@
 # script to be able to redirect the access logs to a file instead of stdout.
 # This is required for central logging.
 
-/opt/app-root/bin/python3 /opt/app-root/bin/gunicorn --bind=0.0.0.0:8080 ${APP_MODULE}
+# Become the gunicorn process for executing as pid 1 for cleaner processes and better signal handling
+exec /opt/app-root/bin/python3 /opt/app-root/bin/gunicorn --bind=0.0.0.0:8080 ${APP_MODULE}
