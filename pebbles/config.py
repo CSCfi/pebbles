@@ -100,33 +100,22 @@ class BaseConfig(object):
     # SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
     SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:pebbles@localhost/pebbles'
     DATABASE_PASSWORD = None
-    M2M_CREDENTIAL_STORE = (
-        '/var/run/pebbles_m2m',
-        'Where to find the M2M credentials file'
-    )
-    MESSAGE_QUEUE_URI = 'redis://redis:6379/0'
-    INSTANCE_DATA_DIR = '/var/spool/pb_instances'
-    INTERNAL_API_BASE_URL = 'https://api:1443/api/v1'
-    PUBLIC_IPV4 = (
-        '127.0.0.1',
-        'used by Docker Driver to create access urls'
-        ' so FQDN is actually expected in production'
-    )
+
+    # Base url for this installation used for creating hyperlinks
     BASE_URL = 'https://localhost:8888'
+
+    # form content limit in flask
     MAX_CONTENT_LENGTH = 1024 * 1024
-    # ToDo: what uses the below? -jyrsa 2016-11-28
-    FAKE_PROVISIONING = False
+
     SENDER_EMAIL = 'sender@example.org'
     MAIL_SERVER = 'smtp.example.org'
     MAIL_SUPPRESS_SEND = True
     MAIL_USE_TLS = False
     SKIP_TASK_QUEUE = False
-    WRITE_PROVISIONING_LOGS = True
     INSTANCE_NAME_PREFIX = (
         'pb-',
         'all spawned instance names will have this prefix'
     )
-    DEFAULT_QUOTA = 1.0
     INSTALLATION_NAME = 'Pebbles'
     INSTALLATION_DESCRIPTION = ('A tool for provisioning '
                                 'ephemeral private cloud resources.')
@@ -141,17 +130,7 @@ class BaseConfig(object):
         'Dictionary of institution types and corresponding domains'
     )
 
-    PLUGIN_WHITELIST = (
-        'DummyDriver',
-        'A whitespace-separated case-sensitive'
-        ' list of all enabled plugins'
-    )
-
     PRESERVE_CONTEXT_ON_EXCEPTION = False
-
-    EXTERNAL_HTTPS_PORT = 443
-
-    PROVISIONING_NUM_WORKERS = 1
 
     # Oauth2 settings
     OAUTH2_LOGIN_ENABLED = False
@@ -179,10 +158,8 @@ class BaseConfig(object):
 class TestConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     MAIL_SUPPRESS_SEND = True
-    FAKE_PROVISIONING = True
     SKIP_TASK_QUEUE = True
     BCRYPT_LOG_ROUNDS = 4
-    WRITE_PROVISIONING_LOGS = False
     TEST_MODE = True
     INSTALLATION_NAME = 'Pebbles'
 
