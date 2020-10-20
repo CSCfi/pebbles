@@ -60,6 +60,7 @@ def oauth2_login():
     logging.info('new oauth2 session for user %s', user.id)
 
     token = user.generate_auth_token(app.config['SECRET_KEY'])
+    # does not support angularJS
     return render_template(
         'login.html',
         token=token,

@@ -1,31 +1,22 @@
-<html ng-app="pebblesLoginApp">
+<html>
     <head>
-        <script src="/js/vendor/jquery-3.3.1.min.js"></script>
-        <script src="/js/vendor/angular.min.js"></script>
-        <script src="/js/vendor/angular-local-storage.min.js"></script>
-
-
         <script type="text/javascript">
-            angular.module('pebblesLoginApp', ['LocalStorageModule'])
-            .controller('HakaController', function($location,
-                        localStorageService) {
-                localStorageService.set('userName', '{{ username }}');
-                localStorageService.set('token', btoa('{{ token }}' + ":"));
-                {% if is_admin %}
-                    localStorageService.set('isAdmin', true);
-                {% endif %}
-                {% if is_workspace_owner %}
-                    localStorageService.set('isWorkspaceOwner', true);
-                {% endif %}
-                {% if is_workspace_manager %}
-                    localStorageService.set('isWorkspaceManager', true);
-                {% endif %}
-                localStorageService.set('userId', '{{ userid }}');
-                localStorageService.set('iconValue', {{icon_value|safe}});
-                window.location.assign("/");
-            });
+            localStorage.setItem('user_name', '{{ username }}');
+            localStorage.setItem('token', btoa('{{ token }}' + ":"));
+            {% if is_admin %}
+                localStorage.setItem('is_admin', true);
+            {% endif %}
+            {% if is_workspace_owner %}
+                localStorage.setItem('is_workspaceOwner', true);
+            {% endif %}
+            {% if is_workspace_manager %}
+                localStorage.setItem('is_workspaceManager', true);
+            {% endif %}
+            localStorage.setItem('user_id', '{{ userid }}');
+            localStorage.setItem('icon_value', {{icon_value|safe}});
+            window.location.assign("/dashboard");
         </script>
     </head>
-    <body ng-controller="HakaController">
+    <body>
     </body>
 </html>
