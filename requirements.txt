@@ -26,7 +26,7 @@ WTForms-Alchemy==0.16.9
 
 # for s2i builds
 psycopg2==2.8.6
-gunicorn==19.7.1
+gunicorn==20.0.4
 
 # for pycharm remote debugging (PyCharm 2019.2.3)
 #pydevd-pycharm~=193.5662.61
@@ -43,3 +43,6 @@ openshift==0.11.2
 
 # for documentation
 pbr==5.5.0
+
+# for hot-reload in development
+inotify==0.2.10

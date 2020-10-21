@@ -4,6 +4,9 @@ LABEL "io.k8s.display-name"="pebbles"
 ENV UPGRADE_PIP_TO_LATEST="1"
 USER root
 
+# Add inotify for gunicorn hot reload
+RUN yum install -y epel-release && yum install -y inotify-tools && yum clean all
+
 # Copying in necessary bits of source code
 RUN mkdir /tmp/src
 COPY requirements.txt /tmp/src/requirements.txt
