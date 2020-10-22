@@ -36,6 +36,16 @@ def get_volume_name(instance, persistence_level=VolumePersistenceLevel.INSTANCE_
 
 
 class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
+    @staticmethod
+    def get_configuration():
+        """ Return the default config values which are needed for the
+            driver creation (via schemaform)
+        """
+        from pebbles.drivers.provisioning.kubernetes_driver_config import CONFIG
+
+        config = CONFIG.copy()
+        return config
+
     def __init__(self, logger, config, cluster_config):
         super().__init__(logger, config, cluster_config)
 

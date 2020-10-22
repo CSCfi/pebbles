@@ -1,9 +1,11 @@
 import base64
+import importlib
 import logging
 import re
 from functools import wraps
 from logging.handlers import RotatingFileHandler
 
+import yaml
 from flask import abort, g
 
 from pebbles.config import LOG_FORMAT
@@ -145,3 +147,51 @@ def init_logging(config, log_name):
         handler = RotatingFileHandler(filename=logfile, maxBytes=10 * 1024 * 1024, backupCount=5)
         handler.setFormatter(logging.Formatter(LOG_FORMAT))
         logging.getLogger().addHandler(handler)
+
+
+def load_cluster_config(load_passwords=True):
+    """load configuration for clusters where the instances are executed"""
+    cluster_config_file = '/run/secrets/pebbles/cluster-config.yaml'
+
+    try:
+        cluster_config = yaml.safe_load(open(cluster_config_file, 'r'))
+    except (IOError, ValueError) as e:
+        logging.warning("Unable to parse cluster data from path %s", cluster_config_file)
+        raise e
+
+    # just the config (used by API)
+    if not load_passwords:
+        logging.debug('found clusters: %s', [x['name'] for x in cluster_config.get('clusters')])
+        return cluster_config
+
+    # merge password info into the config
+    cluster_passwords_file = '/run/secrets/pebbles/cluster-passwords.yaml'
+    try:
+        cluster_passwords = yaml.safe_load(open(cluster_passwords_file, 'r'))
+    except (IOError, ValueError) as e:
+        logging.warning("Unable to parse cluster passwords from path %s", cluster_passwords_file)
+        raise e
+
+    for cluster in cluster_config.get('clusters'):
+        cluster_name = cluster.get('name')
+        password = cluster_passwords.get(cluster_name)
+        if password:
+            logging.debug('setting password for cluster %s' % cluster_name)
+            cluster['password'] = password
+
+    return cluster_config
+
+
+def find_driver_class(driver_name):
+    """tries to find a provisioning driver by name"""
+    driver_class = None
+    for module in 'kubernetes_driver', 'openshift_template_driver':
+        driver_class = getattr(
+            importlib.import_module('pebbles.drivers.provisioning.%s' % module),
+            driver_name,
+            None
+        )
+        if driver_class:
+            break
+
+    return driver_class

@@ -28,7 +28,8 @@ class ProvisioningDriverBase(object):
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         return pbclient
 
-    def get_configuration(self):
+    @staticmethod
+    def get_configuration():
         return {
             'schema': {
                 'type': 'object',

@@ -21,7 +21,8 @@ class OpenShiftTemplateDriver(OpenShiftRemoteDriver):
         Since this driver is subclassed from OpenShiftRemoteDriver, it uses a lot of methods from it.
     """
 
-    def get_configuration(self):
+    @staticmethod
+    def get_configuration():
         """ Return the default config values which are needed for the
             driver creation (via schemaform)
         """

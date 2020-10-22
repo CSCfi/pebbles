@@ -12,7 +12,8 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
     def is_expired(self):
         return False
 
-    def get_configuration(self):
+    @staticmethod
+    def get_configuration():
         from pebbles.drivers.provisioning.dummy_driver_config import CONFIG
 
         return CONFIG

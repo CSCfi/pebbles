@@ -1,4 +1,3 @@
-import importlib
 import logging
 import os
 import signal
@@ -6,35 +5,10 @@ import traceback
 from random import randrange
 from time import sleep
 
-import yaml
-
 from pebbles.client import PBClient
 from pebbles.config import BaseConfig
 from pebbles.models import Instance
-from pebbles.utils import init_logging
-
-
-def load_cluster_config():
-    cluster_config_file = '/run/secrets/pebbles/cluster-config.yaml'
-    cluster_passwords_file = '/run/secrets/pebbles/cluster-passwords.yaml'
-
-    try:
-        cluster_config = yaml.safe_load(open(cluster_config_file, 'r'))
-        cluster_passwords = yaml.safe_load(open(cluster_passwords_file, 'r'))
-    except (IOError, ValueError) as e:
-        logging.warning("Unable to parse cluster data from path "
-                        "%s %s" % (cluster_config_file, cluster_passwords_file))
-        raise e
-
-    for cluster in cluster_config.get('clusters'):
-        cluster_name = cluster.get('name')
-        logging.debug('found cluster %s' % cluster_name)
-        password = cluster_passwords.get(cluster_name)
-        if password:
-            logging.debug('setting password for cluster %s' % cluster_name)
-            cluster['password'] = password
-
-    return cluster_config
+from pebbles.utils import init_logging, load_cluster_config, find_driver_class
 
 
 class Worker:
@@ -62,36 +36,32 @@ class Worker:
         self.terminate = True
 
     def get_driver(self, cluster_name):
-
+        """create driver instance for given cluster"""
         cluster = None
-        for b in self.cluster_config['clusters']:
-            if b.get('name') == cluster_name:
-                cluster = b
+        for c in self.cluster_config['clusters']:
+            if c.get('name') == cluster_name:
+                cluster = c
                 break
         if cluster is None:
             raise RuntimeWarning('No matching cluster in configuration for %s' % cluster_name)
 
+        # check cache
         if 'driver_instance' in cluster.keys():
             # we found an existing instance, use that if it is still valid
             driver_instance = cluster.get('driver_instance')
             if not driver_instance.is_expired():
                 return driver_instance
 
-        # create the driver, they live in pebbles.drivers.provisioning
-        for module in 'kubernetes_driver', 'openshift_template_driver':
-            driver_class = getattr(
-                importlib.import_module('pebbles.drivers.provisioning.%s' % module),
-                cluster.get('driver'),
-                None
-            )
-            if not driver_class:
-                continue
-            driver_instance = driver_class(logging.getLogger(), self.config, cluster)
-            cluster['driver_instance'] = driver_instance
+        # create the driver by finding out the class and creating an instance
+        driver_class = find_driver_class(cluster.get('driver'))
+        if not driver_class:
+            raise RuntimeWarning('No matching driver %s found for %s' % (cluster.get('driver'), cluster_name))
 
-            return driver_instance
+        # create and instance and populate the cache
+        driver_instance = driver_class(logging.getLogger(), self.config, cluster)
+        cluster['driver_instance'] = driver_instance
 
-        raise RuntimeWarning('No matching driver %s found for %s' % (cluster.get('driver'), cluster_name))
+        return driver_instance
 
     def update_instance(self, instance):
         logging.debug('updating %s' % instance)
