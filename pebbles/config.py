@@ -103,6 +103,8 @@ class BaseConfig(object):
 
     # Base url for this installation used for creating hyperlinks
     BASE_URL = 'https://localhost:8888'
+    # Internal url for contacting the API, defaults to 'api' Service
+    INTERNAL_API_BASE_URL = 'http://api:8080/api/v1'
 
     # form content limit in flask
     MAX_CONTENT_LENGTH = 1024 * 1024
