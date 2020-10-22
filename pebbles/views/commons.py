@@ -6,8 +6,8 @@ from flask import g, render_template, abort, current_app
 from flask_httpauth import HTTPBasicAuth
 from flask_restful import fields
 
-from pebbles.drivers.provisioning import dummy_driver_config, kubernetes_driver_config, openshift_template_driver_config
 from pebbles.models import db, ActivationToken, User, Workspace, WorkspaceUserAssociation
+from pebbles.utils import load_cluster_config, find_driver_class
 
 user_fields = {
     'id': fields.String,
@@ -74,44 +74,31 @@ def create_user(eppn, password, is_admin=False, email_id=None):
 
 
 def get_clusters():
-    cluster_data = [
-        dict(
-            name='DummyDriver',
-            conf=dummy_driver_config.CONFIG,
-            schema=dummy_driver_config.CONFIG['schema'],
-            model=dummy_driver_config.CONFIG['model'],
-            form=dummy_driver_config.CONFIG['form']
-        ),
-        dict(
-            name='local_kubernetes',
-            conf=kubernetes_driver_config.CONFIG,
-            schema=kubernetes_driver_config.CONFIG['schema'],
-            model=kubernetes_driver_config.CONFIG['model'],
-            form=kubernetes_driver_config.CONFIG['form']
-        ),
-        dict(
-            name='OpenShiftLocalDriver',
-            conf=kubernetes_driver_config.CONFIG,
-            schema=kubernetes_driver_config.CONFIG['schema'],
-            model=kubernetes_driver_config.CONFIG['model'],
-            form=kubernetes_driver_config.CONFIG['form']
-        ),
-        dict(
-            name='OpenShiftRemoteDriver',
-            conf=kubernetes_driver_config.CONFIG,
-            schema=kubernetes_driver_config.CONFIG['schema'],
-            model=kubernetes_driver_config.CONFIG['model'],
-            form=kubernetes_driver_config.CONFIG['form']
-        ),
-        dict(
-            name='OpenShiftTemplateDriver',
-            conf=openshift_template_driver_config.CONFIG,
-            schema=openshift_template_driver_config.CONFIG['schema'],
-            model=openshift_template_driver_config.CONFIG['model'],
-            form=openshift_template_driver_config.CONFIG['form']
+    if 'TEST_MODE' not in current_app.config:
+        cluster_config = load_cluster_config(load_passwords=False)
+    else:
+        # rig unit tests to use dummy data
+        cluster_config = dict(clusters=[
+            dict(name='dummy_cluster_1', driver='KubernetesLocalDriver'),
+            dict(name='dummy_cluster_2', driver='KubernetesLocalDriver'),
+        ])
 
-        ),
-    ]
+    cluster_data = []
+    for cluster in cluster_config['clusters']:
+        driver_class = find_driver_class(cluster.get('driver'))
+        if not driver_class:
+            logging.warning('No class for driver %s found', cluster.get('driver'))
+            continue
+        driver_config = driver_class.get_configuration()
+        logging.debug('adding cluster %s to cluster_data', cluster['name'])
+        cluster_data.append(dict(
+            name=cluster['name'],
+            conf=driver_config,
+            schema=driver_config['schema'],
+            model=driver_config['model'],
+            form=driver_config['form'],
+        ))
+
     return cluster_data
 
 

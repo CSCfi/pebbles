@@ -1045,7 +1045,7 @@ class FlaskApiTestCase(BaseTestCase):
             'name': 'test_environment_template_2',
             'config': {'foo': 'bar', 'maximum_lifetime': '1h'},
             'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']},
-            'cluster': 'OpenShiftLocalDriver'
+            'cluster': 'dummy_cluster_1'
         }
         response = self.make_authenticated_admin_request(
             method='POST',
@@ -1056,7 +1056,7 @@ class FlaskApiTestCase(BaseTestCase):
     def test_modify_environment_template(self):
         t = EnvironmentTemplate()
         t.name = 'TestTemplate'
-        t.cluster = 'OpenShiftLocalDriver'
+        t.cluster = 'dummy_cluster_1'
         t.config = {'memory_limit': '512m', 'maximum_lifetime': '1h'}
         t.allowed_attrs = ['maximum_lifetime']
         t.is_enabled = True
@@ -1096,7 +1096,7 @@ class FlaskApiTestCase(BaseTestCase):
             'name': 'test_environment_template_2',
             'config': {'foo': 'bar', 'maximum_lifetime': '1h'},
             'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']},
-            'cluster': 'OpenShiftLocalDriver'
+            'cluster': 'dummy_cluster_1'
         }
         response = self.make_authenticated_admin_request(
             method='PUT',
@@ -2012,14 +2012,14 @@ class FlaskApiTestCase(BaseTestCase):
              'config': {
                  'maximum_lifetime': '1h'
              },
-             'cluster_name': 'OpenShiftLocalDriver',
+             'cluster_name': 'dummy',
              'allowed_attrs': ['maximum_lifetime']
              },
             {'name': 'foobar',
              'config': {
                  'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
              },
-             'cluster_name': 'OpenShiftLocalDriver',
+             'cluster_name': 'dummy',
              'allowed_attrs': []
              }
         ]
@@ -2045,14 +2045,14 @@ class FlaskApiTestCase(BaseTestCase):
              'config': {
                  'maximum_lifetime': '1h'
              },
-             'cluster_name': 'OpenShiftLocalDriver',
+             'cluster_name': 'dummy_cluster_1',
              'allowed_attrs': ['maximum_lifetime']
              },
             {'name': 'foobar',
              'config': {
                  'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
              },
-             'cluster_name': 'OpenShiftLocalDriver',
+             'cluster_name': 'dummy_cluster_1',
              'allowed_attrs': []
              }
         ]

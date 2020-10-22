@@ -94,13 +94,13 @@ def primary_test_setup(namespace):
 
     t1 = EnvironmentTemplate()
     t1.name = 'TestTemplate'
-    t1.cluster = 'OpenShiftLocalDriver'
+    t1.cluster = 'dummy_cluster_1'
     db.session.add(t1)
     namespace.known_template_id_disabled = t1.id
 
     t2 = EnvironmentTemplate()
     t2.name = 'EnabledTestTemplate'
-    t2.cluster = 'OpenShiftRemoteDriver'
+    t2.cluster = 'dummy_cluster_2'
     t2.config = {
         'labels': 'label1, label with space, label2',
         'cost_multiplier': '1.0',

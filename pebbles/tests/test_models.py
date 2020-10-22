@@ -16,7 +16,7 @@ class ModelsTestCase(BaseTestCase):
 
         t1 = EnvironmentTemplate()
         t1.name = 'EnabledTestTemplate'
-        t1.cluster = 'OpenShiftLocalDriver'
+        t1.cluster = 'dummy_cluster_1'
         t1.is_enabled = True
         t1.allowed_attrs = ['cost_multiplier']
         db.session.add(t1)
