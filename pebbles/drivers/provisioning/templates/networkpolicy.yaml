@@ -1,0 +1,13 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-policy
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+  podSelector: {}
+  policyTypes:
+  - Ingress

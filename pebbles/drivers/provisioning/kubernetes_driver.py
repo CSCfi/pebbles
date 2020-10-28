@@ -6,7 +6,6 @@ from urllib.parse import urlparse, parse_qs
 import kubernetes
 import requests
 import yaml
-from kubernetes import client as kc
 from kubernetes.client.rest import ApiException
 from openshift.dynamic import DynamicClient
 
@@ -25,7 +24,10 @@ class VolumePersistenceLevel(Enum):
 def parse_template(name, values):
     with open(os.path.join(os.path.dirname(__file__), 'templates', name), 'r') as f:
         template = f.read()
-        return template.format(**values)
+        if values:
+            return template.format(**values)
+        else:
+            return template
 
 
 def get_volume_name(instance, persistence_level=VolumePersistenceLevel.INSTANCE_LIFETIME):
@@ -54,8 +56,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         self._namespace = None
 
         # this is implemented in subclass
-        self.load_kube_client_config()
-        self.dynamic_client = DynamicClient(kc.ApiClient())
+        self.kubernetes_api_client = self.create_kube_client()
+        self.dynamic_client = DynamicClient(self.kubernetes_api_client)
 
     def get_instance_hostname(self, instance):
         return '%s.%s' % (instance.get('name'), self.ingress_app_domain)
@@ -77,12 +79,23 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         self.create_namespace(namespace)
 
     def create_namespace(self, namespace):
-        # override this in subclass to create namespaces on demand
-        raise RuntimeWarning('Namespace creation not implemented')
-
-    def load_kube_client_config(self):
         # implement this in subclass
-        pass
+        raise RuntimeWarning('create_namespace() not implemented')
+
+    def create_kube_client(self):
+        # implement this in subclass
+        raise RuntimeWarning('create_kube_client() not implemented')
+
+    def customize_deployment_dict(self, deployment_dict):
+        # override this in subclass to set custom values in deployment
+
+        # check if cluster config has a node selector set
+        if 'nodeSelector' in self.cluster_config:
+            self.logger.debug('setting nodeSelector in deployment')
+            pod_spec = deployment_dict['spec']['template']['spec']
+            pod_spec['nodeSelector'] = self.cluster_config['nodeSelector']
+
+        return deployment_dict
 
     def do_provision(self, token, instance_id):
         instance = self.fetch_and_populate_instance(token, instance_id)
@@ -196,6 +209,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         deployment_dict['spec']['template']['spec']['containers'][0]['env'] = env_var_list
         deployment_dict['spec']['template']['spec']['containers'][0]['args'] = environment_config['args'].split()
 
+        deployment_dict = self.customize_deployment_dict(deployment_dict)
+
         self.logger.debug('creating deployment\n%s' % yaml.safe_dump(deployment_dict))
 
         api = self.dynamic_client.resources.get(api_version='apps/v1', kind='Deployment')
@@ -218,7 +233,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
     def delete_service(self, namespace, instance):
         self.logger.debug('deleting service %s' % instance.get('name'))
-        kc.CoreV1Api().delete_namespaced_service(
+        api = self.dynamic_client.resources.get(api_version='v1', kind='Service')
+        api.delete(
             namespace=namespace,
             name=instance.get('name')
         )
@@ -235,10 +251,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
     def delete_ingress(self, namespace, instance):
         self.logger.debug('deleting ingress %s' % instance.get('name'))
-        kc.ExtensionsV1beta1Api().delete_namespaced_ingress(
-            namespace=namespace,
-            name=instance.get('name')
-        )
+        api = self.dynamic_client.resources.get(api_version='extensions/v1beta1', kind='Ingress')
+        api.delete(namespace=namespace, name=instance.get('name'))
 
     def ensure_volume(self, namespace, instance):
         volume_name = get_volume_name(instance)
@@ -268,7 +282,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
     def delete_volume(self, namespace, volume_name):
         self.logger.debug('deleting volume %s' % volume_name)
-        kc.CoreV1Api().delete_namespaced_persistent_volume_claim(
+        api = self.dynamic_client.resources.get(api_version='v1', kind='PersistentVolumeClaim')
+        api.delete(
             namespace=namespace,
             name=volume_name
         )
@@ -283,13 +298,58 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
 
 class KubernetesLocalDriver(KubernetesDriverBase):
-    def load_kube_client_config(self):
-        # load service account based config
-        kubernetes.config.load_incluster_config()
+    def create_kube_client(self):
         # pick up our namespace
         with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace', mode='r') as f:
             self._namespace = f.read()
-        self.logger.debug('detected namespace: %s' % self._namespace)
+        self.logger.debug('detected namespace: %s', self._namespace)
+
+        # load service account based config
+        kubernetes.config.load_incluster_config()
+        return kubernetes.client.ApiClient()
+
+
+class KubernetesRemoteDriver(KubernetesDriverBase):
+    def create_kube_client(self):
+        # load cluster config from kubeconfig
+        context = self.cluster_config['name']
+        self.logger.debug('loading context %s from /var/run/secrets/pebbles/cluster-kubeconfig', context)
+        return kubernetes.config.new_client_from_config(
+            config_file='/var/run/secrets/pebbles/cluster-kubeconfig',
+            context=self.cluster_config['name']
+        )
+
+    def get_instance_namespace(self, instance):
+        if 'instance_data' in instance and 'namespace' in instance['instance_data']:
+            # instance already has namespace assigned in instance_data
+            namespace = instance['instance_data']['namespace']
+            self.logger.debug('found namespace %s for instance %s' % (namespace, instance.get('name')))
+        elif 'namespace' in self.cluster_config.keys():
+            # if we have a single namespace configured, use that
+            namespace = self.cluster_config['namespace']
+            self.logger.debug('using fixed namespace %s for instance %s' % (namespace, instance.get('name')))
+        else:
+            # generate namespace name based on prefix and user pseudonym
+            namespace_prefix = self.cluster_config.get('namespacePrefix', 'pb-')
+            namespace = '%s%s' % (namespace_prefix, instance['user']['pseudonym'])
+            self.logger.debug('assigned namespace %s to instance %s' % (namespace, instance.get('name')))
+        return namespace
+
+    def create_namespace(self, namespace):
+        self.logger.info('creating namespace %s' % namespace)
+        namespace_yaml = parse_template('namespace.yaml', dict(
+            name=namespace,
+        ))
+        api = self.dynamic_client.resources.get(api_version='v1', kind='Namespace')
+        namespace_res = api.create(body=yaml.load(namespace_yaml))
+
+        # create a network policy for isolating the pods in the namespace
+        self.logger.info('creating default network policy in namespace %s' % namespace)
+        networkpolicy_yaml = parse_template('networkpolicy.yaml', dict())
+        api = self.dynamic_client.resources.get(api_version='networking.k8s.io/v1', kind='NetworkPolicy')
+        api.create(body=yaml.load(networkpolicy_yaml), namespace=namespace)
+
+        return namespace_res
 
 
 class OpenShiftLocalDriver(KubernetesLocalDriver):
@@ -338,7 +398,7 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
             'expires_at': int(parsed_query['expires_in'][0]) + int(time.time()),
         }
 
-    def load_kube_client_config(self):
+    def create_kube_client(self):
         try:
             token = self._request_token(
                 base_url=self.cluster_config.get('url'),
@@ -359,7 +419,8 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
         conf = kubernetes.client.Configuration()
         conf.host = self.cluster_config.get('url')
         conf.api_key = dict(authorization='Bearer %s' % self.cluster_config['token'])
-        kubernetes.client.Configuration.set_default(conf)
+
+        return kubernetes.client.ApiClient(conf)
 
     def get_instance_namespace(self, instance):
         if 'instance_data' in instance and 'namespace' in instance['instance_data']:

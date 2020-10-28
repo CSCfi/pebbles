@@ -12,6 +12,11 @@ spec:
         name: "{name}"
     spec:
       automountServiceAccountToken: false
+      # tolerate user role node taint
+      tolerations:
+      - key: "role"
+        value: "user"
+        effect: "NoSchedule"
       containers:
       - name: pebbles-instance
         image: "{image}"
