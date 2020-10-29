@@ -85,6 +85,7 @@ class User(db.Model):
     is_blocked = db.Column(db.Boolean, default=False)
     latest_seen_message_ts = db.Column(db.DateTime)
     workspace_quota = db.Column(db.Integer, default=0)
+    tc_acceptance_date = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     workspaces = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')

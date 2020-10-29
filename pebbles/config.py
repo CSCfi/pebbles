@@ -138,6 +138,14 @@ class BaseConfig(object):
     OAUTH2_LOGIN_ENABLED = False
     OAUTH2_PROXY_SECRET = 'change_me'
     OAUTH2_LOGO_URL = '/img/CSC_login.png'
+
+    # Terms and conditions settings
+    AGREEMENT_TITLE = 'Title here'
+    AGREEMENT_TERMS_PATH = 'http://link-to-terms'
+    AGREEMENT_COOKIES_PATH = 'http://link-to-cookies'
+    AGREEMENT_PRIVACY_PATH = 'http://link-to-privacy'
+    AGREEMENT_LOGO_PATH = 'assets/images/login/csc_front_logo.jpg'
+
     LOG_DIRECTORY = '/opt/log'
 
     ENABLE_FILE_LOGGING = False

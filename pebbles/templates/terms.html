@@ -1,0 +1,84 @@
+<html>
+  <head>
+    <title>{{title}}</title>
+    <style>
+      .centered {
+        background-color: white;
+        position: fixed;
+        width: 600px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .header {
+        font: bold;
+        text-align:left;
+        color: darkblue;
+        padding-bottom: 30px;
+      }
+
+      .form-submit-button {
+        background: #0066A2;
+        color: white;
+        border-color: #0066A2;
+        height: 40px;
+        width: 180px;
+        font: bold 15px arial, sans-serif;
+      }
+
+      .middle {
+        float: right;
+        padding-top: 70px;
+        padding-bottom: 20px;
+      }
+
+      .form-ce {
+        padding: 20px;
+      }
+
+      .greyish {
+        background-color: grey;
+      }
+
+      .header img {
+        float: left;
+        width: 60px;
+        height: 60px;
+        padding-left: 80px;
+        padding-top: 10px;
+      }
+
+      .header h1 {
+        position: relative;
+        top: 18px;
+        left: 20px;
+      }
+
+    </style>
+  </head>
+  <body class="greyish">
+    <div class="centered">
+      <div class="header">
+        <img src="{{logo_path}}" alt="logo"/>
+        <h1>{{title}}</h1>
+      </div>
+      <div class="form form-ce">
+        <form action="/oauth2">
+          <p>Before continuing, you need to agree to our
+            <a href="{{terms_link}}" target="_blank"> Terms of Use, </a>
+            including sections concerning use of
+            <a href="{{cookies_link}}" target="_blank"> Cookies </a>
+            on this site and
+            <a href="{{privacy_link}}" target="_blank"> Privacy Policy.</a>
+          </p>
+          <div class="middle">
+            <button class= "form-submit-button" type="submit" name="agreement_sign" value="signed">Agree & Visit the site</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>
+
+

@@ -1,8 +1,10 @@
+import datetime
 import base64
 import logging
 import uuid
 
 from flask import render_template, request
+from flask_restful import reqparse
 
 from pebbles.app import app
 from pebbles.models import db, User
@@ -12,6 +14,9 @@ from pebbles.views.commons import create_user, is_workspace_manager
 
 @app.route('/oauth2')
 def oauth2_login():
+    parser = reqparse.RequestParser()
+    parser.add_argument('agreement_sign', type=str, default=False)
+    args = parser.parse_args()
     if not app.config['OAUTH2_LOGIN_ENABLED']:
         error_description = 'oauth2 not enabled'
         return render_template(
@@ -36,8 +41,43 @@ def oauth2_login():
 
     eppn = request.headers['X-Forwarded-Email']
     user = User.query.filter_by(eppn=eppn).first()
+
+    # New users: Get credentials from aai proxy and then send agreement to user to sign.
     if not user:
-        user = create_user(eppn, password=uuid.uuid4().hex, email_id=eppn)
+        if not args.agreement_sign:
+            return render_template(
+                'terms.html',
+                title=app.config['AGREEMENT_TITLE'],
+                terms_link=app.config['AGREEMENT_TERMS_PATH'],
+                cookies_link=app.config['AGREEMENT_COOKIES_PATH'],
+                privacy_link=app.config['AGREEMENT_PRIVACY_PATH'],
+                logo_path=app.config['AGREEMENT_LOGO_PATH']
+            )
+        elif args.agreement_sign == 'signed':
+            user = create_user(eppn, password=uuid.uuid4().hex, email_id=eppn)
+            user.tc_acceptance_date = datetime.datetime.utcnow()
+            db.session.commit()
+
+    # Existing users: Check if agreement is accepted. If not send the terms to user.
+    if user and not user.tc_acceptance_date:
+        if not args.agreement_sign:
+            return render_template(
+                'terms.html',
+                title=app.config['AGREEMENT_TITLE'],
+                terms_link=app.config['AGREEMENT_TERMS_PATH'],
+                logo_path=app.config['AGREEMENT_LOGO_PATH']
+            )
+        elif args.agreement_sign == 'signed':
+            user.tc_acceptance_date = datetime.datetime.utcnow()
+            db.session.commit()
+        else:
+            error_description = 'Contact your administrator'
+            return render_template(
+                'error.html',
+                error_title='User cannot access',
+                error_description=error_description
+            )
+
     if not user.is_active:
         user.is_active = True
         db.session.commit()
