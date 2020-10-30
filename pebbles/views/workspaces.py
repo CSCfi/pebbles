@@ -339,7 +339,7 @@ class WorkspaceExit(restful.Resource):
 
 class WorkspaceUsersList(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('banned_list', type=bool)
+    parser.add_argument('banned_list', type=bool, location='args')
 
     @auth.login_required
     @requires_workspace_owner_or_admin

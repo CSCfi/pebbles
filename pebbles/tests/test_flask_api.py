@@ -885,8 +885,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Authenticated Workspace Owner , is a Manager too
         response = self.make_authenticated_workspace_owner_request(
             method='GET',
-            path='/api/v1/workspaces/%s/users' % self.known_workspace_id,
-            data=json.dumps({'banned_list': True})
+            path='/api/v1/workspaces/%s/users?banned_list=true' % self.known_workspace_id,
         )
         self.assertStatus(response, 200)
         self.assertEqual(len(response.json), 1)  # 1 normal user
