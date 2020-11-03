@@ -135,8 +135,8 @@ def b64encode_string(content):
     return base64.b64encode(content.encode('utf-8')).decode('utf-8')
 
 
-# set up logging
 def init_logging(config, log_name):
+    """set up logging"""
     logging.basicConfig(
         level=logging.DEBUG if config.DEBUG else logging.INFO,
         format=LOG_FORMAT

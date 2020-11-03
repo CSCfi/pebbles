@@ -35,6 +35,7 @@ class SessionView(restful.Resource):
             # Email and eppn are same because we invite users through emailid
             user = update_email(eppn=user.eppn, email_id=user.eppn)
         if user and user.check_password(form.password.data):
+            # TODO: remove when AngularJS based old UI has been phased out
             if user.is_admin:
                 icons = json.dumps(admin_icons)
             elif user.is_workspace_owner:

@@ -35,6 +35,7 @@ workspace_fields = {
     'environment_quota': fields.Integer,
 }
 
+# TODO: remove when AngularJS based old UI has been phased out
 admin_icons = ["Dashboard", "Users", "Workspaces", "Environments", "Configure", "Statistics", "Account"]
 workspace_owner_icons = ["Dashboard", "", "Workspaces", "Environments", "", "", "Account"]
 workspace_manager_icons = ["Dashboard", "", "", "Environments", "", "", "Account"]
@@ -171,7 +172,11 @@ def requires_workspace_manager_or_admin(f):
 
 def is_workspace_manager(user, workspace=None):
     if workspace:
-        match = WorkspaceUserAssociation.query.filter_by(user_id=user.id, workspace_id=workspace.id, manager=True).first()
+        match = WorkspaceUserAssociation.query.filter_by(
+            user_id=user.id,
+            workspace_id=workspace.id,
+            manager=True
+        ).first()
     else:
         match = WorkspaceUserAssociation.query.filter_by(user_id=user.id, manager=True).first()
     if match:
