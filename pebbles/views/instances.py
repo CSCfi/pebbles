@@ -125,9 +125,11 @@ class InstanceList(restful.Resource):
         environment_id = form.environment.data
         allowed_environment_ids = get_workspace_environment_ids_for_instances(user)
         if not user.is_admin and environment_id not in allowed_environment_ids:
+            logging.warning('instance creation failed, environment %s not allowed for user %s', environment_id, user.id)
             abort(403)
         environment = Environment.query.filter_by(id=environment_id, is_enabled=True).first()
         if not environment:
+            logging.warning('instance creation failed, no environment found for id %s', environment_id)
             abort(404)
 
         instances_for_user = Instance.query.filter_by(

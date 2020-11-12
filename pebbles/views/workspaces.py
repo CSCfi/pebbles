@@ -85,6 +85,8 @@ class WorkspaceList(restful.Resource):
         db.session.add(workspace)
         db.session.commit()
 
+        return restful.marshal(workspace, workspace_fields), 200
+
 
 class WorkspaceView(restful.Resource):
     parser = reqparse.RequestParser()

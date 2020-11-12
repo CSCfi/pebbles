@@ -30,7 +30,7 @@ data:
   # example Jupyter template + environment in public workspace
   - !EnvironmentTemplate
     id: et-1
-    name: Jupyter on local K8s
+    name: Example
     cluster: local_kubernetes
     is_enabled: True
     allowed_attrs:
@@ -41,7 +41,7 @@ data:
       autodownload_url: ''
       cluster: local_kubernetes
       cost_multiplier: 0
-      description: k8s testing template
+      description: Jupyter in local k8s
       environment_vars: ''
       image: jupyter/minimal-notebook
       labels: Data Analytics, Python, Jupyter
@@ -92,7 +92,7 @@ data:
       name: Jupyter minimal notebook
 
   #############################################################################
-  ### Normal user without workspace associations
+  ### Normal user with no extra workspace associations
   - !User
     id: u-user-1
     eppn: user-1@example.org
@@ -103,7 +103,7 @@ data:
     user_id: u-user-1
 
   #############################################################################
-  ### Workspace 1 with an owner
+  ### User owner-1 with one Workspace
 
   - !User
     id: u-owner-1
@@ -125,3 +125,12 @@ data:
     owner: True
     manager: True
 
+
+  #############################################################################
+  ### User owner-2 with no Workspaces, just quota
+
+  - !User
+    id: u-owner-2
+    eppn: owner-2@example.org
+    password: owner-2
+    workspace_quota: 2

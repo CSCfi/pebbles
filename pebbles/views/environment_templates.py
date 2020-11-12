@@ -42,6 +42,10 @@ class EnvironmentTemplateList(restful.Resource):
         results = []
         for environment_template in query.all():
             selected_cluster = match_cluster(environment_template.cluster)
+            if not selected_cluster:
+                logging.warning('EnvironmentTemplate %s refers to cluster "%s" that is not configured, skipping',
+                                environment_template.id, environment_template.cluster)
+                continue
             environment_template.schema = selected_cluster["schema"]
             environment_template.form = selected_cluster["form"]
             # Due to immutable nature of config field, whole dict needs to be reassigned.
@@ -62,6 +66,7 @@ class EnvironmentTemplateList(restful.Resource):
         environment_template = EnvironmentTemplate()
         environment_template.name = form.name.data
         environment_template.cluster = form.cluster.data
+        environment_template.is_enabled = form.is_enabled.data
 
         config = form.config.data
         config.pop('name', None)

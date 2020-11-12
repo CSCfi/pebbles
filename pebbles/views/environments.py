@@ -107,6 +107,7 @@ class EnvironmentList(restful.Resource):
         if 'name' in form.config.data:
             form.config.data.pop('name', None)
         environment.config = form.config.data
+        environment.is_enabled = form.is_enabled.data
 
         try:
             validate_max_lifetime_environment(environment)  # Validate the maximum lifetime from config
@@ -116,6 +117,8 @@ class EnvironmentList(restful.Resource):
 
         db.session.add(environment)
         db.session.commit()
+
+        return restful.marshal(environment, environment_fields), 200
 
 
 class EnvironmentView(restful.Resource):
