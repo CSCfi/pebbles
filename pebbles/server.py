@@ -12,8 +12,6 @@ from pebbles.views.export_stats import export_stats, ExportStatistics
 from pebbles.views.import_export import import_export, ImportExportEnvironmentTemplates, ImportExportEnvironments
 from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pebbles.views.locks import locks, LockView, LockList
-from pebbles.views.myip import myip, WhatIsMyIp
-from pebbles.views.namespaced_keyvalues import namespaced_keyvalues, NamespacedKeyValueList, NamespacedKeyValueView
 from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
@@ -54,14 +52,13 @@ api.add_resource(InstanceList, api_root + '/instances')
 api.add_resource(
     InstanceView,
     api_root + '/instances/<string:instance_id>',
-    methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
+    methods=['GET', 'POST', 'DELETE', 'PATCH'])
 api.add_resource(
     InstanceLogs,
     api_root + '/instances/<string:instance_id>/logs',
     methods=['GET', 'PATCH', 'DELETE'])
 api.add_resource(ClusterList, api_root + '/clusters')
 api.add_resource(PublicVariableList, api_root + '/config')
-api.add_resource(WhatIsMyIp, api_root + '/what_is_my_ip')
 api.add_resource(Quota, api_root + '/quota')
 api.add_resource(UserQuota, api_root + '/quota/<string:user_id>')
 api.add_resource(LockList, api_root + '/locks')
@@ -70,8 +67,6 @@ api.add_resource(ImportExportEnvironmentTemplates, api_root + '/import_export/en
 api.add_resource(ImportExportEnvironments, api_root + '/import_export/environments')
 api.add_resource(StatsList, api_root + '/stats')
 api.add_resource(ExportStatistics, api_root + '/export_stats/export_statistics')
-api.add_resource(NamespacedKeyValueList, api_root + '/namespaced_keyvalues')
-api.add_resource(NamespacedKeyValueView, api_root + '/namespaced_keyvalues/<string:namespace>/<string:key>')
 api.add_resource(EnvironmentCategoryList, api_root + '/environment_categories')
 
 app.register_blueprint(environment_templates)
@@ -81,7 +76,6 @@ app.register_blueprint(users)
 app.register_blueprint(workspaces)
 app.register_blueprint(instances)
 app.register_blueprint(activations)
-app.register_blueprint(myip)
 app.register_blueprint(sessions)
 app.register_blueprint(variables)
 app.register_blueprint(quota)
@@ -89,7 +83,6 @@ app.register_blueprint(locks)
 app.register_blueprint(import_export)
 app.register_blueprint(stats)
 app.register_blueprint(export_stats)
-app.register_blueprint(namespaced_keyvalues)
 
 from pebbles.views.sso import oauth2_login
 

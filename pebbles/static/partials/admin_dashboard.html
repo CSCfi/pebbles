@@ -1,138 +1,135 @@
 <div id="admin-dashboard" ng-show="getIcons()">
-  <div>
-    <ul class="nav nav-pills">
-      <li ng-class="toggleClass('default')"><a href="" ng-click="currentView='default'">Environments/Instances</a></li>
-      <li ng-class="toggleClass('driverconfigs')"><a ng-show="isAdmin()" ui-sref="hello" ng-click="currentView='driverconfigs'">Driver Configs</a></li>
-      <li ng-class="toggleClass('pools')"><a ng-show="isAdmin()" href = "" ng-click="currentView='pools'">Driver Hosts</a></li>
-    </ul>
-  </div>
-  <div id="default" class="dashbox" ng-show="isCurrentView('default')">
+  <div id="default" class="dashbox">
     <h2>Environments</h2>
     <table class="table table-striped">
-        <thead>
-            <tr>
-                <td>Name</td>
-                <td>Workspace</td>
-                <td>Life-time</td>
-                <td>Description</td>
-                <td>Actions</td>
-            </tr>
-        </thead>
-        <tbody>
-            <tr ng-hide="environments != undefined && (environments | filter : {is_enabled: 'true'}).length">
-                <td colspan="4">No environments</td>
-            </tr>
-            <tr ng-repeat="environment in environments | filter : { is_enabled: 'true' }">
-                <td>{{ environment.name }}</td>
-                <td>{{ environment.workspace_name }}</td>
-                <td><lifetime value="{{ environment.maximum_lifetime }}" maximum-lifetime="{{ environment.maximum_lifetime }}"/></td>
-		<td>
-		    <div ng-show ="showHtml">
-		        <span id="admin-pre-background" ng-bind-html="environment.config.description"></span>
-			<a href ng-click="showHtml=!showHtml">(render PLAINTEXT)</a>
-	            </div>
-		    <div ng-hide ="showHtml">
-		        {{environment.config.description}}
-		        <a href ng-click="showHtml=!showHtml">(render HTML)</a>
-		    </div>
-		</td>
-                <td>
-                    <a ng-click="provision(environment)" class="btn btn-primary" ng-disabled="maxInstanceLimitReached(environment)">
-                        <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch
-                    </a>
-                    <a class="btn" ng-click="showMaxInstanceLimitInfo()" ng-show="maxInstanceLimitReached(environment)">
-                        <span class="glyphicon glyphicon-question-sign"></span>
-                    </a>
-                </td>
-            </tr>
-        </tbody>
+      <thead>
+        <tr>
+          <td>Name</td>
+          <td>Workspace</td>
+          <td>Life-time</td>
+          <td>Description</td>
+          <td>Actions</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-hide="environments != undefined && (environments | filter : {is_enabled: 'true'}).length">
+          <td colspan="4">No environments</td>
+        </tr>
+        <tr ng-repeat="environment in environments | filter : { is_enabled: 'true' }">
+          <td>{{ environment.name }}</td>
+          <td>{{ environment.workspace_name }}</td>
+          <td>
+            <lifetime value="{{ environment.maximum_lifetime }}" maximum-lifetime="{{ environment.maximum_lifetime }}"/>
+          </td>
+          <td>
+            <div ng-show="showHtml">
+              <span id="admin-pre-background" ng-bind-html="environment.config.description"></span>
+              <a href ng-click="showHtml=!showHtml">(render PLAINTEXT)</a>
+            </div>
+            <div ng-hide="showHtml">
+              {{ environment.config.description }}
+              <a href ng-click="showHtml=!showHtml">(render HTML)</a>
+            </div>
+          </td>
+          <td>
+            <a ng-click="provision(environment)" class="btn btn-primary"
+               ng-disabled="maxInstanceLimitReached(environment)">
+              <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Launch
+            </a>
+            <a class="btn" ng-click="showMaxInstanceLimitInfo()" ng-show="maxInstanceLimitReached(environment)">
+              <span class="glyphicon glyphicon-question-sign"></span>
+            </a>
+          </td>
+        </tr>
+      </tbody>
     </table>
 
     <h2>Instances</h2>
     <form>
-        <div class="row">
-            <div class="col-md-12">
-                <div class="form-workspace">
-                    <div class="input-workspace">
-                        <div class="input-workspace-addon"><span class="glyphicon glyphicon-filter"></span></div>
-                        <input id="query" class="form-control" ng-model="query" placeholder="Filter instance list"/>
-                        <span class="input-workspace-btn">
-                            <button class="btn btn-primary" ng-click="toggleAdvancedOptions()" type="button">{{ showAdvancedOptions ? "Hide" : "Show" }}  advanced options</button>
-                            <button class="btn btn-danger" ng-click="openDestroyDialog(null)" ng-disabled="noMarkedInstances()" type="button">Destroy selected instances</button>
+      <div class="row">
+        <div class="col-md-12">
+          <div class="form-workspace">
+            <div class="input-workspace">
+              <div class="input-workspace-addon"><span class="glyphicon glyphicon-filter"></span></div>
+              <input id="query" class="form-control" ng-model="query" placeholder="Filter instance list"/>
+              <span class="input-workspace-btn">
+                            <button class="btn btn-primary" ng-click="toggleAdvancedOptions()"
+                                    type="button">{{ showAdvancedOptions ? "Hide" : "Show" }}  advanced options</button>
+                            <button class="btn btn-danger" ng-click="openDestroyDialog(null)"
+                                    ng-disabled="noMarkedInstances()" type="button">Destroy selected instances</button>
                         </span>
-                    </div>
-                </div>
             </div>
-            <div ng-show="showAdvancedOptions" class="col-md-12">
-                <div class="form-workspace">
-                    <div class="input-workspace">
-                        <div class="input-workspace-addon">Offset</div>
-                        <input type="number" class="form-control" ng-model="offset">
-                        <div class="input-workspace-addon">Limit</div>
-                        <input type="number" class="form-control" ng-model="limit">
-                        <span class="input-workspace-addon">
+          </div>
+        </div>
+        <div ng-show="showAdvancedOptions" class="col-md-12">
+          <div class="form-workspace">
+            <div class="input-workspace">
+              <div class="input-workspace-addon">Offset</div>
+              <input type="number" class="form-control" ng-model="offset">
+              <div class="input-workspace-addon">Limit</div>
+              <input type="number" class="form-control" ng-model="limit">
+              <span class="input-workspace-addon">
                             Include deleted
                             <input type="checkbox" ng-click="updateInstanceList()" ng-model="include_deleted">
                         </span>
-                        <span class="input-workspace-btn">
+              <span class="input-workspace-btn">
                             <button class="btn btn-primary" ng-click="applyFilters()" type="button">Refresh</button>
-                            <button class="btn btn-default" ng-click="resetFilters()" type="button">Reset filters</button>
+                            <button class="btn btn-default" ng-click="resetFilters()"
+                                    type="button">Reset filters</button>
                         </span>
-                    </div>
-                </div>
             </div>
+          </div>
         </div>
+      </div>
     </form>
 
     <table class="table table-striped">
-        <thead>
+      <thead>
         <tr>
-            <td><input type="checkbox" ng-model="checkAll" ng-change="markAll()"></td>
-            <td>Name</td>
-            <td>State</td>
-            <td>Environment</td>
-            <td>User</td>
-            <td>Access</td>
-            <td>Life-time left</td>
-            <td>Actions</td>
+          <td><input type="checkbox" ng-model="checkAll" ng-change="markAll()"></td>
+          <td>Name</td>
+          <td>State</td>
+          <td>Environment</td>
+          <td>User</td>
+          <td>Access</td>
+          <td>Life-time left</td>
+          <td>Actions</td>
         </tr>
-        </thead>
-        <tbody>
-            <tr ng-hide="instances != undefined && (instances | filter:query).length">
-                <td colspan="7">No instances</td>
-            </tr>
-            <tr ng-repeat="instance in instances | filter:query">
-                <td><input type="checkbox" ng-init='marked=false' ng-model='marked' ng-checked="checkAll || isMarked(instance)" ng-disabled="instance.state=='deleting'" ng-click="markInstance(marked, instance)"></td>
-                <td><a href="#/instance_details/{{ instance.id }}"> {{instance.name}}</a></td>
-                <td>{{instance.state}} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>
-                <td>{{instance.environment}}</td>
-                <td>{{instance.username}}</td>
-                <td>
-                    <a ng-show="['http', 'https'].indexOf(instance.instance_data['endpoints'][0]['name']) >= 0"
-                       ng-click="openInBrowser(instance)" href="">
-                        Open in browser
-                    </a>
-                    <div ng-show="instance.instance_data['endpoints'][0]['name']=='SSH'">
-                        {{ instance.instance_data['endpoints'][0].access }}
-                    </div>
-                </td>
-                <td><lifetime value="{{ instance.lifetime_left }}" maximum-lifetime="{{ instance.maximum_lifetime }}"/></td>
-                <td>
-                    <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger" ng-disabled="instance.state=='deleting'" >Destroy</button>
-                </td>
-            </tr>
-        </tbody>
+      </thead>
+      <tbody>
+        <tr ng-hide="instances != undefined && (instances | filter:query).length">
+          <td colspan="7">No instances</td>
+        </tr>
+        <tr ng-repeat="instance in instances | filter:query">
+          <td><input type="checkbox" ng-init='marked=false' ng-model='marked'
+                     ng-checked="checkAll || isMarked(instance)" ng-disabled="instance.state=='deleting'"
+                     ng-click="markInstance(marked, instance)"></td>
+          <td><a href="#/instance_details/{{ instance.id }}"> {{ instance.name }}</a></td>
+          <td>{{ instance.state }} {{ instance.error_msg ? " ("+instance.error_msg+")" : "" }}</td>
+          <td>{{ instance.environment }}</td>
+          <td>{{ instance.username }}</td>
+          <td>
+            <a ng-show="['http', 'https'].indexOf(instance.instance_data['endpoints'][0]['name']) >= 0"
+               ng-click="openInBrowser(instance)" href="">
+              Open in browser
+            </a>
+            <div ng-show="instance.instance_data['endpoints'][0]['name']=='SSH'">
+              {{ instance.instance_data['endpoints'][0].access }}
+            </div>
+          </td>
+          <td>
+            <lifetime value="{{ instance.lifetime_left }}" maximum-lifetime="{{ instance.maximum_lifetime }}"/>
+          </td>
+          <td>
+            <button ng-click="deprovision(instance)" type="submit" class="btn btn-danger"
+                    ng-disabled="instance.state=='deleting'">Destroy
+            </button>
+          </td>
+        </tr>
+      </tbody>
     </table>
     <div class="pull-right">
-        <small><a href="/#/user-dashboard"><span class="glyphicon glyphicon-th-large"></span> view as user</a></small> 
+      <small><a href="/#/user-dashboard"><span class="glyphicon glyphicon-th-large"></span> view as user</a></small>
     </div>
-</div>
-
-  <div id="driverconfigs" class="dashbox" ng-show="isCurrentView('driverconfigs')">
-   <ng-include src="'partials/driver_config_vars.html'" ng-controller="DriverConfigController"></ng-include>
-  </div>
-
-  <div id="pools" class="dashbox" ng-show="isCurrentView('pools')">
-   <ng-include src="'partials/pool_configs.html'" ng-controller="PoolConfigController"></ng-include>
   </div>
 </div>

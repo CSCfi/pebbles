@@ -1,5 +1,5 @@
 from pebbles.tests.base import db, BaseTestCase
-from pebbles.models import User, Workspace, Environment, EnvironmentTemplate, Instance, NamespacedKeyValue
+from pebbles.models import User, Workspace, Environment, EnvironmentTemplate, Instance
 
 
 class ModelsTestCase(BaseTestCase):
@@ -70,73 +70,3 @@ class ModelsTestCase(BaseTestCase):
                 self.fail('invalid state %s not detected' % state)
             except ValueError:
                 pass
-
-    def test_schema_validation(self):
-        schema = {
-            'type': 'object',
-            'properties': {
-                'BOOL_VAR': {'type': 'boolean'},
-                'STR_VAR': {'type': 'string'},
-                'STR_OPTIONAL_VAR': {'type': 'string'},
-                'INT_VAR': {'type': 'integer'},
-            },
-            'required': [
-                'BOOL_VAR',
-                'INT_VAR',
-                'STR_VAR'
-            ]
-        }
-        value = {
-            'BOOL_VAR': True,
-            'STR_VAR': 'STR_VAL',
-            'STR_OPTIONAL_VAR': 'TEST_VAL',
-            'INT_VAR': 1,
-        }
-        # Normal data
-        n1 = NamespacedKeyValue('TestDriver_1', 'cluster_config', schema)
-        n1_value = value.copy()
-        n1.value = n1_value
-
-        # Optional field can have empty value
-        n2 = NamespacedKeyValue('TestDriver_2', 'cluster_config', schema)
-        n2_value = value.copy()
-        n2_value['STR_OPTIONAL_VAR'] = ''
-        n2.value = n2_value
-
-        # Not providing all the fields mentioned in the schema
-        n3 = NamespacedKeyValue('TestDriver_3', 'cluster_config', schema)
-        n3_value = value.copy()
-        del n3_value['BOOL_VAR']
-        try:
-            n3.value = n3_value
-        except:
-            self.assertRaises(KeyError)
-
-        # Providing a new field which doesn't exist in the schema
-        n4 = NamespacedKeyValue('TestDriver_4', 'cluster_config', schema)
-        n4_value = value.copy()
-        n4_value['NEW_VAR'] = 'NEW_VAL'
-        try:
-            n4.value = n4_value
-        except:
-            self.assertRaises(ValueError)
-
-        # Incorrect value type for the variable
-        n5 = NamespacedKeyValue('TestDriver_5', 'cluster_config', schema)
-        n5_value = value.copy()
-        n5_value['INT_VAR'] = 'Truth'
-        try:
-            n5.value = n5_value
-        except:
-            self.assertRaises(TypeError)
-
-        # Field in schema changed but no corresponding value added
-        n6 = NamespacedKeyValue('TestDriver_6', 'cluster_config', schema)
-        n6_value = value.copy()
-        n6_schema = schema.copy()
-        n6_schema['properties']['INT_NEW_VAR'] = {'type': 'integer'}
-        n6.schema = n6_schema
-        try:
-            n6.value = n6_value
-        except:
-            self.assertRaises(KeyError)

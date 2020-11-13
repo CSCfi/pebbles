@@ -61,30 +61,6 @@ app.controller('InstanceDetailsController', ['$q', '$http', '$routeParams', '$sc
             return full_log_text;
         }
 
-        $scope.get_my_ip = function () {
-            $http(
-                {
-                    method: "GET",
-                    url: '/api/v1/what_is_my_ip',
-                    headers: {
-                        token: AuthService.getToken(),
-                        Authorization: "Basic " + AuthService.getToken()
-                    }
-                }
-            ).success(function (data) {
-                    $scope.new_client_ip=data['ip'];
-                }
-            );
-        };
-
-        $scope.update_client_ip = function () {
-            instance.client_ip = $scope.new_client_ip;
-            instance.put().then(function () {
-                $scope.refresh();
-            });
-        };
-
-
         var stop;
         $scope.startPolling = function () {
             if (angular.isDefined(stop)) {

@@ -7,7 +7,7 @@ from flask import Blueprint as FlaskBlueprint
 from flask import abort, g, current_app
 from flask_restful import marshal, marshal_with, fields, reqparse
 
-from pebbles.forms import InstanceForm, UserIPForm
+from pebbles.forms import InstanceForm
 from pebbles.models import db, Environment, Instance, InstanceLog, User
 from pebbles.rules import apply_rules_instances, get_workspace_environment_ids_for_instances
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin, memoize
@@ -235,27 +235,6 @@ class InstanceView(restful.Resource):
 
         # Action queued, return 202 Accepted
         return None, 202
-
-    @auth.login_required
-    def put(self, instance_id):
-        user = g.user
-        form = UserIPForm()
-        if not form.validate_on_submit():
-            logging.warning("validation error on UserIPForm")
-            return form.errors, 422
-
-        instance = Instance.query.filter_by(id=instance_id, user_id=user.id).first()
-        if not instance:
-            abort(404)
-
-        environment = Environment.query.filter_by(id=instance.environment_id).first()
-        if 'allow_update_client_connectivity' in environment.full_config \
-                and environment.full_config['allow_update_client_connectivity']:
-            instance.client_ip = form.client_ip.data
-            db.session.commit()
-
-        else:
-            abort(400)
 
     @auth.login_required
     @requires_admin
