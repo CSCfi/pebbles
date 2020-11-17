@@ -1,84 +1,110 @@
 <html>
-  <head>
-    <title>{{title}}</title>
-    <style>
-      .centered {
-        background-color: white;
-        position: fixed;
-        width: 600px;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-      }
 
-      .header {
-        font: bold;
-        text-align:left;
-        color: darkblue;
-        padding-bottom: 30px;
-      }
+<head>
+  <title>{{title}}</title>
+  <style>
+    
+    html {
+      font-size: 62.5%;
+      background-color: #808080;
+    }
 
-      .form-submit-button {
-        background: #0066A2;
-        color: white;
-        border-color: #0066A2;
-        height: 40px;
-        width: 180px;
-        font: bold 15px arial, sans-serif;
-      }
+    a,
+    a:active,
+    a:visited {
+      color: #006778;
+    }
 
-      .middle {
-        float: right;
-        padding-top: 70px;
-        padding-bottom: 20px;
-      }
+    a:hover,
+    a:focus {
+      color: #830051;
+    }
 
-      .form-ce {
-        padding: 20px;
-      }
+    .form-container {
+      background-color: #fff;
+      padding: 30px 40px 10px;
+      border-radius: 3px;
+      box-shadow: 1px 4px 3px rgba(0, 0, 0, 0.2);
 
-      .greyish {
-        background-color: grey;
-      }
+      font-size: 1.4rem;
+      font-family: "Roboto", "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+      color: #002f5f;
+      line-height: 1.5;
 
-      .header img {
-        float: left;
-        width: 60px;
-        height: 60px;
-        padding-left: 80px;
-        padding-top: 10px;
-      }
+      display: flex;
+      flex-direction: column;
+    }
 
-      .header h1 {
-        position: relative;
-        top: 18px;
-        left: 20px;
-      }
+    .form-container.centered {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 300px;
+      width: 350px;
+    }
 
-    </style>
-  </head>
-  <body class="greyish">
-    <div class="centered">
-      <div class="header">
-        <img src="{{logo_path}}" alt="logo"/>
-        <h1>{{title}}</h1>
-      </div>
-      <div class="form form-ce">
-        <form action="/oauth2">
-          <p>Before continuing, you need to agree to our
-            <a href="{{terms_link}}" target="_blank"> Terms of Use, </a>
-            including sections concerning use of
-            <a href="{{cookies_link}}" target="_blank"> Cookies </a>
-            on this site and
-            <a href="{{privacy_link}}" target="_blank"> Privacy Policy.</a>
-          </p>
-          <div class="middle">
-            <button class= "form-submit-button" type="submit" name="agreement_sign" value="signed">Agree & Visit the site</button>
-          </div>
-        </form>
-      </div>
+    .header {
+      display: inline-flex;
+      flex-direction: column;
+      justify-content: left;
+      align-items: center;
+    }
+
+    .header img {
+      width: 100px;
+      height: auto;
+    }
+
+    .header h1 {
+      letter-spacing: 0.03em;
+      margin: 5px auto;
+    }
+
+    button.form-submit-button {
+      width: 100%;
+      margin-top: 40px;
+      background: #006778;
+      padding: 10px 25px;
+      color: #fff;
+      font-size: 1.5rem;
+      text-align: center;
+      letter-spacing: 0.03em;
+      line-height: 1.5;
+      border-radius: 5px;
+      border: 0;
+      box-shadow: none;
+      cursor: pointer;
+    }
+
+    button.form-submit-button:hover {
+      background: #830051;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="form-container centered">
+    <div class="header">
+      <img src="{{logo_path}}" alt="logo" />
+      <h1>{{title}}</h1>
     </div>
-  </body>
+    <div class="form">
+      <form action="/oauth2">
+        <p>Before continuing, you need to agree to our
+          <a href="{{terms_link}}" target="_blank"> Terms of Use, </a>
+          including sections concerning use of
+          <a href="{{cookies_link}}" target="_blank"> Cookies </a>
+          on this site and
+          <a href="{{privacy_link}}" target="_blank"> Privacy Policy.</a>
+        </p>
+        <button class="form-submit-button" type="submit" name="agreement_sign" value="signed">
+          Agree & Visit the site
+        </button>
+      </form>
+    </div>
+  </div>
+</body>
+
 </html>
-
-

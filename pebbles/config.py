@@ -144,7 +144,7 @@ class BaseConfig(object):
     AGREEMENT_TERMS_PATH = 'http://link-to-terms'
     AGREEMENT_COOKIES_PATH = 'http://link-to-cookies'
     AGREEMENT_PRIVACY_PATH = 'http://link-to-privacy'
-    AGREEMENT_LOGO_PATH = 'assets/images/login/csc_front_logo.jpg'
+    AGREEMENT_LOGO_PATH = 'assets/images/login/csc_front_logo.svg'
 
     LOG_DIRECTORY = '/opt/log'
 
