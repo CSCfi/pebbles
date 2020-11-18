@@ -1,10 +1,11 @@
 import json
-import requests
-import pebbles.utils
 import logging
-
 from time import time
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, exc
+
+import requests
+from jose import jwt
+
+import pebbles.utils
 
 
 class PBClient:
@@ -15,16 +16,13 @@ class PBClient:
         self.auth = pebbles.utils.b64encode_string('%s:%s' % (token, '')).replace('\n', '')
 
     def check_and_refresh_session(self, eppn, password):
-        s = Serializer(password)
         # renew worker session 15 minutes before expiration
         try:
-            full_token = s.loads(self.token, return_header=True)
-            remaining_time = full_token[1]['exp'] - time()
+            claims = jwt.get_unverified_claims()
+            remaining_time = claims['exp'] - time()
             if remaining_time < 900:
                 logging.info("Token will expire soon, relogin %s" % eppn)
                 self.login(eppn, password)
-        except exc.SignatureExpired:
-            logging.warning("worker token has expired")
         except Exception as e:
             logging.warning(e)
 

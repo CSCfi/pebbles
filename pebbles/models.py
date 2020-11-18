@@ -1,14 +1,17 @@
 import datetime
 import json
+import logging
 import random
 import secrets
 import string
+import time
 import uuid
 
 import names
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from jose import jwt, JWTError, ExpiredSignatureError
+from jose.exceptions import JWTClaimsError, JWSError
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.orm import backref
@@ -23,6 +26,8 @@ MAX_NAME_LENGTH = 128
 MAX_VARIABLE_KEY_LENGTH = 512
 MAX_VARIABLE_VALUE_LENGTH = 512
 MAX_MESSAGE_SUBJECT_LENGTH = 255
+
+JWS_SIGNING_ALG = 'HS512'
 
 db = SQLAlchemy()
 
@@ -172,8 +177,18 @@ class User(db.Model):
             return bcrypt.check_password_hash(self.password, password)
 
     def generate_auth_token(self, app_secret, expires_in=43200):
-        s = Serializer(app_secret, expires_in=expires_in)
-        return s.dumps({'id': self.id}).decode('utf-8')
+        ts = int(time.time())
+        # construct a token with user id in the claims and issue + expiration times in the header
+        token = jwt.encode(
+            claims=dict(
+                id=self.id,
+                iat=ts,
+                exp=ts + expires_in,
+            ),
+            key=app_secret,
+            algorithm=JWS_SIGNING_ALG
+        )
+        return token
 
     def can_login(self):
         return not self.is_deleted and self.is_active and not self.is_blocked
@@ -186,11 +201,16 @@ class User(db.Model):
 
     @staticmethod
     def verify_auth_token(token, app_secret):
-        s = Serializer(app_secret)
         try:
-            data = s.loads(token)
-        except:
+            # explicitly pass the single algorithm for signing to avoid token forging by algorithm tampering
+            data = jwt.decode(token, app_secret, algorithms=[JWS_SIGNING_ALG])
+        except (ExpiredSignatureError):
+            logging.info('Token has expired "%s"', token)
             return None
+        except (JWTError, JWSError, JWTClaimsError) as e:
+            logging.warning('Possible hacking attempt "%s" with token "%s"', e, token)
+            return None
+
         user = User.query.get(data['id'])
         if user and user.can_login():
             return user
@@ -312,7 +332,6 @@ class EnvironmentTemplate(db.Model):
 
     def __init__(self, name=None, cluster=None, allowed_attrs=None, config=None, is_enabled=False,
                  environment_schema=None, environment_form=None, environment_model=None):
-
         self.id = uuid.uuid4().hex
         self.name = name
         self.cluster = cluster

@@ -1,5 +1,12 @@
-from pebbles.tests.base import db, BaseTestCase
+import base64
+import json
+import logging
+import time
+
+from jose import jwt
+
 from pebbles.models import User, Workspace, Environment, EnvironmentTemplate, Instance
+from pebbles.tests.base import db, BaseTestCase
 
 
 class ModelsTestCase(BaseTestCase):
@@ -70,3 +77,85 @@ class ModelsTestCase(BaseTestCase):
                 self.fail('invalid state %s not detected' % state)
             except ValueError:
                 pass
+
+    def test_token_generation(self):
+        u1 = self.known_user
+        token = u1.generate_auth_token('test_secret', expires_in=100)
+        assert token is not None
+
+        # check that issued at and expiration times are correct
+        claims = jwt.get_unverified_claims(token)
+        assert int(time.time()) - int(claims['iat']) <= 1
+        assert int(claims['exp']) - int(claims['iat']) == 100
+
+        user_res = User.verify_auth_token(token, 'test_secret')
+        assert user_res
+        assert user_res.id == self.known_user.id
+
+    def test_token_expiry(self):
+        u1 = self.known_user
+        token = u1.generate_auth_token('test_secret', expires_in=0)
+        assert token is not None
+
+        logging.info('sleeping for a second to wait for expiry')
+        time.sleep(1)
+
+        user_res = User.verify_auth_token(token, 'test_secret')
+        assert user_res is None
+
+    def test_token_forging_tamper_times(self):
+        # construct a token with signing algorithm set to 'none'
+
+        claims = dict(
+            id=self.known_user.id,
+            iat=int(time.time()),
+            exp=int(time.time() + 10000000),
+        )
+
+        # valid headers and signature from another token
+        valid_token = self.known_user.generate_auth_token('test_secret')
+        token = '%s.%s.%s' % (
+            valid_token.split('.')[0],
+            base64.urlsafe_b64encode(json.dumps(claims).encode('utf-8')).replace(b'=', b'').decode('utf-8'),
+            valid_token.split('.')[2],
+        )
+        user_res = User.verify_auth_token(token, 'test_secret')
+        assert user_res is None
+
+    def test_token_forging_algorithm(self):
+        # construct a token with signing algorithm set to 'none'
+        headers = dict(
+            alg='none',
+            typ='JWT'
+        )
+        claims = dict(
+            id=self.known_user.id,
+            iat=int(time.time()),
+            exp=int(time.time() + 100),
+        )
+        # first try without the last segment
+        token = '%s.%s' % (
+            base64.urlsafe_b64encode(json.dumps(headers).encode('utf-8')).replace(b'=', b'').decode('utf-8'),
+            base64.urlsafe_b64encode(json.dumps(claims).encode('utf-8')).replace(b'=', b'').decode('utf-8'),
+        )
+
+        user_res = User.verify_auth_token(token, '')
+        assert user_res is None
+
+        # empty last segment
+        token = '%s.%s.' % (
+            base64.urlsafe_b64encode(json.dumps(headers).encode('utf-8')).replace(b'=', b'').decode('utf-8'),
+            base64.urlsafe_b64encode(json.dumps(claims).encode('utf-8')).replace(b'=', b'').decode('utf-8'),
+        )
+        user_res = User.verify_auth_token(token, '')
+        assert user_res is None
+
+        # valid signature from another context
+        valid_token = self.known_user.generate_auth_token('test_secret')
+        token = '%s.%s.%s' % (
+            base64.urlsafe_b64encode(json.dumps(headers).encode('utf-8')).replace(b'=', b'').decode('utf-8'),
+            base64.urlsafe_b64encode(json.dumps(claims).encode('utf-8')).replace(b'=', b'').decode('utf-8'),
+            valid_token.split('.')[2],
+        )
+        user_res = User.verify_auth_token(token, 'test_secret')
+        assert user_res is None
