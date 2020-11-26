@@ -7,6 +7,7 @@ spec:
     - host: "{host}"
       http:
         paths:
-          - backend:
+          - path: "{path}"
+            backend:
               serviceName: "{name}"
               servicePort: 8888

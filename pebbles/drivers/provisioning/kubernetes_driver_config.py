@@ -31,7 +31,7 @@ CONFIG = {
             },
             'args': {
                 'type': 'string',
-                'default': "jupyter notebook --NotebookApp.token=''"
+                'default': "jupyter notebook --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{instance_id}'"
             },
             'port': {
                 'type': 'integer',

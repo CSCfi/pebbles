@@ -51,7 +51,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def __init__(self, logger, config, cluster_config):
         super().__init__(logger, config, cluster_config)
 
-        self.ingress_app_domain = cluster_config.get('appDomain', '127.0.0.1.nip.io')
+        self.ingress_app_domain = cluster_config.get('appDomain', 'localhost')
         self.endpoint_protocol = cluster_config.get('endpointProtocol', 'http')
         self._namespace = None
 
@@ -60,7 +60,10 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         self.dynamic_client = DynamicClient(self.kubernetes_api_client)
 
     def get_instance_hostname(self, instance):
-        return '%s.%s' % (instance.get('name'), self.ingress_app_domain)
+        return self.ingress_app_domain
+
+    def get_instance_path(self, instance):
+        return '/notebooks/%s' % instance['id']
 
     def get_instance_namespace(self, instance):
         # implement this in subclass if you need to override simple default behaviour
@@ -128,7 +131,11 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                 namespace=namespace,
                 endpoints=[dict(
                     name='https',
-                    access='%s://%s' % (self.endpoint_protocol, self.get_instance_hostname(instance))
+                    access='%s://%s%s' % (
+                        self.endpoint_protocol,
+                        self.get_instance_hostname(instance),
+                        self.get_instance_path(instance)
+                    )
                 )]
             )
 
@@ -207,7 +214,13 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         ))
         deployment_dict = yaml.safe_load(deployment_yaml)
         deployment_dict['spec']['template']['spec']['containers'][0]['env'] = env_var_list
-        deployment_dict['spec']['template']['spec']['containers'][0]['args'] = environment_config['args'].split()
+
+        # process templated arguments
+        if 'args' in environment_config:
+            args = environment_config.get('args').format(
+                instance_id='%s' % instance['id']
+            )
+            deployment_dict['spec']['template']['spec']['containers'][0]['args'] = args.split()
 
         deployment_dict = self.customize_deployment_dict(deployment_dict)
 
@@ -242,6 +255,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def create_ingress(self, namespace, instance):
         ingress_yaml = parse_template('ingress.yaml', dict(
             name=instance['name'],
+            path=self.get_instance_path(instance),
             host=self.get_instance_hostname(instance),
         ))
         self.logger.debug('creating ingress\n%s' % ingress_yaml)
@@ -366,6 +380,12 @@ class OpenShiftLocalDriver(KubernetesLocalDriver):
     def delete_ingress(self, namespace, instance):
         api = self.dynamic_client.resources.get(api_version='route.openshift.io/v1', kind='Route')
         api.delete(name=instance.get('name'), namespace=namespace)
+
+    def get_instance_hostname(self, instance):
+        return '%s.%s' % (instance.get('name'), self.ingress_app_domain)
+
+    def get_instance_path(self, instance):
+        return ''
 
 
 class OpenShiftRemoteDriver(OpenShiftLocalDriver):

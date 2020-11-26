@@ -18,7 +18,7 @@ class PBClient:
     def check_and_refresh_session(self, eppn, password):
         # renew worker session 15 minutes before expiration
         try:
-            claims = jwt.get_unverified_claims()
+            claims = jwt.get_unverified_claims(self.token)
             remaining_time = claims['exp'] - time()
             if remaining_time < 900:
                 logging.info("Token will expire soon, relogin %s" % eppn)
