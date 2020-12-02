@@ -10,46 +10,48 @@ from flask_restful import marshal_with, reqparse
 from pebbles.forms import WorkspaceForm
 from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Instance
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin
-from pebbles.views.commons import auth, workspace_fields, user_fields
-from pebbles.views.commons import requires_workspace_manager_or_admin, is_workspace_manager
+from pebbles.views.commons import auth, workspace_fields, user_fields, is_workspace_manager
 
 workspaces = FlaskBlueprint('workspaces', __name__)
+join_workspace = FlaskBlueprint('join_workspace', __name__)
 
 
 class WorkspaceList(restful.Resource):
     @auth.login_required
-    @requires_workspace_manager_or_admin
     @marshal_with(workspace_fields)
     def get(self):
         user = g.user
         workspace_user_query = WorkspaceUserAssociation.query
         results = []
         if not user.is_admin:
-            workspace_manager_objs = workspace_user_query.filter_by(user_id=user.id, manager=True).all()
-            manager_workspaces = [workspace_manager_obj.workspace for workspace_manager_obj in workspace_manager_objs]
-            workspaces = manager_workspaces
+            workspace_mappings = workspace_user_query.filter_by(user_id=user.id).all()
+            workspaces = [workspace_obj.workspace for workspace_obj in workspace_mappings]
+
         else:
             query = Workspace.query
             workspaces = query.all()
 
         for workspace in workspaces:
-            if workspace.current_status != 'archived' and workspace.current_status != 'deleted':
-                workspace_owner_obj = workspace_user_query.filter_by(workspace_id=workspace.id, owner=True).first()
-                owner = User.query.filter_by(id=workspace_owner_obj.user_id).first()
-                # config and user_config dicts are required by schemaform and multiselect in the workspaces modify ui modal
-                if user.is_admin or user.id == owner.id:
-                    workspace.config = {
-                        "name": workspace.name,
-                        "join_code": workspace.join_code,
-                        "description": workspace.description
-                    }
-                    workspace.user_config = generate_user_config(workspace)
-                    workspace.owner_eppn = owner.eppn
-                    workspace.admin_workspace = owner.is_admin
-                else:
-                    workspace.config = {}
-                    workspace.user_config = {}
-                results.append(workspace)
+            if not user.is_admin \
+                    and (workspace.current_status in ('archived', 'deleted') or workspace.name.startswith('System.')):
+                continue
+
+            workspace_owner_obj = workspace_user_query.filter_by(workspace_id=workspace.id, owner=True).first()
+            owner = User.query.filter_by(id=workspace_owner_obj.user_id).first()
+            # config and user_config dicts are required by schemaform and multiselect in the workspaces modify ui modal
+            if user.is_admin or user.id == owner.id:
+                workspace.config = {
+                    "name": workspace.name,
+                    "join_code": workspace.join_code,
+                    "description": workspace.description
+                }
+                workspace.user_config = generate_user_config(workspace)
+                workspace.owner_eppn = owner.eppn
+                workspace.admin_workspace = owner.is_admin
+            else:
+                workspace.config = {}
+                workspace.user_config = {}
+            results.append(workspace)
 
         if not user.is_admin:
             results = sorted(results, key=lambda workspace: workspace.name)
@@ -262,7 +264,7 @@ def generate_user_config(workspace):
     return user_config
 
 
-class WorkspaceJoin(restful.Resource):
+class JoinWorkspace(restful.Resource):
     @auth.login_required
     def put(self, join_code):
         user = g.user
@@ -275,11 +277,14 @@ class WorkspaceJoin(restful.Resource):
             return {"error": "You are banned from this workspace, please contact the concerned person"}, 403
         if user in [workspace_user_obj.user for workspace_user_obj in workspace.users]:
             logging.warning("user %s already exists in workspace", user.id)
-            return {"error": "User already in the workspace"}, 422
+            return {"error": "User already exists in the workspace"}, 422
+
         workspace_user_obj = WorkspaceUserAssociation(user=user, workspace=workspace)
         workspace.users.append(workspace_user_obj)
         db.session.add(workspace)
         db.session.commit()
+
+        return restful.marshal(workspace, workspace_fields), 200
 
 
 class WorkspaceListExit(restful.Resource):
@@ -380,16 +385,14 @@ class WorkspaceUsersList(restful.Resource):
         return total_users
 
 
-class ClearUsersFromWorkspace(restful.Resource):
+class WorkspaceClearUsers(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('workspace_id', type=str)
 
     @auth.login_required
     @requires_workspace_owner_or_admin
-    def delete(self):
+    def post(self, workspace_id):
 
-        args = self.parser.parse_args()
-        workspace_id = args.workspace_id
         user = g.user
         workspace = Workspace.query.filter_by(id=workspace_id).first()
         workspace_user_query = WorkspaceUserAssociation.query

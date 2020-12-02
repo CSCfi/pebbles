@@ -2,7 +2,7 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
                              function($q,   $scope,   $timeout,   AuthService,   Restangular,   $uibModal) {
     var user = Restangular.one('users', AuthService.getUserId());
     var quota = Restangular.one('quota', AuthService.getUserId());
-    var workspace_join = Restangular.all('workspaces').one('workspace_join');
+    var workspace_join = Restangular.one('join_workspace');
 
     var change_password_result = "";
     var upload_ok = null;
@@ -17,7 +17,7 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
         return AuthService.isWorkspaceManagerOrAdmin();
     };
 
-    var workspace_list_exit = Restangular.all('workspaces').all('workspace_list_exit');
+    var workspace_list_exit = Restangular.all('workspaces');
     var refresh_workspace_list_exit = function(){
         workspace_list_exit.getList().then(function (response) {
             $scope.workspace_list_exit = response;
@@ -27,7 +27,7 @@ app.controller('AccountController', ['$q', '$scope', '$timeout', 'AuthService', 
     refresh_workspace_list_exit();
 
     $scope.exit_workspace = function(workspace) {
-        var workspace_exit = Restangular.all('workspaces').one('workspace_exit').one(workspace.id);
+        var workspace_exit = Restangular.one('workspaces', workspace.id).one('exit');
         workspace_exit.put().then(function () {
                refresh_workspace_list_exit();
             }, function(response) {

@@ -29,7 +29,7 @@ app.controller('DashboardController', ['$q', '$scope', '$routeParams', '$timeout
             return false;
         }
 
-        var workspace_join = Restangular.all('workspaces').one('workspace_join');
+        var workspace_join = Restangular.one('join_workspace');
 
         var environments = Restangular.all('environments');
         environments.getList().then(function (response) {

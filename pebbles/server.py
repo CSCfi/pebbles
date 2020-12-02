@@ -18,9 +18,8 @@ from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.stats import stats, StatsList
 from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserWorkspaceOwner
 from pebbles.views.variables import variables, PublicVariableList
-from pebbles.views.workspaces import ClearUsersFromWorkspace
-from pebbles.views.workspaces import WorkspaceList, WorkspaceView, WorkspaceJoin, WorkspaceListExit, WorkspaceExit, \
-    WorkspaceUsersList
+from pebbles.views.workspaces import WorkspaceClearUsers, join_workspace
+from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceUsersList
 from pebbles.views.workspaces import workspaces
 
 api = restful.Api(app)
@@ -32,11 +31,10 @@ api.add_resource(UserBlacklist, api_root + '/users/<string:user_id>/user_blackli
 api.add_resource(UserWorkspaceOwner, api_root + '/users/<string:user_id>/user_workspace_owner')
 api.add_resource(WorkspaceList, api_root + '/workspaces')
 api.add_resource(WorkspaceView, api_root + '/workspaces/<string:workspace_id>')
-api.add_resource(WorkspaceJoin, api_root + '/workspaces/workspace_join/<string:join_code>')
-api.add_resource(WorkspaceListExit, api_root + '/workspaces/workspace_list_exit')
-api.add_resource(WorkspaceExit, api_root + '/workspaces/workspace_exit/<string:workspace_id>')
-api.add_resource(WorkspaceUsersList, api_root + '/workspaces/<string:workspace_id>/users')
-api.add_resource(ClearUsersFromWorkspace, api_root + '/workspaces/clear_users_from_workspace')
+api.add_resource(WorkspaceUsersList, api_root + '/workspaces/<string:workspace_id>/list_users')
+api.add_resource(WorkspaceClearUsers, api_root + '/workspaces/<string:workspace_id>/clear_users')
+api.add_resource(WorkspaceExit, api_root + '/workspaces/<string:workspace_id>/exit')
+api.add_resource(JoinWorkspace, api_root + '/join_workspace/<string:join_code>')
 api.add_resource(MessageList, api_root + '/messages')
 api.add_resource(MessageView, api_root + '/messages/<string:message_id>')
 api.add_resource(SessionView, api_root + '/sessions')
@@ -74,6 +72,7 @@ app.register_blueprint(environments)
 app.register_blueprint(clusters)
 app.register_blueprint(users)
 app.register_blueprint(workspaces)
+app.register_blueprint(join_workspace)
 app.register_blueprint(instances)
 app.register_blueprint(activations)
 app.register_blueprint(sessions)
