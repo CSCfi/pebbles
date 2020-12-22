@@ -23,13 +23,5 @@ class EnvironmentCategoryList(restful.Resource):
                 name='Data Analytics',
                 labels=['analytics', 'statistics']
             ),
-            dict(
-                name='Python',
-                labels=['python']
-            ),
-            dict(
-                name='RStudio',
-                labels=['r-studio']
-            )
         ]
         return categories
