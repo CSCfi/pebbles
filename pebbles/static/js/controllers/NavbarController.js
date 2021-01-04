@@ -82,8 +82,9 @@ app.controller('NavbarController', ['$scope', '$window', '$rootScope', '$locatio
         // To make transition smoother
         $location.path(' ');
         hostname = $window.location.hostname;
-        urlvalue = '/oauth2/sign_out';
-        $window.location.href = urlvalue;
+        pathname = $window.location.pathname;
+        // urlvalue = '/oauth2/sign_out';
+        $window.location.href = pathname;
     };
 
     var _routeNavigator = function() {
