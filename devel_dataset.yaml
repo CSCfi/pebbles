@@ -36,7 +36,7 @@ data:
     allowed_attrs:
       - maximum_lifetime
     config:
-      args: jupyter notebook --NotebookApp.token=''
+      args: jupyter notebook --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{instance_id}'
       autodownload_filename: ''
       autodownload_url: ''
       cluster: local_kubernetes
