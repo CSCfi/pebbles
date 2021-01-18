@@ -106,6 +106,9 @@ class EnvironmentList(restful.Resource):
 
         if 'name' in form.config.data:
             form.config.data.pop('name', None)
+        # check that config only contains allowed attributes
+        check_allowed_attrs_or_abort(form.config.data, template.allowed_attrs)
+
         environment.config = form.config.data
         environment.is_enabled = form.is_enabled.data
 
@@ -158,9 +161,17 @@ class EnvironmentView(restful.Resource):
             logging.warning("invalid workspace for the user")
             abort(403)
 
+        template = EnvironmentTemplate.query.filter_by(id=environment.template_id).first()
+        if not template:
+            abort(422)
+
         environment.name = form.config.data.get('name') or form.name.data
         if 'name' in form.config.data:
             form.config.data.pop('name', None)
+
+        # check that config only contains allowed attributes
+        check_allowed_attrs_or_abort(form.config.data, template.allowed_attrs)
+
         environment.config = form.config.data
 
         if form.is_enabled.raw_data:
@@ -223,7 +234,8 @@ class EnvironmentCopy(restful.Resource):
         if environment.current_status == 'archived' or environment.current_status == 'deleted':
             abort(422)
         if not user.is_admin and not is_workspace_manager(user, environment.workspace):
-            logging.warning("user is {} not workspace manager for environment {}".format(user.id, environment.workspace.id))
+            logging.warning(
+                "user is {} not workspace manager for environment {}".format(user.id, environment.workspace.id))
             abort(403)
 
         db.session.expunge(environment)
@@ -269,3 +281,12 @@ def validate_max_lifetime_environment(environment):
         max_life_str = str(full_config['maximum_lifetime'])
         if max_life_str:
             parse_maximum_lifetime(max_life_str)
+
+
+# check that config only contains allowed attributes
+def check_allowed_attrs_or_abort(attributes, allowed_attributes):
+    if not set(attributes.keys()).issubset(set(allowed_attributes)):
+        logging.warning(
+            'Possible hacking attempt: environment form config keys vs template allowed attrs: %s %s' % (
+                attributes.keys(), allowed_attributes))
+        abort(403)
