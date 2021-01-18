@@ -153,6 +153,11 @@ class User(db.Model):
         # we are a workspace owner if we have existing workspaces or have quota to create one
         return self.workspace_quota > 0 or self.get_owned_workspaces()
 
+    @hybrid_property
+    def is_workspace_manager(self):
+        # we are a workspace managerif we are mapped to be one
+        return self.get_managed_workspaces()
+
     @is_workspace_owner.setter
     def is_workspace_owner(self, value):
         raise RuntimeError('Set workspace owner status through workspace quota and membership')
