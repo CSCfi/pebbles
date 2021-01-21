@@ -17,7 +17,8 @@ MESSAGE_FIELDS = {
     'id': fields.String,
     'broadcasted': fields.DateTime(dt_format='iso8601'),
     'subject': fields.String,
-    'message': fields.String
+    'message': fields.String,
+    'is_read': fields.Boolean,
 }
 
 
@@ -33,25 +34,30 @@ def get_current_user():
 
 class MessageList(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('show_all', type=bool, default=False, location='args')
-    parser.add_argument('show_recent', type=bool, default=False, location='args')
+    parser.add_argument('show_unread', type=bool, default=False, location='args')
 
     @auth.login_required
     @marshal_with(MESSAGE_FIELDS)
     def get(self):
         args = self.parser.parse_args()
-        if args.get('show_all'):
-            return Message.query.all()
-        if args.get('show_recent'):
-            timevalue = datetime.datetime.utcnow() - datetime.timedelta(minutes=1)  # minute before the current time
-            recent_messages = Message.query.filter(Message.broadcasted >= timevalue).all()
-            return recent_messages
-
         user = get_current_user()
-        q = Message.query
-        if user.latest_seen_message_ts:
-            q = q.filter(Message.broadcasted > user.latest_seen_message_ts)
-        return q.all()
+        query = Message.query
+        if args.get('show_unread'):
+            if user.latest_seen_message_ts:
+                query = query.filter(Message.broadcasted > user.latest_seen_message_ts)
+
+        messages = query.all()
+
+        # mark messages read or unread
+        for msg in messages:
+            if not user.latest_seen_message_ts:
+                msg.is_read = False
+            elif msg.broadcasted > user.latest_seen_message_ts:
+                msg.is_read = False
+            else:
+                msg.is_read = True
+
+        return messages
 
     @auth.login_required
     @requires_admin
@@ -72,11 +78,8 @@ class MessageList(restful.Resource):
 
 
 class MessageView(restful.Resource):
-    parser = restful.reqparse.RequestParser()
-    parser.add_argument('send_mail', type=bool, default=False)
-    parser.add_argument('send_mail_workspace_owner', type=bool, default=False)
-
     @auth.login_required
+    @requires_admin
     @marshal_with(MESSAGE_FIELDS)
     def get(self, message_id):
         message = Message.query.filter_by(id=message_id).first()
@@ -87,29 +90,12 @@ class MessageView(restful.Resource):
     @auth.login_required
     @marshal_with(MESSAGE_FIELDS)
     def patch(self, message_id):
-        text = {"subject": " ", "message": " "}
-        args = self.parser.parse_args()
         message = Message.query.filter_by(id=message_id).first()
         current_user = get_current_user()
         if not message:
             abort(404)
-        if current_user.is_admin is True and args.get('send_mail'):
-            users = User.query.filter_by(is_active='t')
-            for user in users:
-                if user.eppn != 'worker@pebbles':
-                    text['subject'] = message.subject
-                    text['message'] = message.message
-                    logging.warning('email sending not implemented')
-        if current_user.is_admin is True and args.get('send_mail_workspace_owner'):
-            users = User.query.filter_by(is_workspace_owner='t')
-            for user in users:
-                if user.eppn != 'worker@pebbles':
-                    text['subject'] = message.subject
-                    text['message'] = message.message
-                    logging.warning('email sending not implemented')
-        else:
-            current_user.latest_seen_message_ts = message.broadcasted
-            db.session.commit()
+        current_user.latest_seen_message_ts = message.broadcasted
+        db.session.commit()
 
     @auth.login_required
     @requires_admin

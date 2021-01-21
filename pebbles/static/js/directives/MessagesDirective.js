@@ -38,7 +38,7 @@ app.directive('pbMessages', ['Restangular', 'AuthService', 'config', '$interval'
                 }
                 stop = $interval(function () {
                 if (AuthService.isAuthenticated()) {
-                    messages.getList({show_recent: true}).then(function(response) {
+                    messages.getList({show_unread: true}).then(function(response) {
                         var newMessages = response.plain();
                         if(response.length) {
                             for(i = response.length-1; i>=0; i--) {

@@ -27,7 +27,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
 
         var messages = Restangular.all('messages');
         var updateMessageList = function() {
-            messages.getList({show_all: true}).then(function (response){
+            messages.getList().then(function (response){
                 $scope.messages = response;
             });
         };
@@ -193,7 +193,7 @@ app.controller('ConfigureController', ['$q', '$scope', '$http', '$interval', '$u
         $scope.openEditMessage = function(message) {
             $uibModal.open({
                 templateUrl: '/partials/modal_edit_message.html',
-                controller: 'ModalEditmessageController',
+                controller: 'ModalEditMessageController',
                 size: 'sm',
                 resolve: {
                     message: function() {

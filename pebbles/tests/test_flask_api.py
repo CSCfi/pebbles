@@ -2222,7 +2222,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
 
         response = self.make_authenticated_user_request(
-            path='/api/v1/messages'
+            path='/api/v1/messages?show_unread=1'
         )
         self.assert_200(response)
         self.assertEqual(len(response.json), 1)
@@ -2235,7 +2235,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
 
         response = self.make_authenticated_user_request(
-            path='/api/v1/messages'
+            path='/api/v1/messages?show_unread=1'
         )
         self.assert_200(response)
         self.assertEqual(len(response.json), 0)
