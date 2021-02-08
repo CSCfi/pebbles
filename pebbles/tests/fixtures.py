@@ -61,7 +61,7 @@ def primary_test_setup(namespace):
 
     ws1 = Workspace('Workspace1')
     ws1.id = 'ws1'
-    ws1.environment_quota = 5
+    ws1.environment_quota = 6
     ws1.users.append(WorkspaceUserAssociation(user=u2))
     ws1.users.append(WorkspaceUserAssociation(user=u3, manager=True, owner=True))
     ws1.users.append(WorkspaceUserAssociation(user=u4, manager=True))
@@ -95,16 +95,19 @@ def primary_test_setup(namespace):
     t1 = EnvironmentTemplate()
     t1.name = 'TestTemplate'
     t1.cluster = 'dummy_cluster_1'
+    t1.environment_type = 'generic'
+    t1.base_config = {}
     db.session.add(t1)
     namespace.known_template_id_disabled = t1.id
 
     t2 = EnvironmentTemplate()
     t2.name = 'EnabledTestTemplate'
     t2.cluster = 'dummy_cluster_2'
-    t2.config = {
-        'labels': 'label1, label with space, label2',
+    t2.environment_type = 'generic'
+    t2.base_config = {
+        'labels': '["label1", "label with space", "label2"]',
         'cost_multiplier': '1.0',
-        'maximum_lifetime': '1h',
+        'maximum_lifetime': 3600,
         'memory_limit': '512m',
         'allow_update_client_connectivity': False
     }
@@ -117,96 +120,112 @@ def primary_test_setup(namespace):
     db.session.add(t2)
     namespace.known_template_id = t2.id
 
-    b1 = Environment()
-    b1.name = "TestEnvironment"
-    b1.template_id = t2.id
-    b1.workspace_id = ws1.id
-    db.session.add(b1)
-    namespace.known_environment_id_disabled = b1.id
+    e1 = Environment()
+    e1.name = "TestEnvironment"
+    e1.labels = ['label1', 'label with space', 'label2']
+    e1.template_id = t2.id
+    e1.workspace_id = ws1.id
+    db.session.add(e1)
+    namespace.known_environment_id_disabled = e1.id
 
-    b2 = Environment()
-    b2.name = "EnabledTestEnvironment"
-    b2.template_id = t2.id
-    b2.workspace_id = ws1.id
-    b2.is_enabled = True
-    db.session.add(b2)
-    namespace.known_environment_id = b2.id
+    e2 = Environment()
+    e2.name = "EnabledTestEnvironment"
+    e2.labels = ['label1', 'label with space', 'label2']
+    e2.template_id = t2.id
+    e2.workspace_id = ws1.id
+    e2.is_enabled = True
+    db.session.add(e2)
+    namespace.known_environment_id = e2.id
 
-    b3 = Environment()
-    b3.name = "EnabledTestEnvironmentClientIp"
-    b3.template_id = t2.id
-    b3.workspace_id = ws1.id
-    b3.is_enabled = True
-    b3.config = {'allow_update_client_connectivity': True}
-    db.session.add(b3)
-    namespace.known_environment_id_2 = b3.id
+    e3 = Environment()
+    e3.name = "EnabledTestEnvironmentClientIp"
+    e3.labels = ['label1', 'label with space', 'label2']
+    e3.template_id = t2.id
+    e3.workspace_id = ws1.id
+    e3.is_enabled = True
+    e3.config = {'allow_update_client_connectivity': True}
+    db.session.add(e3)
+    namespace.known_environment_id_2 = e3.id
 
-    b4 = Environment()
-    b4.name = "EnabledTestEnvironmentOtherWorkspace"
-    b4.template_id = t2.id
-    b4.workspace_id = ws2.id
-    b4.is_enabled = True
-    db.session.add(b4)
-    namespace.known_environment_id_g2 = b4.id
+    e4 = Environment()
+    e4.name = "EnabledTestEnvironmentOtherWorkspace"
+    e2.labels = ['label1', 'label with space', 'label2']
+    e4.template_id = t2.id
+    e4.workspace_id = ws2.id
+    e4.is_enabled = True
+    db.session.add(e4)
+    namespace.known_environment_id_g2 = e4.id
 
-    b5 = Environment()
-    b5.name = "DisabledTestEnvironmentOtherWorkspace"
-    b5.template_id = t2.id
-    b5.workspace_id = ws2.id
-    db.session.add(b5)
-    namespace.known_environment_id_disabled_2 = b5.id
+    e5 = Environment()
+    e5.name = "DisabledTestEnvironmentOtherWorkspace"
+    e5.labels = ['label1', 'label with space', 'label2']
+    e5.template_id = t2.id
+    e5.workspace_id = ws2.id
+    db.session.add(e5)
+    namespace.known_environment_id_disabled_2 = e5.id
 
-    b6 = Environment()
-    b6.name = "TestArchivedEnvironment"
-    b6.template_id = t2.id
-    b6.workspace_id = ws2.id
-    b6.current_status = 'archived'
-    db.session.add(b6)
+    e6 = Environment()
+    e6.name = "TestArchivedEnvironment"
+    e6.labels = ['label1', 'label with space', 'label2']
+    e6.template_id = t2.id
+    e6.workspace_id = ws2.id
+    e6.current_status = 'archived'
+    db.session.add(e6)
 
-    b7 = Environment()
-    b7.name = "TestDeletedEnvironment"
-    b7.template_id = t2.id
-    b7.workspace_id = ws2.id
-    b7.current_status = 'deleted'
-    db.session.add(b7)
+    e7 = Environment()
+    e7.name = "TestDeletedEnvironment"
+    e7.labels = ['label1', 'label with space', 'label2']
+    e7.template_id = t2.id
+    e7.workspace_id = ws2.id
+    e7.current_status = 'deleted'
+    db.session.add(e7)
 
-    n1 = Message()
-    n1.subject = "First message"
-    n1.message = "First message message"
-    namespace.known_message_id = n1.id
-    db.session.add(n1)
+    e8 = Environment()
+    e8.name = "EnabledTestEnvironment"
+    e8.labels = ['label1', 'label with space', 'label2']
+    e8.template_id = t2.id
+    e8.workspace_id = ws1.id
+    e8.is_enabled = True
+    db.session.add(e8)
+    namespace.known_environment_id_empty = e8.id
 
-    n2 = Message()
-    n2.subject = "Second message"
-    n2.message = "Second message message"
-    namespace.known_message2_id = n2.id
-    db.session.add(n2)
+    m1 = Message()
+    m1.subject = "First message"
+    m1.message = "First message message"
+    namespace.known_message_id = m1.id
+    db.session.add(m1)
+
+    m2 = Message()
+    m2.subject = "Second message"
+    m2.message = "Second message message"
+    namespace.known_message2_id = m2.id
+    db.session.add(m2)
 
     i1 = Instance(
-        Environment.query.filter_by(id=b2.id).first(),
+        Environment.query.filter_by(id=e2.id).first(),
         User.query.filter_by(eppn="user@example.org").first())
     db.session.add(i1)
     namespace.known_instance_id = i1.id
 
     i2 = Instance(
-        Environment.query.filter_by(id=b3.id).first(),
+        Environment.query.filter_by(id=e3.id).first(),
         User.query.filter_by(eppn="user@example.org").first())
     db.session.add(i2)
     namespace.known_instance_id_2 = i2.id
 
     i3 = Instance(
-        Environment.query.filter_by(id=b3.id).first(),
+        Environment.query.filter_by(id=e3.id).first(),
         User.query.filter_by(eppn="user@example.org").first())
     db.session.add(i3)
     i3.state = Instance.STATE_DELETED
 
     i4 = Instance(
-        Environment.query.filter_by(id=b3.id).first(),
+        Environment.query.filter_by(id=e3.id).first(),
         User.query.filter_by(eppn="workspace_owner@example.org").first())
     db.session.add(i4)
 
     i5 = Instance(
-        Environment.query.filter_by(id=b4.id).first(),
+        Environment.query.filter_by(id=e4.id).first(),
         User.query.filter_by(eppn="admin@example.org").first())
     db.session.add(i5)
 

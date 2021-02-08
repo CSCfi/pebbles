@@ -3,7 +3,6 @@ import logging
 import uuid
 
 import flask_restful as restful
-from dateutil.relativedelta import relativedelta
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
 from flask_restful import marshal_with, fields, reqparse
@@ -12,17 +11,16 @@ from sqlalchemy.orm.session import make_transient
 from pebbles.forms import EnvironmentForm
 from pebbles.models import db, Environment, EnvironmentTemplate, Workspace, Instance
 from pebbles.rules import apply_rules_environments
-from pebbles.utils import parse_maximum_lifetime, requires_workspace_owner_or_admin, requires_admin
+from pebbles.utils import requires_workspace_owner_or_admin, requires_admin
 from pebbles.views.commons import auth, requires_workspace_manager_or_admin, is_workspace_manager
 
 environments = FlaskBlueprint('environments', __name__)
 
-MAX_ACTIVATION_TOKENS_PER_USER = 3
-
 environment_fields = {
     'id': fields.String(attribute='id'),
-    'maximum_lifetime': fields.Integer,
     'name': fields.String,
+    'description': fields.String,
+    'maximum_lifetime': fields.Integer,
     'labels': fields.List(fields.String),
     'template_id': fields.String,
     'template_name': fields.String,
@@ -36,7 +34,6 @@ environment_fields = {
     'workspace_name': fields.String,
     'manager': fields.Boolean,
     'current_status': fields.String,
-    'expiry_time': fields.DateTime,
 }
 
 
@@ -58,9 +55,6 @@ class EnvironmentList(restful.Resource):
             results.append(environment)
         return results
 
-    post_parser = reqparse.RequestParser()
-    post_parser.add_argument('lifespan_months', type=int, location='json')
-
     @auth.login_required
     @requires_workspace_manager_or_admin
     def post(self):
@@ -70,7 +64,6 @@ class EnvironmentList(restful.Resource):
             return form.errors, 422
         user = g.user
         environment = Environment()
-        environment.name = form.name.data
         template_id = form.template_id.data
         template = EnvironmentTemplate.query.filter_by(id=template_id).first()
         if not template:
@@ -91,32 +84,19 @@ class EnvironmentList(restful.Resource):
                         "Contact support if you need more."
             ), 422
 
+        environment.name = form.name.data
+        environment.description = form.description.data
         environment.workspace_id = workspace_id
-
-        # System.default environments won't get expiry dates
-        if workspace.name != 'System.default':
-            args = self.post_parser.parse_args()
-            if 'lifespan_months' in args and args.lifespan_months:
-                if args.lifespan_months < 1:
-                    return dict(message="Months until expiry cannot be negative"), 422
-                environment.expiry_time = datetime.datetime.utcnow() + relativedelta(months=+args.lifespan_months)
-            else:
-                # default expiry date is 6 months
-                environment.expiry_time = datetime.datetime.utcnow() + relativedelta(months=+6)
-
-        if 'name' in form.config.data:
-            form.config.data.pop('name', None)
-        # check that config only contains allowed attributes
-        check_allowed_attrs_or_abort(form.config.data, template.allowed_attrs)
-
-        environment.config = form.config.data
-        environment.is_enabled = form.is_enabled.data
-
+        environment.maximum_lifetime = form.maximum_lifetime.data
         try:
             validate_max_lifetime_environment(environment)  # Validate the maximum lifetime from config
         except ValueError:
-            timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
-            return timeformat_error, 422
+            return 'Invalid lifetime for environment', 422
+
+        # for json lists, we need to use raw_data
+        environment.labels = form.labels.raw_data
+        environment.config = form.config.data
+        environment.is_enabled = form.is_enabled.data
 
         db.session.add(environment)
         db.session.commit()
@@ -161,23 +141,19 @@ class EnvironmentView(restful.Resource):
             logging.warning("invalid workspace for the user")
             abort(403)
 
-        template = EnvironmentTemplate.query.filter_by(id=environment.template_id).first()
-        if not template:
-            abort(422)
+        environment.name = form.name.data
+        environment.description = form.description.data
 
-        environment.name = form.config.data.get('name') or form.name.data
-        if 'name' in form.config.data:
-            form.config.data.pop('name', None)
-
-        # check that config only contains allowed attributes
-        check_allowed_attrs_or_abort(form.config.data, template.allowed_attrs)
-
+        # for json lists, we need to use raw_data
+        environment.labels = form.labels.raw_data
         environment.config = form.config.data
+        logging.debug('got %s %s %s', environment.name, environment.description, environment.labels)
 
         if form.is_enabled.raw_data:
             environment.is_enabled = form.is_enabled.raw_data[0]
         else:
             environment.is_enabled = False
+
         try:
             validate_max_lifetime_environment(environment)  # Validate the maximum lifetime from config
         except ValueError:
@@ -248,45 +224,36 @@ class EnvironmentCopy(restful.Resource):
 
 def process_environment(environment):
     user = g.user
-    template = environment.template
-    environment.schema = template.environment_schema
-    environment.form = template.environment_form
 
-    # Due to immutable nature of config field, whole dict needs to be reassigned.
-    environment_config = environment.config if environment.config else {}
-    environment_config['name'] = environment.name
-    environment.config = environment_config
-
-    environment.template_name = template.name
+    # shortcut properties for UI
+    environment.template_name = environment.template.name
     environment.workspace_name = environment.workspace.name
+
     # rest of the code taken for refactoring from single environment GET query
     environment.cluster = environment.template.cluster
     if user.is_admin or is_workspace_manager(user, environment.workspace):
         environment.manager = True
 
-    environment.labels = []
-    if 'labels' in environment.full_config:
-        for label in environment.full_config['labels'].split(','):
-            environment.labels.append(label.strip())
-
     return environment
 
 
 def validate_max_lifetime_environment(environment):
-    """Checks if the maximum lifetime for environment has a valid pattern"""
-    template = EnvironmentTemplate.query.filter_by(id=environment.template_id).first()
-    environment.template = template
-    full_config = environment.full_config
-    if 'maximum_lifetime' in full_config:
-        max_life_str = str(full_config['maximum_lifetime'])
-        if max_life_str:
-            parse_maximum_lifetime(max_life_str)
+    """Checks if the maximum lifetime for environment:
+      - lower than the one defined in the template
+      - higher than zero"""
+    if not getattr(environment, 'template', None):
+        template = EnvironmentTemplate.query.filter_by(id=environment.template_id).first()
+    else:
+        template = environment.template
 
+    if 'maximum_lifetime' in template.base_config:
+        template_max_lifetime = int(template.base_config['maximum_lifetime'])
+    else:
+        template_max_lifetime = 3600
 
-# check that config only contains allowed attributes
-def check_allowed_attrs_or_abort(attributes, allowed_attributes):
-    if not set(attributes.keys()).issubset(set(allowed_attributes)):
-        logging.warning(
-            'Possible hacking attempt: environment form config keys vs template allowed attrs: %s %s' % (
-                attributes.keys(), allowed_attributes))
-        abort(403)
+    # valid case
+    if 0 < environment.maximum_lifetime <= template_max_lifetime:
+        return
+
+    raise ValueError('Invalid maximum_lifetime %d for environment %s' % (
+        environment.maximum_lifetime, environment.name))

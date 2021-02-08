@@ -6,7 +6,6 @@ import logging
 from pebbles.models import db, Environment, EnvironmentTemplate, Workspace
 import flask_restful as restful
 from pebbles.views.commons import auth, requires_workspace_manager_or_admin, match_cluster
-from pebbles.views.environment_templates import environment_schemaform_config
 from pebbles.utils import requires_admin
 from pebbles.rules import apply_rules_export_environments
 from pebbles.forms import EnvironmentImportForm, EnvironmentTemplateImportForm
@@ -46,7 +45,7 @@ class ImportExportEnvironmentTemplates(restful.Resource):
             obj = {
                 'name': template.name,
                 'is_enabled': template.is_enabled,
-                'config': template.config,
+                'base_config': template.base_config,
                 'allowed_attrs': template.allowed_attrs,
                 'cluster_name': selected_cluster['name']
             }
@@ -71,7 +70,6 @@ class ImportExportEnvironmentTemplates(restful.Resource):
 
         if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
             template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']
-            template = environment_schemaform_config(template)
         db.session.add(template)
         db.session.commit()
 

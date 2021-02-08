@@ -100,7 +100,7 @@ def get_full_environment_config(environment):
     template = environment.template
     allowed_attrs = template.allowed_attrs
     allowed_attrs = ['name', 'description'] + allowed_attrs
-    full_config = template.config
+    full_config = template.base_config
     env_config = environment.config if environment.config else {}
     for attr in allowed_attrs:
         if attr in env_config:
@@ -111,14 +111,6 @@ def get_full_environment_config(environment):
 def get_environment_fields_from_config(environment, field_name):
     """Hybrid fields for Environment model which need processing"""
     full_config = get_full_environment_config(environment)
-
-    if field_name == 'maximum_lifetime':
-        maximum_lifetime = 3600  # Default value of 1 hour
-        if 'maximum_lifetime' in full_config:
-            max_life_str = str(full_config['maximum_lifetime'])
-            if max_life_str:
-                maximum_lifetime = parse_maximum_lifetime(max_life_str)
-        return maximum_lifetime
 
     if field_name == 'cost_multiplier':
         cost_multiplier = 1.0  # Default value

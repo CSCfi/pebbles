@@ -11,7 +11,7 @@ from sqlalchemy.orm import make_transient
 from pebbles.forms import EnvironmentTemplateForm
 from pebbles.models import db, EnvironmentTemplate
 from pebbles.rules import apply_rules_environment_templates
-from pebbles.utils import requires_admin, parse_maximum_lifetime
+from pebbles.utils import requires_admin
 from pebbles.views.commons import auth, requires_workspace_manager_or_admin, match_cluster
 
 environment_templates = FlaskBlueprint('environment_templates', __name__)
@@ -19,15 +19,12 @@ environment_templates = FlaskBlueprint('environment_templates', __name__)
 environment_template_fields = {
     'id': fields.String(attribute='id'),
     'name': fields.String,
+    'description': fields.String,
+    'environment_type': fields.String,
     'is_enabled': fields.Boolean,
     'cluster': fields.String,
-    'config': fields.Raw,
-    'schema': fields.Raw,
-    'form': fields.Raw,
+    'base_config': fields.Raw,
     'allowed_attrs': fields.Raw,
-    'environment_schema': fields.Raw,
-    'environment_form': fields.Raw,
-    'environment_model': fields.Raw
 }
 
 
@@ -46,13 +43,6 @@ class EnvironmentTemplateList(restful.Resource):
                 logging.warning('EnvironmentTemplate %s refers to cluster "%s" that is not configured, skipping',
                                 environment_template.id, environment_template.cluster)
                 continue
-            environment_template.schema = selected_cluster["schema"]
-            environment_template.form = selected_cluster["form"]
-            # Due to immutable nature of config field, whole dict needs to be reassigned.
-            environment_template_config = environment_template.config if environment_template.config else {}
-            environment_template_config['name'] = environment_template.name
-            environment_template.config = environment_template_config
-
             results.append(environment_template)
         return results
 
@@ -68,18 +58,12 @@ class EnvironmentTemplateList(restful.Resource):
         environment_template.cluster = form.cluster.data
         environment_template.is_enabled = form.is_enabled.data
 
-        config = form.config.data
-        config.pop('name', None)
-        environment_template.config = config
-        try:
-            validate_max_lifetime_template(config)  # Validate the maximum lifetime from config
-        except ValueError:
-            timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
-            return timeformat_error, 422
+        base_config = form.base_config.data
+        base_config.pop('name', None)
+        environment_template.base_config = base_config
 
         if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
             environment_template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']
-            environment_template = environment_schemaform_config(environment_template)
 
         db.session.add(environment_template)
         db.session.commit()
@@ -111,20 +95,14 @@ class EnvironmentTemplateView(restful.Resource):
         environment_template = EnvironmentTemplate.query.filter_by(id=template_id).first()
         if not environment_template:
             abort(404)
-        environment_template.name = form.config.data.get('name') or form.name.data
+        environment_template.name = form.base_config.data.get('name') or form.name.data
         environment_template.cluster = form.cluster.data
 
-        config = form.config.data
-        config.pop('name', None)
-        environment_template.config = config
-        try:
-            validate_max_lifetime_template(config)  # Validate the maximum lifetime from config
-        except ValueError:
-            timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
-            return timeformat_error, 422
+        base_config = form.base_config.data
+        base_config.pop('name', None)
+        environment_template.base_config = base_config
         if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
             environment_template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']
-            environment_template = environment_schemaform_config(environment_template)
 
         args = self.parser.parse_args()
         environment_template = toggle_enable_template(form, args, environment_template)
@@ -159,45 +137,3 @@ def toggle_enable_template(form, args, environment_template):
             for environment in environments:
                 environment.is_enabled = False
     return environment_template
-
-
-def environment_schemaform_config(environment_template):
-    """Generates config,schema and model objects used in schemaform ui component for environments"""
-    selected_cluster = match_cluster(environment_template.cluster)
-    environment_schema = dict(
-        type='object',
-        title='Comment',
-        description='Description',
-        required=['name', 'description'],
-        properties={}
-    )
-    config = environment_template.config
-    environment_model = {}
-
-    allowed_attrs = environment_template.allowed_attrs
-    environment_form = allowed_attrs
-    allowed_attrs = ['name', 'description'] + allowed_attrs
-    for attr in allowed_attrs:
-        environment_schema['properties'][attr] = selected_cluster['schema']['properties'][attr]
-        if attr in ('name', 'description'):
-            environment_model[attr] = ''
-        else:
-            environment_model[attr] = config[attr]
-
-    # add common fields to form
-    environment_form.insert(0, dict(key="name", type="textfield", placeholder="Environment name"))
-    environment_form.insert(1, dict(key="description", type="textarea", placeholder="Environment details"))
-
-    environment_template.environment_schema = environment_schema
-    environment_template.environment_form = environment_form
-    environment_template.environment_model = environment_model
-
-    return environment_template
-
-
-def validate_max_lifetime_template(config):
-    """Checks if the maximum lifetime has a valid pattern"""
-    if 'maximum_lifetime' in config:
-        max_life_str = str(config['maximum_lifetime'])
-        if max_life_str:
-            parse_maximum_lifetime(max_life_str)

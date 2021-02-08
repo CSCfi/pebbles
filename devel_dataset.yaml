@@ -31,65 +31,42 @@ data:
   - !EnvironmentTemplate
     id: et-1
     name: Example
+    description: Jupyter in local k8s
+    environment_type: jupyter
     cluster: local_kubernetes
     is_enabled: True
     allowed_attrs:
       - maximum_lifetime
-    config:
+    base_config:
       args: jupyter notebook --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{instance_id}'
-      autodownload_filename: ''
-      autodownload_url: ''
-      cluster: local_kubernetes
       cost_multiplier: 0
-      description: Jupyter in local k8s
       environment_vars: ''
       image: jupyter/minimal-notebook
-      labels: Data Analytics, Python, Jupyter
-      maximum_instances_per_user: 1
-      maximum_lifetime: 1h 0m
+      labels:
+        - data analytics
+        - python
+        - jupyter
+      maximum_lifetime: 3600
       memory_limit: 512M
       port: 8888
       show_password: true
       volume_mount_path: /data
-    environment_form:
-      - key: name
-        placeholder: Environment name
-        type: textfield
-      - key: description
-        placeholder: Environment details
-        type: textarea
-      - maximum_lifetime
-    environment_model:
-      description: ''
-      maximum_lifetime: 1h 0m
-      name: ''
-    environment_schema:
-      description: Description
-      properties:
-        description:
-          type: string
-        maximum_lifetime:
-          default: 1h 0m
-          pattern: ^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?$
-          title: Maximum life-time (days hours mins)
-          type: string
-          validationMessage: Value should be in format [days]d [hours]h [minutes]m
-        name:
-          type: string
-      required:
-      - name
-      - description
-      title: Comment
-      type: object
 
   - !Environment
     id: e-1
     name: Jupyter minimal notebook
+    description: Standard minimal Jupyter notebook
     template_id: et-1
     workspace_id: ws-0
+    labels:
+      - data analytics
+      - python
+      - jupyter
+    maximum_lifetime: 3600
     is_enabled: True
     config:
-      name: Jupyter minimal notebook
+      download_method: http-get
+      download_url: https://www.csc.fi/index.html
 
   #############################################################################
   ### Normal user with no extra workspace associations

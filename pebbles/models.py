@@ -94,6 +94,7 @@ class User(db.Model):
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     workspaces = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     def __init__(self, eppn, password=None, is_admin=False, email_id=None, expiry_date=None, pseudonym=None,
                  workspace_quota=None):
@@ -242,6 +243,7 @@ class WorkspaceUserAssociation(db.Model):  # Association Object for many-to-many
     owner = db.Column(db.Boolean, default=False)
     user = db.relationship("User", back_populates="workspaces")
     workspace = db.relationship("Workspace", back_populates="users")
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 
 class Workspace(db.Model):
@@ -268,6 +270,7 @@ class Workspace(db.Model):
                                    backref=backref('banned_workspaces', lazy="dynamic"), lazy='dynamic')
     environment_quota = db.Column(db.Integer, default=10)
     environments = db.relationship('Environment', backref='workspace', lazy='dynamic')
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     def __init__(self, name):
         self.id = uuid.uuid4().hex
@@ -305,6 +308,7 @@ class Message(db.Model):
     broadcasted = db.Column(db.DateTime)
     subject = db.Column(db.String(MAX_MESSAGE_SUBJECT_LENGTH))
     message = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     def __init__(self):
         self.id = uuid.uuid4().hex
@@ -316,6 +320,7 @@ class ActivationToken(db.Model):
 
     token = db.Column(db.String(32), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     def __init__(self, user):
         self.token = uuid.uuid4().hex
@@ -323,61 +328,40 @@ class ActivationToken(db.Model):
 
 
 class EnvironmentTemplate(db.Model):
+    ENVIRONMENT_TYPES = ['jupyter', 'rstudio', 'generic']
+
     __tablename__ = 'environment_templates'
     id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(MAX_NAME_LENGTH))
-    _config = db.Column('config', db.Text)
+    description = db.Column(db.Text)
+    environment_type = db.Column(db.String(MAX_NAME_LENGTH))
+    _base_config = db.Column('base_config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     cluster = db.Column(db.String(32))
     environments = db.relationship('Environment', backref='template', lazy='dynamic')
-    _environment_schema = db.Column('environment_schema', db.Text)
-    _environment_form = db.Column('environment_form', db.Text)
-    _environment_model = db.Column('environment_model', db.Text)
     _allowed_attrs = db.Column('allowed_attrs', db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, name=None, cluster=None, allowed_attrs=None, config=None, is_enabled=False,
-                 environment_schema=None, environment_form=None, environment_model=None):
+    def __init__(self, name=None, description=None, environment_type='generic', cluster=None, allowed_attrs=None,
+                 base_config=None, is_enabled=False):
         self.id = uuid.uuid4().hex
         self.name = name
+        self.description = description
+        if environment_type not in EnvironmentTemplate.ENVIRONMENT_TYPES:
+            raise ValueError('Illegal environment type: "%s"' % environment_type)
+        self.environment_type = environment_type
         self.cluster = cluster
         self._allowed_attrs = json.dumps(allowed_attrs)
-        self._config = json.dumps(config)
+        self._base_config = json.dumps(base_config)
         self.is_enabled = is_enabled
-        self._environment_schema = json.dumps(environment_schema)
-        self._environment_form = json.dumps(environment_form)
-        self._environment_model = json.dumps(environment_model)
 
     @hybrid_property
-    def config(self):
-        return load_column(self._config)
+    def base_config(self):
+        return load_column(self._base_config)
 
-    @config.setter
-    def config(self, value):
-        self._config = json.dumps(value)
-
-    @hybrid_property
-    def environment_schema(self):
-        return load_column(self._environment_schema)
-
-    @environment_schema.setter
-    def environment_schema(self, value):
-        self._environment_schema = json.dumps(value)
-
-    @hybrid_property
-    def environment_form(self):
-        return load_column(self._environment_form)
-
-    @environment_form.setter
-    def environment_form(self, value):
-        self._environment_form = json.dumps(value)
-
-    @hybrid_property
-    def environment_model(self):
-        return load_column(self._environment_model)
-
-    @environment_model.setter
-    def environment_model(self, value):
-        self._environment_model = json.dumps(value)
+    @base_config.setter
+    def base_config(self, value):
+        self._base_config = json.dumps(value)
 
     @hybrid_property
     def allowed_attrs(self):
@@ -402,21 +386,31 @@ class Environment(db.Model):
     __tablename__ = 'environments'
     id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(MAX_NAME_LENGTH))
+    description = db.Column(db.Text)
     template_id = db.Column(db.String(32), db.ForeignKey('environment_templates.id'))
+    workspace_id = db.Column(db.String(32), db.ForeignKey('workspaces.id'))
+    _labels = db.Column('labels', db.Text)
+    maximum_lifetime = db.Column(db.Integer)
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     expiry_time = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='environment', lazy='dynamic')
-    workspace_id = db.Column(db.String(32), db.ForeignKey('workspaces.id'))
     # current_status when created is "active". Later there are options to be "archived" or "deleted".
     _current_status = db.Column('current_status', db.String(32), default='active')
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, name=None, template_id=None, workspace_id=None, is_enabled=False, config=None):
+    def __init__(self, name=None, description=None, template_id=None, workspace_id=None, labels=None,
+                 maximum_lifetime=3600, is_enabled=False, config=None):
         self.id = uuid.uuid4().hex
         self.name = name
+        self.description = description
         self.template_id = template_id
         self.workspace_id = workspace_id
+        self.labels = labels
+        self.maximum_lifetime = maximum_lifetime
         self.is_enabled = is_enabled
+        if not config:
+            config = dict()
         self._config = json.dumps(config)
         self._current_status = Environment.STATE_ACTIVE
 
@@ -428,7 +422,15 @@ class Environment(db.Model):
     def config(self, value):
         self._config = json.dumps(value)
 
-    # 'full_config' property of Environment model will take the template attributes into account too
+    @hybrid_property
+    def labels(self):
+        return json.loads(self._labels)
+
+    @labels.setter
+    def labels(self, value):
+        self._labels = json.dumps(value)
+
+    # 'full_config' property of Environment model will take the template base_config into account too
     @hybrid_property
     def full_config(self):
         return get_full_environment_config(self)
@@ -443,10 +445,6 @@ class Environment(db.Model):
             self._current_status = value
         else:
             raise ValueError("'%s' is not a valid status for Environment" % value)
-
-    @hybrid_property
-    def maximum_lifetime(self):
-        return get_environment_fields_from_config(self, 'maximum_lifetime')
 
     @hybrid_property
     def cost_multiplier(self):

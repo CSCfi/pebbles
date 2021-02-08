@@ -137,8 +137,7 @@ class InstanceList(restful.Resource):
             user_id=user.id
         ).filter(Instance.state != 'deleted').all()
 
-        user_instance_limit = environment.full_config.get('maximum_instances_per_user', USER_INSTANCE_LIMIT)
-        if instances_for_user and len(instances_for_user) >= user_instance_limit:
+        if instances_for_user:
             return {'error': 'ENVIRONMENT_INSTANCE_LIMIT_REACHED'}, 409
 
         instance = Instance(environment, user)

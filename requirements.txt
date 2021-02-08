@@ -30,8 +30,8 @@ WTForms-Alchemy==0.16.9
 psycopg2==2.8.6
 gunicorn==20.0.4
 
-# for pycharm remote debugging (PyCharm 2019.2.3)
-#pydevd-pycharm~=193.5662.61
+# for pycharm remote debugging (PyCharm 2020.3)
+#pydevd-pycharm~=203.7148.72
 
 # for testing
 selenium==3.141.0

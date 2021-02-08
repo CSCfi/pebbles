@@ -4,7 +4,7 @@ cause gray hair.
 import re
 
 from flask_wtf import Form
-from wtforms import BooleanField, FloatField, StringField
+from wtforms import BooleanField, FloatField, StringField, IntegerField
 from wtforms.validators import DataRequired, Email, Length, IPAddress, Regexp
 from wtforms_alchemy import model_form_factory
 
@@ -50,7 +50,7 @@ class MessageForm(ModelForm):
 
 class EnvironmentTemplateForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
-    config = StringField('config', validators=[DataRequired()])
+    base_config = StringField('base_config')
     cluster = StringField('cluster', validators=[DataRequired()])
     allowed_attrs = StringField('allowed_attrs')
     is_enabled = BooleanField('is_enabled', default=False)
@@ -58,8 +58,11 @@ class EnvironmentTemplateForm(ModelForm):
 
 class EnvironmentForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
+    description = StringField('description')
     template_id = StringField('template_id', validators=[DataRequired()])
-    config = StringField('config', validators=[DataRequired()])
+    labels = StringField('labels', validators=[Length(max=1024)])
+    maximum_lifetime = IntegerField('maximum_lifetime', validators=[DataRequired()])
+    config = StringField('config')
     is_enabled = BooleanField('is_enabled', default=False)
     workspace_id = StringField('workspace_id', validators=[DataRequired()])
 
