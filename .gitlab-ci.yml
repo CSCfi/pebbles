@@ -9,6 +9,7 @@ stages:
 variables:
   PRIVATE_IMAGE: $CI_DOCKER_REPOSITORY_PRIVATE/pebbles
   PUBLIC_IMAGE: $CI_DOCKER_REPOSITORY_PUBLIC/pebbles
+  PUBLISH_IMAGE: $CI_DOCKER_REPOSITORY_PUBLISH/pebbles
 
 flake8:
   stage: analysis and tests
@@ -61,25 +62,34 @@ build-image:
     # push to public registry
     - docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLIC_IMAGE}:${CI_COMMIT_REF_NAME}
     - docker push ${PUBLIC_IMAGE}:${CI_COMMIT_REF_NAME}
-    # if we are on master branch, push this also as latest + create a versioned tag
+
+    # if we are on master branch, create latest and versioned tags and also push to PUBLISH repo
     - |
       if [[ ${CI_COMMIT_REF_NAME} == 'master' ]]; then
-        echo "Tagging and pushing ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} as latest"
+        echo "Tagging and publishing ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} as latest"
         docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PRIVATE_IMAGE}:latest
         docker push ${PRIVATE_IMAGE}:latest
 
-        # push to public registry
+        # push to PUBLIC registry
         docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLIC_IMAGE}:latest
         docker push ${PUBLIC_IMAGE}:latest
 
+        # push to PUBLISH registry
+        docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLISH_IMAGE}:latest
+        docker push ${PUBLISH_IMAGE}:latest
+
         export IMAGE_TAG="${CI_COMMIT_REF_NAME}-$(date +%Y-%m-%d_%H%M)"
-        echo "Tagging and pushing ${PRIVATE_IMAGE}:${IMAGE_TAG}"
+        echo "Tagging and publishing ${PRIVATE_IMAGE}:${IMAGE_TAG}"
         docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PRIVATE_IMAGE}:${IMAGE_TAG}
         docker push ${PRIVATE_IMAGE}:${IMAGE_TAG}
 
-        # push to public registry
+        # push to PUBLIC registry
         docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLIC_IMAGE}:${IMAGE_TAG}
         docker push ${PUBLIC_IMAGE}:${IMAGE_TAG}
+
+        # push to PUBLISH registry
+        docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLISH_IMAGE}:${IMAGE_TAG}
+        docker push ${PUBLISH_IMAGE}:${IMAGE_TAG}
       fi
 
 # call pipeline project
