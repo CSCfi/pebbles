@@ -205,7 +205,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         env_var_array = environment_config.get('environment_vars', '').split()
         env_var_dict = {k: v for k, v in [x.split('=') for x in env_var_array]}
         env_var_dict['INSTANCE_ID'] = instance['id']
-        if custom_config.get('download_method', '') == 'http-get':
+        if custom_config.get('download_method', 'none') != 'none':
+            env_var_dict['AUTODOWNLOAD_METHOD'] = custom_config.get('download_method', '')
             env_var_dict['AUTODOWNLOAD_URL'] = custom_config.get('download_url', '')
 
         env_var_list = [dict(name=x, value=env_var_dict[x]) for x in env_var_dict.keys()]
@@ -218,6 +219,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         ))
         deployment_dict = yaml.safe_load(deployment_yaml)
         deployment_dict['spec']['template']['spec']['containers'][0]['env'] = env_var_list
+        deployment_dict['spec']['template']['spec']['initContainers'][0]['env'] = env_var_list
 
         # process templated arguments
         if 'args' in environment_config:

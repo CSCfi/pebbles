@@ -50,7 +50,7 @@ data:
       memory_limit: 512M
       port: 8888
       show_password: true
-      volume_mount_path: /data
+      volume_mount_path: /home/jovyan
 
   - !Environment
     id: e-1
@@ -65,8 +65,9 @@ data:
     maximum_lifetime: 3600
     is_enabled: True
     config:
+      jupyter_interface: lab
       download_method: http-get
-      download_url: https://www.csc.fi/index.html
+      download_url: https://www.csc.fi/
 
   # second template, Jupyter machine learning
   - !EnvironmentTemplate
@@ -92,7 +93,7 @@ data:
       memory_limit: 512M
       port: 8888
       show_password: true
-      volume_mount_path: /data
+      volume_mount_path: /home/jovyan
 
 
   #############################################################################

@@ -17,9 +17,26 @@ spec:
       - key: "role"
         value: "user"
         effect: "NoSchedule"
+      initContainers:
+      - name: autodownload
+        image: "{image}"
+        imagePullPolicy: IfNotPresent
+        env: []
+        command:
+          - sh
+          - -c
+          - |
+            if [ -z $AUTODOWNLOAD_URL ]; then exit 0; fi;
+            cd /data;
+            if [ $AUTODOWNLOAD_METHOD = "http-get" ]; then wget $AUTODOWNLOAD_URL || echo "download failed"; fi;
+            if [ $AUTODOWNLOAD_METHOD = "git-clone" ]; then git clone $AUTODOWNLOAD_URL || echo "cloning failed"; fi;
+        volumeMounts:
+          - mountPath: "/data"
+            name: data
       containers:
       - name: pebbles-instance
         image: "{image}"
+        imagePullPolicy: IfNotPresent
         args: []
         env: []
         volumeMounts:
