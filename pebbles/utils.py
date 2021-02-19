@@ -96,15 +96,40 @@ def parse_port_range(port_range):
 
 
 def get_full_environment_config(environment):
-    """Get the full config for environment from environment template for allowed attributes"""
+    """Get the full config for environment"""
+
+    # old style override of template base_config with environment config
     template = environment.template
     allowed_attrs = template.allowed_attrs
-    allowed_attrs = ['name', 'description'] + allowed_attrs
     full_config = template.base_config
     env_config = environment.config if environment.config else {}
     for attr in allowed_attrs:
         if attr in env_config:
             full_config[attr] = env_config[attr]
+
+    # here we pick configuration options from environment to full_config that is used in provisioning
+    custom_config = {}
+    # common autodownload options
+    if env_config.get('download_method'):
+        method = env_config.get('download_method')
+        if method in ('http-get', 'git-clone'):
+            custom_config['download_method'] = method
+            custom_config['download_url'] = env_config.get('download_url')
+        else:
+            logging.warning('unknown download_method', method)
+
+    # environment type specific configs
+    if template.environment_type == 'jupyter':
+        if env_config.get('jupyter_interface') in ('notebook', 'lab'):
+            custom_config['jupyter_interface'] = env_config.get('jupyter_interface')
+        else:
+            custom_config['jupyter_interface'] = 'lab'
+
+    elif template.environment_type == 'rstudio':
+        logging.warning('rstudio config not implemented yet')
+
+    full_config['custom_config'] = custom_config
+
     return full_config
 
 

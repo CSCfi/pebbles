@@ -199,11 +199,15 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def create_deployment(self, namespace, instance):
 
         environment_config = instance['environment']['full_config']
+        custom_config = environment_config.get('custom_config', {})
 
         # create a dict out of space separated list of VAR=VAL entries
         env_var_array = environment_config.get('environment_vars', '').split()
         env_var_dict = {k: v for k, v in [x.split('=') for x in env_var_array]}
         env_var_dict['INSTANCE_ID'] = instance['id']
+        if custom_config.get('download_method', '') == 'http-get':
+            env_var_dict['AUTODOWNLOAD_URL'] = custom_config.get('download_url', '')
+
         env_var_list = [dict(name=x, value=env_var_dict[x]) for x in env_var_dict.keys()]
 
         deployment_yaml = parse_template('deployment.yaml', dict(
@@ -218,7 +222,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         # process templated arguments
         if 'args' in environment_config:
             args = environment_config.get('args').format(
-                instance_id='%s' % instance['id']
+                instance_id='%s' % instance['id'],
+                **custom_config
             )
             deployment_dict['spec']['template']['spec']['containers'][0]['args'] = args.split()
 

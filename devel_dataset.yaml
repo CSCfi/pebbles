@@ -38,7 +38,7 @@ data:
     allowed_attrs:
       - maximum_lifetime
     base_config:
-      args: jupyter notebook --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{instance_id}'
+      args: jupyter {jupyter_interface} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{instance_id}'
       cost_multiplier: 0
       environment_vars: ''
       image: jupyter/minimal-notebook
@@ -67,6 +67,33 @@ data:
     config:
       download_method: http-get
       download_url: https://www.csc.fi/index.html
+
+  # second template, Jupyter machine learning
+  - !EnvironmentTemplate
+    id: et-2
+    name: Example
+    description: Jupyter ML in local k8s using notebook-images autodownload feature
+    environment_type: jupyter
+    cluster: local_kubernetes
+    is_enabled: True
+    allowed_attrs:
+      - maximum_lifetime
+    base_config:
+      args: jupyter {jupyter_interface} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{instance_id}'
+      cost_multiplier: 0
+      environment_vars: ''
+      image: docker-registry.rahti.csc.fi/notebook-images/pb-jupyter-ml:latest
+      labels:
+        - data analytics
+        - machine learning
+        - python
+        - jupyter
+      maximum_lifetime: 3600
+      memory_limit: 512M
+      port: 8888
+      show_password: true
+      volume_mount_path: /data
+
 
   #############################################################################
   ### Normal user with no extra workspace associations
@@ -111,3 +138,7 @@ data:
     eppn: owner-2@example.org
     password: owner-2
     workspace_quota: 2
+
+  - !WorkspaceUserAssociation
+    workspace_id: ws-0
+    user_id: u-owner-2
