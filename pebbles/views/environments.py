@@ -157,8 +157,10 @@ class EnvironmentView(restful.Resource):
         try:
             validate_max_lifetime_environment(environment)  # Validate the maximum lifetime from config
         except ValueError:
-            timeformat_error = {"timeformat error": "pattern should be [days]d [hours]h [minutes]m"}
-            return timeformat_error, 422
+            max_lifetime_error = {
+                "invalid maximum lifetime": "invalid maximum lifetime %s" % environment.maximum_lifetime
+            }
+            return max_lifetime_error, 422
         db.session.add(environment)
         db.session.commit()
 

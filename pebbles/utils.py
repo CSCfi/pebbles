@@ -115,8 +115,8 @@ def get_full_environment_config(environment):
         if method in ('http-get', 'git-clone'):
             custom_config['download_method'] = method
             custom_config['download_url'] = env_config.get('download_url')
-        else:
-            logging.warning('unknown download_method', method)
+        elif method != 'none':
+            logging.warning('unknown download_method %s', method)
 
     # environment type specific configs
     if template.environment_type == 'jupyter':
