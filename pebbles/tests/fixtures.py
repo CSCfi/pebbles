@@ -70,19 +70,19 @@ def primary_test_setup(namespace):
     ws2 = Workspace('Workspace2')
     ws2.id = 'ws2'
     ws2.users.append(WorkspaceUserAssociation(user=u3))
-    ws2.users.append(WorkspaceUserAssociation(user=u4, owner=True))
+    ws2.users.append(WorkspaceUserAssociation(user=u4, manager=True, owner=True))
     db.session.add(ws2)
 
     ws3 = Workspace('Workspace3')
     ws3.id = 'ws3'
-    ws3.users.append(WorkspaceUserAssociation(user=u4, owner=True))
+    ws3.users.append(WorkspaceUserAssociation(user=u4, manager=True, owner=True))
     ws3.banned_users.append(u2)
     ws3.banned_users.append(u3)
     db.session.add(ws3)
 
     ws4 = Workspace('Workspace4')
     ws4.id = 'ws4'
-    ws4.users.append(WorkspaceUserAssociation(user=u1, owner=True))
+    ws4.users.append(WorkspaceUserAssociation(user=u1, manager=True, owner=True))
     db.session.add(ws4)
 
     namespace.known_workspace_id = ws1.id

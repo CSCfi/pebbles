@@ -1526,7 +1526,38 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/instances',
             data=json.dumps({'environment': self.known_environment_id_disabled}),
         )
-        self.assert_404(response)
+        self.assert_403(response)
+
+    def test_owner_create_instance_environment_disabled(self):
+        # Use Environment in ws2 that is owned by owner2 and has owner1 as user
+
+        # first, disable known_environment_id_g2
+        resp = self.make_authenticated_workspace_owner2_request(
+            path='/api/v1/environments/%s' % self.known_environment_id_g2
+        )
+        data = resp.json
+        data['is_enabled'] = False
+        put_response = self.make_authenticated_workspace_owner2_request(
+            method='PUT',
+            path='/api/v1/environments/%s' % self.known_environment_id_g2,
+            data=json.dumps(data))
+        self.assert_200(put_response)
+
+        # 'owner2' should be able to launch an instance
+        response = self.make_authenticated_workspace_owner2_request(
+            method='POST',
+            path='/api/v1/instances',
+            data=json.dumps({'environment': self.known_environment_id_g2}),
+        )
+        self.assert_200(response)
+
+        # 'owner' has a user role in this ws2, so this should be denied
+        response = self.make_authenticated_workspace_owner_request(
+            method='POST',
+            path='/api/v1/instances',
+            data=json.dumps({'environment': self.known_environment_id_g2}),
+        )
+        self.assert_403(response)
 
     def test_get_instances(self):
         # Anonymous
