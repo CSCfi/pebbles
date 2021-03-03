@@ -42,6 +42,11 @@ spec:
         volumeMounts:
           - mountPath: "{volume_mount_path}"
             name: data
+        # generic check if the pod is accepting connections, poll every 1 second
+        readinessProbe:
+          tcpSocket:
+            port: {port}
+            periodSeconds: 1
       volumes:
         - name: data
           persistentVolumeClaim:

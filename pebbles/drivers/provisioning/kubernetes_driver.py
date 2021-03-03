@@ -124,22 +124,27 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             raise RuntimeWarning('pod results length is not one. dump: %s' % pods.to_str())
 
         pod = pods.items[0]
-        if pod.status.phase == 'Running':
-            # instance ready, create and publish an endpoint url. note that we pick the protocol
-            # from a property that can be set in a subclass
-            return dict(
-                namespace=namespace,
-                endpoints=[dict(
-                    name='https',
-                    access='%s://%s%s' % (
-                        self.endpoint_protocol,
-                        self.get_instance_hostname(instance),
-                        self.get_instance_path(instance)
-                    )
-                )]
-            )
+        # first check that the pod is running
+        if pod.status.phase != 'Running':
+            return None
+        # then check readiness of all containers
+        for containerStatus in pod.status.containerStatuses:
+            if not containerStatus.ready:
+                return None
 
-        return None
+        # instance ready, create and publish an endpoint url. note that we pick the protocol
+        # from a property that can be set in a subclass
+        return dict(
+            namespace=namespace,
+            endpoints=[dict(
+                name='https',
+                access='%s://%s%s' % (
+                    self.endpoint_protocol,
+                    self.get_instance_hostname(instance),
+                    self.get_instance_path(instance)
+                )
+            )]
+        )
 
     def do_deprovision(self, token, instance_id):
         instance = self.fetch_and_populate_instance(token, instance_id)
@@ -215,7 +220,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             name=instance['name'],
             image=environment_config['image'],
             volume_mount_path=environment_config['volume_mount_path'],
-            pvc_name=get_volume_name(instance)
+            pvc_name=get_volume_name(instance),
+            port=int(environment_config['port'])
         ))
         deployment_dict = yaml.safe_load(deployment_yaml)
         deployment_dict['spec']['template']['spec']['containers'][0]['env'] = env_var_list
