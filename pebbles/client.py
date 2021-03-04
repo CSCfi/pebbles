@@ -43,12 +43,18 @@ class PBClient:
         resp = requests.get(url, data=payload, headers=headers, verify=self.ssl_verify)
         return resp
 
-    def do_patch(self, object_url, payload):
-        headers = {'Content-type': 'application/x-www-form-urlencoded',
-                   'Accept': 'text/plain',
-                   'Authorization': 'Basic %s' % self.auth}
+    def do_patch(self, object_url, form_data=None, json_data=None):
+        if form_data:
+            content_type = 'application/x-www-form-urlencoded'
+        else:
+            content_type = 'application/json'
+
+        headers = {
+            'Content-type': content_type,
+            'Accept': 'text/plain',
+            'Authorization': 'Basic %s' % self.auth}
         url = '%s/%s' % (self.api_base_url, object_url)
-        resp = requests.patch(url, data=payload, headers=headers, verify=self.ssl_verify)
+        resp = requests.patch(url, data=form_data, json=json_data, headers=headers, verify=self.ssl_verify)
         return resp
 
     def do_post(self, object_url, payload=None):
@@ -75,9 +81,9 @@ class PBClient:
         resp = requests.delete(url, headers=headers, verify=self.ssl_verify)
         return resp
 
-    def do_instance_patch(self, instance_id, payload):
+    def do_instance_patch(self, instance_id, form_data=None, json_data=None):
         url = 'instances/%s' % instance_id
-        resp = self.do_patch(url, payload)
+        resp = self.do_patch(url, form_data=form_data, json_data=json_data)
         return resp
 
     def user_delete(self, user_id):
@@ -134,6 +140,17 @@ class PBClient:
             raise RuntimeError('Error loading environment data: %s, %s' % (environment_id, resp.reason))
 
         return resp.json()
+
+    def update_instance_running_logs(self, instance_id, logs):
+        payload = dict(
+            log_record=dict(
+                log_type='running',
+                log_level='INFO',
+                timestamp=time(),
+                message=logs
+            )
+        )
+        self.do_patch('instances/%s/logs' % instance_id, json_data=payload)
 
     def clear_running_instance_logs(self, instance_id):
         headers = {'Accept': 'text/plain',

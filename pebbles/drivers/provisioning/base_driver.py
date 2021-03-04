@@ -6,10 +6,8 @@ resources like Docker containers or OpenStack virtual machines.
 
 import abc
 import json
-import logging
 
 from pebbles.client import PBClient
-from pebbles.logger import PBInstanceLogHandler, PBInstanceLogFormatter
 from pebbles.models import Instance
 
 
@@ -66,6 +64,10 @@ class ProvisioningDriverBase(object):
             if instance['state'] in [Instance.STATE_STARTING]:
                 self.logger.debug('checking readiness of %s' % instance.get('name'))
                 self.check_readiness(token, instance_id)
+            if instance['state'] in [Instance.STATE_RUNNING] and instance['log_fetch_pending']:
+                self.logger.info('fetching instance logs for %s' % instance.get('name'))
+                self.fetch_running_instance_logs(token, instance_id)
+                pass
             else:
                 self.logger.debug("update('%s') - nothing to do for %s" % (instance_id, instance))
         elif instance['state'] not in [Instance.STATE_DELETED]:
@@ -147,6 +149,17 @@ class ProvisioningDriverBase(object):
         self.logger.debug('housekeep')
         self.do_housekeep(token)
 
+    def fetch_running_instance_logs(self, token, instance_id):
+        """ get and uploads the logs of an instance which is in running state """
+        logs = self.do_get_running_logs(token, instance_id)
+        pbclient = self.get_pb_client(token)
+        if logs:
+            # take only last 32k characters at maximum (64k char limit in the database, take half of that to
+            # make sure we don't overflow it even in the theoretical case of all characters two bytes)
+            logs = logs[-32768:]
+            pbclient.update_instance_running_logs(instance_id, logs)
+        pbclient.do_instance_patch(instance_id, json_data={'log_fetch_pending': False})
+
     @abc.abstractmethod
     def is_expired(self):
         """ called by worker to check if a new instance of this driver needs to be created
@@ -172,11 +185,6 @@ class ProvisioningDriverBase(object):
         pass
 
     @abc.abstractmethod
-    def get_running_instance_logs(self, token, instance_id):
-        """ get the logs of an instance which is in running state """
-        pass
-
-    @abc.abstractmethod
     def do_provision(self, token, instance_id):
         """ The steps to take to provision an instance.
         Probably doesn't make sense not to implement.
@@ -194,26 +202,7 @@ class ProvisioningDriverBase(object):
         """
         pass
 
-    def create_prov_log_uploader(self, token, instance_id, log_type):
-        """ Creates a new logger that will upload the log file via the
-        internal API.
-        """
-        uploader = logging.getLogger('%s-%s' % (instance_id, log_type))
-        uploader.setLevel(logging.INFO)
-        for handler in uploader.handlers:
-            uploader.removeHandler(handler)
-
-        if 'TEST_MODE' not in self.config:
-            # check if the custom handler is already there
-            if len(uploader.handlers) == 0:
-                log_handler = PBInstanceLogHandler(
-                    self.config['INTERNAL_API_BASE_URL'],
-                    instance_id,
-                    token,
-                    ssl_verify=self.config['SSL_VERIFY']
-                )
-                formatter = PBInstanceLogFormatter(log_type)
-                log_handler.setFormatter(formatter)
-                uploader.addHandler(log_handler)
-
-        return uploader
+    @abc.abstractmethod
+    def do_get_running_logs(self, token, instance_id):
+        """implement to return running logs for an instance as a string"""
+        pass

@@ -27,6 +27,7 @@ instance_fields = {
     'runtime': fields.Float,
     'state': fields.String,
     'to_be_deleted': fields.Boolean,
+    'log_fetch_pending': fields.Boolean,
     'error_msg': fields.String,
     'username': fields.String,
     'user_id': fields.String,
@@ -167,6 +168,7 @@ class InstanceView(restful.Resource):
     parser.add_argument('client_ip', type=str)
     parser.add_argument('instance_data', type=str)
     parser.add_argument('to_be_deleted', type=bool)
+    parser.add_argument('log_fetch_pending', type=bool)
     parser.add_argument('send_email', type=bool)
 
     @auth.login_required
@@ -259,6 +261,10 @@ class InstanceView(restful.Resource):
         if args.get('to_be_deleted'):
             instance.to_be_deleted = args['to_be_deleted']
             instance.deprovisioned_at = datetime.datetime.utcnow()
+            db.session.commit()
+
+        if args.get('log_fetch_pending') is not None:
+            instance.log_fetch_pending = args['log_fetch_pending']
             db.session.commit()
 
         if args.get('error_msg'):

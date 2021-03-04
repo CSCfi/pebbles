@@ -192,8 +192,22 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def do_update_connectivity(self, token, instance_id):
         pass
 
-    def get_running_instance_logs(self, token, instance_id):
-        pass
+    def do_get_running_logs(self, token, instance_id):
+        instance = self.fetch_and_populate_instance(token, instance_id)
+        namespace = self.get_instance_namespace(instance)
+        api = self.dynamic_client.resources.get(api_version='v1', kind='Pod')
+        pods = api.get(
+            namespace=namespace,
+            label_selector='name=%s' % instance.get('name')
+        )
+        if len(pods.items) != 1:
+            raise RuntimeWarning('pod results length is not one. dump: %s' % pods.to_str())
+
+        # now we got the pod, query the logs
+        resp = self.dynamic_client.request(
+            'GET',
+            '/api/v1/namespaces/%s/pods/%s/log' % (namespace, pods.items[0].metadata.name))
+        return resp
 
     def is_expired(self):
         if 'token_expires_at' in self.cluster_config.keys():

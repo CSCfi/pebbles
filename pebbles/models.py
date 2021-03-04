@@ -508,6 +508,7 @@ class Instance(db.Model):
     errored = db.Column(db.Boolean, default=False)
     _state = db.Column('state', db.String(32))
     to_be_deleted = db.Column(db.Boolean, default=False)
+    log_fetch_pending = db.Column(db.Boolean, default=False)
     error_msg = db.Column(db.String(256))
     _instance_data = db.Column('instance_data', db.Text)
 

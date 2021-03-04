@@ -90,7 +90,6 @@ class Worker:
         logging.info('worker "%s" starting' % self.id)
 
         # TODO:
-        # - fetch instance logs
         # - housekeeping
 
         # check if we are being terminated and drop out of the loop
@@ -101,18 +100,26 @@ class Worker:
             # we query all non-deleted instances
             instances = self.client.get_instances()
 
-            # extract instances that are waiting to be provisioned
+            # extract instances need to be processed
+            # waiting to be provisioned
             queueing_instances = filter(lambda x: x['state'] == Instance.STATE_QUEUEING, instances)
-            # extract instances that are starting asynchronously
+            # starting asynchronously
             starting_instances = filter(lambda x: x['state'] == Instance.STATE_STARTING, instances)
-            # extract expired instances
+            # log fetching needed
+            log_fetch_instances = filter(
+                lambda x: x['state'] == Instance.STATE_RUNNING and x['log_fetch_pending'], instances)
+            # expired instances in need of deprovisioning
             expired_instances = filter(
                 lambda x: x['to_be_deleted'] or (x['lifetime_left'] == 0 and x['maximum_lifetime']),
                 instances
             )
 
-            # process expired and queueing instances
-            processed_instances = list(queueing_instances) + list(starting_instances) + list(expired_instances)
+            # process instances that need action
+            processed_instances = []
+            processed_instances.extend(queueing_instances)
+            processed_instances.extend(starting_instances)
+            processed_instances.extend(expired_instances)
+            processed_instances.extend(log_fetch_instances)
 
             if len(processed_instances):
                 # get locks for instances that are already being processed by another worker
@@ -129,7 +136,7 @@ class Worker:
                     if instance['id'] in locked_instance_ids:
                         continue
 
-                    # try to obtain a lock. Should we lose the race, the winner takes it
+                    # try to obtain a lock. Should we lose the race, the winner takes it and we move on
                     lock = self.client.obtain_lock(instance.get('id'), self.id)
                     if lock is None:
                         continue
