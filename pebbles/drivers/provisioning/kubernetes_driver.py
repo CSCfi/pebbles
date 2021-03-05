@@ -104,10 +104,10 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         instance = self.fetch_and_populate_instance(token, instance_id)
         namespace = self.get_instance_namespace(instance)
         self.ensure_namespace(namespace)
-        self.ensure_volume(namespace, instance)
         self.create_deployment(namespace, instance)
         self.create_service(namespace, instance)
         self.create_ingress(namespace, instance)
+        self.ensure_volume(namespace, instance)
         # tell base_driver that we need to check on the readiness later by explicitly returning STATE_STARTING
         return Instance.STATE_STARTING
 
