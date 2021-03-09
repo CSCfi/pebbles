@@ -274,7 +274,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         self.logger.debug('creating ingress\n%s' % ingress_yaml)
 
         api = self.dynamic_client.resources.get(api_version='extensions/v1beta1', kind='Ingress')
-        return api.create(body=yaml.load(ingress_yaml), namespace=namespace)
+        return api.create(body=yaml.safe_load(ingress_yaml), namespace=namespace)
 
     def delete_ingress(self, namespace, instance):
         self.logger.debug('deleting ingress %s' % instance.get('name'))
@@ -340,9 +340,10 @@ class KubernetesRemoteDriver(KubernetesDriverBase):
     def create_kube_client(self):
         # load cluster config from kubeconfig
         context = self.cluster_config['name']
-        self.logger.debug('loading context %s from /var/run/secrets/pebbles/cluster-kubeconfig', context)
+        config_file = self.config['CLUSTER_KUBECONFIG_FILE']
+        self.logger.debug('loading context %s from %s', context, config_file)
         return kubernetes.config.new_client_from_config(
-            config_file='/var/run/secrets/pebbles/cluster-kubeconfig',
+            config_file=config_file,
             context=self.cluster_config['name']
         )
 

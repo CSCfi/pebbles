@@ -166,9 +166,12 @@ def init_logging(config, log_name):
         logging.getLogger().addHandler(handler)
 
 
-def load_cluster_config(load_passwords=True):
+def load_cluster_config(
+        load_passwords=True,
+        cluster_config_file='/run/secrets/pebbles/cluster-config.yaml',
+        cluster_passwords_file='/run/secrets/pebbles/cluster-passwords.yaml',
+):
     """load configuration for clusters where the instances are executed"""
-    cluster_config_file = '/run/secrets/pebbles/cluster-config.yaml'
 
     try:
         cluster_config = yaml.safe_load(open(cluster_config_file, 'r'))
@@ -182,7 +185,6 @@ def load_cluster_config(load_passwords=True):
         return cluster_config
 
     # merge password info into the config
-    cluster_passwords_file = '/run/secrets/pebbles/cluster-passwords.yaml'
     try:
         cluster_passwords = yaml.safe_load(open(cluster_passwords_file, 'r'))
     except (IOError, ValueError) as e:

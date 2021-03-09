@@ -25,7 +25,10 @@ class Worker:
         signal.signal(signal.SIGTERM, self.handle_signals)
 
         self.clusters = {}
-        self.cluster_config = load_cluster_config()
+        self.cluster_config = load_cluster_config(
+            cluster_config_file=self.config['CLUSTER_CONFIG_FILE'],
+            cluster_passwords_file=self.config['CLUSTER_PASSWORDS_FILE']
+        )
 
     def handle_signals(self, signum, frame):
         """
