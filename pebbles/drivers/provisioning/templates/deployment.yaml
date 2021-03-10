@@ -42,6 +42,8 @@ spec:
         volumeMounts:
           - mountPath: "{volume_mount_path}"
             name: data
+          - mountPath: "{volume_mount_path}/shared-data"
+            name: shared-data
         # generic check if the pod is accepting connections, poll every 1 second
         readinessProbe:
           tcpSocket:
@@ -50,4 +52,9 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: "{pvc_name}"
+            claimName: "{pvc_name_user}"
+            readOnly: false
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: "{pvc_name_shared}"
+            readOnly: {shared_data_read_only_mode}

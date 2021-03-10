@@ -17,7 +17,7 @@ from pebbles.utils import b64encode_string
 @unique
 class VolumePersistenceLevel(Enum):
     INSTANCE_LIFETIME = 1
-    ENVIRONMENT_LIFETIME = 2
+    WORKSPACE_LIFETIME = 2
     USER_LIFETIME = 3
 
 
@@ -30,11 +30,15 @@ def parse_template(name, values):
             return template
 
 
-def get_volume_name(instance, persistence_level=VolumePersistenceLevel.INSTANCE_LIFETIME):
+def get_user_volume_name(instance, persistence_level=VolumePersistenceLevel.INSTANCE_LIFETIME):
     if persistence_level == VolumePersistenceLevel.INSTANCE_LIFETIME:
         return 'pvc-%s-%s' % (instance['user']['pseudonym'], instance['name'])
     else:
         raise RuntimeError('volume persistence level %s is not supported' % persistence_level)
+
+
+def get_shared_volume_name(instance):
+    return 'pvc-ws-vol-1'
 
 
 class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
@@ -103,11 +107,18 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def do_provision(self, token, instance_id):
         instance = self.fetch_and_populate_instance(token, instance_id)
         namespace = self.get_instance_namespace(instance)
+        user_volume_name = get_user_volume_name(instance)
+        shared_volume_name = get_shared_volume_name(instance)
+        user_storage_class_name = self.cluster_config.get('storageClassNameUser')
+        shared_storage_class_name = self.cluster_config.get('storageClassNameShared')
+        volume_size = self.cluster_config.get('volumeSize', '20Gi')
         self.ensure_namespace(namespace)
         self.create_deployment(namespace, instance)
         self.create_service(namespace, instance)
         self.create_ingress(namespace, instance)
-        self.ensure_volume(namespace, instance)
+        self.create_volume(namespace, instance, user_volume_name, volume_size, user_storage_class_name)
+        self.create_volume(namespace, instance, shared_volume_name, volume_size, shared_storage_class_name,
+                           'ReadWriteMany')
         # tell base_driver that we need to check on the readiness later by explicitly returning STATE_STARTING
         return Instance.STATE_STARTING
 
@@ -176,9 +187,9 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             else:
                 raise e
 
-        # remove volume (only level 1 persistence implemented so far)
+        # remove user volume (only level 1 persistence implemented so far)
         try:
-            volume_name = get_volume_name(instance)
+            volume_name = get_user_volume_name(instance)
             self.delete_volume(namespace, volume_name)
         except ApiException as e:
             if e.status == 404:
@@ -229,12 +240,19 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             env_var_dict['AUTODOWNLOAD_URL'] = custom_config.get('download_url', '')
 
         env_var_list = [dict(name=x, value=env_var_dict[x]) for x in env_var_dict.keys()]
+        # read_write only for managers
+        shared_data_read_only_mode = next(
+            (False for user in instance['workspace_users_roles']['manager_users'] if instance['user_id'] == user['id']),
+            True
+        )
 
         deployment_yaml = parse_template('deployment.yaml', dict(
             name=instance['name'],
             image=environment_config['image'],
             volume_mount_path=environment_config['volume_mount_path'],
-            pvc_name=get_volume_name(instance),
+            pvc_name_user=get_user_volume_name(instance),
+            pvc_name_shared=get_shared_volume_name(instance),
+            shared_data_read_only_mode=shared_data_read_only_mode,
             port=int(environment_config['port'])
         ))
         deployment_dict = yaml.safe_load(deployment_yaml)
@@ -295,8 +313,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         api = self.dynamic_client.resources.get(api_version='extensions/v1beta1', kind='Ingress')
         api.delete(namespace=namespace, name=instance.get('name'))
 
-    def ensure_volume(self, namespace, instance):
-        volume_name = get_volume_name(instance)
+    def create_volume(self, namespace, instance, volume_name, volume_size, storage_class_name,
+                      access_mode='ReadWriteOnce'):
         api = self.dynamic_client.resources.get(api_version='v1', kind='PersistentVolumeClaim')
         try:
             api.get(namespace=namespace, name=volume_name)
@@ -304,20 +322,16 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         except ApiException as e:
             if e.status != 404:
                 raise e
-        return self.create_volume(namespace, volume_name)
-
-    def create_volume(self, namespace, volume_name):
         pvc_yaml = parse_template('pvc.yaml', dict(
             name=volume_name,
-            storage_size='1Gi',
+            volume_size=volume_size,
+            access_mode=access_mode,
         ))
         pvc_dict = yaml.safe_load(pvc_yaml)
-        storage_class_name = self.cluster_config.get('storageClassName')
         if storage_class_name is not None:
             pvc_dict['spec']['storageClassName'] = storage_class_name
 
-        self.logger.debug('creating pvc\n%s' % pvc_yaml)
-
+        self.logger.debug('creating pvc\n%s' % yaml.safe_dump(pvc_dict))
         api = self.dynamic_client.resources.get(api_version='v1', kind='PersistentVolumeClaim')
         return api.create(body=pvc_dict, namespace=namespace)
 
@@ -334,6 +348,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         instance = pbclient.get_instance(instance_id)
         instance['environment'] = pbclient.get_instance_environment(instance_id)
         instance['user'] = pbclient.get_user(instance['user_id'])
+        instance['workspace_users_roles'] = pbclient.get_workspace_users_list(instance['environment']['workspace_id'])
 
         return instance
 
@@ -371,9 +386,9 @@ class KubernetesRemoteDriver(KubernetesDriverBase):
             namespace = self.cluster_config['namespace']
             self.logger.debug('using fixed namespace %s for instance %s' % (namespace, instance.get('name')))
         else:
-            # generate namespace name based on prefix and user pseudonym
+            # generate namespace name based on prefix and workspace pseudonym
             namespace_prefix = self.cluster_config.get('namespacePrefix', 'pb-')
-            namespace = '%s%s' % (namespace_prefix, instance['user']['pseudonym'])
+            namespace = '%s%s' % (namespace_prefix, instance['environment']['workspace_pseudonym'])
             self.logger.debug('assigned namespace %s to instance %s' % (namespace, instance.get('name')))
         return namespace
 
@@ -480,9 +495,9 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
             namespace = self.cluster_config['namespace']
             self.logger.debug('using fixed namespace %s for instance %s' % (namespace, instance.get('name')))
         else:
-            # generate namespace name based on prefix and user pseudonym
+            # generate namespace name based on prefix and workspace pseudonym
             namespace_prefix = self.cluster_config.get('namespacePrefix', 'pb-')
-            namespace = '%s%s' % (namespace_prefix, instance['user']['pseudonym'])
+            namespace = '%s%s' % (namespace_prefix, instance['environment']['workspace_pseudonym'])
             self.logger.debug('assigned namespace %s to instance %s' % (namespace, instance.get('name')))
         return namespace
 

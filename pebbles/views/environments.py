@@ -32,6 +32,7 @@ environment_fields = {
     'form': fields.Raw,
     'workspace_id': fields.String,
     'workspace_name': fields.String,
+    'workspace_pseudonym': fields.String,
     'manager': fields.Boolean,
     'current_status': fields.String,
 }
@@ -230,6 +231,7 @@ def process_environment(environment):
     # shortcut properties for UI
     environment.template_name = environment.template.name
     environment.workspace_name = environment.workspace.name
+    environment.workspace_pseudonym = environment.workspace.pseudonym
 
     # rest of the code taken for refactoring from single environment GET query
     environment.cluster = environment.template.cluster

@@ -4,7 +4,7 @@ metadata:
   name: "{name}"
 spec:
   accessModes:
-    - ReadWriteOnce
+    - "{access_mode}"
   resources:
     requests:
-      storage: "{storage_size}"
+      storage: "{volume_size}"

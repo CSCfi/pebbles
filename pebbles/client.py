@@ -114,6 +114,12 @@ class PBClient:
             raise RuntimeError('Cannot fetch data for user %s, %s' % (user_id, resp.reason))
         return resp.json()
 
+    def get_workspace_users_list(self, workspace_id):
+        resp = self.do_get('workspaces/%s/list_users' % workspace_id)
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot fetch data for workspace %s, %s' % (workspace_id, resp.reason))
+        return resp.json()
+
     def get_environments(self):
         resp = self.do_get('environments')
         if resp.status_code != 200:
