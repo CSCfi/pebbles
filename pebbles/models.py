@@ -94,7 +94,6 @@ class User(db.Model):
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     workspaces = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     def __init__(self, eppn, password=None, is_admin=False, email_id=None, expiry_date=None, pseudonym=None,
                  workspace_quota=None):
@@ -264,13 +263,17 @@ class Workspace(db.Model):
     description = db.Column(db.Text)
     # current_status when created is "active". Later there is option to be "archived".
     _current_status = db.Column('current_status', db.String(32), default='active')
+    _create_ts = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    _expiry_ts = db.Column(
+        db.DateTime,
+        default=lambda: datetime.datetime.fromtimestamp(time.time() + 6 * 30 * 24 * 3600)
+    )
     users = db.relationship("WorkspaceUserAssociation", back_populates="workspace", lazy='dynamic',
                             cascade="all, delete-orphan")
     banned_users = db.relationship('User', secondary=workspace_banned_user,
                                    backref=backref('banned_workspaces', lazy="dynamic"), lazy='dynamic')
     environment_quota = db.Column(db.Integer, default=10)
     environments = db.relationship('Environment', backref='workspace', lazy='dynamic')
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     def __init__(self, name):
         self.id = uuid.uuid4().hex
@@ -288,6 +291,22 @@ class Workspace(db.Model):
         ascii_name = name.encode('ascii', 'ignore').decode()
         random_chars = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(5))
         self._join_code = ascii_name + '-' + random_chars
+
+    @hybrid_property
+    def create_ts(self):
+        return self._create_ts.timestamp()
+
+    @create_ts.setter
+    def create_ts(self, value):
+        self._create_ts = datetime.datetime.fromtimestamp(value)
+
+    @hybrid_property
+    def expiry_ts(self):
+        return self._expiry_ts.timestamp()
+
+    @expiry_ts.setter
+    def expiry_ts(self, value):
+        self._expiry_ts = datetime.datetime.fromtimestamp(value)
 
     @hybrid_property
     def current_status(self):

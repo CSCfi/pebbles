@@ -24,18 +24,6 @@ user_fields = {
     'expiry_date': fields.DateTime,
 }
 
-workspace_fields = {
-    'id': fields.String(attribute='id'),
-    'name': fields.String,
-    'join_code': fields.String,
-    'description': fields.Raw,
-    'config': fields.Raw,
-    'user_config': fields.Raw,
-    'owner_eppn': fields.String,
-    'role': fields.String,
-    'environment_quota': fields.Integer,
-}
-
 # TODO: remove when AngularJS based old UI has been phased out
 admin_icons = ["Dashboard", "Users", "Workspaces", "Environments", "Configure", "Statistics", "Account"]
 workspace_owner_icons = ["Dashboard", "", "Workspaces", "Environments", "", "", "Account"]

@@ -5,6 +5,8 @@ import time
 import unittest
 import uuid
 
+from dateutil.relativedelta import relativedelta
+
 from pebbles.models import (
     User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
     ActivationToken, Instance)
@@ -531,6 +533,11 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/workspaces',
             data=json.dumps(data))
         self.assertStatus(response, 200)
+        # also check expiry time
+        self.assertEqual(
+            int(response.json['expiry_ts']),
+            int((datetime.datetime.fromtimestamp(response.json['create_ts']) + relativedelta(months=+6)).timestamp())
+        )
 
         response = self.make_authenticated_workspace_owner_request(
             method='POST',

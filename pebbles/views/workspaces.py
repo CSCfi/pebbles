@@ -3,17 +3,32 @@ import logging
 import re
 
 import flask_restful as restful
+from dateutil.relativedelta import relativedelta
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
-from flask_restful import marshal_with, reqparse
+from flask_restful import marshal_with, reqparse, fields
 
 from pebbles.forms import WorkspaceForm
 from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Instance
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin
-from pebbles.views.commons import auth, workspace_fields, user_fields, is_workspace_manager
+from pebbles.views.commons import auth, user_fields, is_workspace_manager
 
 workspaces = FlaskBlueprint('workspaces', __name__)
 join_workspace = FlaskBlueprint('join_workspace', __name__)
+
+workspace_fields = {
+    'id': fields.String(attribute='id'),
+    'name': fields.String,
+    'join_code': fields.String,
+    'description': fields.Raw,
+    'create_ts': fields.Integer,
+    'expiry_ts': fields.Integer,
+    'config': fields.Raw,
+    'user_config': fields.Raw,
+    'owner_eppn': fields.String,
+    'role': fields.String,
+    'environment_quota': fields.Integer,
+}
 
 
 class WorkspaceList(restful.Resource):
@@ -83,6 +98,9 @@ class WorkspaceList(restful.Resource):
 
         workspace_owner_obj = WorkspaceUserAssociation(user=user, workspace=workspace, manager=True, owner=True)
         workspace.users.append(workspace_owner_obj)
+
+        workspace.create_ts = datetime.datetime.utcnow().timestamp()
+        workspace.expiry_ts = (datetime.datetime.utcnow() + relativedelta(months=+6)).timestamp()
 
         db.session.add(workspace)
         db.session.commit()
