@@ -3,6 +3,7 @@ import time
 from enum import Enum, unique
 from urllib.parse import urlparse, parse_qs
 
+import jinja2
 import kubernetes
 import requests
 import yaml
@@ -21,13 +22,15 @@ class VolumePersistenceLevel(Enum):
     USER_LIFETIME = 3
 
 
+def format_with_jinja2(str, values):
+    template = jinja2.Template(str)
+    return template.render(values)
+
+
 def parse_template(name, values):
     with open(os.path.join(os.path.dirname(__file__), 'templates', name), 'r') as f:
         template = f.read()
-        if values:
-            return template.format(**values)
-        else:
-            return template
+        return format_with_jinja2(template, values)
 
 
 def get_user_volume_name(instance, persistence_level=VolumePersistenceLevel.INSTANCE_LIFETIME):
@@ -114,6 +117,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         volume_size = self.cluster_config.get('volumeSize', '20Gi')
         self.ensure_namespace(namespace)
         self.create_deployment(namespace, instance)
+        self.create_configmap(namespace, instance)
         self.create_service(namespace, instance)
         self.create_ingress(namespace, instance)
         self.create_volume(namespace, instance, user_volume_name, volume_size, user_storage_class_name)
@@ -130,8 +134,11 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             namespace=namespace,
             label_selector='name=%s' % instance.get('name')
         )
-
-        if len(pods.items) != 1:
+        # no pods, continue waiting
+        if len(pods.items) == 0:
+            return None
+        # more than one pod with given search condition, we have a logic error
+        if len(pods.items) > 1:
             raise RuntimeWarning('pod results length is not one. dump: %s' % pods.to_str())
 
         pod = pods.items[0]
@@ -152,7 +159,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                 access='%s://%s%s' % (
                     self.endpoint_protocol,
                     self.get_instance_hostname(instance),
-                    self.get_instance_path(instance)
+                    self.get_instance_path(instance) + '/'
                 )
             )]
         )
@@ -166,6 +173,15 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         except ApiException as e:
             if e.status == 404:
                 self.logger.warning('Deployment not found, assuming it is already deleted')
+            else:
+                raise e
+
+        # remove configmap
+        try:
+            self.delete_configmap(namespace, instance)
+        except ApiException as e:
+            if e.status == 404:
+                self.logger.warning('ConfigMap not found, assuming it is already deleted')
             else:
                 raise e
 
@@ -247,22 +263,31 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             name=instance['name'],
             image=environment_config['image'],
             volume_mount_path=environment_config['volume_mount_path'],
+            port=int(environment_config['port']),
+            memory_limit=environment_config.get('memory_limit', '512Mi'),
             pvc_name_user=get_user_volume_name(instance),
             pvc_name_shared=get_shared_volume_name(instance),
             shared_data_read_only_mode=shared_data_read_only_mode,
-            port=int(environment_config['port'])
         ))
         deployment_dict = yaml.safe_load(deployment_yaml)
-        deployment_dict['spec']['template']['spec']['containers'][0]['env'] = env_var_list
+
+        # find the spec for pebbles instance container
+        instance_spec = list(filter(
+            lambda x: x['name'] == 'pebbles-instance',
+            deployment_dict['spec']['template']['spec']['containers']))[0]
+        instance_spec['env'] = env_var_list
         deployment_dict['spec']['template']['spec']['initContainers'][0]['env'] = env_var_list
 
         # process templated arguments
         if 'args' in environment_config:
-            args = environment_config.get('args').format(
-                instance_id='%s' % instance['id'],
-                **custom_config
+            args = format_with_jinja2(
+                environment_config.get('args'),
+                dict(
+                    instance_id='%s' % instance['id'],
+                    **custom_config
+                )
             )
-            deployment_dict['spec']['template']['spec']['containers'][0]['args'] = args.split()
+            instance_spec['args'] = args.split()
 
         deployment_dict = self.customize_deployment_dict(deployment_dict)
 
@@ -276,10 +301,66 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         api_deployment = self.dynamic_client.resources.get(api_version='apps/v1', kind='Deployment')
         return api_deployment.delete(namespace=namespace, name=instance.get('name'))
 
+    def create_configmap(self, namespace, instance):
+        environment_config = instance['environment']['full_config']
+
+        configmap_yaml = parse_template('configmap.yaml', dict(
+            name=instance['name'],
+        ))
+        configmap_dict = yaml.safe_load(configmap_yaml)
+        if instance['environment']['full_config'].get('proxy_rewrite') == 'nginx':
+            proxy_config = """
+                server {
+                  server_name             _;
+                  listen                  8080;
+                  location {{ path|d('/', true) }} {
+                    proxy_pass http://localhost:{{port}};
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                    proxy_read_timeout 86400;
+                    rewrite ^{{path}}/(.*)$ /$1 break;
+                    proxy_redirect {{proto}}://localhost:{{port}}/ {{proto}}://{{host}}{{path}}/;
+                  }
+                }
+            """
+        else:
+            proxy_config = """
+                server {
+                  server_name             _;
+                  listen                  8080;
+                  location {{ path|d('/', true) }} {
+                    proxy_pass http://localhost:{{port}};
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                    proxy_read_timeout 86400;
+                  }
+                }
+            """
+
+        proxy_config = format_with_jinja2(
+            proxy_config,
+            dict(
+                port=int(environment_config['port']),
+                name=instance['name'],
+                path=self.get_instance_path(instance),
+                host=self.get_instance_hostname(instance),
+                proto=self.endpoint_protocol
+            )
+        )
+        configmap_dict['data']['proxy.conf'] = proxy_config
+        self.logger.debug('creating configmap\n%s' % yaml.safe_dump(configmap_dict))
+        api = self.dynamic_client.resources.get(api_version='v1', kind='ConfigMap')
+        return api.create(body=configmap_dict, namespace=namespace)
+
+    def delete_configmap(self, namespace, instance):
+        self.logger.debug('deleting configmap %s' % instance.get('name'))
+        api_configmap = self.dynamic_client.resources.get(api_version='v1', kind='ConfigMap')
+        return api_configmap.delete(namespace=namespace, name=instance.get('name'))
+
     def create_service(self, namespace, instance):
         service_yaml = parse_template('service.yaml', dict(
             name=instance['name'],
-            target_port=instance['environment']['full_config']['port']
+            target_port=8080
         ))
         self.logger.debug('creating service\n%s' % service_yaml)
 

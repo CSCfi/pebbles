@@ -126,7 +126,10 @@ def get_full_environment_config(environment):
             custom_config['jupyter_interface'] = 'lab'
 
     elif template.environment_type == 'rstudio':
-        logging.warning('rstudio config not implemented yet')
+        # nothing special required for rstudio yet
+        pass
+    else:
+        logging.warning('unknown environment_type %s', template.environment_type)
 
     full_config['custom_config'] = custom_config
 

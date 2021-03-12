@@ -1,60 +1,87 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{name}"
+  name: "{{name}}"
 spec:
   selector:
     matchLabels:
-      name: "{name}"
+      name: "{{name}}"
   template:
     metadata:
       labels:
-        name: "{name}"
+        name: "{{name}}"
     spec:
+      # no default service account token for the pod
       automountServiceAccountToken: false
       # tolerate user role node taint
       tolerations:
-      - key: "role"
-        value: "user"
-        effect: "NoSchedule"
+        - key: "role"
+          value: "user"
+          effect: "NoSchedule"
       initContainers:
-      - name: autodownload
-        image: "{image}"
-        imagePullPolicy: IfNotPresent
-        env: []
-        command:
-          - sh
-          - -c
-          - |
-            if [ -z $AUTODOWNLOAD_URL ]; then exit 0; fi;
-            cd /data;
-            if [ $AUTODOWNLOAD_METHOD = "http-get" ]; then wget $AUTODOWNLOAD_URL || echo "download failed"; fi;
-            if [ $AUTODOWNLOAD_METHOD = "git-clone" ]; then git clone $AUTODOWNLOAD_URL || echo "cloning failed"; fi;
-        volumeMounts:
-          - mountPath: "/data"
-            name: data
+        - name: autodownload
+          image: "{{image}}"
+          imagePullPolicy: IfNotPresent
+          env: [ ]
+          command:
+            - sh
+            - -c
+            - |
+              if [ -z $AUTODOWNLOAD_URL ]; then exit 0; fi;
+              cd /data;
+              if [ $AUTODOWNLOAD_METHOD = "http-get" ]; then wget $AUTODOWNLOAD_URL || echo "download failed"; fi;
+              if [ $AUTODOWNLOAD_METHOD = "git-clone" ]; then git clone $AUTODOWNLOAD_URL || echo "cloning failed"; fi;
+          volumeMounts:
+            - mountPath: "/data"
+              name: data
       containers:
-      - name: pebbles-instance
-        image: "{image}"
-        imagePullPolicy: IfNotPresent
-        args: []
-        env: []
-        volumeMounts:
-          - mountPath: "{volume_mount_path}"
-            name: data
-          - mountPath: "{volume_mount_path}/shared-data"
-            name: shared-data
-        # generic check if the pod is accepting connections, poll every 1 second
-        readinessProbe:
-          tcpSocket:
-            port: {port}
-            periodSeconds: 1
+        - name: proxy
+          image: docker.io/bitnami/nginx:1.19.8
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /opt/bitnami/nginx/conf/server_blocks
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "64Mi"
+
+        - name: pebbles-instance
+          image: "{{image}}"
+          imagePullPolicy: IfNotPresent
+          args: [ ]
+          env: [ ]
+          volumeMounts:
+            - mountPath: "{{volume_mount_path}}"
+              name: data
+          # generic check if the pod is accepting connections, poll every 1 second
+          readinessProbe:
+            tcpSocket:
+              port: {{port}}
+              periodSeconds: 1
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "{{memory_limit}}"
+            limits:
+              cpu: "1800m"
+              memory: "{{memory_limit}}"
+
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: "{pvc_name_user}"
+            claimName: "{{pvc_name_user}}"
             readOnly: false
+        - name: nginx-config
+          configMap:
+            name: "{{name}}"
+            items:
+              - key: "proxy.conf"
+                path: "proxy.conf"
         - name: shared-data
           persistentVolumeClaim:
-            claimName: "{pvc_name_shared}"
-            readOnly: {shared_data_read_only_mode}
+            claimName: "{{pvc_name_shared}}"
+            readOnly: {{shared_data_read_only_mode}}
