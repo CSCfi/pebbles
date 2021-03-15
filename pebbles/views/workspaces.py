@@ -30,6 +30,13 @@ workspace_fields = {
     'environment_quota': fields.Integer,
 }
 
+total_users_fields = {
+    'owner': fields.Nested(user_fields),
+    'manager_users': fields.List(fields.Nested(user_fields)),
+    'normal_users': fields.List(fields.Nested(user_fields)),
+    'banned_users': fields.List(fields.Nested(user_fields))
+}
+
 
 class WorkspaceList(restful.Resource):
     @auth.login_required
@@ -364,14 +371,11 @@ class WorkspaceExit(restful.Resource):
 
 class WorkspaceUsersList(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('banned_list', type=bool, location='args')
 
     @auth.login_required
     @requires_workspace_owner_or_admin
-    @marshal_with(user_fields)
+    @marshal_with(total_users_fields)
     def get(self, workspace_id):
-        args = self.parser.parse_args()
-        banned_list = args.banned_list
         user = g.user
         workspace = Workspace.query.filter_by(id=workspace_id).first()
         if not workspace:
@@ -384,22 +388,29 @@ class WorkspaceUsersList(restful.Resource):
             logging.warning('Workspace %s not owned, cannot see users', workspace_id)
             abort(403)
 
-        total_users = None
-        if banned_list:
-            banned_users = workspace.banned_users.all()
-            workspace_user_objs = workspace_user_query.filter_by(
-                workspace_id=workspace.id,
-                manager=False
-            ).all()
-            users = [workspace_user_obj.user for workspace_user_obj in workspace_user_objs]
-            total_users = users + banned_users
-        else:
-            workspace_user_objs = workspace_user_query.filter_by(
-                workspace_id=workspace.id,
-                owner=False
-            ).all()
-            total_users = [workspace_user_obj.user for workspace_user_obj in workspace_user_objs]
-
+        banned_users = workspace.banned_users.all()
+        workspace_user_objs = workspace_user_query.filter_by(
+            workspace_id=workspace.id,
+            owner=False,
+            manager=False
+        ).all()
+        normal_users = [workspace_user_obj.user for workspace_user_obj in workspace_user_objs]
+        workspace_user_objs = workspace_user_query.filter_by(
+            workspace_id=workspace.id,
+            owner=True
+        ).first()
+        owner_user = workspace_user_objs.user
+        workspace_user_objs = workspace_user_query.filter_by(
+            workspace_id=workspace.id,
+            manager=True
+        ).all()
+        manager_users = [workspace_user_obj.user for workspace_user_obj in workspace_user_objs]
+        total_users = {
+            'owner': owner_user,
+            'manager_users': manager_users,
+            'normal_users': normal_users,
+            'banned_users': banned_users
+        }
         return total_users
 
 

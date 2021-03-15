@@ -860,7 +860,11 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps({})
         )
         self.assertStatus(response, 200)
-        self.assertEqual(len(response.json), 2)  # 1 normal user + 1 manager (1 workspace owner not taken into account)
+        # 1 normal user + 1 manager + 1 workspace owner
+        self.assertTrue(response.json['owner']['id'] == self.known_workspace_owner_id)
+        self.assertEqual(len(response.json['manager_users']), 2)
+        self.assertEqual(len(response.json['normal_users']), 1)
+        self.assertEqual(len(response.json['banned_users']), 0)
 
         # Authenticated Workspace Owner , is a Manager too
         response = self.make_authenticated_admin_request(
@@ -869,15 +873,11 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps({})
         )
         self.assertStatus(response, 200)
-        self.assertEqual(len(response.json), 2)  # 1 normal user + 1 manager (1 workspace owner not taken into account)
-
-        # Authenticated Workspace Owner , is a Manager too
-        response = self.make_authenticated_workspace_owner_request(
-            method='GET',
-            path='/api/v1/workspaces/%s/list_users?banned_list=true' % self.known_workspace_id,
-        )
-        self.assertStatus(response, 200)
-        self.assertEqual(len(response.json), 1)  # 1 normal user
+        # 1 normal user + 1 manager + 1 workspace owner
+        self.assertTrue(response.json['owner']['id'] == self.known_workspace_owner_id)
+        self.assertEqual(len(response.json['manager_users']), 2)
+        self.assertEqual(len(response.json['normal_users']), 1)
+        self.assertEqual(len(response.json['banned_users']), 0)
 
     def test_clear_users_from_workspace(self):
         name = 'WorkspaceToBeCleared'
