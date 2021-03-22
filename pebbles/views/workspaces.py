@@ -18,6 +18,7 @@ join_workspace = FlaskBlueprint('join_workspace', __name__)
 
 workspace_fields = {
     'id': fields.String(attribute='id'),
+    'pseudonym': fields.String,
     'name': fields.String,
     'join_code': fields.String,
     'description': fields.Raw,

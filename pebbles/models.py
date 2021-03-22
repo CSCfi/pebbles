@@ -19,7 +19,7 @@ from sqlalchemy.schema import MetaData
 
 from pebbles.utils import get_full_environment_config, get_environment_fields_from_config
 
-MAX_USER_PSEUDONYM_LENGTH = 32
+MAX_PSEUDONYM_LENGTH = 32
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
 MAX_NAME_LENGTH = 128
@@ -80,7 +80,7 @@ class User(db.Model):
     _eppn = db.Column('eppn', db.String(MAX_EMAIL_LENGTH), unique=True)
     # email_id field is used only for sending emails.
     _email_id = db.Column('email_id', db.String(MAX_EMAIL_LENGTH))
-    pseudonym = db.Column(db.String(MAX_USER_PSEUDONYM_LENGTH), unique=True, nullable=False)
+    pseudonym = db.Column(db.String(MAX_PSEUDONYM_LENGTH), unique=True, nullable=False)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     joining_date = db.Column(db.DateTime)
     expiry_date = db.Column(db.DateTime)
@@ -258,6 +258,7 @@ class Workspace(db.Model):
     __tablename__ = 'workspaces'
 
     id = db.Column(db.String(32), primary_key=True)
+    pseudonym = db.Column(db.String(MAX_PSEUDONYM_LENGTH), unique=True, nullable=False)
     name = db.Column(db.String(32))
     _join_code = db.Column('join_code', db.String(64))
     description = db.Column(db.Text)
@@ -277,6 +278,10 @@ class Workspace(db.Model):
 
     def __init__(self, name):
         self.id = uuid.uuid4().hex
+        # Here we opportunistically create a pseudonym without actually checking the existing workspaces,
+        # the probability of collision is low enough. There are 400 pseudonyms for all inhabitants on earth
+        # with 36**8 alternatives
+        self.pseudonym = ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(8))
         self.name = name
         self.join_code = name
         self._current_status = Workspace.STATE_ACTIVE
