@@ -555,7 +555,7 @@ class InstanceLog(db.Model):
 class Lock(db.Model):
     __tablename__ = 'locks'
 
-    id = db.Column(db.String(64), primary_key=True, unique=True)
+    id = db.Column(db.String(64), primary_key=True)
     owner = db.Column(db.String(64))
     acquired_at = db.Column(db.DateTime)
 

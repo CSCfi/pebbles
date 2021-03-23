@@ -12,6 +12,7 @@ RUN mkdir /tmp/src
 COPY requirements.txt /tmp/src/requirements.txt
 COPY manage.py /tmp/src/manage.py
 COPY pebbles /tmp/src/pebbles
+COPY migrations /tmp/src/migrations
 RUN mkdir /tmp/src/deployment
 COPY deployment/run_gunicorn.bash /tmp/src/deployment
 

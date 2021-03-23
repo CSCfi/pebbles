@@ -3,7 +3,6 @@ import sys
 
 from flask import Flask
 from flask_migrate import Migrate
-from flask_migrate import upgrade as flask_upgrade_db_to_head
 
 from pebbles.config import BaseConfig, TestConfig
 from pebbles.models import db, bcrypt
@@ -85,19 +84,3 @@ if app.config['DATABASE_PASSWORD']:
 
 bcrypt.init_app(app)
 db.init_app(app)
-
-
-def run_things_in_context(is_test_run):
-    # This is only split into a function so we can easily test some of it's
-    # behavior.
-    with app.app_context():
-        # upgrade to the head of the migration path (the default)
-        # we might want to pass a particular revision id instead
-        # in the future
-        if os.environ.get('DB_AUTOMIGRATION', None) and \
-                os.environ.get('DB_AUTOMIGRATION', None) not in ["0", 0] and \
-                not is_test_run:
-            flask_upgrade_db_to_head()
-
-
-run_things_in_context(test_run)
