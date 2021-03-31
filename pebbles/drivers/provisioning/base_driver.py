@@ -96,6 +96,7 @@ class ProvisioningDriverBase(object):
             pbclient.do_instance_patch(instance_id, {'state': new_state})
         except Exception as e:
             self.logger.exception('do_provision raised %s' % e)
+            self.logger.warn('instance provisioning failed for %s' % instance_id)
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})
             raise e
 
