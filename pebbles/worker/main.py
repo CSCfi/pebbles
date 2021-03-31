@@ -21,8 +21,11 @@ class Worker:
         self.client.login('worker@pebbles', self.api_key)
         self.id = os.environ['WORKER_ID'] if 'WORKER_ID' in os.environ.keys() else 'worker-%s' % randrange(100, 2 ** 32)
         self.terminate = False
-        # Wire our handler to SIGTERM for controlled pod shutdowns
+        # wire our handler to
+        # - SIGTERM for controlled pod shutdowns by K8s
+        # - SIGALRM for emergency shutdown by watchdog
         signal.signal(signal.SIGTERM, self.handle_signals)
+        signal.signal(signal.SIGALRM, self.handle_signals)
 
         self.clusters = {}
         self.cluster_config = load_cluster_config(
@@ -32,11 +35,19 @@ class Worker:
 
     def handle_signals(self, signum, frame):
         """
-        Callback function for graceful shutdown. Here we handle signal SIGTERM, sent by Kubernetes when
-        pod is being terminated, to break out of main loop as soon as work has finished
+        Callback function for graceful and emergency shutdown.
         """
-        logging.info('got signal %s frame %s, terminating worker' % (signum, frame))
-        self.terminate = True
+        logging.info('got signal %s frame %s' % (signum, frame))
+
+        # Here we handle signal SIGTERM, sent by Kubernetes when pod is being terminated,
+        # to break out of main loop as soon as work has finished
+        if signum == signal.SIGTERM:
+            logging.info('stopping worker')
+            self.terminate = True
+        # handle emergency shutdown by watchdog timer in case worker has been stuck
+        if signum == signal.SIGALRM:
+            logging.info('terminating worker')
+            exit(signum)
 
     def get_driver(self, cluster_name):
         """create driver instance for given cluster"""
@@ -95,6 +106,10 @@ class Worker:
         # check if we are being terminated and drop out of the loop
         while not self.terminate:
             logging.debug('worker main loop')
+            # set watchdog timer
+            signal.alarm(60 * 5)
+
+            # make sure we have a fresh session
             self.client.check_and_refresh_session('worker@pebbles', self.api_key)
 
             # we query all non-deleted instances
@@ -149,6 +164,9 @@ class Worker:
                         logging.debug(traceback.format_exc().splitlines()[-5:])
                     finally:
                         self.client.release_lock(instance.get('id'), self.id)
+
+            # stop the watchdog
+            signal.alarm(0)
 
             # sleep for a random amount to avoid synchronization between workers
             # while waiting, check for termination flag every second
