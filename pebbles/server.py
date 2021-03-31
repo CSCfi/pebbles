@@ -16,7 +16,8 @@ from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.stats import stats, StatsList
-from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserWorkspaceOwner
+from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserWorkspaceOwner, \
+    UserWorkspaceAssociationList
 from pebbles.views.variables import variables, PublicVariableList
 from pebbles.views.workspaces import WorkspaceClearUsers, join_workspace
 from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceUsersList
@@ -29,6 +30,7 @@ api.add_resource(UserView, api_root + '/users/<string:user_id>')
 api.add_resource(UserActivationUrl, api_root + '/users/<string:user_id>/user_activation_url')
 api.add_resource(UserBlacklist, api_root + '/users/<string:user_id>/user_blacklist')
 api.add_resource(UserWorkspaceOwner, api_root + '/users/<string:user_id>/user_workspace_owner')
+api.add_resource(UserWorkspaceAssociationList, api_root + '/users/<string:user_id>/workspace_associations')
 api.add_resource(WorkspaceList, api_root + '/workspaces')
 api.add_resource(WorkspaceView, api_root + '/workspaces/<string:workspace_id>')
 api.add_resource(WorkspaceUsersList, api_root + '/workspaces/<string:workspace_id>/list_users')

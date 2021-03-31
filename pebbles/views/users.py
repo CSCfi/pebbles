@@ -10,10 +10,10 @@ from flask_restful import marshal_with, reqparse
 from werkzeug import exceptions
 
 from pebbles.forms import ChangePasswordForm, UserForm
-from pebbles.models import db, User, ActivationToken
+from pebbles.models import db, User, ActivationToken, WorkspaceUserAssociation
 from pebbles.rules import apply_rules_users
 from pebbles.utils import requires_admin
-from pebbles.views.commons import user_fields, auth, invite_user
+from pebbles.views.commons import user_fields, auth, invite_user, workspace_user_association_fields
 
 users = FlaskBlueprint('users', __name__)
 
@@ -156,6 +156,15 @@ class UserBlacklist(restful.Resource):
             user.is_blocked = False
         db.session.add(user)
         db.session.commit()
+
+
+class UserWorkspaceAssociationList(restful.Resource):
+    @auth.login_required
+    @marshal_with(workspace_user_association_fields)
+    def get(self, user_id):
+        if not g.user.is_admin and user_id != g.user.id:
+            abort(403)
+        return WorkspaceUserAssociation.query.filter_by(user_id=user_id).all()
 
 
 class UserWorkspaceOwner(restful.Resource):

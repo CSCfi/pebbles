@@ -26,6 +26,7 @@ data:
     workspace_id: ws-0
     user_id: u-1
     owner: True
+    manager: True
 
   # example Jupyter template + environment in public workspace
   - !EnvironmentTemplate

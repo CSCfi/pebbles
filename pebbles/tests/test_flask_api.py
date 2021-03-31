@@ -309,6 +309,34 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/users')
         self.assert_200(response)
 
+    def test_get_user_workspace_associations(self):
+        # Anonymous
+        response = self.make_request(
+            path='/api/v1/users/%s/workspace_associations' % self.known_user_id
+        )
+        self.assert_401(response)
+        # Authenticated but different user
+        response = self.make_authenticated_user_request(
+            path='/api/v1/users/%s/workspace_associations' % self.known_workspace_owner_id
+        )
+        self.assert_403(response)
+        # Authenticated
+        response = self.make_authenticated_user_request(
+            path='/api/v1/users/%s/workspace_associations' % self.known_user_id
+        )
+        self.assertEqual(1, len(response.json))
+        self.assert_200(response)
+        # Owner should not be able to query user
+        response = self.make_authenticated_workspace_owner_request(
+            path='/api/v1/users/%s/workspace_associations' % self.known_user_id
+        )
+        self.assert_403(response)
+        # Admin
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/users/%s/workspace_associations' % self.known_user_id
+        )
+        self.assert_200(response)
+
     def test_get_total_users(self):
         # Anonymous
         response = self.make_request(path='/api/v1/users', method='PATCH')

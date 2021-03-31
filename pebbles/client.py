@@ -114,6 +114,19 @@ class PBClient:
             raise RuntimeError('Cannot fetch data for user %s, %s' % (user_id, resp.reason))
         return resp.json()
 
+    def get_workspace_user_associations(self, workspace_id=None, user_id=None):
+        if user_id:
+            resp = self.do_get('users/%s/workspace_associations' % user_id)
+        elif workspace_id:
+            raise NotImplementedError('Fetching with workspace_id not implemented yet')
+        else:
+            raise RuntimeError('get_workspace_user_associations() needs either workspace_id or user_id')
+
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot fetch data for workspace_user_associations %s, %s' % (user_id, resp.reason))
+
+        return resp.json()
+
     def get_workspace_users_list(self, workspace_id):
         resp = self.do_get('workspaces/%s/list_users' % workspace_id)
         if resp.status_code != 200:

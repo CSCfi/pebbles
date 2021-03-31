@@ -241,10 +241,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         env_var_list = [dict(name=x, value=env_var_dict[x]) for x in env_var_dict.keys()]
         # read_write only for managers
-        shared_data_read_only_mode = next(
-            (False for user in instance['workspace_users_roles']['manager_users'] if instance['user_id'] == user['id']),
-            True
-        )
+        shared_data_read_only_mode = not instance['workspace_user_association']['manager']
 
         deployment_yaml = parse_template('deployment.yaml', dict(
             name=instance['name'],
@@ -348,7 +345,11 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         instance = pbclient.get_instance(instance_id)
         instance['environment'] = pbclient.get_instance_environment(instance_id)
         instance['user'] = pbclient.get_user(instance['user_id'])
-        instance['workspace_users_roles'] = pbclient.get_workspace_users_list(instance['environment']['workspace_id'])
+        # get workspace associations for the user and find the relevant one
+        instance['workspace_user_association'] = next(filter(
+            lambda x: x['workspace_id'] == instance['environment']['workspace_id'],
+            pbclient.get_workspace_user_associations(user_id=instance['user_id'])
+        ))
 
         return instance
 
