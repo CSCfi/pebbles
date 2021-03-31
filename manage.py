@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+import warnings
 import getpass
 import random
 import string
@@ -6,6 +8,9 @@ from flask import url_for
 from flask_migrate import MigrateCommand, Migrate
 from flask_script import Manager, Server, Shell
 from werkzeug.middleware.profiler import ProfilerMiddleware
+
+# Remove when jose is updated and cryptography calls are fixed
+warnings.filterwarnings('ignore', message='int_from_bytes is deprecated')
 
 import pebbles.tests.fixtures
 from pebbles import models
@@ -111,18 +116,6 @@ def initialize_system(eppn=None, password=None):
     admin_user = createuser(eppn=eppn, password=password, admin=True)
     create_worker()
     create_system_workspaces(admin_user)
-
-
-@manager.command
-def purgehost(name):
-    """Purges a docker driver host by host name from NamespacedKeyValues so
-    it can be safely deleted via OpenStack UI"""
-    from pebbles.models import NamespacedKeyValue, db
-    q_ = db.session.query(NamespacedKeyValue).filter(
-        NamespacedKeyValue.key.contains(name))
-    for obj in q_:
-        db.session.delete(obj)
-    db.session.commit()
 
 
 @manager.command
