@@ -27,8 +27,9 @@ user_fields = {
 workspace_user_association_fields = {
     'workspace_id': fields.String,
     'user_id': fields.String,
-    'owner': fields.Boolean,
-    'manager': fields.Boolean,
+    'is_owner': fields.Boolean,
+    'is_manager': fields.Boolean,
+    'is_banned': fields.Boolean,
 }
 
 # TODO: remove when AngularJS based old UI has been phased out
@@ -142,8 +143,9 @@ def invite_user(eppn=None, password=None, is_admin=False, expiry_date=None):
 
 def create_system_workspaces(admin):
     system_default_workspace = Workspace('System.default')
-    workspace_admin_obj = WorkspaceUserAssociation(workspace=system_default_workspace, user=admin, owner=True)
-    system_default_workspace.users.append(workspace_admin_obj)
+    workspace_admin_obj = WorkspaceUserAssociation(
+        workspace=system_default_workspace, user=admin, is_owner=True, is_manager=True)
+    system_default_workspace.user_associations.append(workspace_admin_obj)
     db.session.add(system_default_workspace)
     db.session.commit()
 
@@ -151,7 +153,7 @@ def create_system_workspaces(admin):
 def add_user_to_default_workspace(user):
     system_default_workspace = Workspace.query.filter_by(name='System.default').first()
     workspace_user_obj = WorkspaceUserAssociation(workspace=system_default_workspace, user=user)
-    system_default_workspace.users.append(workspace_user_obj)
+    system_default_workspace.user_associations.append(workspace_user_obj)
     db.session.add(system_default_workspace)
     db.session.commit()
 
@@ -171,10 +173,10 @@ def is_workspace_manager(user, workspace=None):
         match = WorkspaceUserAssociation.query.filter_by(
             user_id=user.id,
             workspace_id=workspace.id,
-            manager=True
+            is_manager=True
         ).first()
     else:
-        match = WorkspaceUserAssociation.query.filter_by(user_id=user.id, manager=True).first()
+        match = WorkspaceUserAssociation.query.filter_by(user_id=user.id, is_manager=True).first()
     if match:
         return True
     return False

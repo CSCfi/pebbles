@@ -257,7 +257,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         env_var_list = [dict(name=x, value=env_var_dict[x]) for x in env_var_dict.keys()]
         # read_write only for managers
-        shared_data_read_only_mode = not instance['workspace_user_association']['manager']
+        shared_data_read_only_mode = not instance['workspace_user_association']['is_manager']
 
         deployment_yaml = parse_template('deployment.yaml', dict(
             name=instance['name'],

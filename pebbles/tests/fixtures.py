@@ -56,33 +56,33 @@ def primary_test_setup(namespace):
 
     ws0 = Workspace('System.default')
     ws0.id = 'ws0'
-    ws0.users.append(WorkspaceUserAssociation(user=u1, owner=True))
+    ws0.user_associations.append(WorkspaceUserAssociation(user=u1, is_owner=True))
     db.session.add(ws0)
 
     ws1 = Workspace('Workspace1')
     ws1.id = 'ws1'
     ws1.environment_quota = 6
-    ws1.users.append(WorkspaceUserAssociation(user=u2))
-    ws1.users.append(WorkspaceUserAssociation(user=u3, manager=True, owner=True))
-    ws1.users.append(WorkspaceUserAssociation(user=u4, manager=True))
+    ws1.user_associations.append(WorkspaceUserAssociation(user=u2))
+    ws1.user_associations.append(WorkspaceUserAssociation(user=u3, is_manager=True, is_owner=True))
+    ws1.user_associations.append(WorkspaceUserAssociation(user=u4, is_manager=True))
     db.session.add(ws1)
 
     ws2 = Workspace('Workspace2')
     ws2.id = 'ws2'
-    ws2.users.append(WorkspaceUserAssociation(user=u3))
-    ws2.users.append(WorkspaceUserAssociation(user=u4, manager=True, owner=True))
+    ws2.user_associations.append(WorkspaceUserAssociation(user=u3))
+    ws2.user_associations.append(WorkspaceUserAssociation(user=u4, is_manager=True, is_owner=True))
     db.session.add(ws2)
 
     ws3 = Workspace('Workspace3')
     ws3.id = 'ws3'
-    ws3.users.append(WorkspaceUserAssociation(user=u4, manager=True, owner=True))
-    ws3.banned_users.append(u2)
-    ws3.banned_users.append(u3)
+    ws3.user_associations.append(WorkspaceUserAssociation(user=u4, is_manager=True, is_owner=True))
+    ws3.user_associations.append(WorkspaceUserAssociation(user=u2, is_banned=True))
+    ws3.user_associations.append(WorkspaceUserAssociation(user=u3, is_banned=True))
     db.session.add(ws3)
 
     ws4 = Workspace('Workspace4')
     ws4.id = 'ws4'
-    ws4.users.append(WorkspaceUserAssociation(user=u1, manager=True, owner=True))
+    ws4.user_associations.append(WorkspaceUserAssociation(user=u1, is_manager=True, is_owner=True))
     db.session.add(ws4)
 
     namespace.known_workspace_id = ws1.id

@@ -21,10 +21,9 @@ def apply_rules_environment_templates(user, args=None):
 def apply_rules_environments(user, args=None):
     q = Environment.query
     if not user.is_admin:
-        workspace_user_objs = WorkspaceUserAssociation.query.filter_by(user_id=user.id, manager=False).all()
-        user_workspace_ids = [workspace_user_obj.workspace.id for workspace_user_obj in workspace_user_objs]
-        banned_workspace_ids = [banned_workspace_item.id for banned_workspace_item in user.banned_workspaces.all()]
-        allowed_workspace_ids = set(user_workspace_ids) - set(banned_workspace_ids)  # do not allow the banned users
+        workspace_user_objs = WorkspaceUserAssociation.query.filter_by(
+            user_id=user.id, is_manager=False, is_banned=False).all()
+        allowed_workspace_ids = [workspace_user_obj.workspace.id for workspace_user_obj in workspace_user_objs]
 
         # Start building query expressions based on the condition that :
         # a workspace manager can see all of his environments and only enabled ones of other workspaces
@@ -168,7 +167,7 @@ def apply_rules_users(args=None):
 def get_manager_workspace_ids(user):
     """Return the workspace ids for the user's managed workspaces"""
     # the result shall contain the owners of the workspaces too as they are managers by default
-    workspace_manager_objs = WorkspaceUserAssociation.query.filter_by(user_id=user.id, manager=True).all()
+    workspace_manager_objs = WorkspaceUserAssociation.query.filter_by(user_id=user.id, is_manager=True).all()
     manager_workspace_ids = [workspace_manager_obj.workspace.id for workspace_manager_obj in workspace_manager_objs]
     return manager_workspace_ids
 
@@ -177,7 +176,7 @@ def get_workspace_environment_ids_for_instances(user, manager=None):
     """Return the valid environment ids based on user's workspaces to be used in instances view"""
     workspace_user_query = WorkspaceUserAssociation.query
     if manager:  # if we require only managed workspaces
-        workspace_user_objs = workspace_user_query.filter_by(user_id=user.id, manager=True).all()
+        workspace_user_objs = workspace_user_query.filter_by(user_id=user.id, is_manager=True).all()
     else:  # get the normal user workspaces
         workspace_user_objs = workspace_user_query.filter_by(user_id=user.id).all()
     workspaces = [workspace_user_obj.workspace for workspace_user_obj in workspace_user_objs]
@@ -188,3 +187,7 @@ def get_workspace_environment_ids_for_instances(user, manager=None):
     # Get the ids in a list
     workspace_environments_id = [environment_item.id for environment_item in workspace_environments_flat]
     return workspace_environments_id
+
+
+def is_user_manager_in_workspace(user, workspace):
+    return user.id in (wua.user_id for wua in workspace.user_associations if wua.is_manager)

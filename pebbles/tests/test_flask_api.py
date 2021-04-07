@@ -315,22 +315,27 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/users/%s/workspace_associations' % self.known_user_id
         )
         self.assert_401(response)
+
         # Authenticated but different user
         response = self.make_authenticated_user_request(
             path='/api/v1/users/%s/workspace_associations' % self.known_workspace_owner_id
         )
         self.assert_403(response)
+
         # Authenticated
         response = self.make_authenticated_user_request(
             path='/api/v1/users/%s/workspace_associations' % self.known_user_id
         )
-        self.assertEqual(1, len(response.json))
         self.assert_200(response)
+        # one membership, one ban
+        self.assertEqual(len(response.json), 2)
+
         # Owner should not be able to query user
         response = self.make_authenticated_workspace_owner_request(
             path='/api/v1/users/%s/workspace_associations' % self.known_user_id
         )
         self.assert_403(response)
+
         # Admin
         response = self.make_authenticated_admin_request(
             path='/api/v1/users/%s/workspace_associations' % self.known_user_id
@@ -637,10 +642,10 @@ class FlaskApiTestCase(BaseTestCase):
         u2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
         gu2_obj = WorkspaceUserAssociation(user=u2, workspace=g)
         u3 = User.query.filter_by(id=self.known_workspace_owner_id).first()
-        gu3_obj = WorkspaceUserAssociation(user=u3, workspace=g, manager=True, owner=True)
-        g.users.append(gu1_obj)
-        g.users.append(gu2_obj)
-        g.users.append(gu3_obj)
+        gu3_obj = WorkspaceUserAssociation(user=u3, workspace=g, is_manager=True, is_owner=True)
+        g.user_associations.append(gu1_obj)
+        g.user_associations.append(gu2_obj)
+        g.user_associations.append(gu3_obj)
         db.session.add(g)
         db.session.commit()
 
@@ -762,7 +767,7 @@ class FlaskApiTestCase(BaseTestCase):
         gu_obj.user = u
         gu_obj.workspace = g
 
-        g.users.append(gu_obj)
+        g.user_associations.append(gu_obj)
         db.session.add(g)
         db.session.commit()
         # Authenticated User
@@ -809,8 +814,8 @@ class FlaskApiTestCase(BaseTestCase):
         u_extra = User.query.filter_by(id=self.known_workspace_owner_id).first()  # extra user
         gu_extra_obj = WorkspaceUserAssociation(workspace=g, user=u_extra)
 
-        g.users.append(gu_obj)
-        g.users.append(gu_extra_obj)
+        g.user_associations.append(gu_obj)
+        g.user_associations.append(gu_extra_obj)
 
         db.session.add(g)
         db.session.commit()
@@ -835,8 +840,8 @@ class FlaskApiTestCase(BaseTestCase):
     def test_exit_workspace_invalid(self):
         g = Workspace('InvalidTestWorkspaceExit')
         u = User.query.filter_by(id=self.known_workspace_owner_id).first()
-        gu_obj = WorkspaceUserAssociation(workspace=g, user=u, manager=True, owner=True)
-        g.users.append(gu_obj)
+        gu_obj = WorkspaceUserAssociation(workspace=g, user=u, is_manager=True, is_owner=True)
+        g.user_associations.append(gu_obj)
         db.session.add(g)
         db.session.commit()
         # Authenticated User
@@ -913,12 +918,12 @@ class FlaskApiTestCase(BaseTestCase):
         u1 = User.query.filter_by(id=self.known_user_id).first()
         gu1_obj = WorkspaceUserAssociation(user=u1, workspace=g)
         u2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
-        gu2_obj = WorkspaceUserAssociation(user=u2, workspace=g, manager=True, owner=False)
+        gu2_obj = WorkspaceUserAssociation(user=u2, workspace=g, is_manager=True, is_owner=False)
         u3 = User.query.filter_by(id=self.known_workspace_owner_id).first()
-        gu3_obj = WorkspaceUserAssociation(user=u3, workspace=g, manager=True, owner=True)
-        g.users.append(gu1_obj)
-        g.users.append(gu2_obj)
-        g.users.append(gu3_obj)
+        gu3_obj = WorkspaceUserAssociation(user=u3, workspace=g, is_manager=True, is_owner=True)
+        g.user_associations.append(gu1_obj)
+        g.user_associations.append(gu2_obj)
+        g.user_associations.append(gu3_obj)
         db.session.add(g)
         db.session.commit()
         # Anonymous

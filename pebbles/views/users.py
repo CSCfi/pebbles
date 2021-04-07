@@ -191,6 +191,6 @@ class UserWorkspaceOwner(restful.Resource):
             user.workspace_quota = 0
             for ws in user.get_owned_workspaces():
                 logging.info('removing user %s ownership from workspace %s' % (ws.user_id, ws.workspace_id))
-                ws.owner = False
+                ws.is_owner = False
         db.session.add(user)
         db.session.commit()

@@ -14,7 +14,6 @@ from jose import jwt, JWTError, ExpiredSignatureError
 from jose.exceptions import JWTClaimsError, JWSError
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
-from sqlalchemy.orm import backref
 from sqlalchemy.schema import MetaData
 
 from pebbles.utils import get_full_environment_config, get_environment_fields_from_config
@@ -93,7 +92,7 @@ class User(db.Model):
     tc_acceptance_date = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
-    workspaces = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
+    workspace_associations = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
 
     def __init__(self, eppn, password=None, is_admin=False, email_id=None, expiry_date=None, pseudonym=None,
                  workspace_quota=None):
@@ -199,10 +198,10 @@ class User(db.Model):
         return not self.is_deleted and self.is_active and not self.is_blocked
 
     def get_owned_workspaces(self):
-        return [x for x in self.workspaces if x.owner]
+        return [x for x in self.workspace_associations if x.is_owner]
 
     def get_managed_workspaces(self):
-        return [x for x in self.workspaces if x.manager]
+        return [x for x in self.workspace_associations if x.is_manager]
 
     @staticmethod
     def verify_auth_token(token, app_secret):
@@ -227,21 +226,15 @@ class User(db.Model):
         return hash(self.eppn)
 
 
-workspace_banned_user = db.Table(  # Secondary Table for many-to-many mapping
-    'workspaces_banned_users',
-    db.Column('workspace_id', db.String(32), db.ForeignKey('workspaces.id')),
-    db.Column('user_id', db.String(32), db.ForeignKey('users.id')), db.PrimaryKeyConstraint('workspace_id', 'user_id')
-)
-
-
 class WorkspaceUserAssociation(db.Model):  # Association Object for many-to-many mapping
-    __tablename__ = 'workspaces_users_association'
+    __tablename__ = 'workspace_user_associations'
     workspace_id = db.Column(db.String(32), db.ForeignKey('workspaces.id'), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'), primary_key=True)
-    manager = db.Column(db.Boolean, default=False)
-    owner = db.Column(db.Boolean, default=False)
-    user = db.relationship("User", back_populates="workspaces")
-    workspace = db.relationship("Workspace", back_populates="users")
+    is_manager = db.Column(db.Boolean, default=False)
+    is_owner = db.Column(db.Boolean, default=False)
+    is_banned = db.Column(db.Boolean, default=False)
+    user = db.relationship("User", back_populates="workspace_associations")
+    workspace = db.relationship("Workspace", back_populates="user_associations")
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 
@@ -264,15 +257,14 @@ class Workspace(db.Model):
     description = db.Column(db.Text)
     # current_status when created is "active". Later there is option to be "archived".
     _current_status = db.Column('current_status', db.String(32), default='active')
-    _create_ts = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    _create_ts = db.Column('create_ts', db.DateTime, default=datetime.datetime.utcnow)
     _expiry_ts = db.Column(
+        'expiry_ts',
         db.DateTime,
         default=lambda: datetime.datetime.fromtimestamp(time.time() + 6 * 30 * 24 * 3600)
     )
-    users = db.relationship("WorkspaceUserAssociation", back_populates="workspace", lazy='dynamic',
-                            cascade="all, delete-orphan")
-    banned_users = db.relationship('User', secondary=workspace_banned_user,
-                                   backref=backref('banned_workspaces', lazy="dynamic"), lazy='dynamic')
+    user_associations = db.relationship("WorkspaceUserAssociation", back_populates="workspace", lazy='dynamic',
+                                        cascade="all, delete-orphan")
     environment_quota = db.Column(db.Integer, default=10)
     environments = db.relationship('Environment', backref='workspace', lazy='dynamic')
 
