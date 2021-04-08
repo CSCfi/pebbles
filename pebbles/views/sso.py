@@ -5,6 +5,7 @@ import uuid
 
 from flask import render_template, request
 from flask_restful import reqparse
+from flask import abort
 
 from pebbles.app import app
 from pebbles.models import db, User
@@ -18,12 +19,8 @@ def oauth2_login():
     parser.add_argument('agreement_sign', type=str, default=False)
     args = parser.parse_args()
     if not app.config['OAUTH2_LOGIN_ENABLED']:
-        error_description = 'oauth2 not enabled'
-        return render_template(
-            'error.html',
-            error_title='Login error',
-            error_description=error_description
-        )
+        logging.warning("Login abort: oauth2 not enabled")
+        abort(401)
 
     # decode base64 encoded 'user:password' to get the shared secret from password
     basic_auth = base64.b64decode(request.headers['Authorization'].split(' ')[1].encode('utf-8'))
@@ -32,12 +29,8 @@ def oauth2_login():
 
     # only allow requests that know the shared secret to proceed
     if proxy_secret != app.config['OAUTH2_PROXY_SECRET']:
-        error_description = 'Proxy communication key mismatch'
-        return render_template(
-            'error.html',
-            error_title='Proxy communication key mismatch',
-            error_description=error_description
-        )
+        logging.warning("Login abort: Proxy communication key mismatch")
+        abort(400)
 
     eppn = request.headers['X-Forwarded-Email']
     user = User.query.filter_by(eppn=eppn).first()
@@ -71,23 +64,15 @@ def oauth2_login():
             user.tc_acceptance_date = datetime.datetime.utcnow()
             db.session.commit()
         else:
-            error_description = 'Contact your administrator'
-            return render_template(
-                'error.html',
-                error_title='User cannot access',
-                error_description=error_description
-            )
+            logging.warning("Login abort: User cannot access")
+            abort(403)
 
     if not user.is_active:
         user.is_active = True
         db.session.commit()
     if user.is_blocked:
-        error_description = 'You have been blocked, contact your administrator'
-        return render_template(
-            'error.html',
-            error_title='User Blocked',
-            error_description=error_description
-        )
+        logging.warning("Login abort: User is blocked")
+        abort(403)
     if user.is_admin:
         icons = admin_icons
     elif user.is_workspace_owner:
