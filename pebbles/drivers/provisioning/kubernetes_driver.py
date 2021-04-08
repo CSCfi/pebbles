@@ -216,9 +216,6 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def do_housekeep(self, token):
         pass
 
-    def do_update_connectivity(self, token, instance_id):
-        pass
-
     def do_get_running_logs(self, token, instance_id):
         instance = self.fetch_and_populate_instance(token, instance_id)
         namespace = self.get_instance_namespace(instance)

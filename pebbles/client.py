@@ -160,6 +160,17 @@ class PBClient:
 
         return resp.json()
 
+    def add_provisioning_log(self, instance_id, message, timestamp=None, log_type='provisioning', log_level='info'):
+        payload = dict(
+            log_record=dict(
+                timestamp=timestamp if timestamp else time(),
+                log_type=log_type,
+                log_level=log_level,
+                message=message
+            )
+        )
+        self.do_patch('instances/%s/logs' % instance_id, json_data=payload)
+
     def update_instance_running_logs(self, instance_id, logs):
         payload = dict(
             log_record=dict(

@@ -22,9 +22,6 @@ class DummyDriver(base_driver.ProvisioningDriverBase):
         running_log_uploader = self.create_prov_log_uploader(token, instance_id, log_type='running')
         running_log_uploader.info('dummy running logs')
 
-    def do_update_connectivity(self, token, instance_id):
-        pass
-
     def do_provision(self, token, instance_id):
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
 

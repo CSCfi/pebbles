@@ -76,13 +76,10 @@ class ProvisioningDriverBase(object):
             pbclient.clear_running_instance_logs(instance_id)
             self.logger.info('deprovisioning done for %s' % instance.get('name'))
 
-    def update_connectivity(self, token, instance_id):
-        self.logger.debug('update connectivity')
-        self.do_update_connectivity(token, instance_id)
-
     def provision(self, token, instance_id):
         self.logger.debug('starting provisioning')
         pbclient = self.get_pb_client(token)
+        pbclient.add_provisioning_log(instance_id, 'starting provisioning')
 
         try:
             pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_PROVISIONING})
@@ -116,6 +113,9 @@ class ProvisioningDriverBase(object):
                     instance_data=json.dumps(instance_data)
                 )
                 pbclient.do_instance_patch(instance_id, patch_data)
+                pbclient.add_provisioning_log(instance_id, 'checking readiness - ready')
+            else:
+                pbclient.add_provisioning_log(instance_id, 'checking readiness - not yet ready')
 
         except Exception as e:
             self.logger.exception('do_check_readiness raised %s' % e)
@@ -134,9 +134,11 @@ class ProvisioningDriverBase(object):
             # check if we got STATE_DELETING from subclass, indicating a retry is needed
             if state and state == Instance.STATE_DELETING:
                 self.logger.info('instance deletion will be retried for %s', instance_id)
+                pbclient.add_provisioning_log(instance_id, 'deprovisioning - retrying')
             elif state is None:
                 self.logger.debug('finishing deprovisioning')
                 pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETED})
+                pbclient.add_provisioning_log(instance_id, 'deprovisioning - done')
             else:
                 raise RuntimeError('Received invalid state %s from do_deprovision()' % state)
         except Exception as e:
@@ -172,16 +174,6 @@ class ProvisioningDriverBase(object):
         """Each plugin must implement this method but it doesn't have to do
         anything. Can be used to e.g. determine that a system should scale up
         or down.
-        """
-        pass
-
-    @abc.abstractmethod
-    def do_update_connectivity(self, token, instance_id):
-        """ Each driver must implement this method but it doesn't have to do
-        anything.
-
-        This can be used to e.g. open holes in firewalls or to update a proxy
-        to route traffic to an instance.
         """
         pass
 
