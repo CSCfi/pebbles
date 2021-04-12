@@ -9,7 +9,7 @@ from wtforms.validators import DataRequired, Email, Length, IPAddress, Regexp
 from wtforms_alchemy import model_form_factory
 
 from pebbles.models import (
-    MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH,
+    MAX_EMAIL_LENGTH, MAX_NAME_LENGTH,
     MAX_VARIABLE_KEY_LENGTH, MAX_VARIABLE_VALUE_LENGTH,
     MAX_MESSAGE_SUBJECT_LENGTH
 )
@@ -81,25 +81,6 @@ class EnvironmentImportForm(ModelForm):
     workspace_name = StringField('workspace_name', validators=[DataRequired()])
 
 
-class ChangePasswordForm(ModelForm):
-    password = StringField(
-        'password',
-        validators=[
-            DataRequired(),
-            Length(
-                min=8,
-                max=MAX_PASSWORD_LENGTH,
-                message="Password must be between %(min)d and %(max)d characters long"
-            )
-        ]
-    )
-
-
-class PasswordResetRequestForm(ModelForm):
-    # password reset link is sent to email so email option is used here
-    email_id = StringField('email_id', validators=[Email(), Length(max=MAX_EMAIL_LENGTH)])
-
-
 class InstanceForm(ModelForm):
     environment = StringField('environment_id', validators=[DataRequired()])
 
@@ -107,20 +88,6 @@ class InstanceForm(ModelForm):
 class SessionCreateForm(ModelForm):
     eppn = StringField('eppn', validators=[DataRequired()])
     password = StringField('password', validators=[DataRequired()])
-
-
-class ActivationForm(ModelForm):
-    password = StringField(
-        'password',
-        validators=[
-            DataRequired(),
-            Length(
-                min=8,
-                max=MAX_PASSWORD_LENGTH,
-                message="Password must be between %(min)d and %(max)d characters long"
-            )
-        ]
-    )
 
 
 class UserIPForm(ModelForm):

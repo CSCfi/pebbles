@@ -1,7 +1,6 @@
 import flask_restful as restful
 
 from pebbles.app import app
-from pebbles.views.activations import activations, ActivationList, ActivationView
 from pebbles.views.clusters import clusters, ClusterList
 from pebbles.views.environment_categories import EnvironmentCategoryList
 from pebbles.views.environment_templates import EnvironmentTemplateList, EnvironmentTemplateView, \
@@ -16,7 +15,7 @@ from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.stats import stats, StatsList
-from pebbles.views.users import users, UserList, UserView, UserActivationUrl, UserBlacklist, UserWorkspaceOwner, \
+from pebbles.views.users import users, UserList, UserView, UserBlacklist, UserWorkspaceOwner, \
     UserWorkspaceAssociationList
 from pebbles.views.variables import variables, PublicVariableList
 from pebbles.views.workspaces import WorkspaceClearUsers, join_workspace
@@ -27,7 +26,6 @@ api = restful.Api(app)
 api_root = '/api/v1'
 api.add_resource(UserList, api_root + '/users', methods=['GET', 'POST', 'PATCH'])
 api.add_resource(UserView, api_root + '/users/<string:user_id>')
-api.add_resource(UserActivationUrl, api_root + '/users/<string:user_id>/user_activation_url')
 api.add_resource(UserBlacklist, api_root + '/users/<string:user_id>/user_blacklist')
 api.add_resource(UserWorkspaceOwner, api_root + '/users/<string:user_id>/user_workspace_owner')
 api.add_resource(UserWorkspaceAssociationList, api_root + '/users/<string:user_id>/workspace_associations')
@@ -40,8 +38,6 @@ api.add_resource(JoinWorkspace, api_root + '/join_workspace/<string:join_code>')
 api.add_resource(MessageList, api_root + '/messages')
 api.add_resource(MessageView, api_root + '/messages/<string:message_id>')
 api.add_resource(SessionView, api_root + '/sessions')
-api.add_resource(ActivationList, api_root + '/activations')
-api.add_resource(ActivationView, api_root + '/activations/<string:token_id>')
 api.add_resource(EnvironmentTemplateList, api_root + '/environment_templates')
 api.add_resource(EnvironmentTemplateView, api_root + '/environment_templates/<string:template_id>')
 api.add_resource(EnvironmentTemplateCopy, api_root + '/environment_templates/template_copy/<string:template_id>')
@@ -76,7 +72,6 @@ app.register_blueprint(users)
 app.register_blueprint(workspaces)
 app.register_blueprint(join_workspace)
 app.register_blueprint(instances)
-app.register_blueprint(activations)
 app.register_blueprint(sessions)
 app.register_blueprint(variables)
 app.register_blueprint(quota)

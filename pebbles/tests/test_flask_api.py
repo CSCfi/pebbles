@@ -9,10 +9,9 @@ from dateutil.relativedelta import relativedelta
 
 from pebbles.models import (
     User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
-    ActivationToken, Instance)
+    Instance)
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.tests.fixtures import primary_test_setup
-from pebbles.views import activations
 
 ADMIN_TOKEN = None
 USER_TOKEN = None
@@ -342,21 +341,6 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response)
 
-    def test_get_total_users(self):
-        # Anonymous
-        response = self.make_request(path='/api/v1/users', method='PATCH')
-        self.assert_401(response)
-        # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/users', method='PATCH')
-        self.assert_403(response)
-        # Admin
-        response = self.make_authenticated_admin_request(
-            path='/api/v1/users',
-            method='PATCH',
-            data=json.dumps({'count': True})
-        )
-        self.assert_200(response)
-
     def test_export_statistics(self):
         dt1 = datetime.datetime(2012, 1, 1)
         dt2 = datetime.datetime(2015, 5, 5)
@@ -472,22 +456,6 @@ class FlaskApiTestCase(BaseTestCase):
                              'exclude': False, 'stat': 'users'})
         )
         self.assert_200(response)
-
-    def test_invite_multiple_users(self):
-        # Admin
-        response = self.make_authenticated_admin_request(
-            path='/api/v1/users',
-            method='PATCH',
-            data=json.dumps({'addresses': 'invite1@example.org, invite2@example.org'})
-        )
-        self.assert_200(response)
-
-        incorrect_response = self.make_authenticated_admin_request(
-            path='/api/v1/users',
-            method='PATCH',
-            data=json.dumps({'addresses': 'bogus@example'})
-        )
-        self.assertStatus(incorrect_response, 422)
 
     def test_get_workspaces(self):
         # Anonymous
@@ -1413,129 +1381,6 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/environments/environment_copy/%s' % self.known_environment_id)
         self.assert_200(response)
 
-    def test_anonymous_invite_user(self):
-        data = {'email': 'test@example.org', 'password': 'test', 'is_admin': True}
-        response = self.make_request(
-            method='POST',
-            path='/api/v1/users',
-            data=json.dumps(data))
-        self.assert_401(response)
-
-    def test_user_invite_user(self):
-        data = {'email': 'test@example.org', 'password': 'test', 'is_admin': True}
-        response = self.make_authenticated_user_request(
-            method='POST',
-            path='/api/v1/users',
-            data=json.dumps(data))
-        self.assert_403(response)
-
-    def test_admin_invite_user(self):
-        data = {'eppn': 'test@example.org', 'is_admin': True, 'email_id': 'test@example.org'}
-        response = self.make_authenticated_admin_request(
-            method='POST',
-            path='/api/v1/users',
-            data=json.dumps(data))
-        self.assert_200(response)
-        user = User.query.filter_by(eppn='test@example.org').first()
-        self.assertIsNotNone(user)
-        self.assertFalse(user.is_active)
-        self.assertTrue(user.is_admin)
-
-        data = {'eppn': 'test2@example.org', 'is_admin': False, 'email_id': 'test2@example.org'}
-        response = self.make_authenticated_admin_request(
-            method='POST',
-            path='/api/v1/users',
-            data=json.dumps(data))
-        self.assert_200(response)
-        user = User.query.filter_by(eppn='test2@example.org').first()
-        self.assertIsNotNone(user)
-        self.assertFalse(user.is_active)
-        self.assertFalse(user.is_admin)
-
-    def test_admin_delete_invited_user_deletes_activation_tokens(self):
-        data = {'eppn': 'test@example.org', 'email_id': 'test@example.org'}
-        response = self.make_authenticated_admin_request(
-            method='POST',
-            path='/api/v1/users',
-            data=json.dumps(data))
-        self.assert_200(response)
-        user = User.query.filter_by(eppn='test@example.org').first()
-        self.assertIsNotNone(user)
-        self.assertFalse(user.is_admin)
-        self.assertFalse(user.is_active)
-        self.assertEqual(ActivationToken.query.filter_by(user_id=user.id).count(), 1)
-        response = self.make_authenticated_admin_request(
-            method='DELETE',
-            path='/api/v1/users/%s' % user.id
-        )
-        self.assert_200(response)
-        self.assertEqual(ActivationToken.query.filter_by(user_id=user.id).count(), 0)
-
-    def test_accept_invite(self):
-        user = User.query.filter_by(eppn='test@example.org').first()
-        self.assertIsNone(user)
-        data = {'eppn': 'test@example.org', 'password': None, 'is_admin': True, 'email_id': 'test@example.org'}
-        response = self.make_authenticated_admin_request(
-            method='POST',
-            path='/api/v1/users',
-            data=json.dumps(data))
-        self.assert_200(response)
-        user = User.query.filter_by(eppn='test@example.org').first()
-        self.assertIsNotNone(user)
-        self.assertFalse(user.is_active)
-        token = ActivationToken.query.filter_by(user_id=user.id).first()
-        self.assertIsNotNone(token)
-        data = {'password': 'testtest'}
-        response = self.make_request(
-            method='POST',
-            path='/api/v1/activations/%s' % token.token,
-            data=json.dumps(data))
-        self.assert_200(response)
-        user = User.query.filter_by(eppn='test@example.org').first()
-        default_workspace = Workspace.query.filter_by(name='System.default').first()
-        self.assertIsNotNone(user)
-        self.assertTrue(user.is_active)
-
-        user_in_workspace = WorkspaceUserAssociation.query.filter_by(workspace_id=default_workspace.id, user_id=user.id).first()
-        self.assertIsNotNone(user_in_workspace)  # Each active user gets added in the system default workspace
-
-    def test_send_recovery_link(self):
-        # positive test for existing user
-        user = User.query.filter_by(id=self.known_user_id).first()
-        self.assertIsNotNone(user)
-        if user.email_id:
-            data = {'email_id': user.email_id}
-        else:
-            data = {'email_id': user.eppn}
-        response = self.make_request(
-            method='POST',
-            path='/api/v1/activations',
-            data=json.dumps(data))
-        self.assert_200(response)
-
-        # negative test for existing user with too many tokens
-        for i in range(1, activations.MAX_ACTIVATION_TOKENS_PER_USER):
-            response = self.make_request(
-                method='POST',
-                path='/api/v1/activations',
-                data=json.dumps(data))
-            self.assert_200(response)
-        response = self.make_request(
-            method='POST',
-            path='/api/v1/activations',
-            data=json.dumps(data))
-        self.assert_403(response)
-
-        # negative test for non-existing user
-        user = User.query.filter_by(eppn='not.here@example.org').first()
-        self.assertIsNone(user)
-        data = {'email_id': 'not.here@example.org'}
-        response = self.make_request(
-            method='POST',
-            path='/api/v1/activations',
-            data=json.dumps(data))
-        self.assert_404(response)
-
     def test_anonymous_create_instance(self):
         data = {'environment_id': self.known_environment_id}
         response = self.make_request(
@@ -1755,32 +1600,6 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response_instance_get)
         self.assertEquals(response_instance_get.json['logs'][0]['timestamp'], epoch_time)
-
-    def test_get_activation_url(self):
-
-        t1 = ActivationToken(User.query.filter_by(id=self.known_user_id).first())
-        known_token = t1.token
-        db.session.add(t1)
-
-        # Anonymous
-        response = self.make_request(path='/api/v1/users/%s/user_activation_url' % self.known_user_id)
-        self.assert_401(response)
-        response2 = self.make_request(path='/api/v1/users/%s/user_activation_url' % '0xBogus')
-        self.assert_401(response2)
-        # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/users/%s/user_activation_url' % self.known_user_id)
-        self.assert_403(response)
-        response2 = self.make_authenticated_user_request(path='/api/v1/users/%s/user_activation_url' % '0xBogus')
-        self.assert_403(response2)
-        # Admin
-        response = self.make_authenticated_admin_request(
-            path='/api/v1/users/%s/user_activation_url' % self.known_user_id
-        )
-        self.assert_200(response)
-        token_check = known_token in response.json['activation_url']
-        self.assertTrue(token_check)
-        response2 = self.make_authenticated_admin_request(path='/api/v1/users/%s/activation_url' % '0xBogus')
-        self.assert_404(response2)
 
     def test_update_admin_quota_relative(self):
         response = self.make_authenticated_admin_request(

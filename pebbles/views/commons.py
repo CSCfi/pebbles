@@ -1,12 +1,11 @@
 import logging
-import re
 from functools import wraps
 
-from flask import g, render_template, abort, current_app
+from flask import g, abort, current_app
 from flask_httpauth import HTTPBasicAuth
 from flask_restful import fields
 
-from pebbles.models import db, ActivationToken, User, Workspace, WorkspaceUserAssociation
+from pebbles.models import db, User, Workspace, WorkspaceUserAssociation
 from pebbles.utils import load_cluster_config, find_driver_class
 
 user_fields = {
@@ -106,38 +105,6 @@ def update_email(eppn, email_id=None):
         user.email_id = email_id
     db.session.add(user)
     db.session.commit()
-    return user
-
-
-# both eppn and email are the same
-def invite_user(eppn=None, password=None, is_admin=False, expiry_date=None):
-    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
-    if not re.match(email_regex, eppn):
-        raise RuntimeError("Incorrect email")
-    user = User.query.filter_by(eppn=eppn).first()
-    if user:
-        logging.warning("user %s already exists" % user.eppn)
-        return None
-
-    user = User(eppn=eppn, password=password, is_admin=is_admin, email_id=eppn, expiry_date=expiry_date)
-    db.session.add(user)
-    db.session.commit()
-
-    token = ActivationToken(user)
-    db.session.add(token)
-    db.session.commit()
-
-    if not current_app.config['SKIP_TASK_QUEUE'] and not current_app.config['MAIL_SUPPRESS_SEND']:
-        logging.warning('email sending not implemented')
-    else:
-        logging.warning(
-            "email sending suppressed in config: SKIP_TASK_QUEUE:%s MAIL_SUPPRESS_SEND:%s" %
-            (current_app.config['SKIP_TASK_QUEUE'], current_app.config['MAIL_SUPPRESS_SEND'])
-        )
-        activation_url = '%s/#/activate/%s' % (current_app.config['BASE_URL'], token.token)
-        content = render_template('invitation.txt', activation_link=activation_url)
-        logging.warning(content)
-
     return user
 
 

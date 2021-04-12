@@ -91,7 +91,6 @@ class User(db.Model):
     workspace_quota = db.Column(db.Integer, default=0)
     tc_acceptance_date = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
-    activation_tokens = db.relationship('ActivationToken', backref='user', lazy='dynamic')
     workspace_associations = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
 
     def __init__(self, eppn, password=None, is_admin=False, email_id=None, expiry_date=None, pseudonym=None,
@@ -169,7 +168,6 @@ class User(db.Model):
         # to be deleted and invited again with same email_id
         if self.email_id:
             self.email_id = self.email_id + datetime.datetime.utcnow().strftime("-%s")
-        self.activation_tokens.delete()
         self.is_deleted = True
         self.is_active = False
 
@@ -329,18 +327,6 @@ class Message(db.Model):
     def __init__(self):
         self.id = uuid.uuid4().hex
         self.broadcasted = datetime.datetime.utcnow()
-
-
-class ActivationToken(db.Model):
-    __tablename__ = 'activation_tokens'
-
-    token = db.Column(db.String(32), primary_key=True)
-    user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-
-    def __init__(self, user):
-        self.token = uuid.uuid4().hex
-        self.user_id = user.id
 
 
 class EnvironmentTemplate(db.Model):
