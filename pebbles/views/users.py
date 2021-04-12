@@ -121,7 +121,7 @@ class UserWorkspaceOwner(restful.Resource):
         # demote
         else:
             user.workspace_quota = 0
-            for ws in user.get_owned_workspaces():
+            for ws in user.get_owned_workspace_associations():
                 logging.info('removing user %s ownership from workspace %s' % (ws.user_id, ws.workspace_id))
                 ws.is_owner = False
         db.session.add(user)

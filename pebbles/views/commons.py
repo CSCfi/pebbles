@@ -16,8 +16,6 @@ user_fields = {
     'workspace_quota': fields.Integer,
     'is_active': fields.Boolean,
     'is_admin': fields.Boolean,
-    'is_workspace_owner': fields.Boolean,
-    'is_workspace_manager': fields.Boolean,
     'is_deleted': fields.Boolean,
     'is_blocked': fields.Boolean,
     'expiry_date': fields.DateTime,

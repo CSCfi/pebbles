@@ -1,9 +1,11 @@
-from pebbles.models import Environment, EnvironmentTemplate, Instance, User, WorkspaceUserAssociation
-from pebbles.views.commons import is_workspace_manager
+import itertools
+
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
-import itertools
+
+from pebbles.models import Environment, EnvironmentTemplate, Instance, User, WorkspaceUserAssociation
+from pebbles.views.commons import is_workspace_manager
 
 
 def apply_rules_environment_templates(user, args=None):
@@ -72,7 +74,7 @@ def apply_rules_instances(user, args=None):
     if not user.is_admin:
         q1 = q.filter_by(user_id=user.id)
         if is_workspace_manager(user):  # show only the instances of the environments which the workspace manager holds
-            workspace_environments_id = get_workspace_environment_ids_for_instances(user, manager=True)
+            workspace_environments_id = get_workspace_environment_ids_for_instances(user, only_managed=True)
             q2 = q.filter(Instance.environment_id.in_(workspace_environments_id))
             q = q1.union(q2)
         else:
@@ -114,14 +116,12 @@ def apply_rules_users(args=None):
         elif user_type == 'Blocked':
             q = q.filter_by(is_blocked=True)
 
-    if 'page' and 'page_size' in args:
-        page = args.get('page')
-        page_size = args.get('page_size')
-        try:  # page and page_size can be None sometimes
-            q = q.offset(page * page_size)
-            q = q.limit(page_size)
-        except:
-            pass
+    page = args.get('page', None)
+    page_size = args.get('page_size', None)
+    if page and page_size:
+        q = q.offset(page * page_size)
+        q = q.limit(page_size)
+
     return q
 
 ###############################################
@@ -137,16 +137,16 @@ def get_manager_workspace_ids(user):
     return manager_workspace_ids
 
 
-def get_workspace_environment_ids_for_instances(user, manager=None):
+def get_workspace_environment_ids_for_instances(user, only_managed=False):
     """Return the valid environment ids based on user's workspaces to be used in instances view"""
     workspace_user_query = WorkspaceUserAssociation.query
-    if manager:  # if we require only managed workspaces
+    if only_managed:  # if we require only managed workspaces
         workspace_user_objs = workspace_user_query.filter_by(user_id=user.id, is_manager=True).all()
     else:  # get the normal user workspaces
         workspace_user_objs = workspace_user_query.filter_by(user_id=user.id).all()
     workspaces = [workspace_user_obj.workspace for workspace_user_obj in workspace_user_objs]
     # loading only id column rest will be deferred
-    workspace_environments = [workspace_item.environments.options(load_only("id")).all() for workspace_item in workspaces]
+    workspace_environments = [workspace.environments.options(load_only("id")).all() for workspace in workspaces]
     # merge the list of lists into one list
     workspace_environments_flat = list(itertools.chain.from_iterable(workspace_environments))
     # Get the ids in a list
