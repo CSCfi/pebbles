@@ -22,10 +22,10 @@ if 'REMOTE_DEBUG_SERVER' in os.environ:
     print('API: connected to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
 
 
-# Setup static files to be served by Flask for automated testing
-@app.route('/')
-def root():
-    return app.send_static_file('index.html')
+# Setup route for readiness/liveness probe check
+@app.route('/healthz')
+def healthz():
+    return 'ok'
 
 
 @app.route('/favicon.ico')
