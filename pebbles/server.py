@@ -7,14 +7,12 @@ from pebbles.views.environment_templates import EnvironmentTemplateList, Environ
     EnvironmentTemplateCopy
 from pebbles.views.environment_templates import environment_templates
 from pebbles.views.environments import environments, EnvironmentList, EnvironmentView, EnvironmentCopy
-from pebbles.views.export_stats import export_stats, ExportStatistics
 from pebbles.views.import_export import import_export, ImportExportEnvironmentTemplates, ImportExportEnvironments
 from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
-from pebbles.views.stats import stats, StatsList
 from pebbles.views.users import users, UserList, UserView, UserBlacklist, UserWorkspaceOwner, \
     UserWorkspaceAssociationList
 from pebbles.views.variables import variables, PublicVariableList
@@ -61,8 +59,6 @@ api.add_resource(LockList, api_root + '/locks')
 api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
 api.add_resource(ImportExportEnvironmentTemplates, api_root + '/import_export/environment_templates')
 api.add_resource(ImportExportEnvironments, api_root + '/import_export/environments')
-api.add_resource(StatsList, api_root + '/stats')
-api.add_resource(ExportStatistics, api_root + '/export_stats/export_statistics')
 api.add_resource(EnvironmentCategoryList, api_root + '/environment_categories')
 
 app.register_blueprint(environment_templates)
@@ -77,8 +73,6 @@ app.register_blueprint(variables)
 app.register_blueprint(quota)
 app.register_blueprint(locks)
 app.register_blueprint(import_export)
-app.register_blueprint(stats)
-app.register_blueprint(export_stats)
 
 from pebbles.views.sso import oauth2_login
 
