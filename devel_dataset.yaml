@@ -33,7 +33,7 @@ data:
 
   # example Jupyter template + environment in public workspace
   - !EnvironmentTemplate
-    id: et-1
+    id: et-jupyter-1
     name: Example
     description: Jupyter in local k8s
     environment_type: jupyter
@@ -42,11 +42,11 @@ data:
     allowed_attrs:
       - maximum_lifetime
     base_config:
-      args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{instance_id}}'
+      args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{instance_id}}' --NotebookApp.allow_origin='*'
       environment_vars: ''
       image: jupyter/minimal-notebook
       labels:
-        - data analytics
+        - analytics
         - python
         - jupyter
       maximum_lifetime: 3600
@@ -56,7 +56,7 @@ data:
 
   # second template, Jupyter machine learning
   - !EnvironmentTemplate
-    id: et-2
+    id: et-jupyter-2
     name: Example
     description: Jupyter ML in local k8s using notebook-images autodownload feature
     environment_type: jupyter
@@ -65,11 +65,10 @@ data:
     allowed_attrs:
       - maximum_lifetime
     base_config:
-      args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{instance_id}}'
+      args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{instance_id}}' --NotebookApp.allow_origin='*'
       environment_vars: ''
       image: docker-registry.rahti.csc.fi/notebook-images/pb-jupyter-ml:latest
       labels:
-        - data analytics
         - machine learning
         - python
         - jupyter
@@ -81,7 +80,7 @@ data:
 
   # Template for local RStudio
   - !EnvironmentTemplate
-    id: et-3
+    id: et-rstudio-1
     name: R-Studio
     description: R-Studio in local k8s
     environment_type: rstudio
@@ -107,7 +106,7 @@ data:
     id: e-1
     name: Jupyter minimal notebook
     description: Standard minimal Jupyter notebook
-    template_id: et-1
+    template_id: et-jupyter-1
     workspace_id: ws-0
     labels:
       - data analytics
@@ -124,7 +123,7 @@ data:
     id: e-2
     name: RStudio
     description: RStudio
-    template_id: et-3
+    template_id: et-rstudio-1
     workspace_id: ws-0
     labels:
       - data analytics
