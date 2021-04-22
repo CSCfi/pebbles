@@ -171,6 +171,7 @@ def primary_test_setup(namespace):
     e6.workspace_id = ws2.id
     e6.current_status = 'archived'
     db.session.add(e6)
+    namespace.known_environment_id_archived = e6.id
 
     e7 = Environment()
     e7.name = "TestDeletedEnvironment"
@@ -200,29 +201,39 @@ def primary_test_setup(namespace):
     i1 = Instance(
         Environment.query.filter_by(id=e2.id).first(),
         User.query.filter_by(eppn="user@example.org").first())
+    i1.name = 'pb-i1'
+    i1.state = Instance.STATE_RUNNING
     db.session.add(i1)
     namespace.known_instance_id = i1.id
 
     i2 = Instance(
         Environment.query.filter_by(id=e3.id).first(),
         User.query.filter_by(eppn="user@example.org").first())
+    i2.name = 'pb-i2'
+    i2.state = Instance.STATE_RUNNING
     db.session.add(i2)
     namespace.known_instance_id_2 = i2.id
 
     i3 = Instance(
         Environment.query.filter_by(id=e3.id).first(),
         User.query.filter_by(eppn="user@example.org").first())
-    db.session.add(i3)
+    i3.name = 'pb-i3'
+    i3.to_be_deleted = True
     i3.state = Instance.STATE_DELETED
+    db.session.add(i3)
 
     i4 = Instance(
         Environment.query.filter_by(id=e3.id).first(),
         User.query.filter_by(eppn="workspace_owner@example.org").first())
+    i4.name = 'pb-i4'
+    i4.state = Instance.STATE_FAILED
     db.session.add(i4)
 
     i5 = Instance(
         Environment.query.filter_by(id=e4.id).first(),
         User.query.filter_by(eppn="admin@example.org").first())
+    i5.name = 'pb-i5'
+    i5.state = Instance.STATE_RUNNING
     db.session.add(i5)
 
     db.session.commit()

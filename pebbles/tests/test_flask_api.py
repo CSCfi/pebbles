@@ -556,30 +556,78 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(invalid_data_1))
         self.assertStatus(invalid_response, 422)
 
-    def test_delete_workspace(self):
-        name = 'WorkspaceToBeDeleted'
-        g = Workspace(name)
-        g.owner_id = self.known_workspace_owner_id
-        db.session.add(g)
-        db.session.commit()
+    def test_archive_workspace(self):
         # Anonymous
         response = self.make_request(
-            method='DELETE',
-            path='/api/v1/workspaces/%s' % g.id
+            method='PATCH',
+            data=dict(current_status='archived'),
+            path='/api/v1/workspaces/%s' % self.known_workspace_id
         )
         self.assert_401(response)
         # Authenticated
         response = self.make_authenticated_user_request(
-            method='DELETE',
-            path='/api/v1/workspaces/%s' % g.id
+            method='PATCH',
+            data=json.dumps(dict(current_status='archived')),
+            path='/api/v1/workspaces/%s' % self.known_workspace_id
         )
         self.assert_403(response)
+        # Owner should be able to archive
+        response = self.make_authenticated_workspace_owner_request(
+            method='PATCH',
+            data=json.dumps(dict(current_status='archived')),
+            path='/api/v1/workspaces/%s' % self.known_workspace_id
+        )
+        self.assert_200(response)
+        workspace = Workspace.query.filter_by(id=self.known_workspace_id).first()
+        self.assertEqual('archived', workspace.current_status)
+
+        # Even admin cannot archive System.default
+        invalid_response = self.make_authenticated_admin_request(
+            method='PATCH',
+            data=json.dumps(dict(current_status='archived')),
+            path='/api/v1/workspaces/%s' % self.system_default_workspace_id
+        )
+        self.assertStatus(invalid_response, 422)  # Cannot archive default system workspace
+        # Admin
+        response = self.make_authenticated_admin_request(
+            method='PATCH',
+            data=json.dumps(dict(current_status='archived')),
+            path='/api/v1/workspaces/%s' % self.known_workspace_id_2
+        )
+        self.assert_200(response)
+        workspace = Workspace.query.filter_by(id=self.known_workspace_id_2).first()
+        self.assertEqual('archived', workspace.current_status)
+
+    def test_delete_workspace(self):
+        owner_1 = User.query.filter_by(id=self.known_workspace_owner_id).first()
+        name = 'WorkspaceToBeDeleted'
+        ws = Workspace(name)
+        ws.owner_id = owner_1.id
+        ws.user_associations.append(WorkspaceUserAssociation(user=owner_1, is_manager=True, is_owner=True))
+        db.session.add(ws)
+        db.session.commit()
+
+        # Anonymous
+        response = self.make_request(
+            method='DELETE',
+            path='/api/v1/workspaces/%s' % ws.id
+        )
+        self.assert_401(response)
+
         # Authenticated
+        response = self.make_authenticated_user_request(
+            method='DELETE',
+            path='/api/v1/workspaces/%s' % ws.id
+        )
+        self.assert_403(response)
+
+        # Owner, but not the owner of the workspace
         response = self.make_authenticated_workspace_owner_request(
             method='DELETE',
-            path='/api/v1/workspaces/%s' % g.id
+            path='/api/v1/workspaces/%s' % self.known_workspace_id_3
         )
         self.assert_403(response)
+
         # Admin
         invalid_response = self.make_authenticated_admin_request(
             method='DELETE',
@@ -588,11 +636,21 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertStatus(invalid_response, 422)  # Cannot delete default system workspace
         response = self.make_authenticated_admin_request(
             method='DELETE',
-            path='/api/v1/workspaces/%s' % g.id
+            path='/api/v1/workspaces/%s' % ws.id
         )
         self.assert_200(response)
-        workspace = Workspace.query.filter_by(id=g.id).first()
-        self.assertIsNone(workspace)
+        workspace = Workspace.query.filter_by(id=ws.id).first()
+        self.assertEqual(Workspace.STATE_DELETED, workspace.current_status)
+
+        # owner of the workspace with instances, check that instances are set to be deleted as well
+        response = self.make_authenticated_workspace_owner_request(
+            method='DELETE',
+            path='/api/v1/workspaces/%s' % self.known_workspace_id
+        )
+        self.assert_200(response)
+        for environment in Workspace.query.filter_by(id=self.known_workspace_id).first().environments:
+            for instance in environment.instances:
+                self.assertEqual(True, instance.to_be_deleted)
 
     def test_join_workspace(self):
         # Anonymous
@@ -1036,6 +1094,27 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_404(response)
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/environments/%s' % uuid.uuid4().hex)
+        self.assert_404(response)
+
+    def test_get_environment_archived(self):
+        # Anonymous
+        response = self.make_request(path='/api/v1/environments/%s?show_all=1' % self.known_environment_id_archived)
+        self.assert_401(response)
+        # Authenticated, user not in workspace
+        response = self.make_authenticated_user_request(
+            path='/api/v1/environments/%s?show_all=1' % self.known_environment_id_archived)
+        self.assert_404(response)
+        # Authenticated, user is workspace owner
+        response = self.make_authenticated_workspace_owner2_request(
+            path='/api/v1/environments/%s?show_all=1' % self.known_environment_id_archived)
+        self.assert_404(response)
+        # Admin
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/environments/%s?show_all=1' % self.known_environment_id_archived)
+        self.assert_200(response)
+        # Admin without show_all
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/environments/%s' % self.known_environment_id_archived)
         self.assert_404(response)
 
     def test_get_environment_labels(self):

@@ -8,10 +8,10 @@ from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
 from flask_restful import marshal_with, reqparse, fields
 
+from pebbles import rules
 from pebbles.forms import WorkspaceForm
-from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Instance
+from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Environment, Instance
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin
-from pebbles.rules import is_user_manager_in_workspace
 from pebbles.views.commons import auth, user_fields, is_workspace_manager
 
 workspaces = FlaskBlueprint('workspaces', __name__)
@@ -20,6 +20,17 @@ join_workspace = FlaskBlueprint('join_workspace', __name__)
 workspace_fields_admin = {
     'id': fields.String,
     'pseudonym': fields.String,
+    'name': fields.String,
+    'join_code': fields.String,
+    'description': fields.Raw,
+    'create_ts': fields.Integer,
+    'expiry_ts': fields.Integer,
+    'owner_eppn': fields.String,
+    'environment_quota': fields.Integer,
+}
+
+workspace_fields_owner = {
+    'id': fields.String,
     'name': fields.String,
     'join_code': fields.String,
     'description': fields.Raw,
@@ -53,6 +64,17 @@ total_users_fields = {
 }
 
 
+def marshal_based_on_role(user, workspace):
+    if user.is_admin:
+        return restful.marshal(workspace, workspace_fields_admin)
+    elif rules.is_user_owner_of_workspace(user, workspace):
+        return restful.marshal(workspace, workspace_fields_owner)
+    elif rules.is_user_manager_in_workspace(user, workspace):
+        return restful.marshal(workspace, workspace_fields_manager)
+    else:
+        return restful.marshal(workspace, workspace_fields_user)
+
+
 class WorkspaceList(restful.Resource):
     @auth.login_required
     def get(self):
@@ -68,22 +90,19 @@ class WorkspaceList(restful.Resource):
 
         workspaces = sorted(workspaces, key=lambda ws: ws.name)
         for workspace in workspaces:
-            if not user.is_admin \
-                    and (workspace.current_status in ('archived', 'deleted') or workspace.name.startswith('System.')):
+            if not user.is_admin and workspace.name.startswith('System.'):
+                continue
+
+            if workspace.current_status in ('archived', 'deleted'):
                 continue
 
             owner = next((woa.user for woa in workspace.user_associations if woa.is_owner), None)
             workspace.owner_eppn = owner.eppn if owner else None
 
             # marshal results based on role
-            if user.is_admin:
-                results.append(restful.marshal(workspace, workspace_fields_admin))
-            elif is_user_manager_in_workspace(user, workspace):
-                results.append(restful.marshal(workspace, workspace_fields_manager))
-            else:
-                results.append(restful.marshal(workspace, workspace_fields_user))
+            results.append(marshal_based_on_role(user, workspace))
 
-        return results, 200
+        return results
 
     @auth.login_required
     @requires_workspace_owner_or_admin
@@ -113,16 +132,11 @@ class WorkspaceList(restful.Resource):
         db.session.add(workspace)
         db.session.commit()
 
-        if user.is_admin:
-            return restful.marshal(workspace, workspace_fields_admin), 200
-        else:
-            return restful.marshal(workspace, workspace_fields_manager), 200
+        # marshal based on role
+        return marshal_based_on_role(user, workspace)
 
 
 class WorkspaceView(restful.Resource):
-    parser = reqparse.RequestParser()
-    parser.add_argument('current_status', type=str)
-
     @auth.login_required
     @requires_admin
     @marshal_with(workspace_fields_admin)
@@ -171,54 +185,72 @@ class WorkspaceView(restful.Resource):
         db.session.add(workspace)
         db.session.commit()
 
-        if user.is_admin:
-            return restful.marshal(workspace, workspace_fields_admin), 200
-        else:
-            return restful.marshal(workspace, workspace_fields_manager), 200
+        # marshal based on role
+        return marshal_based_on_role(user, workspace)
 
     @auth.login_required
-    @requires_admin
     def patch(self, workspace_id):
-        args = self.parser.parse_args()
-        workspace = Workspace.query.filter_by(id=workspace_id).first()
-        if not workspace:
-            abort(404)
+        user = g.user
+        parser = reqparse.RequestParser()
+        parser.add_argument('current_status', type=str)
+        new_status = parser.parse_args().get('current_status')
 
-        if args.get('current_status'):
-            workspace.current_status = args['current_status']
-            environment_instances = workspace.environments.all()
-            for environment in environment_instances:
-                environment.current_status = 'archived'
-            db.session.commit()
+        return self.handle_status_change(user, workspace_id, new_status)
 
     @auth.login_required
-    @requires_admin
     def delete(self, workspace_id):
+        user = g.user
+        return self.handle_status_change(user, workspace_id, Workspace.STATE_DELETED)
+
+    def handle_status_change(self, user, workspace_id, new_status):
         workspace = Workspace.query.filter_by(id=workspace_id).first()
 
         if not workspace:
-            logging.warning("trying to delete non-existing workspace")
             abort(404)
-        if workspace.name == 'System.default':
-            logging.warning("cannot delete the default system workspace")
-            return {"error": "Cannot delete the default system workspace"}, 422
+        # allow only predefined set
+        if new_status not in Workspace.VALID_STATES:
+            abort(403)
+        # reactivation is not supported
+        if new_status == Workspace.STATE_ACTIVE:
+            abort(403)
+        # resurrection is not allowed
+        if workspace.current_status == Workspace.STATE_DELETED:
+            abort(403)
+        # System. can't be changed
+        if workspace.name.startswith('System.'):
+            logging.warning('Cannot change the status of System workspace')
+            return {'error': 'Cannot change the status of System workspace'}, 422
+        # you have to be an admin or the owner
+        if not (user.is_admin or rules.is_user_owner_of_workspace(user, workspace)):
+            abort(403)
 
-        workspace_environments = workspace.environments.all()
+        # archive
+        if new_status == Workspace.STATE_ARCHIVED:
+            logging.info('Archiving workspace %s "%s"', workspace.id, workspace.name)
+            workspace.current_status = Workspace.STATE_ARCHIVED
+            environments = workspace.environments.all()
+            for environment in environments:
+                environment.current_status = Environment.STATE_DELETED
+            db.session.commit()
 
-        if not workspace_environments:
-            db.session.delete(workspace)
+        # delete
+        if new_status == Workspace.STATE_DELETED:
+            logging.info('Deleting workspace %s "%s"', workspace.id, workspace.name)
+            workspace.current_status = Workspace.STATE_DELETED
+            environments = workspace.environments.all()
+            for environment in environments:
+                environment.current_status = Environment.STATE_DELETED
+                for instance in environment.instances:
+                    if instance.state in (Instance.STATE_DELETING, Instance.STATE_DELETED):
+                        continue
+                    logging.info('Setting instance %s to be deleted', instance.name)
+                    instance.to_be_deleted = True
+                    instance.state = Instance.STATE_DELETING
+                    instance.deprovisioned_at = datetime.datetime.utcnow()
             db.session.commit()
-        else:
-            for workspace_environment in workspace_environments:
-                environment_instances = Instance.query.filter_by(environment_id=workspace_environment.id).all()
-                if environment_instances:
-                    for instance in environment_instances:
-                        instance.to_be_deleted = True
-                        instance.state = Instance.STATE_DELETING
-                        instance.deprovisioned_at = datetime.datetime.utcnow()
-                        workspace_environment.current_status = workspace_environment.STATE_DELETED
-            workspace.current_status = workspace.STATE_DELETED
-            db.session.commit()
+
+        # marshal based on role
+        return marshal_based_on_role(user, workspace)
 
 
 def workspace_users_add(workspace, user_config, owner, workspace_owner_obj):
@@ -321,12 +353,8 @@ class JoinWorkspace(restful.Resource):
         db.session.add(workspace)
         db.session.commit()
 
-        if user.is_admin:
-            return restful.marshal(workspace, workspace_fields_admin), 200
-        elif is_user_manager_in_workspace(user, workspace):
-            return restful.marshal(workspace, workspace_fields_manager), 200
-        else:
-            return restful.marshal(workspace, workspace_fields_user)
+        # marshal based on role
+        return marshal_based_on_role(user, workspace)
 
 
 # TODO: refactor this out after frontend workspace membership has been updated
@@ -354,15 +382,11 @@ class WorkspaceListExit(restful.Resource):
             if is_workspace_manager(user, workspace):
                 role = 'manager'
             workspace.role = role
-            # marshal results based on role
-            if user.is_admin:
-                results.append(restful.marshal(workspace, workspace_fields_admin))
-            elif is_user_manager_in_workspace(user, workspace):
-                results.append(restful.marshal(workspace, workspace_fields_manager))
-            else:
-                results.append(restful.marshal(workspace, workspace_fields_user))
 
-        return results, 200
+            # marshal results based on role
+            results.append(marshal_based_on_role(user, workspace))
+
+        return results
 
 
 class WorkspaceExit(restful.Resource):
@@ -457,9 +481,9 @@ class WorkspaceClearUsers(restful.Resource):
             logging.warning('Workspace %s does not exist', workspace_id)
             return {"error": "The workspace does not exist"}, 404
 
-        if workspace.name == 'System.default':
-            logging.warning("cannot clear the default system workspace")
-            return {"error": "Cannot clear the default system workspace"}, 422
+        if workspace.name.startswith('System.'):
+            logging.warning("cannot clear a System workspace")
+            return {"error": "Cannot clear a System workspace"}, 422
 
         if user_is_owner or user.is_admin:
             workspace_user_query.filter_by(workspace_id=workspace_id, is_owner=False, is_manager=False).delete()

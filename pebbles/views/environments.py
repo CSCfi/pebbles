@@ -106,14 +106,16 @@ class EnvironmentList(restful.Resource):
 
 
 class EnvironmentView(restful.Resource):
-    parser = reqparse.RequestParser()
-    parser.add_argument('current_status', type=str)
-
     @auth.login_required
     @marshal_with(environment_fields)
     def get(self, environment_id):
-        args = {'environment_id': environment_id}
         user = g.user
+        parser = reqparse.RequestParser()
+        parser.add_argument('show_all', type=bool, default=False, location='args')
+        args = parser.parse_args()
+        args['environment_id'] = environment_id
+        logging.debug('environmentview get args %s', args)
+
         query = apply_rules_environments(user, args)
         environment = query.first()
         if not environment:
@@ -168,6 +170,8 @@ class EnvironmentView(restful.Resource):
     @auth.login_required
     @requires_admin
     def patch(self, environment_id):
+        parser = reqparse.RequestParser()
+        parser.add_argument('current_status', type=str)
         args = self.parser.parse_args()
         environment = Environment.query.filter_by(id=environment_id).first()
         if not environment:

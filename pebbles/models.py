@@ -254,7 +254,7 @@ class Workspace(db.Model):
     _join_code = db.Column('join_code', db.String(64))
     description = db.Column(db.Text)
     # current_status when created is "active". Later there is option to be "archived".
-    _current_status = db.Column('current_status', db.String(32), default='active')
+    _current_status = db.Column('current_status', db.String(32), default=STATE_ACTIVE)
     _create_ts = db.Column('create_ts', db.DateTime, default=datetime.datetime.utcnow)
     _expiry_ts = db.Column(
         'expiry_ts',

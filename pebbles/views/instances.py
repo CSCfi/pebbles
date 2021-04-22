@@ -109,7 +109,7 @@ class InstanceList(restful.Resource):
             instance.maximum_lifetime = environment.maximum_lifetime
             instance.cost_multiplier = environment.cost_multiplier
 
-            if instance.to_be_deleted:
+            if instance.to_be_deleted and instance.state != Instance.STATE_DELETED:
                 instance.state = Instance.STATE_DELETING
 
         return instances

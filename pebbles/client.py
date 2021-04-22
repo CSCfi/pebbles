@@ -154,7 +154,8 @@ class PBClient:
     def get_instance_environment(self, instance_id):
         environment_id = self.get_instance(instance_id)['environment_id']
 
-        resp = self.do_get('environments/%s' % environment_id)
+        # try to get all environments to cover the case where the environment has been just archived
+        resp = self.do_get('environments/%s?show_all=1' % environment_id)
         if resp.status_code != 200:
             raise RuntimeError('Error loading environment data: %s, %s' % (environment_id, resp.reason))
 

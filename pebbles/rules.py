@@ -41,6 +41,7 @@ def apply_rules_environments(user, args=None):
         query_exp = or_(query_exp, manager_workspace_ids_exp)
         q = q.filter(query_exp).filter_by(current_status='active')
     else:
+        # admins can optionally also see archived and deleted environments
         if args is not None and 'show_all' in args and args.get('show_all'):
             q = q.filter(
                 or_(
@@ -152,6 +153,10 @@ def get_workspace_environment_ids_for_instances(user, only_managed=False):
     # Get the ids in a list
     workspace_environments_id = [environment_item.id for environment_item in workspace_environments_flat]
     return workspace_environments_id
+
+
+def is_user_owner_of_workspace(user, workspace):
+    return user.id in (wua.user_id for wua in workspace.user_associations if wua.is_owner)
 
 
 def is_user_manager_in_workspace(user, workspace):
