@@ -168,7 +168,7 @@ class WorkspaceView(restful.Resource):
             abort(422)
         workspace_owner_obj = WorkspaceUserAssociation.query.filter_by(workspace_id=workspace.id, is_owner=True).first()
         owner = workspace_owner_obj.user
-        if not user.is_admin and user.id != owner.id:
+        if not (user.is_admin or user.id == owner.id):
             abort(403)
         if workspace.name != form.name.data:
             workspace.name = form.name.data
@@ -405,8 +405,7 @@ class WorkspaceExit(restful.Resource):
             workspace_id=workspace.id,
             user_id=user.id
         )
-        user_is_owner = workspace_user_filtered_query.filter_by(is_owner=True).first()
-        if user_is_owner:
+        if rules.is_user_owner_of_workspace(user, workspace):
             logging.warning("cannot exit the owned workspace %s", workspace_id)
             return {"error": "Cannot exit the workspace which is owned by you"}, 422
         user_in_workspace = workspace_user_filtered_query.first()
@@ -432,9 +431,7 @@ class WorkspaceUsersList(restful.Resource):
             abort(404)
 
         workspace_user_query = WorkspaceUserAssociation.query
-        user_is_owner = workspace_user_query.filter_by(
-            workspace_id=workspace.id, user_id=user.id, is_owner=True).first()
-        if not user.is_admin and not user_is_owner:
+        if not (user.is_admin or rules.is_user_owner_of_workspace(user, workspace)):
             logging.warning('Workspace %s not owned, cannot see users', workspace_id)
             abort(403)
 
@@ -475,8 +472,6 @@ class WorkspaceClearUsers(restful.Resource):
         user = g.user
         workspace = Workspace.query.filter_by(id=workspace_id).first()
         workspace_user_query = WorkspaceUserAssociation.query
-        user_is_owner = workspace_user_query.filter_by(
-            workspace_id=workspace_id, user_id=user.id, is_owner=True).first()
 
         if not workspace:
             logging.warning('Workspace %s does not exist', workspace_id)
@@ -486,7 +481,7 @@ class WorkspaceClearUsers(restful.Resource):
             logging.warning("cannot clear a System workspace")
             return {"error": "Cannot clear a System workspace"}, 422
 
-        if user_is_owner or user.is_admin:
+        if user.is_admin or rules.is_user_owner_of_workspace(user, workspace):
             workspace_user_query.filter_by(workspace_id=workspace_id, is_owner=False, is_manager=False).delete()
             db.session.commit()
         else:
