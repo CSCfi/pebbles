@@ -12,7 +12,7 @@ from pebbles import rules
 from pebbles.forms import WorkspaceForm
 from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Environment, Instance
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin
-from pebbles.views.commons import auth, user_fields, is_workspace_manager
+from pebbles.views.commons import auth, user_fields
 
 workspaces = FlaskBlueprint('workspaces', __name__)
 join_workspace = FlaskBlueprint('join_workspace', __name__)
@@ -309,28 +309,6 @@ def workspace_users_add(workspace, user_config, owner, workspace_owner_obj):
     return workspace
 
 
-def generate_user_config(workspace):
-    """Generates the user_config object used in multiselect ui component on workspaces modify modal"""
-    user_config = {'banned_users': [], 'managers': [], 'owner': []}
-    if workspace.banned_users:
-        for banned_user in workspace.banned_users:
-            user_config['banned_users'].append({'id': banned_user.id})
-    workspace_manager_objs = WorkspaceUserAssociation.query.filter_by(
-        workspace_id=workspace.id,
-        manager=True,
-        owner=False
-    ).all()
-    if workspace_manager_objs:
-        for workspace_manager_obj in workspace_manager_objs:
-            manager = workspace_manager_obj.user
-            user_config['managers'].append({'id': manager.id})
-    workspace_owner_obj = WorkspaceUserAssociation.query.filter_by(workspace_id=workspace.id, is_owner=True).first()
-    if workspace_owner_obj:
-        owner = workspace_owner_obj.user
-        user_config['owner'].append({'id': owner.id})
-    return user_config
-
-
 class JoinWorkspace(restful.Resource):
     @auth.login_required
     def put(self, join_code):
@@ -356,38 +334,6 @@ class JoinWorkspace(restful.Resource):
 
         # marshal based on role
         return marshal_based_on_role(user, workspace)
-
-
-# TODO: refactor this out after frontend workspace membership has been updated
-class WorkspaceListExit(restful.Resource):
-    @auth.login_required
-    def get(self):
-        user = g.user
-        results = []
-        workspace_user_query = (
-            WorkspaceUserAssociation.query.filter_by(
-                user_id=user.id, owner=False
-            ).order_by(
-                WorkspaceUserAssociation.is_manager.desc()
-            )
-        )
-        workspace_user_objs = workspace_user_query.all()
-        for workspace_user_obj in workspace_user_objs:
-            workspace = workspace_user_obj.workspace
-            if re.match('^System.+', workspace.name):  # Do not show system level workspaces
-                continue
-            workspace.config = {}
-            workspace.user_config = {}
-
-            role = 'user'
-            if is_workspace_manager(user, workspace):
-                role = 'manager'
-            workspace.role = role
-
-            # marshal results based on role
-            results.append(marshal_based_on_role(user, workspace))
-
-        return results
 
 
 class WorkspaceExit(restful.Resource):
