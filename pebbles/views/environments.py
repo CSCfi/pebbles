@@ -181,11 +181,15 @@ class EnvironmentView(restful.Resource):
     @auth.login_required
     @requires_workspace_owner_or_admin
     def delete(self, environment_id):
-        environment = Environment.query.filter_by(id=environment_id).first()
+        user = g.user
+        query = apply_rules_environments(user, dict(environment_id=environment_id))
+        environment = query.first()
         environment_instances = Instance.query.filter_by(environment_id=environment_id).all()
         if not environment:
             logging.warning("trying to delete non-existing environment")
             abort(404)
+        elif not (user.is_admin or is_workspace_manager(user, environment.workspace)):
+            abort(403)
         elif environment.current_status == 'archived':
             abort(422)
         elif not environment_instances:

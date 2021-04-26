@@ -1089,6 +1089,49 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(data))
         self.assert_200(response)
 
+    def test_delete_environment(self):
+        # Anonymous
+        response = self.make_request(
+            method='DELETE',
+            path='/api/v1/environments/%s' % self.known_environment_id
+        )
+        self.assert_401(response)
+
+        # Authenticated
+        response = self.make_authenticated_user_request(
+            method='DELETE',
+            path='/api/v1/environments/%s' % self.known_environment_id
+        )
+        self.assert_403(response)
+
+        # Workspace Owner 1, an environment in some other workspace
+        response = self.make_authenticated_workspace_owner_request(
+            method='DELETE',
+            path='/api/v1/environments/%s' % self.known_environment_id_g2
+        )
+        self.assert_403(response)
+
+        # Workspace Owner 1
+        response = self.make_authenticated_workspace_owner_request(
+            method='DELETE',
+            path='/api/v1/environments/%s' % self.known_environment_id
+        )
+        self.assert_200(response)
+
+        # Workspace Owner 2 (extra owner added to workspace 1)
+        response = self.make_authenticated_workspace_owner2_request(
+            method='DELETE',
+            path='/api/v1/environments/%s' % self.known_environment_id_2
+        )
+        self.assert_200(response)
+
+        # Admin
+        response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/environments/%s' % self.known_environment_id_g2
+        )
+        self.assert_200(response)
+
     def test_create_environment_full_config(self):
         # Workspace Owner
         data = {
