@@ -93,7 +93,7 @@ class WorkspaceList(restful.Resource):
             if not user.is_admin and workspace.name.startswith('System.'):
                 continue
 
-            if workspace.current_status in ('archived', 'deleted'):
+            if not workspace.status == Workspace.STATUS_ACTIVE:
                 continue
 
             owner = next((woa.user for woa in workspace.user_associations if woa.is_owner), None)
@@ -109,7 +109,8 @@ class WorkspaceList(restful.Resource):
     def post(self):
         user = g.user
         user_owned_workspaces = WorkspaceUserAssociation.query.filter_by(user_id=user.id, is_owner=True)
-        num_user_owned_workspaces = [w.workspace.current_status == 'active' for w in user_owned_workspaces].count(True)
+        num_user_owned_workspaces = [
+            w.workspace.status == Workspace.STATUS_ACTIVE for w in user_owned_workspaces].count(True)
         if not user.is_admin and num_user_owned_workspaces >= user.workspace_quota:
             logging.warning("Maximum workspace quota %s is reached" % user.workspace_quota)
             return dict(
@@ -147,8 +148,8 @@ class WorkspaceView(restful.Resource):
 
         if not workspace:
             abort(404)
-        if workspace.current_status == 'archived':
-            abort(422)
+        if workspace.status == Workspace.STATUS_DELETED:
+            abort(404)
 
         return workspace
 
@@ -163,7 +164,7 @@ class WorkspaceView(restful.Resource):
         workspace = Workspace.query.filter_by(id=workspace_id).first()
         if not workspace:
             abort(404)
-        if workspace.current_status == 'archived':
+        if not workspace.status == Workspace.STATUS_ACTIVE:
             abort(422)
         workspace_owner_obj = WorkspaceUserAssociation.query.filter_by(workspace_id=workspace.id, is_owner=True).first()
         owner = workspace_owner_obj.user
@@ -192,15 +193,15 @@ class WorkspaceView(restful.Resource):
     def patch(self, workspace_id):
         user = g.user
         parser = reqparse.RequestParser()
-        parser.add_argument('current_status', type=str)
-        new_status = parser.parse_args().get('current_status')
+        parser.add_argument('status', type=str)
+        new_status = parser.parse_args().get('status')
 
         return self.handle_status_change(user, workspace_id, new_status)
 
     @auth.login_required
     def delete(self, workspace_id):
         user = g.user
-        return self.handle_status_change(user, workspace_id, Workspace.STATE_DELETED)
+        return self.handle_status_change(user, workspace_id, Workspace.STATUS_DELETED)
 
     def handle_status_change(self, user, workspace_id, new_status):
         workspace = Workspace.query.filter_by(id=workspace_id).first()
@@ -208,13 +209,13 @@ class WorkspaceView(restful.Resource):
         if not workspace:
             abort(404)
         # allow only predefined set
-        if new_status not in Workspace.VALID_STATES:
+        if new_status not in Workspace.VALID_STATUSES:
             abort(403)
         # reactivation is not supported
-        if new_status == Workspace.STATE_ACTIVE:
+        if new_status == Workspace.STATUS_ACTIVE:
             abort(403)
         # resurrection is not allowed
-        if workspace.current_status == Workspace.STATE_DELETED:
+        if workspace.status == Workspace.STATUS_DELETED:
             abort(403)
         # System. can't be changed
         if workspace.name.startswith('System.'):
@@ -225,21 +226,21 @@ class WorkspaceView(restful.Resource):
             abort(403)
 
         # archive
-        if new_status == Workspace.STATE_ARCHIVED:
+        if new_status == Workspace.STATUS_ARCHIVED:
             logging.info('Archiving workspace %s "%s"', workspace.id, workspace.name)
-            workspace.current_status = Workspace.STATE_ARCHIVED
+            workspace.status = Workspace.STATUS_ARCHIVED
             environments = workspace.environments.all()
             for environment in environments:
-                environment.current_status = Environment.STATE_DELETED
+                environment.status = Environment.STATUS_DELETED
             db.session.commit()
 
         # delete
-        if new_status == Workspace.STATE_DELETED:
+        if new_status == Workspace.STATUS_DELETED:
             logging.info('Deleting workspace %s "%s"', workspace.id, workspace.name)
-            workspace.current_status = Workspace.STATE_DELETED
+            workspace.status = Workspace.STATUS_DELETED
             environments = workspace.environments.all()
             for environment in environments:
-                environment.current_status = Environment.STATE_DELETED
+                environment.status = Environment.STATUS_DELETED
                 for instance in environment.instances:
                     if instance.state in (Instance.STATE_DELETING, Instance.STATE_DELETED):
                         continue

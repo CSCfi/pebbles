@@ -34,7 +34,7 @@ environment_fields = {
     'workspace_name': fields.String,
     'workspace_pseudonym': fields.String,
     'manager': fields.Boolean,
-    'current_status': fields.String,
+    'status': fields.String,
 }
 
 
@@ -137,7 +137,7 @@ class EnvironmentView(restful.Resource):
         if not environment:
             abort(404)
 
-        if environment.current_status == 'archived' or environment.current_status == 'deleted':
+        if environment.status in (Environment.STATUS_ARCHIVED, Environment.STATUS_DELETED):
             abort(422)
 
         if not user.is_admin and not is_workspace_manager(user, environment.workspace):
@@ -171,14 +171,14 @@ class EnvironmentView(restful.Resource):
     @requires_admin
     def patch(self, environment_id):
         parser = reqparse.RequestParser()
-        parser.add_argument('current_status', type=str)
+        parser.add_argument('status', type=str)
         args = self.parser.parse_args()
         environment = Environment.query.filter_by(id=environment_id).first()
         if not environment:
             abort(404)
 
-        if args.get('current_status'):
-            environment.current_status = args['current_status']
+        if args.get('status'):
+            environment.status = args['status']
             environment.is_enabled = False
             db.session.commit()
 
@@ -194,9 +194,10 @@ class EnvironmentView(restful.Resource):
             abort(404)
         elif not (user.is_admin or is_workspace_manager(user, environment.workspace)):
             abort(403)
-        elif environment.current_status == 'archived':
-            abort(422)
-        elif not environment_instances:
+        elif environment.status == Environment.STATUS_ARCHIVED:
+            abort(403)
+
+        if not environment_instances:
             db.session.delete(environment)
             db.session.commit()
         elif environment_instances:
@@ -205,7 +206,7 @@ class EnvironmentView(restful.Resource):
                     instance.to_be_deleted = True
                     instance.state = Instance.STATE_DELETING
                     instance.deprovisioned_at = datetime.datetime.utcnow()
-            environment.current_status = environment.STATE_DELETED
+            environment.status = environment.STATUS_DELETED
             db.session.commit()
         else:
             abort(422)
@@ -218,7 +219,7 @@ class EnvironmentCopy(restful.Resource):
         user = g.user
         environment = Environment.query.get_or_404(environment_id)
 
-        if environment.current_status == 'archived' or environment.current_status == 'deleted':
+        if not environment.status == Environment.STATUS_ACTIVE:
             abort(422)
         if not user.is_admin and not is_workspace_manager(user, environment.workspace):
             logging.warning(

@@ -169,7 +169,7 @@ def primary_test_setup(namespace):
     e6.labels = ['label1', 'label with space', 'label2']
     e6.template_id = t2.id
     e6.workspace_id = ws2.id
-    e6.current_status = 'archived'
+    e6.status = Environment.STATUS_ARCHIVED
     db.session.add(e6)
     namespace.known_environment_id_archived = e6.id
 
@@ -178,7 +178,7 @@ def primary_test_setup(namespace):
     e7.labels = ['label1', 'label with space', 'label2']
     e7.template_id = t2.id
     e7.workspace_id = ws2.id
-    e7.current_status = 'deleted'
+    e7.status = Environment.STATUS_DELETED
     db.session.add(e7)
 
     e8 = Environment()

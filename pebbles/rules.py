@@ -39,19 +39,19 @@ def apply_rules_environments(user, args=None):
         if manager_workspace_ids:
             manager_workspace_ids_exp = Environment.workspace_id.in_(manager_workspace_ids)
         query_exp = or_(query_exp, manager_workspace_ids_exp)
-        q = q.filter(query_exp).filter_by(current_status='active')
+        q = q.filter(query_exp).filter_by(status='active')
     else:
         # admins can optionally also see archived and deleted environments
         if args is not None and 'show_all' in args and args.get('show_all'):
             q = q.filter(
                 or_(
-                    Environment.current_status == 'active',
-                    Environment.current_status == 'archived',
-                    Environment.current_status == 'deleted'
+                    Environment.status == Environment.STATUS_ACTIVE,
+                    Environment.status == Environment.STATUS_ARCHIVED,
+                    Environment.status == Environment.STATUS_DELETED
                 )
             )
         else:
-            q = q.filter_by(current_status='active')
+            q = q.filter_by(status=Environment.STATUS_ACTIVE)
 
     if args is not None and 'environment_id' in args:
         q = q.filter_by(id=args.get('environment_id'))

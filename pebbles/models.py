@@ -237,14 +237,14 @@ class WorkspaceUserAssociation(db.Model):  # Association Object for many-to-many
 
 
 class Workspace(db.Model):
-    STATE_ACTIVE = 'active'
-    STATE_ARCHIVED = 'archived'
-    STATE_DELETED = 'deleted'
+    STATUS_ACTIVE = 'active'
+    STATUS_ARCHIVED = 'archived'
+    STATUS_DELETED = 'deleted'
 
-    VALID_STATES = (
-        STATE_ACTIVE,
-        STATE_ARCHIVED,
-        STATE_DELETED
+    VALID_STATUSES = (
+        STATUS_ACTIVE,
+        STATUS_ARCHIVED,
+        STATUS_DELETED
     )
     __tablename__ = 'workspaces'
 
@@ -253,8 +253,8 @@ class Workspace(db.Model):
     name = db.Column(db.String(32))
     _join_code = db.Column('join_code', db.String(64))
     description = db.Column(db.Text)
-    # current_status when created is "active". Later there is option to be "archived".
-    _current_status = db.Column('current_status', db.String(32), default=STATE_ACTIVE)
+    # status when created is "active". Later there is option to be "archived".
+    _status = db.Column('status', db.String(32), default=STATUS_ACTIVE)
     _create_ts = db.Column('create_ts', db.DateTime, default=datetime.datetime.utcnow)
     _expiry_ts = db.Column(
         'expiry_ts',
@@ -275,7 +275,7 @@ class Workspace(db.Model):
         self.name = name
         self.description = description
         self.join_code = name
-        self._current_status = Workspace.STATE_ACTIVE
+        self._status = Workspace.STATUS_ACTIVE
 
     @hybrid_property
     def join_code(self):
@@ -305,13 +305,13 @@ class Workspace(db.Model):
         self._expiry_ts = datetime.datetime.fromtimestamp(value)
 
     @hybrid_property
-    def current_status(self):
-        return self._current_status
+    def status(self):
+        return self._status
 
-    @current_status.setter
-    def current_status(self, value):
-        if value in Workspace.VALID_STATES:
-            self._current_status = value
+    @status.setter
+    def status(self, value):
+        if value in Workspace.VALID_STATUSES:
+            self._status = value
         else:
             raise ValueError("'%s' is not a valid state for Workspaces" % value)
 
@@ -378,14 +378,14 @@ class EnvironmentTemplate(db.Model):
 
 
 class Environment(db.Model):
-    STATE_ACTIVE = 'active'
-    STATE_ARCHIVED = 'archived'
-    STATE_DELETED = 'deleted'
+    STATUS_ACTIVE = 'active'
+    STATUS_ARCHIVED = 'archived'
+    STATUS_DELETED = 'deleted'
 
-    VALID_STATES = (
-        STATE_ACTIVE,
-        STATE_ARCHIVED,
-        STATE_DELETED,
+    VALID_STATUSES = (
+        STATUS_ACTIVE,
+        STATUS_ARCHIVED,
+        STATUS_DELETED,
     )
 
     __tablename__ = 'environments'
@@ -400,8 +400,8 @@ class Environment(db.Model):
     is_enabled = db.Column(db.Boolean, default=False)
     expiry_time = db.Column(db.DateTime)
     instances = db.relationship('Instance', backref='environment', lazy='dynamic')
-    # current_status when created is "active". Later there are options to be "archived" or "deleted".
-    _current_status = db.Column('current_status', db.String(32), default='active')
+    # status when created is "active". Later there are options to be "archived" or "deleted".
+    _status = db.Column('status', db.String(32), default='active')
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     def __init__(self, name=None, description=None, template_id=None, workspace_id=None, labels=None,
@@ -417,7 +417,7 @@ class Environment(db.Model):
         if not config:
             config = dict()
         self._config = json.dumps(config)
-        self._current_status = Environment.STATE_ACTIVE
+        self._status = Environment.STATUS_ACTIVE
 
     @hybrid_property
     def config(self):
@@ -441,13 +441,13 @@ class Environment(db.Model):
         return get_full_environment_config(self)
 
     @hybrid_property
-    def current_status(self):
-        return self._current_status
+    def status(self):
+        return self._status
 
-    @current_status.setter
-    def current_status(self, value):
-        if value in Environment.VALID_STATES:
-            self._current_status = value
+    @status.setter
+    def status(self, value):
+        if value in Environment.VALID_STATUSES:
+            self._status = value
         else:
             raise ValueError("'%s' is not a valid status for Environment" % value)
 

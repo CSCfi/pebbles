@@ -560,43 +560,43 @@ class FlaskApiTestCase(BaseTestCase):
         # Anonymous
         response = self.make_request(
             method='PATCH',
-            data=dict(current_status='archived'),
+            data=dict(status=Workspace.STATUS_ARCHIVED),
             path='/api/v1/workspaces/%s' % self.known_workspace_id
         )
         self.assert_401(response)
         # Authenticated
         response = self.make_authenticated_user_request(
             method='PATCH',
-            data=json.dumps(dict(current_status='archived')),
+            data=json.dumps(dict(status=Workspace.STATUS_ARCHIVED)),
             path='/api/v1/workspaces/%s' % self.known_workspace_id
         )
         self.assert_403(response)
         # Owner should be able to archive
         response = self.make_authenticated_workspace_owner_request(
             method='PATCH',
-            data=json.dumps(dict(current_status='archived')),
+            data=json.dumps(dict(status=Workspace.STATUS_ARCHIVED)),
             path='/api/v1/workspaces/%s' % self.known_workspace_id
         )
         self.assert_200(response)
         workspace = Workspace.query.filter_by(id=self.known_workspace_id).first()
-        self.assertEqual('archived', workspace.current_status)
+        self.assertEqual(Workspace.STATUS_ARCHIVED, workspace.status)
 
         # Even admin cannot archive System.default
         invalid_response = self.make_authenticated_admin_request(
             method='PATCH',
-            data=json.dumps(dict(current_status='archived')),
+            data=json.dumps(dict(status=Workspace.STATUS_ARCHIVED)),
             path='/api/v1/workspaces/%s' % self.system_default_workspace_id
         )
         self.assertStatus(invalid_response, 422)  # Cannot archive default system workspace
         # Admin
         response = self.make_authenticated_admin_request(
             method='PATCH',
-            data=json.dumps(dict(current_status='archived')),
+            data=json.dumps(dict(status=Workspace.STATUS_ARCHIVED)),
             path='/api/v1/workspaces/%s' % self.known_workspace_id_2
         )
         self.assert_200(response)
         workspace = Workspace.query.filter_by(id=self.known_workspace_id_2).first()
-        self.assertEqual('archived', workspace.current_status)
+        self.assertEqual(Workspace.STATUS_ARCHIVED, workspace.status)
 
     def test_delete_workspace(self):
         owner_1 = User.query.filter_by(id=self.known_workspace_owner_id).first()
@@ -640,7 +640,7 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response)
         workspace = Workspace.query.filter_by(id=ws.id).first()
-        self.assertEqual(Workspace.STATE_DELETED, workspace.current_status)
+        self.assertEqual(Workspace.STATUS_DELETED, workspace.status)
 
         # owner of the workspace with instances, check that instances are set to be deleted as well
         response = self.make_authenticated_workspace_owner_request(
