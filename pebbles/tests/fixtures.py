@@ -189,15 +189,11 @@ def primary_test_setup(namespace):
     db.session.add(e8)
     namespace.known_environment_id_empty = e8.id
 
-    m1 = Message()
-    m1.subject = "First message"
-    m1.message = "First message message"
+    m1 = Message("First message", "First message message")
     namespace.known_message_id = m1.id
     db.session.add(m1)
 
-    m2 = Message()
-    m2.subject = "Second message"
-    m2.message = "Second message message"
+    m2 = Message("Second message", "Second message message")
     namespace.known_message2_id = m2.id
     db.session.add(m2)
 

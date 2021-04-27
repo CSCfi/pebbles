@@ -266,13 +266,14 @@ class Workspace(db.Model):
     environment_quota = db.Column(db.Integer, default=10)
     environments = db.relationship('Environment', backref='workspace', lazy='dynamic')
 
-    def __init__(self, name):
+    def __init__(self, name, description=''):
         self.id = uuid.uuid4().hex
         # Here we opportunistically create a pseudonym without actually checking the existing workspaces,
         # the probability of collision is low enough. There are 400 pseudonyms for all inhabitants on earth
         # with 36**8 alternatives
         self.pseudonym = ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(8))
         self.name = name
+        self.description = description
         self.join_code = name
         self._current_status = Workspace.STATE_ACTIVE
 
@@ -324,9 +325,11 @@ class Message(db.Model):
     message = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self):
+    def __init__(self, subject, message):
         self.id = uuid.uuid4().hex
         self.broadcasted = datetime.datetime.utcnow()
+        self.subject = subject
+        self.message = message
 
 
 class EnvironmentTemplate(db.Model):

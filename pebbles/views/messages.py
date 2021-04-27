@@ -67,9 +67,7 @@ class MessageList(restful.Resource):
             logging.warning("validation error on post new message")
             return form.errors, 422
 
-        message = Message()
-        message.subject = form.subject.data
-        message.message = form.message.data
+        message = Message(form.subject.data, form.message.data)
 
         db.session.add(message)
         db.session.commit()
