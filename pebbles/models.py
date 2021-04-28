@@ -550,9 +550,13 @@ class InstanceLog(db.Model):
     timestamp = db.Column(db.Float)
     message = db.Column(db.Text)
 
-    def __init__(self, instance_id):
+    def __init__(self, instance_id, log_level, log_type, timestamp, message):
         self.id = uuid.uuid4().hex
         self.instance_id = instance_id
+        self.log_level = log_level
+        self.log_type = log_type
+        self.timestamp = timestamp
+        self.message = message
 
 
 class Lock(db.Model):

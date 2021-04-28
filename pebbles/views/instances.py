@@ -10,7 +10,7 @@ from flask_restful import marshal, marshal_with, fields, reqparse
 from pebbles.forms import InstanceForm
 from pebbles.models import db, Environment, Instance, InstanceLog, User
 from pebbles.rules import apply_rules_instances, get_workspace_environment_ids_for_instances
-from pebbles.utils import requires_admin, requires_workspace_owner_or_admin, memoize
+from pebbles.utils import requires_admin, memoize
 from pebbles.views.commons import auth, is_workspace_manager
 
 instances = FlaskBlueprint('instances', __name__)
@@ -249,13 +249,17 @@ class InstanceView(restful.Resource):
             abort(404)
 
         if args.get('state'):
+            state = args.get('state')
+            if state not in Instance.VALID_STATES:
+                abort(422)
             instance.state = args['state']
             if instance.state == Instance.STATE_RUNNING:
                 if not instance.provisioned_at:
                     instance.provisioned_at = datetime.datetime.utcnow()
-            if args['state'] == Instance.STATE_FAILED:
+            if instance.state == Instance.STATE_FAILED:
                 instance.errored = True
-
+            if instance.state == Instance.STATE_DELETED:
+                delete_logs_from_db(instance_id)
             db.session.commit()
 
         if args.get('to_be_deleted'):
@@ -284,16 +288,16 @@ class InstanceView(restful.Resource):
 
 
 class InstanceLogs(restful.Resource):
-    parser = reqparse.RequestParser()
-    parser.add_argument('log_record', type=dict)
-    parser.add_argument('log_type', type=str)
-    parser.add_argument('send_log_fetch_task', type=bool)
 
     @auth.login_required
     @marshal_with(instance_log_fields)
     def get(self, instance_id):
-        args = self.parser.parse_args()
-        instance = Instance.query.filter_by(id=instance_id).first()
+        user = g.user
+        parser = reqparse.RequestParser()
+        parser.add_argument('log_type', type=str, default=None, required=False, location='args')
+        args = parser.parse_args()
+        query = apply_rules_instances(user, dict(instance_id=instance_id))
+        instance = query.first()
         if not instance:
             abort(404)
 
@@ -302,9 +306,12 @@ class InstanceLogs(restful.Resource):
         return instance_logs
 
     @auth.login_required
-    @requires_workspace_owner_or_admin
+    @requires_admin
     def patch(self, instance_id):
-        args = self.parser.parse_args()
+        parser = reqparse.RequestParser()
+        parser.add_argument('log_record', type=dict)
+        parser.add_argument('log_type', type=str)
+        args = parser.parse_args()
         instance = Instance.query.filter_by(id=instance_id).first()
         if not instance:
             abort(404)
@@ -319,14 +326,10 @@ class InstanceLogs(restful.Resource):
     @auth.login_required
     @requires_admin
     def delete(self, instance_id):
-        args = self.parser.parse_args()
-        instance_logs = get_logs_from_db(instance_id, args.get('log_type'))
-        if not instance_logs:
-            logging.warning("There are no log entries to be deleted")
-
-        for instance_log in instance_logs:
-            db.session.delete(instance_log)
-        db.session.commit()
+        parser = reqparse.RequestParser()
+        parser.add_argument('log_type', type=str, default=None, required=False, location='args')
+        args = parser.parse_args()
+        delete_logs_from_db(instance_id, args.get('log_type'))
 
 
 def get_logs_from_db(instance_id, log_type=None):
@@ -339,23 +342,34 @@ def get_logs_from_db(instance_id, log_type=None):
     return logs
 
 
+def delete_logs_from_db(instance_id, log_type=None):
+    instance_logs = get_logs_from_db(instance_id, log_type)
+    if not instance_logs:
+        logging.warning("There are no log entries to be deleted")
+
+    for instance_log in instance_logs:
+        db.session.delete(instance_log)
+    db.session.commit()
+
+
 def process_logs(instance_id, log_record):
 
-    check_running_log = get_logs_from_db(instance_id, "running")
-
     # in case of running logs, the whole message is replaced again (thus only 1 running log record with all info)
-    if check_running_log:
-        instance_log = check_running_log[0]
-        if log_record['log_type'] == "running":
+    if log_record['log_type'] == 'running':
+        existing_runnings_logs = get_logs_from_db(instance_id, 'running')
+        if existing_runnings_logs:
+            instance_log = existing_runnings_logs[0]
             instance_log.timestamp = float(log_record['timestamp'])
             # replace the whole text (older text now appended with the new text)
             instance_log.message = log_record['message']
             return instance_log
 
-    instance_log = InstanceLog(instance_id)
-    instance_log.log_type = log_record['log_type']
-    instance_log.log_level = log_record['log_level']
-    instance_log.timestamp = float(log_record['timestamp'])
-    instance_log.message = log_record['message']
+    instance_log = InstanceLog(
+        instance_id,
+        log_record['log_level'],
+        log_record['log_type'],
+        log_record['timestamp'],
+        log_record['message'],
+    )
 
     return instance_log

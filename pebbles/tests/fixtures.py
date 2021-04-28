@@ -7,7 +7,7 @@ import yaml
 import pebbles
 from pebbles.models import (
     User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
-    Message, Instance)
+    Message, Instance, InstanceLog)
 from pebbles.tests.base import db
 
 
@@ -212,6 +212,7 @@ def primary_test_setup(namespace):
     i2.name = 'pb-i2'
     i2.state = Instance.STATE_RUNNING
     db.session.add(i2)
+    db.session.add(InstanceLog(i2.id, 'info', 'provisioning', '1000.0', 'provisioning done'))
     namespace.known_instance_id_2 = i2.id
 
     i3 = Instance(
@@ -228,6 +229,7 @@ def primary_test_setup(namespace):
     i4.name = 'pb-i4'
     i4.state = Instance.STATE_FAILED
     db.session.add(i4)
+    namespace.known_instance_id_4 = i4.id
 
     i5 = Instance(
         Environment.query.filter_by(id=e4.id).first(),

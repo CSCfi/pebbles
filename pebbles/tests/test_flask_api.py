@@ -9,7 +9,7 @@ from dateutil.relativedelta import relativedelta
 
 from pebbles.models import (
     User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
-    Instance)
+    Instance, InstanceLog)
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.tests.fixtures import primary_test_setup
 
@@ -1477,12 +1477,21 @@ class FlaskApiTestCase(BaseTestCase):
         # Anonymous
         response = self.make_request(path='/api/v1/instances/%s' % self.known_instance_id)
         self.assert_401(response)
+
+        # Authenticated, someone else's instance
+        response = self.make_authenticated_user_request(
+            method='GET',
+            path='/api/v1/instances/%s' % self.known_instance_id_4
+        )
+        self.assert_404(response)
+
         # Authenticated
         response = self.make_authenticated_user_request(
             method='GET',
             path='/api/v1/instances/%s' % self.known_instance_id
         )
         self.assert_200(response)
+
         # Admin
         response = self.make_authenticated_admin_request(
             method='GET',
@@ -1504,6 +1513,49 @@ class FlaskApiTestCase(BaseTestCase):
         )
 
         self.assert_200(response)
+
+    def test_patch_instance(self):
+        # Anonymous
+        response = self.make_request(
+            method='PATCH',
+            path='/api/v1/instances/%s' % self.known_instance_id,
+            data=json.dumps(dict(state='deleting'))
+        )
+        self.assert_401(response)
+
+        # Authenticated
+        response = self.make_authenticated_user_request(
+            method='PATCH',
+            path='/api/v1/instances/%s' % self.known_instance_id,
+            data=json.dumps(dict(state='deleting'))
+        )
+        self.assert_403(response)
+
+        # Owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='PATCH',
+            path='/api/v1/instances/%s' % self.known_instance_id,
+            data=json.dumps(dict(state='deleting'))
+        )
+        self.assert_403(response)
+
+        # Admin, invalid state
+        response = self.make_authenticated_admin_request(
+            method='PATCH',
+            path='/api/v1/instances/%s' % self.known_instance_id,
+            data=json.dumps(dict(state='bogus'))
+        )
+        self.assertEqual(422, response.status_code)
+
+        # Admin, check that changing state to 'deleted' cleans logs. Instance 2 with logs.
+        self.assertEqual(1, len(InstanceLog.query.filter_by(instance_id=self.known_instance_id_2).all()))
+        response = self.make_authenticated_admin_request(
+            method='PATCH',
+            path='/api/v1/instances/%s' % self.known_instance_id_2,
+            data=json.dumps(dict(state='deleted'))
+        )
+        self.assert_200(response)
+        self.assertEqual(0, len(InstanceLog.query.filter_by(instance_id=self.known_instance_id_2).all()))
 
     def test_delete_instance(self):
         environment = Environment.query.filter_by(id=self.known_environment_id).first()
@@ -1599,13 +1651,59 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps({'log_type': 'provisioning'})
         )
         self.assert_200(response_get)
-        self.assertEquals(response_get.json[0]['timestamp'], epoch_time)
+        self.assertEqual(response_get.json[0]['timestamp'], epoch_time)
 
         response_instance_get = self.make_authenticated_user_request(
             path='/api/v1/instances/%s' % self.known_instance_id
         )
         self.assert_200(response_instance_get)
-        self.assertEquals(response_instance_get.json['logs'][0]['timestamp'], epoch_time)
+        self.assertEqual(response_instance_get.json['logs'][0]['timestamp'], epoch_time)
+
+        # delete logs as normal user
+        response_delete = self.make_authenticated_user_request(
+            method='DELETE',
+            path='/api/v1/instances/%s/logs' % self.known_instance_id
+        )
+        self.assert_403(response_delete)
+
+        # delete logs as admin
+        response_delete = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/instances/%s/logs' % self.known_instance_id
+        )
+        self.assert_200(response_delete)
+        # check that logs are empty
+        response_get = self.make_authenticated_user_request(
+            method='GET',
+            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            data=json.dumps({})
+        )
+        self.assert_200(response_get)
+        self.assertEquals(0, len(response_get.json))
+
+        # test patching running logs - should be replaced, not appended
+        log_record['log_type'] = 'running'
+        response_patch = self.make_authenticated_admin_request(
+            method='PATCH',
+            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            data=json.dumps({'log_record': log_record})
+        )
+        self.assert_200(response_patch)
+        log_record['message'] = 'patched running logs'
+        response_patch = self.make_authenticated_admin_request(
+            method='PATCH',
+            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            data=json.dumps({'log_record': log_record})
+        )
+        self.assert_200(response_patch)
+        response_get = self.make_authenticated_user_request(
+            method='GET',
+            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            data=json.dumps({})
+        )
+        self.assert_200(response_get)
+        self.assertEquals(1, len(response_get.json))
+        self.assertEquals('patched running logs', response_get.json[0]['message'])
 
     def test_update_admin_quota_relative(self):
         response = self.make_authenticated_admin_request(
