@@ -32,7 +32,7 @@ def oauth2_login():
         logging.warning("Login abort: Proxy communication key mismatch")
         abort(400)
 
-    eppn = request.headers['X-Forwarded-Email']
+    eppn = request.headers['X-Forwarded-Email'].lower()
     user = User.query.filter_by(eppn=eppn).first()
 
     # New users: Get credentials from aai proxy and then send agreement to user to sign.
