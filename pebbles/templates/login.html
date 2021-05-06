@@ -7,13 +7,13 @@
                 localStorage.setItem('is_admin', true);
             {% endif %}
             {% if is_workspace_owner %}
-                localStorage.setItem('is_workspaceOwner', true);
+                localStorage.setItem('is_workspace_owner', true);
             {% endif %}
             {% if is_workspace_manager %}
-                localStorage.setItem('is_workspaceManager', true);
+                localStorage.setItem('is_workspace_manager', true);
             {% endif %}
             localStorage.setItem('user_id', '{{ userid }}');
-            localStorage.setItem('icon_value', {{icon_value|safe}});
+            localStorage.setItem('is_sidenav_open', true);
             window.location.assign("/main");
         </script>
     </head>
