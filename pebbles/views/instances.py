@@ -7,9 +7,10 @@ from flask import Blueprint as FlaskBlueprint
 from flask import abort, g, current_app
 from flask_restful import marshal, marshal_with, fields, reqparse
 
+from pebbles import rules
 from pebbles.forms import InstanceForm
 from pebbles.models import db, Environment, Instance, InstanceLog, User
-from pebbles.rules import apply_rules_instances, get_workspace_environment_ids_for_instances
+from pebbles.rules import apply_rules_instances
 from pebbles.utils import requires_admin, memoize
 from pebbles.views.commons import auth, is_workspace_manager
 
@@ -124,14 +125,14 @@ class InstanceList(restful.Resource):
             return form.errors, 422
 
         environment_id = form.environment.data
-        allowed_environment_ids = get_workspace_environment_ids_for_instances(user)
-        if not user.is_admin and environment_id not in allowed_environment_ids:
-            logging.warning('instance creation failed, environment %s not allowed for user %s', environment_id, user.id)
-            abort(403)
-        environment = Environment.query.filter_by(id=environment_id).first()
+
+        # fetch the environment using shared access rules
+        environment = rules.apply_rules_environments(user, dict(environment_id=environment_id)).first()
         if not environment:
             logging.warning('instance creation failed, no environment found for id %s', environment_id)
             abort(404)
+
+        # admins and workspace managers are allowed to test disabled environments
         if not environment.is_enabled and not (user.is_admin or is_workspace_manager(user, environment.workspace)):
             logging.warning('instance creation failed, environment %s is disabled', environment_id)
             abort(403)

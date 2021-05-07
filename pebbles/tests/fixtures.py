@@ -180,6 +180,7 @@ def primary_test_setup(namespace):
     e7.workspace_id = ws2.id
     e7.status = Environment.STATUS_DELETED
     db.session.add(e7)
+    namespace.known_environment_id_deleted = e7.id
 
     e8 = Environment()
     e8.name = "EnabledTestEnvironment"

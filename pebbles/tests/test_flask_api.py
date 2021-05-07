@@ -1402,7 +1402,7 @@ class FlaskApiTestCase(BaseTestCase):
             method='POST',
             path='/api/v1/instances',
             data=json.dumps(data))
-        self.assert_403(response)
+        self.assert_404(response)
         # User is a part of the workspace (Workspace1)
         data = {'environment': self.known_environment_id_empty}
         response = self.make_authenticated_user_request(
@@ -1417,7 +1417,23 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/instances',
             data=json.dumps({'environment': self.known_environment_id_disabled}),
         )
-        self.assert_403(response)
+        self.assert_404(response)
+
+    def test_user_create_instance_environment_deleted(self):
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/instances',
+            data=json.dumps({'environment': self.known_environment_id_deleted}),
+        )
+        self.assert_404(response)
+
+    def test_user_create_instance_environment_archived(self):
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/instances',
+            data=json.dumps({'environment': self.known_environment_id_archived}),
+        )
+        self.assert_404(response)
 
     def test_owner_create_instance_environment_disabled(self):
         # Use Environment in ws2 that is owned by owner2 and has owner1 as user
@@ -1448,7 +1464,7 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/instances',
             data=json.dumps({'environment': self.known_environment_id_g2}),
         )
-        self.assert_403(response)
+        self.assert_404(response)
 
     def test_get_instances(self):
         # Anonymous
