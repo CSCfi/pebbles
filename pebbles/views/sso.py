@@ -1,8 +1,9 @@
 import datetime
-import base64
 import logging
 import uuid
+import requests
 
+from jose import jwt
 from flask import render_template, request
 from flask_restful import reqparse
 from flask import abort
@@ -22,17 +23,47 @@ def oauth2_login():
         logging.warning("Login abort: oauth2 not enabled")
         abort(401)
 
-    # decode base64 encoded 'user:password' to get the shared secret from password
-    basic_auth = base64.b64decode(request.headers['Authorization'].split(' ')[1].encode('utf-8'))
-    basic_auth = bytes.decode(basic_auth, 'utf-8')
-    proxy_secret = basic_auth.split(':')[1]
+    token = request.headers['Authorization'].split(' ')[1]
 
-    # only allow requests that know the shared secret to proceed
-    if proxy_secret != app.config['OAUTH2_PROXY_SECRET']:
-        logging.warning("Login abort: Proxy communication key mismatch")
-        abort(400)
+    # get jwk from openid-configuration url
+    oidc_key_endpoint = requests.get(app.config['OAUTH2_OPENID_CONFIGURATION_URL']).json()['jwks_uri']
+    oidc_jwk = requests.get(oidc_key_endpoint).json()['keys'][0]
 
-    eppn = request.headers['X-Forwarded-Email'].lower()
+    if not oidc_jwk:
+        logging.warning("JWK could not be fetched")
+        abort(500)
+
+    try:
+        options = {'verify_aud': False, 'verify_at_hash': False}
+        claims = jwt.decode(token, oidc_jwk, algorithms=['RS256'], options=options)
+    except Exception as e:
+        logging.warning("JWT error: %s" % e)
+        abort(401)
+
+    auth_methods = app.config['OAUTH2_AUTH_METHODS'].split(' ')
+
+    if claims['acr'] not in auth_methods:
+        logging.warning("Login abort: Authentication method is not allowed")
+        abort(422)
+    if 'nsAccountLock' in claims and claims['nsAccountLock'] == 'true':
+        logging.warning("Login abort: Account is locked")
+        abort(422)
+
+    # Check what virtu sends - 'vppn' instead of 'eppn'
+
+    if 'eppn' in claims:
+        eppn = claims['eppn'].lower()
+    elif 'vppn' in claims:
+        eppn = claims['vppn'].lower()
+    else:
+        logging.warning("Login abort: Valid eppn nor vppn is received")
+        abort(422)
+
+    if 'email' in claims:
+        email_id = claims['email']
+    else:
+        logging.warning("Login abort: Valid email is not received")
+        abort(422)
     user = User.query.filter_by(eppn=eppn).first()
 
     # New users: Get credentials from aai proxy and then send agreement to user to sign.
@@ -47,7 +78,7 @@ def oauth2_login():
                 logo_path=app.config['AGREEMENT_LOGO_PATH']
             )
         elif args.agreement_sign == 'signed':
-            user = create_user(eppn, password=uuid.uuid4().hex, email_id=eppn)
+            user = create_user(eppn, password=uuid.uuid4().hex, email_id=email_id)
             user.tc_acceptance_date = datetime.datetime.utcnow()
             db.session.commit()
 

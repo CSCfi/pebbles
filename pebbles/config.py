@@ -136,8 +136,10 @@ class BaseConfig(object):
 
     # Oauth2 settings
     OAUTH2_LOGIN_ENABLED = False
-    OAUTH2_PROXY_SECRET = 'change_me'
     OAUTH2_LOGO_URL = '/img/CSC_login.png'
+
+    OAUTH2_AUTH_METHODS = ['list of idps allowed to login via sso']
+    OAUTH2_OPENID_CONFIGURATION_URL = 'https://openid-configuration'
 
     # Terms and conditions settings
     AGREEMENT_TITLE = 'Title here'
