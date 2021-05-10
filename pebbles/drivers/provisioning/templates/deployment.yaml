@@ -57,6 +57,8 @@ spec:
           volumeMounts:
             - mountPath: "{{volume_mount_path}}"
               name: data
+            - mountPath: "{{volume_mount_path}}/shared-data"
+              name: shared-data
           # generic check if the pod is accepting connections, poll every 1 second
           readinessProbe:
             tcpSocket:
