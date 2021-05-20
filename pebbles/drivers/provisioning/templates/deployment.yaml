@@ -27,10 +27,14 @@ spec:
             - sh
             - -c
             - |
-              if [ -z $AUTODOWNLOAD_URL ]; then exit 0; fi;
-              cd /data;
-              if [ $AUTODOWNLOAD_METHOD = "http-get" ]; then wget $AUTODOWNLOAD_URL || echo "download failed"; fi;
-              if [ $AUTODOWNLOAD_METHOD = "git-clone" ]; then git clone $AUTODOWNLOAD_URL || echo "cloning failed"; fi;
+              if [ -z $AUTODOWNLOAD_URL ]; then exit 0; fi
+              cd /data
+              if [ $AUTODOWNLOAD_METHOD = "http-get" ]; then
+                wget $AUTODOWNLOAD_URL 2>/tmp/download_error.txt || (mv -v /tmp/download_error.txt .)
+              fi
+              if [ $AUTODOWNLOAD_METHOD = "git-clone" ]; then
+                git clone $AUTODOWNLOAD_URL 2>/tmp/git_clone_error.txt || (mv -v /tmp/git_clone_error.txt .)
+              fi
           volumeMounts:
             - mountPath: "/data"
               name: data
