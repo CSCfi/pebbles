@@ -479,6 +479,12 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(invalid_system_data))
         self.assertStatus(invalid_response, 422)
 
+        invalid_response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/workspaces',
+            data=json.dumps(invalid_system_data))
+        self.assertStatus(invalid_response, 422)
+
         invalid_response = self.make_authenticated_workspace_owner_request(
             method='POST',
             path='/api/v1/workspaces',
@@ -544,6 +550,10 @@ class FlaskApiTestCase(BaseTestCase):
                 'managers': [{'id': self.known_user_id}]
             }
         }
+        invalid_data_system = {
+            'name': 'System.TestWorkspaceModify',
+            'description': 'Cannot rename to System.*',
+        }
         invalid_response = self.make_authenticated_workspace_owner_request(
             method='PUT',
             path='/api/v1/workspaces/%s' % self.known_workspace_id,
@@ -554,6 +564,18 @@ class FlaskApiTestCase(BaseTestCase):
             method='PUT',
             path='/api/v1/workspaces/%s' % self.known_workspace_id,
             data=json.dumps(invalid_data_1))
+        self.assertStatus(invalid_response, 422)
+
+        # should not be able to rename to System.*, even as an admin
+        invalid_response = self.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s' % self.known_workspace_id,
+            data=json.dumps(invalid_data_system))
+        self.assertStatus(invalid_response, 422)
+        invalid_response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s' % self.known_workspace_id,
+            data=json.dumps(invalid_data_system))
         self.assertStatus(invalid_response, 422)
 
     def test_archive_workspace(self):
