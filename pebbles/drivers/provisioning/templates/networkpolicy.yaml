@@ -3,11 +3,20 @@ kind: NetworkPolicy
 metadata:
   name: default-policy
 spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
   ingress:
   - from:
     - namespaceSelector:
         matchLabels:
           name: kube-system
-  podSelector: {}
-  policyTypes:
-  - Ingress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            {% if egressBlockCidr is defined %}
+            except:
+              - "{{ egressBlockCidr }}"
+            {% endif %}

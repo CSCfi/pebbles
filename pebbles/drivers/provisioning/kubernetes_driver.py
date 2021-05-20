@@ -487,13 +487,19 @@ class KubernetesRemoteDriver(KubernetesDriverBase):
             name=namespace,
         ))
         api = self.dynamic_client.resources.get(api_version='v1', kind='Namespace')
-        namespace_res = api.create(body=yaml.load(namespace_yaml))
+        namespace_res = api.create(body=yaml.safe_load(namespace_yaml))
 
         # create a network policy for isolating the pods in the namespace
+        # block traffic to cluster internal network, to 192.168.0.0/16 by default
         self.logger.info('creating default network policy in namespace %s' % namespace)
-        networkpolicy_yaml = parse_template('networkpolicy.yaml', dict())
+        networkpolicy_yaml = parse_template(
+            'networkpolicy.yaml',
+            dict(
+                egressBlockCidr=self.cluster_config.get('clusterNetworkCidr', '192.168.0.0/16')
+            )
+        )
         api = self.dynamic_client.resources.get(api_version='networking.k8s.io/v1', kind='NetworkPolicy')
-        api.create(body=yaml.load(networkpolicy_yaml), namespace=namespace)
+        api.create(body=yaml.safe_load(networkpolicy_yaml), namespace=namespace)
 
         return namespace_res
 
