@@ -74,7 +74,6 @@ def positive_integer(input_value):
 
 class InstanceList(restful.Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('show_deleted', type=bool, default=False, location='args')
     parser.add_argument('show_only_mine', type=bool, default=False, location='args')
     parser.add_argument('offset', type=positive_integer, location='args')
     parser.add_argument('limit', type=positive_integer, location='args')

@@ -71,17 +71,20 @@ def apply_rules_export_environments(user):
 
 
 def apply_rules_instances(user, args=None):
-    q = Instance.query
+    # basic query filter out the deleted instances
+    q = Instance.query.filter(Instance.state != Instance.STATE_DELETED)
     if not user.is_admin:
+        # user's own instances
         q1 = q.filter_by(user_id=user.id)
-        if is_workspace_manager(user):  # show only the instances of the environments which the workspace manager holds
+        if is_workspace_manager(user):
+            # include also instances of the environments of managed workspaces
             workspace_environments_id = get_workspace_environment_ids_for_instances(user, only_managed=True)
             q2 = q.filter(Instance.environment_id.in_(workspace_environments_id))
             q = q1.union(q2)
         else:
             q = q1
-    if args is None or not args.get('show_deleted'):
-        q = q.filter(Instance.state != Instance.STATE_DELETED)
+
+    # additional filtering
     if args is not None:
         if 'instance_id' in args:
             q = q.filter_by(id=args.get('instance_id'))
