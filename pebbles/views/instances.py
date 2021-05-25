@@ -7,7 +7,7 @@ from flask import Blueprint as FlaskBlueprint
 from flask import abort, g, current_app
 from flask_restful import marshal, marshal_with, fields, reqparse
 
-from pebbles import rules
+from pebbles import rules, utils
 from pebbles.forms import InstanceForm
 from pebbles.models import db, Environment, Instance, InstanceLog, User
 from pebbles.rules import apply_rules_instances
@@ -21,11 +21,11 @@ USER_INSTANCE_LIMIT = 5
 instance_fields = {
     'id': fields.String,
     'name': fields.String,
-    'created_at': fields.DateTime,
-    'provisioned_at': fields.DateTime,
+    'created_at': fields.DateTime(dt_format='iso8601'),
+    'provisioned_at': fields.DateTime(dt_format='iso8601'),
+    'deprovisioned_at': fields.DateTime(dt_format='iso8601'),
     'lifetime_left': fields.Integer,
     'maximum_lifetime': fields.Integer,
-    'runtime': fields.Float,
     'state': fields.String,
     'to_be_deleted': fields.Boolean,
     'log_fetch_pending': fields.Boolean,
@@ -34,11 +34,8 @@ instance_fields = {
     'user_id': fields.String,
     'environment': fields.String,
     'environment_id': fields.String,
-    'cost_multiplier': fields.Float(default=1.0),
-    'can_update_connectivity': fields.Boolean(default=False),
+    'provisioning_config': fields.Raw,
     'instance_data': fields.Raw,
-    'public_ip': fields.String,
-    'client_ip': fields.String(default='not set'),
     'logs': fields.Raw,
 }
 
@@ -144,7 +141,10 @@ class InstanceList(restful.Resource):
         if instances_for_user:
             return {'error': 'ENVIRONMENT_INSTANCE_LIMIT_REACHED'}, 409
 
+        # create the instance and assign provisioning config from current environment + template
         instance = Instance(environment, user)
+        instance.provisioning_config = utils.get_full_environment_config(environment)
+
         # XXX: Choosing the name should be done in the model's constructor method
         # decide on a name that is not used currently
         existing_names = set(x.name for x in Instance.query.all())
@@ -198,27 +198,6 @@ class InstanceView(restful.Resource):
         instance.maximum_lifetime = environment.maximum_lifetime
         instance.cost_multiplier = environment.cost_multiplier
 
-        return instance
-
-    @auth.login_required
-    @marshal_with(instance_fields)
-    def post(self, instance_id):
-        args = self.parser.parse_args()
-        user = g.user
-        query = apply_rules_instances(user, {'instance_id': instance_id})
-        instance = query.first()
-        if not instance:
-            abort(404)
-        if args.get('send_email') and instance.state != 'running':
-            text = {"subject": " ", "message": " "}
-            admin_users = User.query.filter_by(is_admin=True).all()
-            for admins in admin_users:
-                if admins.eppn != 'worker@pebbles':
-                    text['subject'] = "Notebooks.csc.fi:WARNING"
-                    text['message'] = instance.name + " is taking more than ten minutes to launch"
-                    # send email only through email_id because some eppn bounce back.
-                    # Also the email_id will be updated once they login so here it is available
-                    logging.warning('email sending not implemented')
         return instance
 
     @auth.login_required

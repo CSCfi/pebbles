@@ -1534,21 +1534,6 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response)
 
-        response = self.make_authenticated_user_request(
-            method='POST',
-            path='/api/v1/instances/%s' % self.known_instance_id,
-            data=json.dumps({'send_email': False})
-        )
-        self.assert_200(response)
-
-        response = self.make_authenticated_user_request(
-            method='POST',
-            path='/api/v1/instances/%s' % self.known_instance_id,
-            data=json.dumps({'send_email': False})
-        )
-
-        self.assert_200(response)
-
     def test_patch_instance(self):
         # Anonymous
         response = self.make_request(

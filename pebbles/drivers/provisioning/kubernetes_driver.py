@@ -240,12 +240,12 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         return False
 
     def create_deployment(self, namespace, instance):
-
-        environment_config = instance['environment']['full_config']
-        custom_config = environment_config.get('custom_config', {})
+        # get provisioning configuration and extract environment specific custom config
+        provisioning_config = instance['provisioning_config']
+        custom_config = provisioning_config.pop('custom_config')
 
         # create a dict out of space separated list of VAR=VAL entries
-        env_var_array = environment_config.get('environment_vars', '').split()
+        env_var_array = provisioning_config.get('environment_vars', '').split()
         env_var_dict = {k: v for k, v in [x.split('=') for x in env_var_array]}
         env_var_dict['INSTANCE_ID'] = instance['id']
         if custom_config.get('download_method', 'none') != 'none':
@@ -262,10 +262,10 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         deployment_yaml = parse_template('deployment.yaml', dict(
             name=instance['name'],
-            image=environment_config['image'],
-            volume_mount_path=environment_config['volume_mount_path'],
-            port=int(environment_config['port']),
-            memory_limit=environment_config.get('memory_limit', '512Mi'),
+            image=provisioning_config['image'],
+            volume_mount_path=provisioning_config['volume_mount_path'],
+            port=int(provisioning_config['port']),
+            memory_limit=provisioning_config.get('memory_limit', '512Mi'),
             pvc_name_user=get_user_volume_name(instance),
             pvc_name_shared=get_shared_volume_name(instance),
             shared_data_read_only_mode=shared_data_read_only_mode,
@@ -280,9 +280,9 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         deployment_dict['spec']['template']['spec']['initContainers'][0]['env'] = env_var_list
 
         # process templated arguments
-        if 'args' in environment_config:
+        if 'args' in provisioning_config:
             args = format_with_jinja2(
-                environment_config.get('args'),
+                provisioning_config.get('args'),
                 dict(
                     instance_id='%s' % instance['id'],
                     **custom_config
@@ -303,13 +303,13 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         return api_deployment.delete(namespace=namespace, name=instance.get('name'))
 
     def create_configmap(self, namespace, instance):
-        environment_config = instance['environment']['full_config']
+        provisioning_config = instance['provisioning_config']
 
         configmap_yaml = parse_template('configmap.yaml', dict(
             name=instance['name'],
         ))
         configmap_dict = yaml.safe_load(configmap_yaml)
-        if instance['environment']['full_config'].get('proxy_rewrite') == 'nginx':
+        if instance['provisioning_config'].get('proxy_rewrite') == 'nginx':
             proxy_config = """
                 server {
                   server_name             _;
@@ -347,7 +347,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         proxy_config = format_with_jinja2(
             proxy_config,
             dict(
-                port=int(environment_config['port']),
+                port=int(provisioning_config['port']),
                 name=instance['name'],
                 path=self.get_instance_path(instance),
                 host=self.get_instance_hostname(instance),

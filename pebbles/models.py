@@ -496,6 +496,7 @@ class Instance(db.Model):
     to_be_deleted = db.Column(db.Boolean, default=False)
     log_fetch_pending = db.Column(db.Boolean, default=False)
     error_msg = db.Column(db.String(256))
+    _provisioning_config = db.Column('provisioning_config', db.Text)
     _instance_data = db.Column('instance_data', db.Text)
 
     def __init__(self, environment, user):
@@ -506,24 +507,20 @@ class Instance(db.Model):
         self._state = Instance.STATE_QUEUEING
 
     @hybrid_property
-    def runtime(self):
-        if not self.provisioned_at:
-            return 0.0
-
-        if not self.deprovisioned_at:
-            diff = datetime.datetime.utcnow() - self.provisioned_at
-        else:
-            diff = self.deprovisioned_at - self.provisioned_at
-
-        return diff.total_seconds()
-
-    @hybrid_property
     def instance_data(self):
         return load_column(self._instance_data)
 
     @instance_data.setter
     def instance_data(self, value):
         self._instance_data = json.dumps(value)
+
+    @hybrid_property
+    def provisioning_config(self):
+        return load_column(self._provisioning_config)
+
+    @provisioning_config.setter
+    def provisioning_config(self, value):
+        self._provisioning_config = json.dumps(value)
 
     @hybrid_property
     def state(self):
