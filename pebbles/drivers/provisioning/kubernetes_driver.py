@@ -1,3 +1,4 @@
+import datetime
 import os
 import time
 from enum import Enum, unique
@@ -13,6 +14,9 @@ from openshift.dynamic import DynamicClient
 from pebbles.drivers.provisioning import base_driver
 from pebbles.models import Instance
 from pebbles.utils import b64encode_string
+
+# limit for instance startup duration before it is marked as failed
+INSTANCE_STARTUP_TIME_LIMIT = 10 * 60
 
 
 @unique
@@ -134,6 +138,13 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             namespace=namespace,
             label_selector='name=%s' % instance.get('name')
         )
+
+        # if it is long since creation, mark the instance as failed
+        # TODO: when we implement queueing, change the reference time
+        create_ts = datetime.datetime.fromisoformat(instance['created_at']).timestamp()
+        if create_ts < time.time() - INSTANCE_STARTUP_TIME_LIMIT:
+            raise RuntimeWarning('instance %s takes too long to start' % instance_id)
+
         # no pods, continue waiting
         if len(pods.items) == 0:
             return None
