@@ -5,9 +5,10 @@ import uuid
 import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
-from flask_restful import marshal_with, fields, reqparse
+from flask_restful import fields, reqparse
 from sqlalchemy.orm.session import make_transient
 
+from pebbles import rules
 from pebbles.forms import EnvironmentForm
 from pebbles.models import db, Environment, EnvironmentTemplate, Workspace, Instance
 from pebbles.rules import apply_rules_environments
@@ -16,10 +17,11 @@ from pebbles.views.commons import auth, requires_workspace_manager_or_admin, is_
 
 environments = FlaskBlueprint('environments', __name__)
 
-environment_fields = {
+environment_fields_admin = {
     'id': fields.String(attribute='id'),
     'name': fields.String,
     'description': fields.String,
+    'status': fields.String,
     'maximum_lifetime': fields.Integer,
     'labels': fields.List(fields.String),
     'template_id': fields.String,
@@ -33,9 +35,48 @@ environment_fields = {
     'workspace_id': fields.String,
     'workspace_name': fields.String,
     'workspace_pseudonym': fields.String,
-    'manager': fields.Boolean,
-    'status': fields.String,
 }
+
+environment_fields_manager = {
+    'id': fields.String(attribute='id'),
+    'name': fields.String,
+    'description': fields.String,
+    'status': fields.String,
+    'maximum_lifetime': fields.Integer,
+    'labels': fields.List(fields.String),
+    'template_id': fields.String,
+    'template_name': fields.String,
+    'is_enabled': fields.Boolean,
+    'cluster': fields.String,
+    'config': fields.Raw,
+    'full_config': fields.Raw,
+    'schema': fields.Raw,
+    'form': fields.Raw,
+    'workspace_id': fields.String,
+    'workspace_name': fields.String,
+}
+
+environment_fields_user = {
+    'id': fields.String(attribute='id'),
+    'name': fields.String,
+    'description': fields.String,
+    'status': fields.String,
+    'maximum_lifetime': fields.Integer,
+    'labels': fields.List(fields.String),
+    'is_enabled': fields.Boolean,
+    'workspace_id': fields.String,
+    'workspace_name': fields.String,
+}
+
+
+def marshal_based_on_role(user, environment):
+    workspace = environment.workspace
+    if user.is_admin:
+        return restful.marshal(environment, environment_fields_admin)
+    elif rules.is_user_manager_in_workspace(user, workspace):
+        return restful.marshal(environment, environment_fields_manager)
+    else:
+        return restful.marshal(environment, environment_fields_user)
 
 
 class EnvironmentList(restful.Resource):
@@ -43,7 +84,6 @@ class EnvironmentList(restful.Resource):
     get_parser.add_argument('show_all', type=bool, default=False, location='args')
 
     @auth.login_required
-    @marshal_with(environment_fields)
     def get(self):
         args = self.get_parser.parse_args()
         user = g.user
@@ -53,7 +93,7 @@ class EnvironmentList(restful.Resource):
         results = []
         for environment in query.all():
             environment = process_environment(environment)
-            results.append(environment)
+            results.append(marshal_based_on_role(user, environment))
         return results
 
     @auth.login_required
@@ -102,12 +142,12 @@ class EnvironmentList(restful.Resource):
         db.session.add(environment)
         db.session.commit()
 
-        return restful.marshal(environment, environment_fields), 200
+        environment.workspace = workspace
+        return marshal_based_on_role(user, environment)
 
 
 class EnvironmentView(restful.Resource):
     @auth.login_required
-    @marshal_with(environment_fields)
     def get(self, environment_id):
         user = g.user
         parser = reqparse.RequestParser()
@@ -122,7 +162,7 @@ class EnvironmentView(restful.Resource):
             abort(404)
 
         environment = process_environment(environment)
-        return environment
+        return marshal_based_on_role(user, environment)
 
     @auth.login_required
     @requires_workspace_manager_or_admin
