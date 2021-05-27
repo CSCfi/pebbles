@@ -5,7 +5,7 @@ import logging
 
 from pebbles.models import db, Environment, EnvironmentTemplate, Workspace
 import flask_restful as restful
-from pebbles.views.commons import auth, requires_workspace_manager_or_admin, match_cluster
+from pebbles.views.commons import auth, requires_workspace_manager_or_admin, match_cluster, is_workspace_manager
 from pebbles.utils import requires_admin
 from pebbles.rules import apply_rules_export_environments
 from pebbles.forms import EnvironmentImportForm, EnvironmentTemplateImportForm
@@ -100,6 +100,7 @@ class ImportExportEnvironments(restful.Resource):
     @auth.login_required
     @requires_workspace_manager_or_admin
     def post(self):
+        user = g.user
         form = EnvironmentImportForm()
 
         if not form.validate_on_submit():
@@ -115,9 +116,10 @@ class ImportExportEnvironments(restful.Resource):
 
         workspace_name = form.workspace_name.data
         workspace = Workspace.query.filter_by(name=workspace_name).first()
-        if not workspace:
-            logging.warning('no workspace found with name %s', workspace_name)
-            return {"error": "No workspace found"}, 404
+        if not user.is_admin:
+            if not workspace or not is_workspace_manager(user, workspace):
+                logging.warning('no workspace found with name %s', workspace_name)
+                return {"error": "No workspace found"}, 404
 
         environment = Environment()
         environment.name = form.name.data

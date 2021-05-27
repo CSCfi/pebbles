@@ -2062,6 +2062,94 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(environment_invalid4))
         self.assertEqual(response3.status_code, 422)
 
+    def test_workspace_owner_import_environments(self):
+
+        environments_data = [
+            {'name': 'foo',
+             'config': {
+                 'maximum_lifetime': '1h'
+             },
+             'template_name': 'EnabledTestTemplate',
+             'workspace_name': 'Workspace1'
+             },
+            {'name': 'foobar',
+             'config': {
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
+             },
+             'template_name': 'EnabledTestTemplate',
+             'workspace_name': 'Workspace1'
+             }
+        ]
+
+        for environment in environments_data:
+            response = self.make_authenticated_workspace_owner_request(
+                method='POST',
+                path='/api/v1/import_export/environments',
+                data=json.dumps(environment))
+            self.assertEqual(response.status_code, 200)
+
+        environment_invalid = {
+            'name': 'bar5',
+            'config': {
+                'maximum_lifetime': '1h'
+            },
+            'template_name': 'EnabledTestTemplate',
+            'workspace_name': 'Workspace2'
+        }
+        # owner should not be able to import to other workspaces where he is normal user
+        response1 = self.make_authenticated_workspace_owner_request(
+            method='POST',
+            path='/api/v1/import_export/environments',
+            data=json.dumps(environment_invalid))
+        self.assertEqual(response1.status_code, 404)
+
+        environment_invalid_data = [
+            {'name': 'foo', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'},
+            {'name': '', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'},
+            {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': '', 'workspace_name': 'Workspace1'},
+            {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': 'EnabledTestTemplate',
+             'workspace_name': ''}
+        ]
+
+        for environment in environment_invalid_data:
+            response1 = self.make_authenticated_workspace_owner_request(
+                method='POST',
+                path='/api/v1/import_export/environments',
+                data=json.dumps(environment))
+            self.assertStatus(response1, 422)
+
+    def test_workspace_manager_import_environments(self):
+        g = Workspace('Workspace1')
+        u4 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
+        wmu4_obj = WorkspaceUserAssociation(user=u4, workspace=g, is_manager=True, is_owner=False)
+        g.user_associations.append(wmu4_obj)
+        db.session.add(g)
+        db.session.commit()
+
+        environments_data = [
+            {'name': 'foo',
+             'config': {
+                 'maximum_lifetime': '1h'
+             },
+             'template_name': 'EnabledTestTemplate',
+             'workspace_name': 'Workspace1'
+             },
+            {'name': 'foobar',
+             'config': {
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
+             },
+             'template_name': 'EnabledTestTemplate',
+             'workspace_name': 'Workspace1'
+             }
+        ]
+
+        for environment in environments_data:
+            response = self.make_authenticated_workspace_owner2_request(
+                method='POST',
+                path='/api/v1/import_export/environments',
+                data=json.dumps(environment))
+            self.assertEqual(response.status_code, 200)
+
     def test_anonymous_get_messages(self):
         response = self.make_request(
             path='/api/v1/messages'
