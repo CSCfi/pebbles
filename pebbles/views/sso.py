@@ -64,7 +64,7 @@ def oauth2_login():
     else:
         logging.warning("Login abort: Valid email is not received")
         abort(422)
-    user = User.query.filter_by(eppn=eppn).first()
+    user = User.query.filter_by(ext_id=eppn).first()
 
     # New users: Get credentials from aai proxy and then send agreement to user to sign.
     if not user:
@@ -78,7 +78,7 @@ def oauth2_login():
                 logo_path=app.config['AGREEMENT_LOGO_PATH']
             )
         elif args.agreement_sign == 'signed':
-            user = create_user(eppn, password=uuid.uuid4().hex, email_id=email_id)
+            user = create_user(ext_id=eppn, password=uuid.uuid4().hex, email_id=email_id)
             user.tc_acceptance_date = datetime.datetime.utcnow()
             db.session.commit()
 

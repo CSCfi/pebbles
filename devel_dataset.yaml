@@ -5,14 +5,14 @@ data:
   # admin
   - !User
     id: u-1
-    eppn: admin@example.org
+    ext_id: admin@example.org
     password: admin
     is_admin: True
 
   # worker
   - !User
     id: u-2
-    eppn: worker@pebbles
+    ext_id: worker@pebbles
     password: worker
     is_admin: True
 
@@ -137,7 +137,7 @@ data:
   ### Normal user with no extra workspace associations
   - !User
     id: u-user-1
-    eppn: user-1@example.org
+    ext_id: user-1@example.org
     password: user-1
 
   - !WorkspaceUserAssociation
@@ -149,7 +149,7 @@ data:
 
   - !User
     id: u-owner-1
-    eppn: owner-1@example.org
+    ext_id: owner-1@example.org
     password: owner-1
     workspace_quota: 2
 
@@ -173,7 +173,7 @@ data:
 
   - !User
     id: u-owner-2
-    eppn: owner-2@example.org
+    ext_id: owner-2@example.org
     password: owner-2
     workspace_quota: 2
 

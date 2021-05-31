@@ -15,21 +15,21 @@ class PBClient:
         self.ssl_verify = ssl_verify
         self.auth = pebbles.utils.b64encode_string('%s:%s' % (token, '')).replace('\n', '')
 
-    def check_and_refresh_session(self, eppn, password):
+    def check_and_refresh_session(self, ext_id, password):
         # renew worker session 15 minutes before expiration
         try:
             claims = jwt.get_unverified_claims(self.token)
             remaining_time = claims['exp'] - time()
             if remaining_time < 900:
-                logging.info("Token will expire soon, relogin %s" % eppn)
-                self.login(eppn, password)
+                logging.info("Token will expire soon, relogin %s" % ext_id)
+                self.login(ext_id, password)
         except Exception as e:
             logging.warning(e)
 
-    def login(self, eppn, password):
+    def login(self, ext_id, password):
         auth_url = '%s/sessions' % self.api_base_url
         auth_credentials = {
-            'eppn': eppn,
+            'ext_id': ext_id,
             'password': password
         }
         r = requests.post(auth_url, auth_credentials, verify=self.ssl_verify)

@@ -47,15 +47,15 @@ class TestSSO(TestCase):
                         od[k] = v
                     self.assertEqual(resp.data, '{0}'.format(od).encode('latin-1'))
 
-        conf = {'HTTP_AJP_SHIB_EPPN': (True, 'eppn'), 'HTTP_AJP_SHIB_MAIL': (False, 'mail')}
+        conf = {'HTTP_AJP_SHIB_EPPN': (True, 'ext_id'), 'HTTP_AJP_SHIB_MAIL': (False, 'mail')}
         data = {'HTTP_AJP_SHIB_EPPN': 'user@example.org'}
-        expected_data = {'eppn': 'user@example.org', 'mail': None}
+        expected_data = {'ext_id': 'user@example.org', 'mail': None}
 
         run(conf, data, expected_data)
 
-        conf = {'HTTP_AJP_SHIB_EPPN': (True, 'eppn'), 'HTTP_AJP_SHIB_MAIL': (False, 'mail')}
+        conf = {'HTTP_AJP_SHIB_EPPN': (True, 'ext_id'), 'HTTP_AJP_SHIB_MAIL': (False, 'mail')}
         data = {'HTTP_AJP_SHIB_EPPN': None}
-        expected_data = {'eppn': None, 'mail': None}
+        expected_data = {'ext_id': None, 'mail': None}
 
         @sso.login_handler
         def _callback_redef(attr):

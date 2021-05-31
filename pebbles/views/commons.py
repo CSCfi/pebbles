@@ -10,7 +10,7 @@ from pebbles.utils import load_cluster_config, find_driver_class
 
 user_fields = {
     'id': fields.String,
-    'eppn': fields.String,
+    'ext_id': fields.String,
     'email_id': fields.String,
     'pseudonym': fields.String,
     'workspace_quota': fields.Integer,
@@ -43,7 +43,7 @@ auth.authenticate_header = lambda: "Authentication Required"
 def verify_password(userid_or_token, password):
     g.user = User.verify_auth_token(userid_or_token, current_app.config['SECRET_KEY'])
     if not g.user:
-        g.user = User.query.filter_by(eppn=userid_or_token).first()
+        g.user = User.query.filter_by(ext_id=userid_or_token).first()
         if not g.user:
             return False
         if not g.user.check_password(password):
@@ -55,12 +55,12 @@ def create_worker():
     return create_user('worker@pebbles', current_app.config['SECRET_KEY'], is_admin=True, email_id=None)
 
 
-def create_user(eppn, password, is_admin=False, email_id=None):
-    if User.query.filter_by(eppn=eppn).first():
-        logging.info("user %s already exists" % eppn)
+def create_user(ext_id, password, is_admin=False, email_id=None):
+    if User.query.filter_by(ext_id=ext_id).first():
+        logging.info("user %s already exists" % ext_id)
         return None
 
-    user = User(eppn, password, is_admin=is_admin, email_id=email_id)
+    user = User(ext_id, password, is_admin=is_admin, email_id=email_id)
     if not is_admin:
         add_user_to_default_workspace(user)
     db.session.add(user)
@@ -97,8 +97,8 @@ def get_clusters():
     return cluster_data
 
 
-def update_email(eppn, email_id=None):
-    user = User.query.filter_by(eppn=eppn).first()
+def update_email(ext_id, email_id=None):
+    user = User.query.filter_by(ext_id=ext_id).first()
     if email_id:
         user.email_id = email_id
     db.session.add(user)

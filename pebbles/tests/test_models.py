@@ -42,17 +42,17 @@ class ModelsTestCase(BaseTestCase):
 
         db.session.commit()
 
-    def test_eppn_unification(self):
+    def test_ext_id_unification(self):
         u1 = User("UsEr1@example.org", "user")
         u2 = User("User2@example.org", "user")
         db.session.add(u1)
         db.session.add(u2)
-        x1 = User.query.filter_by(eppn="USER1@EXAMPLE.ORG").first()
-        x2 = User.query.filter_by(eppn="user2@Example.org").first()
+        x1 = User.query.filter_by(ext_id="USER1@EXAMPLE.ORG").first()
+        x2 = User.query.filter_by(ext_id="user2@Example.org").first()
         assert u1 == x1
-        assert u1.eppn == x1.eppn
+        assert u1.ext_id == x1.ext_id
         assert u2 == x2
-        assert u2.eppn == x2.eppn
+        assert u2.ext_id == x2.ext_id
 
     def test_add_duplicate_user_will_fail(self):
         u1 = User("UsEr1@example.org", "user")

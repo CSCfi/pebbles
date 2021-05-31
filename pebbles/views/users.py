@@ -81,10 +81,10 @@ class UserBlacklist(restful.Resource):
             logging.warning("trying to block/unblock non-existing user")
             abort(404)
         if block:
-            logging.info("blocking user %s", user.eppn)
+            logging.info("blocking user %s", user.ext_id)
             user.is_blocked = True
         else:
-            logging.info("unblocking user %s", user.eppn)
+            logging.info("unblocking user %s", user.ext_id)
             user.is_blocked = False
         db.session.add(user)
         db.session.commit()
@@ -116,7 +116,7 @@ class UserWorkspaceOwner(restful.Resource):
         # promote
         if make_workspace_owner:
             if user.workspace_quota == 0:
-                logging.info("making user %s a workspace owner by granting workspace quota", user.eppn)
+                logging.info("making user %s a workspace owner by granting workspace quota", user.ext_id)
                 user.workspace_quota = 2
         # demote
         else:

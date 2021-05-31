@@ -22,13 +22,13 @@ def primary_test_setup(namespace):
         ToDo: store test vars inside a namespace on the parent object, e.g.
         namespace.vars to avoid cluttering.
     """
-    namespace.known_admin_eppn = "admin@example.org"
+    namespace.known_admin_ext_id = "admin@example.org"
     namespace.known_admin_password = "admin"
-    namespace.known_user_eppn = "user@example.org"
+    namespace.known_user_ext_id = "user@example.org"
     namespace.known_user_password = "user"
 
-    u1 = User(namespace.known_admin_eppn, namespace.known_admin_password, is_admin=True)
-    u2 = User(namespace.known_user_eppn, namespace.known_user_password, is_admin=False)
+    u1 = User(namespace.known_admin_ext_id, namespace.known_admin_password, is_admin=True)
+    u2 = User(namespace.known_user_ext_id, namespace.known_user_password, is_admin=False)
     u3 = User("workspace_owner@example.org", "workspace_owner")
     u4 = User("workspace_owner2@example.org", "workspace_owner2")
 
@@ -201,7 +201,7 @@ def primary_test_setup(namespace):
 
     i1 = Instance(
         Environment.query.filter_by(id=e2.id).first(),
-        User.query.filter_by(eppn="user@example.org").first())
+        User.query.filter_by(ext_id="user@example.org").first())
     i1.name = 'pb-i1'
     i1.state = Instance.STATE_RUNNING
     db.session.add(i1)
@@ -209,7 +209,7 @@ def primary_test_setup(namespace):
 
     i2 = Instance(
         Environment.query.filter_by(id=e3.id).first(),
-        User.query.filter_by(eppn="user@example.org").first())
+        User.query.filter_by(ext_id="user@example.org").first())
     i2.name = 'pb-i2'
     i2.state = Instance.STATE_RUNNING
     db.session.add(i2)
@@ -218,7 +218,7 @@ def primary_test_setup(namespace):
 
     i3 = Instance(
         Environment.query.filter_by(id=e3.id).first(),
-        User.query.filter_by(eppn="user@example.org").first())
+        User.query.filter_by(ext_id="user@example.org").first())
     i3.name = 'pb-i3'
     i3.to_be_deleted = True
     i3.state = Instance.STATE_DELETED
@@ -226,7 +226,7 @@ def primary_test_setup(namespace):
 
     i4 = Instance(
         Environment.query.filter_by(id=e3.id).first(),
-        User.query.filter_by(eppn="workspace_owner@example.org").first())
+        User.query.filter_by(ext_id="workspace_owner@example.org").first())
     i4.name = 'pb-i4'
     i4.state = Instance.STATE_FAILED
     db.session.add(i4)
@@ -234,7 +234,7 @@ def primary_test_setup(namespace):
 
     i5 = Instance(
         Environment.query.filter_by(id=e4.id).first(),
-        User.query.filter_by(eppn="admin@example.org").first())
+        User.query.filter_by(ext_id="admin@example.org").first())
     i5.name = 'pb-i5'
     i5.state = Instance.STATE_RUNNING
     db.session.add(i5)

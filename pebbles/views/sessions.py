@@ -30,10 +30,10 @@ class SessionView(restful.Resource):
             logging.warning("validation error on user login")
             return form.errors, 422
 
-        user = User.query.filter_by(eppn=form.eppn.data).first()
+        user = User.query.filter_by(ext_id=form.ext_id.data).first()
         if user and not user.email_id:
-            # Email and eppn are same because we invite users through emailid
-            user = update_email(eppn=user.eppn, email_id=user.eppn)
+            # Email and ext_id are same because we invite users through email
+            user = update_email(ext_id=user.ext_id, email_id=user.ext_id)
         if user and user.check_password(form.password.data):
             # TODO: remove when AngularJS based old UI has been phased out
             if user.is_admin:
@@ -55,5 +55,5 @@ class SessionView(restful.Resource):
                 'user_id': user.id,
                 'icon_value': icons
             }, token_fields)
-        logging.warning("invalid login credentials for %s" % form.eppn.data)
+        logging.warning("invalid login credentials for %s" % form.ext_id.data)
         return dict(message='Unauthorized', status=401), 401

@@ -94,13 +94,13 @@ def profile():
 
 
 @manager.command
-def createuser(eppn=None, password=None, admin=False):
+def createuser(ext_id=None, password=None, admin=False):
     """Creates new user"""
-    if not eppn:
-        eppn = input("email: ")
+    if not ext_id:
+        ext_id = input("email: ")
     if not password:
         password = getpass.getpass("password: ")
-    return create_user(eppn=eppn, password=password, is_admin=admin, email_id=eppn)
+    return create_user(ext_id=ext_id, password=password, is_admin=admin, email_id=ext_id)
 
 
 @manager.command
@@ -110,10 +110,10 @@ def create_database():
 
 
 @manager.command
-def initialize_system(eppn=None, password=None):
+def initialize_system(ext_id=None, password=None):
     """Initializes the system using provided admin credentials"""
     create_database()
-    admin_user = createuser(eppn=eppn, password=password, admin=True)
+    admin_user = createuser(ext_id=ext_id, password=password, admin=True)
     create_worker()
     create_system_workspaces(admin_user)
 
@@ -186,7 +186,7 @@ def load_test_data(file):
 @manager.command
 def reset_worker_password():
     """Resets worker password to application secret key"""
-    worker = User.query.filter_by(eppn='worker@pebbles').first()
+    worker = User.query.filter_by(ext_id='worker@pebbles').first()
     worker.set_password(app.config['SECRET_KEY'])
     db.session.add(worker)
     db.session.commit()

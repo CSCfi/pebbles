@@ -92,7 +92,7 @@ class InstanceList(restful.Resource):
 
             user = get_user(instance.user_id)
             if user:
-                instance.username = user.eppn
+                instance.username = user.ext_id
 
             environment = get_environment(instance.environment_id)
             if not environment:

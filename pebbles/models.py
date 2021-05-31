@@ -75,8 +75,8 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.String(32), primary_key=True)
-    # eppn is manadatory and database objects are retrieved based on eppn
-    _eppn = db.Column('eppn', db.String(MAX_EMAIL_LENGTH), unique=True)
+    # ext_id is mandatory and unique. ext_id can be used to retrieve database objects
+    _ext_id = db.Column('ext_id', db.String(MAX_EMAIL_LENGTH), unique=True)
     # email_id field is used only for sending emails.
     _email_id = db.Column('email_id', db.String(MAX_EMAIL_LENGTH))
     pseudonym = db.Column(db.String(MAX_PSEUDONYM_LENGTH), unique=True, nullable=False)
@@ -93,10 +93,10 @@ class User(db.Model):
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     workspace_associations = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
 
-    def __init__(self, eppn, password=None, is_admin=False, email_id=None, expiry_date=None, pseudonym=None,
+    def __init__(self, ext_id, password=None, is_admin=False, email_id=None, expiry_date=None, pseudonym=None,
                  workspace_quota=None):
         self.id = uuid.uuid4().hex
-        self.eppn = eppn
+        self.ext_id = ext_id
         self.is_admin = is_admin
         self.joining_date = datetime.datetime.utcnow()
         self.expiry_date = expiry_date
@@ -121,16 +121,16 @@ class User(db.Model):
         return self.id == other.id
 
     @hybrid_property
-    def eppn(self):
-        return self._eppn.lower()
+    def ext_id(self):
+        return self._ext_id.lower()
 
-    @eppn.setter
-    def eppn(self, value):
-        self._eppn = value.lower()
+    @ext_id.setter
+    def ext_id(self, value):
+        self._ext_id = value.lower()
 
-    @eppn.comparator
-    def eppn(cls):
-        return CaseInsensitiveComparator(cls._eppn)
+    @ext_id.comparator
+    def ext_id(cls):
+        return CaseInsensitiveComparator(cls._ext_id)
 
     @hybrid_property
     def email_id(self):
@@ -163,7 +163,7 @@ class User(db.Model):
     def delete(self):
         if self.is_deleted:
             return
-        self.eppn = self.eppn + datetime.datetime.utcnow().strftime("-%s")
+        self.ext_id = self.ext_id + datetime.datetime.utcnow().strftime("-%s")
         # Email_id is also renamed to allow users
         # to be deleted and invited again with same email_id
         if self.email_id:
@@ -218,10 +218,10 @@ class User(db.Model):
             return user
 
     def __repr__(self):
-        return self.eppn
+        return self.ext_id
 
     def __hash__(self):
-        return hash(self.eppn)
+        return hash(self.ext_id)
 
 
 class WorkspaceUserAssociation(db.Model):  # Association Object for many-to-many mapping

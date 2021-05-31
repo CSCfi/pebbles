@@ -25,7 +25,7 @@ workspace_fields_admin = {
     'description': fields.Raw,
     'create_ts': fields.Integer,
     'expiry_ts': fields.Integer,
-    'owner_eppn': fields.String,
+    'owner_ext_id': fields.String,
     'environment_quota': fields.Integer,
 }
 
@@ -36,7 +36,7 @@ workspace_fields_owner = {
     'description': fields.Raw,
     'create_ts': fields.Integer,
     'expiry_ts': fields.Integer,
-    'owner_eppn': fields.String,
+    'owner_ext_id': fields.String,
     'environment_quota': fields.Integer,
 }
 
@@ -97,7 +97,7 @@ class WorkspaceList(restful.Resource):
                 continue
 
             owner = next((woa.user for woa in workspace.user_associations if woa.is_owner), None)
-            workspace.owner_eppn = owner.eppn if owner else None
+            workspace.owner_ext_id = owner.ext_id if owner else None
 
             # marshal results based on role
             results.append(marshal_based_on_role(user, workspace))
@@ -321,7 +321,7 @@ class JoinWorkspace(restful.Resource):
         existing_relation = next(filter(lambda wua: wua.user_id == user.id, workspace.user_associations), None)
         if existing_relation and existing_relation.is_banned:
             logging.warning("banned user %s tried to join workspace %s with code %s",
-                            user.eppn, workspace.name, join_code)
+                            user.ext_id, workspace.name, join_code)
             return {"error": "You are banned from this workspace, please contact the concerned person"}, 403
         if existing_relation:
             logging.warning("user %s already exists in workspace", user.id)

@@ -75,7 +75,7 @@ class FlaskApiTestCase(BaseTestCase):
     def make_authenticated_admin_request(self, method='GET', path='/', headers=None, data=None):
         global ADMIN_TOKEN
         if not ADMIN_TOKEN:
-            ADMIN_TOKEN = self.get_auth_token({'eppn': 'admin@example.org', 'password': 'admin'})
+            ADMIN_TOKEN = self.get_auth_token({'ext_id': 'admin@example.org', 'password': 'admin'})
 
         self.admin_token = ADMIN_TOKEN
 
@@ -86,7 +86,7 @@ class FlaskApiTestCase(BaseTestCase):
         global USER_TOKEN
         if not USER_TOKEN:
             USER_TOKEN = self.get_auth_token(creds={
-                'eppn': self.known_user_eppn,
+                'ext_id': self.known_user_ext_id,
                 'password': self.known_user_password}
             )
         self.user_token = USER_TOKEN
@@ -96,7 +96,7 @@ class FlaskApiTestCase(BaseTestCase):
     def make_authenticated_workspace_owner_request(self, method='GET', path='/', headers=None, data=None):
         global COURSE_OWNER_TOKEN
         if not COURSE_OWNER_TOKEN:
-            COURSE_OWNER_TOKEN = self.get_auth_token(creds={'eppn': 'workspace_owner@example.org', 'password': 'workspace_owner'})
+            COURSE_OWNER_TOKEN = self.get_auth_token(creds={'ext_id': 'workspace_owner@example.org', 'password': 'workspace_owner'})
         self.workspace_owner_token = COURSE_OWNER_TOKEN
         return self.make_authenticated_request(method, path, headers, data,
                                                auth_token=self.workspace_owner_token)
@@ -104,7 +104,7 @@ class FlaskApiTestCase(BaseTestCase):
     def make_authenticated_workspace_owner2_request(self, method='GET', path='/', headers=None, data=None):
         global COURSE_OWNER_TOKEN2
         if not COURSE_OWNER_TOKEN2:
-            COURSE_OWNER_TOKEN2 = self.get_auth_token(creds={'eppn': 'workspace_owner2@example.org', 'password': 'workspace_owner2'})
+            COURSE_OWNER_TOKEN2 = self.get_auth_token(creds={'ext_id': 'workspace_owner2@example.org', 'password': 'workspace_owner2'})
         self.workspace_owner_token2 = COURSE_OWNER_TOKEN2
         return self.make_authenticated_request(method, path, headers, data,
                                                auth_token=self.workspace_owner_token2)
@@ -116,7 +116,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'eppn': 'user@example.org', 'password': 'user', 'email_id': None}))
+            data=json.dumps({'ext_id': 'user@example.org', 'password': 'user', 'email_id': None}))
         self.assert_200(response)
         response = self.make_authenticated_admin_request(
             method='DELETE',
@@ -126,14 +126,14 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'eppn': 'user@example.org', 'password': 'user', 'email_id': None}))
+            data=json.dumps({'ext_id': 'user@example.org', 'password': 'user', 'email_id': None}))
         self.assert_401(response)
 
     def test_deleted_user_cannot_use_token(self):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'eppn': 'user@example.org', 'password': 'user'})
+            data=json.dumps({'ext_id': 'user@example.org', 'password': 'user'})
         )
         self.assert_200(response)
 
@@ -167,8 +167,8 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_401(response)
 
     def test_delete_user(self):
-        eppn = "test@example.org"
-        u = User(eppn, "testuser", is_admin=False)
+        ext_id = "test@example.org"
+        u = User(ext_id, "testuser", is_admin=False)
         # Anonymous
         db.session.add(u)
         db.session.commit()
@@ -191,11 +191,11 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response)
         user = User.query.filter_by(id=u.id).first()
-        self.assertTrue(user.eppn != eppn)
+        self.assertTrue(user.ext_id != ext_id)
 
     def test_make_workspace_owner(self):
-        eppn = "test_owner@example.org"
-        u = User(eppn, "testuser", is_admin=False)
+        ext_id = "test_owner@example.org"
+        u = User(ext_id, "testuser", is_admin=False)
         db.session.add(u)
         db.session.commit()
         # Anonymous
@@ -252,8 +252,8 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertFalse(user.is_workspace_owner)
 
     def test_block_user(self):
-        eppn = "test@example.org"
-        u = User(eppn, "testuser", is_admin=False)
+        ext_id = "test@example.org"
+        u = User(ext_id, "testuser", is_admin=False)
         db.session.add(u)
         db.session.commit()
         # Anonymous

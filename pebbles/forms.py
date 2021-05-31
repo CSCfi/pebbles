@@ -25,7 +25,7 @@ class ModelForm(BaseModelForm):
 
 
 class UserForm(ModelForm):
-    eppn = StringField('eppn', validators=[DataRequired(), Email(), Length(max=MAX_EMAIL_LENGTH)])
+    ext_id = StringField('ext_id', validators=[DataRequired(), Email(), Length(max=MAX_EMAIL_LENGTH)])
     email_id = StringField('email_id', validators=[Email(), Length(max=MAX_EMAIL_LENGTH)])
     password = StringField('password', default=None)
     is_admin = BooleanField('is_admin', default=False, false_values=['false', False, ''])
@@ -86,7 +86,7 @@ class InstanceForm(ModelForm):
 
 
 class SessionCreateForm(ModelForm):
-    eppn = StringField('eppn', validators=[DataRequired()])
+    ext_id = StringField('ext_id', validators=[DataRequired()])
     password = StringField('password', validators=[DataRequired()])
 
 

@@ -105,7 +105,7 @@ def apply_rules_users(args=None):
 
     if 'filter_str' in args and args.filter_str:
         filter_str = str.lower(args.filter_str)
-        q = q.filter(User._eppn.contains(filter_str))
+        q = q.filter(User._ext_id.contains(filter_str))
 
     if 'user_type' in args and args.user_type:
         user_type = args.get('user_type')
