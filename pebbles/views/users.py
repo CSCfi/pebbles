@@ -8,7 +8,7 @@ from flask_restful import marshal_with, reqparse
 from werkzeug import exceptions
 
 from pebbles.models import db, User, WorkspaceUserAssociation
-from pebbles.rules import apply_rules_users
+from pebbles.rules import apply_filter_users
 from pebbles.utils import requires_admin
 from pebbles.views.commons import user_fields, auth, workspace_user_association_fields
 
@@ -37,10 +37,10 @@ class UserList(restful.Resource):
         if user.is_admin:
             try:
                 args = self.parser.parse_args()
-                user_query = apply_rules_users(args)
+                user_query = apply_filter_users(args)
             except exceptions.BadRequest:
                 logging.warning("no arguments found")
-                user_query = apply_rules_users()
+                user_query = apply_filter_users()
             return user_query.all()
         return [user]
 
@@ -49,9 +49,14 @@ class UserView(restful.Resource):
     @auth.login_required
     @marshal_with(user_fields)
     def get(self, user_id):
+        # only admins can query other users' details
         if not g.user.is_admin and user_id != g.user.id:
             abort(403)
-        return User.query.filter_by(id=user_id).first()
+        result = apply_filter_users().filter_by(id=user_id).first()
+        if result:
+            return result
+        else:
+            abort(404)
 
     @auth.login_required
     @requires_admin

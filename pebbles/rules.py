@@ -97,11 +97,12 @@ def apply_rules_instances(user, args=None):
     return q
 
 
-def apply_rules_users(args=None):
+def apply_filter_users(args=None):
     if args is None:
         args = {}
 
     q = User.query
+    q = q.filter_by(is_deleted=False)
 
     if 'filter_str' in args and args.filter_str:
         filter_str = str.lower(args.filter_str)

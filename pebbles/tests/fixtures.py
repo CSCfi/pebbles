@@ -31,6 +31,8 @@ def primary_test_setup(namespace):
     u2 = User(namespace.known_user_ext_id, namespace.known_user_password, is_admin=False)
     u3 = User("workspace_owner@example.org", "workspace_owner")
     u4 = User("workspace_owner2@example.org", "workspace_owner2")
+    u5 = User("deleted_user1@example.org", "deleted_user1")
+    u5.is_deleted = True
 
     # Fix user IDs to be the same for all tests, in order to reuse the same token
     # for multiple tests
@@ -43,9 +45,11 @@ def primary_test_setup(namespace):
     u3.workspace_quota = 2
     u4.id = 'u4'
     u4.workspace_quota = 2
+    u5.id = 'u5'
 
     namespace.known_admin_id = u1.id
     namespace.known_user_id = u2.id
+    namespace.known_deleted_user_id = u5.id
     namespace.known_workspace_owner_id = u3.id
     namespace.known_workspace_owner_id_2 = u4.id
 
@@ -53,10 +57,15 @@ def primary_test_setup(namespace):
     db.session.add(u2)
     db.session.add(u3)
     db.session.add(u4)
+    db.session.add(u5)
 
     ws0 = Workspace('System.default')
     ws0.id = 'ws0'
     ws0.user_associations.append(WorkspaceUserAssociation(user=u1, is_owner=True))
+    ws0.user_associations.append(WorkspaceUserAssociation(user=u2))
+    ws0.user_associations.append(WorkspaceUserAssociation(user=u3))
+    ws0.user_associations.append(WorkspaceUserAssociation(user=u4))
+    ws0.user_associations.append(WorkspaceUserAssociation(user=u5))
     db.session.add(ws0)
 
     ws1 = Workspace('Workspace1')

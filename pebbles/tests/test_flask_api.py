@@ -296,14 +296,45 @@ class FlaskApiTestCase(BaseTestCase):
         user = User.query.filter_by(id=u.id).first()
         self.assertFalse(user.is_blocked)
 
+    def test_get_user(self):
+        # Anonymous
+        response = self.make_request(path='/api/v1/users/%s' % self.known_user_id)
+        self.assert_401(response)
+
+        # Authenticated, get user data for self
+        response = self.make_authenticated_user_request(path='/api/v1/users/%s' % self.known_user_id)
+        self.assert_200(response)
+        self.assertEqual(self.known_user_ext_id, response.json['ext_id'])
+
+        # Authenticated, get user data for another user
+        response = self.make_authenticated_user_request(path='/api/v1/users/%s' % self.known_workspace_owner_id)
+        self.assert_403(response)
+
+        # Workspace owner, get user data for another user in workspace
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/users/%s' % self.known_user_id)
+        self.assert_403(response)
+
+        # Admin
+        response = self.make_authenticated_admin_request(path='/api/v1/users/%s' % self.known_user_id)
+        self.assert_200(response)
+        self.assertEqual(self.known_user_ext_id, response.json['ext_id'])
+
+        # Admin, deleted user
+        response = self.make_authenticated_admin_request(path='/api/v1/users/%s' % self.known_deleted_user_id)
+        self.assert_404(response)
+
+        # Admin, non-existent id
+        response = self.make_authenticated_admin_request(path='/api/v1/users/%s' % 'no-such-id')
+        self.assert_404(response)
+
     def test_get_users(self):
         # Anonymous
         response = self.make_request(path='/api/v1/users')
         self.assert_401(response)
         # Authenticated
         response = self.make_authenticated_user_request(path='/api/v1/users')
-        self.assertEqual(len(response.json), 1)
         self.assert_200(response)
+        self.assertEqual(len(response.json), 1)
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/users')
         self.assert_200(response)
@@ -326,8 +357,8 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/users/%s/workspace_associations' % self.known_user_id
         )
         self.assert_200(response)
-        # one membership, one ban
-        self.assertEqual(len(response.json), 2)
+        # System.default, one WS membership, one ban
+        self.assertEqual(3, len(response.json))
 
         # Owner should not be able to query user
         response = self.make_authenticated_workspace_owner_request(
