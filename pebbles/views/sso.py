@@ -104,6 +104,11 @@ def oauth2_login():
     if user.is_blocked:
         logging.warning("Login abort: User is blocked")
         abort(403)
+
+    # after successful validations above clock last_login_date
+    user.last_login_date = datetime.datetime.utcnow()
+    db.session.commit()
+
     if user.is_admin:
         icons = admin_icons
     elif user.is_workspace_owner:

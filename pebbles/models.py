@@ -82,6 +82,7 @@ class User(db.Model):
     pseudonym = db.Column(db.String(MAX_PSEUDONYM_LENGTH), unique=True, nullable=False)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
     joining_date = db.Column(db.DateTime)
+    last_login_date = db.Column(db.DateTime)
     expiry_date = db.Column(db.DateTime)
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)

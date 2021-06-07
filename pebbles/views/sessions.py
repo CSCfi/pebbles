@@ -1,10 +1,11 @@
 from flask_restful import fields, marshal
 from flask import Blueprint as FlaskBlueprint, current_app
 
+import datetime
 import logging
 import json
 
-from pebbles.models import User
+from pebbles.models import db, User
 from pebbles.forms import SessionCreateForm
 import flask_restful as restful
 from pebbles.views.commons import is_workspace_manager, update_email  # changed
@@ -33,8 +34,13 @@ class SessionView(restful.Resource):
         user = User.query.filter_by(ext_id=form.ext_id.data).first()
         if user and not user.email_id:
             # Email and ext_id are same because we invite users through email
+            # update_email is in commons.py, as in future we could allow
+            # update existing email of users and reuse the function
             user = update_email(ext_id=user.ext_id, email_id=user.ext_id)
         if user and user.check_password(form.password.data):
+            # after successful validations clock last_login_date
+            user.last_login_date = datetime.datetime.utcnow()
+            db.session.commit()
             # TODO: remove when AngularJS based old UI has been phased out
             if user.is_admin:
                 icons = json.dumps(admin_icons)
