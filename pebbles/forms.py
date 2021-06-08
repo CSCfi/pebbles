@@ -50,8 +50,7 @@ class MessageForm(ModelForm):
 
 class EnvironmentTemplateForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
-    base_config = StringField('base_config')
-    cluster = StringField('cluster', validators=[DataRequired()])
+    base_config = StringField('base_config', validators=[DataRequired()])
     allowed_attrs = StringField('allowed_attrs')
     is_enabled = BooleanField('is_enabled', default=False)
 

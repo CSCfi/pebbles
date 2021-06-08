@@ -80,10 +80,10 @@ class Worker:
     def update_instance(self, instance):
         logging.debug('updating %s' % instance)
         instance_id = instance['id']
-        environment = self.client.get_instance_environment(instance_id)
-        cluster_name = environment.get('cluster')
+        cluster_name = instance['provisioning_config']['cluster']
         if cluster_name is None:
             logging.warning('Cluster/driver config for the instance %s is not found' % instance.get('name'))
+
         driver_instance = self.get_driver(cluster_name)
         driver_instance.update(self.client.token, instance_id)
 

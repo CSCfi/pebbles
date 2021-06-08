@@ -156,6 +156,8 @@ class BaseConfig(object):
     CLUSTER_PASSWORDS_FILE = '/run/secrets/pebbles/cluster-passwords.yaml'
     CLUSTER_KUBECONFIG_FILE = '/var/run/secrets/pebbles/cluster-kubeconfig'
 
+    DEFAULT_CLUSTER = 'local_kubernetes'
+
     # enable access by []
     def __getitem__(self, item):
         return getattr(self, item)

@@ -143,7 +143,7 @@ class InstanceList(restful.Resource):
 
         # create the instance and assign provisioning config from current environment + template
         instance = Instance(environment, user)
-        instance.provisioning_config = utils.get_full_environment_config(environment)
+        instance.provisioning_config = utils.get_provisioning_config(environment)
 
         # XXX: Choosing the name should be done in the model's constructor method
         # decide on a name that is not used currently
@@ -186,10 +186,6 @@ class InstanceView(restful.Resource):
         instance.username = instance.user
         instance_logs = get_logs_from_db(instance.id)
         instance.logs = marshal(instance_logs, instance_log_fields)
-
-        if 'allow_update_client_connectivity' in environment.full_config \
-                and environment.full_config['allow_update_client_connectivity']:
-            instance.can_update_connectivity = True
 
         age = 0
         if instance.provisioned_at:

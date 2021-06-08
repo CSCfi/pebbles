@@ -20,6 +20,7 @@ data:
   - !Workspace
     id: ws-0
     name: System.default
+    cluster: local_kubernetes
 
   # associate admin with default workspace
   - !WorkspaceUserAssociation
@@ -37,7 +38,6 @@ data:
     name: Example
     description: Jupyter in local k8s
     environment_type: jupyter
-    cluster: local_kubernetes
     is_enabled: True
     allowed_attrs:
       - maximum_lifetime
@@ -60,7 +60,6 @@ data:
     name: Example
     description: Jupyter ML in local k8s using notebook-images autodownload feature
     environment_type: jupyter
-    cluster: local_kubernetes
     is_enabled: True
     allowed_attrs:
       - maximum_lifetime
@@ -84,7 +83,6 @@ data:
     name: R-Studio
     description: R-Studio in local k8s
     environment_type: rstudio
-    cluster: local_kubernetes
     is_enabled: True
     allowed_attrs:
       - maximum_lifetime
@@ -160,6 +158,7 @@ data:
   - !Workspace
     id: ws-1
     name: Workspace 1
+    cluster: local_kubernetes
 
   - !WorkspaceUserAssociation
     workspace_id: ws-1

@@ -70,6 +70,7 @@ def primary_test_setup(namespace):
 
     ws1 = Workspace('Workspace1')
     ws1.id = 'ws1'
+    ws1.cluster = 'dummy_cluster_1'
     ws1.environment_quota = 6
     ws1.user_associations.append(WorkspaceUserAssociation(user=u2))
     ws1.user_associations.append(WorkspaceUserAssociation(user=u3, is_manager=True, is_owner=True))
@@ -78,12 +79,14 @@ def primary_test_setup(namespace):
 
     ws2 = Workspace('Workspace2')
     ws2.id = 'ws2'
+    ws2.cluster = 'dummy_cluster_1'
     ws2.user_associations.append(WorkspaceUserAssociation(user=u3))
     ws2.user_associations.append(WorkspaceUserAssociation(user=u4, is_manager=True, is_owner=True))
     db.session.add(ws2)
 
     ws3 = Workspace('Workspace3')
     ws3.id = 'ws3'
+    ws3.cluster = 'dummy_cluster_2'
     ws3.user_associations.append(WorkspaceUserAssociation(user=u4, is_manager=True, is_owner=True))
     ws3.user_associations.append(WorkspaceUserAssociation(user=u2, is_banned=True))
     ws3.user_associations.append(WorkspaceUserAssociation(user=u3, is_banned=True))
@@ -91,6 +94,7 @@ def primary_test_setup(namespace):
 
     ws4 = Workspace('Workspace4')
     ws4.id = 'ws4'
+    ws4.cluster = 'dummy_cluster_2'
     ws4.user_associations.append(WorkspaceUserAssociation(user=u1, is_manager=True, is_owner=True))
     db.session.add(ws4)
 
@@ -103,7 +107,6 @@ def primary_test_setup(namespace):
 
     t1 = EnvironmentTemplate()
     t1.name = 'TestTemplate'
-    t1.cluster = 'dummy_cluster_1'
     t1.environment_type = 'generic'
     t1.base_config = {}
     db.session.add(t1)
@@ -111,7 +114,6 @@ def primary_test_setup(namespace):
 
     t2 = EnvironmentTemplate()
     t2.name = 'EnabledTestTemplate'
-    t2.cluster = 'dummy_cluster_2'
     t2.environment_type = 'generic'
     t2.base_config = {
         'labels': '["label1", "label with space", "label2"]',

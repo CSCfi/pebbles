@@ -95,17 +95,17 @@ def parse_port_range(port_range):
         raise ValueError('No port range found')
 
 
-def get_full_environment_config(environment):
-    """Get the full config for environment"""
+def get_provisioning_config(environment):
+    """Render provisioning config for environment"""
 
     # old style override of template base_config with environment config
     template = environment.template
     allowed_attrs = template.allowed_attrs
-    full_config = template.base_config
+    provisioning_config = template.base_config
     env_config = environment.config if environment.config else {}
     for attr in allowed_attrs:
         if attr in env_config:
-            full_config[attr] = env_config[attr]
+            provisioning_config[attr] = env_config[attr]
 
     # here we pick configuration options from environment to full_config that is used in provisioning
     custom_config = {}
@@ -131,14 +131,17 @@ def get_full_environment_config(environment):
     else:
         logging.warning('unknown environment_type %s', template.environment_type)
 
-    full_config['custom_config'] = custom_config
+    provisioning_config['custom_config'] = custom_config
 
-    return full_config
+    # assign cluster from workspace
+    provisioning_config['cluster'] = environment.workspace.cluster
+
+    return provisioning_config
 
 
 def get_environment_fields_from_config(environment, field_name):
     """Hybrid fields for Environment model which need processing"""
-    full_config = get_full_environment_config(environment)
+    full_config = get_provisioning_config(environment)
 
     if field_name == 'cost_multiplier':
         cost_multiplier = 1.0  # Default value

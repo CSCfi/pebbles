@@ -12,7 +12,7 @@ from pebbles.forms import EnvironmentTemplateForm
 from pebbles.models import db, EnvironmentTemplate
 from pebbles.rules import apply_rules_environment_templates
 from pebbles.utils import requires_admin
-from pebbles.views.commons import auth, requires_workspace_manager_or_admin, match_cluster
+from pebbles.views.commons import auth, requires_workspace_manager_or_admin
 
 environment_templates = FlaskBlueprint('environment_templates', __name__)
 
@@ -22,7 +22,6 @@ environment_template_fields = {
     'description': fields.String,
     'environment_type': fields.String,
     'is_enabled': fields.Boolean,
-    'cluster': fields.String,
     'base_config': fields.Raw,
     'allowed_attrs': fields.Raw,
 }
@@ -36,15 +35,7 @@ class EnvironmentTemplateList(restful.Resource):
         user = g.user
         query = apply_rules_environment_templates(user)
         query = query.order_by(EnvironmentTemplate.name)
-        results = []
-        for environment_template in query.all():
-            selected_cluster = match_cluster(environment_template.cluster)
-            if not selected_cluster:
-                logging.warning('EnvironmentTemplate %s refers to cluster "%s" that is not configured, skipping',
-                                environment_template.id, environment_template.cluster)
-                continue
-            results.append(environment_template)
-        return results
+        return query.all()
 
     @auth.login_required
     @requires_admin
@@ -55,11 +46,11 @@ class EnvironmentTemplateList(restful.Resource):
             return form.errors, 422
         environment_template = EnvironmentTemplate()
         environment_template.name = form.name.data
-        environment_template.cluster = form.cluster.data
         environment_template.is_enabled = form.is_enabled.data
 
         base_config = form.base_config.data
         base_config.pop('name', None)
+
         environment_template.base_config = base_config
 
         if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
@@ -96,7 +87,6 @@ class EnvironmentTemplateView(restful.Resource):
         if not environment_template:
             abort(404)
         environment_template.name = form.base_config.data.get('name') or form.name.data
-        environment_template.cluster = form.cluster.data
 
         base_config = form.base_config.data
         base_config.pop('name', None)

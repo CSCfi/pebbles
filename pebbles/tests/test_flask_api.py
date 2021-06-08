@@ -997,28 +997,28 @@ class FlaskApiTestCase(BaseTestCase):
 
     def test_create_environment_template(self):
         # Anonymous
-        data = {'name': 'test_environment_template_1', 'base_config': '', 'cluster': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'base_config': ''}
         response = self.make_request(
             method='POST',
             path='/api/v1/environment_templates',
             data=json.dumps(data))
         self.assert_401(response)
         # Authenticated User
-        data = {'name': 'test_environment_template_1', 'base_config': '', 'cluster': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'base_config': ''}
         response = self.make_authenticated_user_request(
             method='POST',
             path='/api/v1/environment_templates',
             data=json.dumps(data))
         self.assert_403(response)
         # Authenticated Workspace Owner
-        data = {'name': 'test_environment_template_1', 'base_config': '', 'cluster': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'base_config': ''}
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
             path='/api/v1/environment_templates',
             data=json.dumps(data))
         self.assert_403(response)
         # Admin
-        data = {'name': 'test_environment_template_1', 'base_config': {'foo': 'bar'}, 'cluster': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'base_config': {'foo': 'bar'}}
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/environment_templates',
@@ -1029,7 +1029,6 @@ class FlaskApiTestCase(BaseTestCase):
             'name': 'test_environment_template_2',
             'base_config': {'foo': 'bar', 'maximum_lifetime': '1h'},
             'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']},
-            'cluster': 'dummy_cluster_1'
         }
         response = self.make_authenticated_admin_request(
             method='POST',
@@ -1040,7 +1039,6 @@ class FlaskApiTestCase(BaseTestCase):
     def test_modify_environment_template(self):
         t = EnvironmentTemplate()
         t.name = 'TestTemplate'
-        t.cluster = 'dummy_cluster_1'
         t.base_config = {'memory_limit': '512m', 'maximum_lifetime': '1h'}
         t.allowed_attrs = ['maximum_lifetime']
         t.is_enabled = True
@@ -1048,28 +1046,28 @@ class FlaskApiTestCase(BaseTestCase):
         db.session.commit()
 
         # Anonymous
-        data = {'name': 'test_environment_template_1', 'base_config': '', 'cluster': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'base_config': ''}
         response = self.make_request(
             method='PUT',
             path='/api/v1/environment_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_401(response)
         # Authenticated User
-        data = {'name': 'test_environment_template_1', 'base_config': '', 'cluster': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'base_config': ''}
         response = self.make_authenticated_user_request(
             method='PUT',
             path='/api/v1/environment_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_403(response)
         # Authenticated Workspace Owner
-        data = {'name': 'test_environment_template_1', 'base_config': '', 'cluster': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'base_config': ''}
         response = self.make_authenticated_workspace_owner_request(
             method='PUT',
             path='/api/v1/environment_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_403(response)
         # Admin
-        data = {'name': 'test_environment_template_1', 'base_config': {'foo': 'bar'}, 'cluster': 'dummy'}
+        data = {'name': 'test_environment_template_1', 'base_config': {'foo': 'bar'}}
         response = self.make_authenticated_admin_request(
             method='PUT',
             path='/api/v1/environment_templates/%s' % t.id,
@@ -1080,7 +1078,6 @@ class FlaskApiTestCase(BaseTestCase):
             'name': 'test_environment_template_2',
             'base_config': {'foo': 'bar', 'maximum_lifetime': '1h'},
             'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']},
-            'cluster': 'dummy_cluster_1'
         }
         response = self.make_authenticated_admin_request(
             method='PUT',
@@ -1263,39 +1260,6 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/environments/%s' % self.known_environment_id_g2
         )
         self.assert_200(response)
-
-    def test_create_environment_full_config(self):
-        # Workspace Owner
-        data = {
-            'name': 'test_environment_2',
-            'maximum_lifetime': 3600,
-            'config': {
-                'foo': 'bar',
-                'memory_limit': '1024m',
-                'maximum_lifetime': '10h'
-            },
-            'template_id': self.known_template_id,
-            'workspace_id': self.known_workspace_id
-        }
-
-        post_response = self.make_authenticated_workspace_owner_request(
-            method='POST',
-            path='/api/v1/environments',
-            data=json.dumps(data))
-        self.assert_200(post_response)
-
-        environment = Environment.query.filter_by(name='test_environment_2').first()
-        environment_id = environment.id
-
-        get_response = self.make_authenticated_workspace_owner_request(
-            method='GET',
-            path='/api/v1/environments/%s' % environment_id)
-        self.assert_200(get_response)
-        environment_json = get_response.json
-        self.assertNotIn('foo', environment_json['full_config'])  # 'foo' exists in environment config but not in template config
-        self.assertNotEqual(environment_json['full_config']['memory_limit'], '1024m')  # environment config value (memory_limit is not an allowed attribute)
-        self.assertEquals(environment_json['full_config']['memory_limit'], '512m')  # environment template value (memory_limit is not an allowed attribute)
-        self.assertEquals(environment_json['full_config']['maximum_lifetime'], '10h')  # environment config value overrides template value (allowed attribute)
 
     def test_modify_environment_activate(self):
         data = {

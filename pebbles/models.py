@@ -16,7 +16,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.schema import MetaData
 
-from pebbles.utils import get_full_environment_config, get_environment_fields_from_config
+from pebbles.utils import get_environment_fields_from_config
 
 MAX_PSEUDONYM_LENGTH = 32
 MAX_PASSWORD_LENGTH = 100
@@ -254,6 +254,7 @@ class Workspace(db.Model):
     name = db.Column(db.String(32))
     _join_code = db.Column('join_code', db.String(64))
     description = db.Column(db.Text)
+    cluster = db.Column(db.String(32))
     # status when created is "active". Later there is option to be "archived".
     _status = db.Column('status', db.String(32), default=STATUS_ACTIVE)
     _create_ts = db.Column('create_ts', db.DateTime, default=datetime.datetime.utcnow)
@@ -267,7 +268,7 @@ class Workspace(db.Model):
     environment_quota = db.Column(db.Integer, default=10)
     environments = db.relationship('Environment', backref='workspace', lazy='dynamic')
 
-    def __init__(self, name, description=''):
+    def __init__(self, name, description='', cluster=None):
         self.id = uuid.uuid4().hex
         # Here we opportunistically create a pseudonym without actually checking the existing workspaces,
         # the probability of collision is low enough. There are 400 pseudonyms for all inhabitants on earth
@@ -276,6 +277,7 @@ class Workspace(db.Model):
         self.name = name
         self.description = description
         self.join_code = name
+        self.cluster = cluster
         self._status = Workspace.STATUS_ACTIVE
 
     @hybrid_property
@@ -343,12 +345,11 @@ class EnvironmentTemplate(db.Model):
     environment_type = db.Column(db.String(MAX_NAME_LENGTH))
     _base_config = db.Column('base_config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
-    cluster = db.Column(db.String(32))
     environments = db.relationship('Environment', backref='template', lazy='dynamic')
     _allowed_attrs = db.Column('allowed_attrs', db.Text)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, name=None, description=None, environment_type='generic', cluster=None, allowed_attrs=None,
+    def __init__(self, name=None, description=None, environment_type='generic', allowed_attrs=None,
                  base_config=None, is_enabled=False):
         self.id = uuid.uuid4().hex
         self.name = name
@@ -356,7 +357,6 @@ class EnvironmentTemplate(db.Model):
         if environment_type not in EnvironmentTemplate.ENVIRONMENT_TYPES:
             raise ValueError('Illegal environment type: "%s"' % environment_type)
         self.environment_type = environment_type
-        self.cluster = cluster
         self._allowed_attrs = json.dumps(allowed_attrs)
         self._base_config = json.dumps(base_config)
         self.is_enabled = is_enabled
@@ -435,11 +435,6 @@ class Environment(db.Model):
     @labels.setter
     def labels(self, value):
         self._labels = json.dumps(value)
-
-    # 'full_config' property of Environment model will take the template base_config into account too
-    @hybrid_property
-    def full_config(self):
-        return get_full_environment_config(self)
 
     @hybrid_property
     def status(self):

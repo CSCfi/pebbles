@@ -9,6 +9,7 @@ from flask import abort, g
 from flask_restful import marshal_with, reqparse, fields
 
 from pebbles import rules
+from pebbles.app import app
 from pebbles.forms import WorkspaceForm
 from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Environment, Instance
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin
@@ -129,6 +130,9 @@ class WorkspaceList(restful.Resource):
 
         workspace.create_ts = datetime.datetime.utcnow().timestamp()
         workspace.expiry_ts = (datetime.datetime.utcnow() + relativedelta(months=+6)).timestamp()
+
+        # If users can later select the clusters, then this should be taken from the form and verified
+        workspace.cluster = app.config['DEFAULT_CLUSTER']
 
         db.session.add(workspace)
         db.session.commit()

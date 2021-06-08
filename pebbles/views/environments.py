@@ -27,7 +27,6 @@ environment_fields_admin = {
     'template_id': fields.String,
     'template_name': fields.String,
     'is_enabled': fields.Boolean,
-    'cluster': fields.String,
     'config': fields.Raw,
     'full_config': fields.Raw,
     'schema': fields.Raw,
@@ -47,7 +46,6 @@ environment_fields_manager = {
     'template_id': fields.String,
     'template_name': fields.String,
     'is_enabled': fields.Boolean,
-    'cluster': fields.String,
     'config': fields.Raw,
     'full_config': fields.Raw,
     'schema': fields.Raw,
@@ -283,7 +281,7 @@ def process_environment(environment):
     environment.workspace_pseudonym = environment.workspace.pseudonym
 
     # rest of the code taken for refactoring from single environment GET query
-    environment.cluster = environment.template.cluster
+    environment.cluster = environment.workspace.cluster
     if user.is_admin or is_workspace_manager(user, environment.workspace):
         environment.manager = True
 

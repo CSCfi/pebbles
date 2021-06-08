@@ -41,13 +41,11 @@ class ImportExportEnvironmentTemplates(restful.Resource):
 
         results = []
         for template in templates:
-            selected_cluster = match_cluster(template.cluster)
             obj = {
                 'name': template.name,
                 'is_enabled': template.is_enabled,
                 'base_config': template.base_config,
                 'allowed_attrs': template.allowed_attrs,
-                'cluster_name': selected_cluster['name']
             }
             results.append(obj)
 
