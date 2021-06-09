@@ -331,7 +331,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                     proxy_set_header Connection "upgrade";
                     proxy_read_timeout 86400;
                     rewrite ^{{path}}/(.*)$ /$1 break;
-                    proxy_redirect {{proto}}://localhost:{{port}}/ {{proto}}://{{host}}{{path}}/;
+                    proxy_redirect http://localhost:{{port}}/ {{proto}}://{{host}}{{path}}/;
+                    proxy_redirect https://localhost:{{port}}/ {{proto}}://{{host}}{{path}}/;
                   }
                 }
             """
