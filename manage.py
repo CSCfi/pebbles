@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import logging
 import warnings
 import getpass
 import random
@@ -7,6 +8,7 @@ import string
 from flask import url_for
 from flask_migrate import MigrateCommand, Migrate
 from flask_script import Manager, Server, Shell
+from sqlalchemy.exc import IntegrityError
 from werkzeug.middleware.profiler import ProfilerMiddleware
 
 # Remove when jose is updated and cryptography calls are fixed
@@ -180,7 +182,18 @@ def load_test_data(file):
         data = pebbles.tests.fixtures.load_yaml(f)
         for obj in data['data']:
             db.session.add(obj)
-        db.session.commit()
+            try:
+                db.session.commit()
+                logging.info('inserted %s %s' % (
+                    type(obj).__name__,
+                    getattr(obj, 'id', '')
+                ))
+            except IntegrityError as e:
+                logging.info('skipping %s %s, it already exists' % (
+                    type(obj).__name__,
+                    getattr(obj, 'id', '')
+                ))
+                db.session.rollback()
 
 
 @manager.command
