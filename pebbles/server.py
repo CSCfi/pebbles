@@ -19,6 +19,7 @@ from pebbles.views.variables import variables, PublicVariableList
 from pebbles.views.workspaces import WorkspaceClearUsers, join_workspace
 from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceUsersList
 from pebbles.views.workspaces import workspaces
+from pebbles.views.helps import helps, HelpsList
 
 api = restful.Api(app)
 api_root = '/api/v1'
@@ -60,6 +61,7 @@ api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
 api.add_resource(ImportExportEnvironmentTemplates, api_root + '/import_export/environment_templates')
 api.add_resource(ImportExportEnvironments, api_root + '/import_export/environments')
 api.add_resource(EnvironmentCategoryList, api_root + '/environment_categories')
+api.add_resource(HelpsList, api_root + '/help')
 
 app.register_blueprint(environment_templates)
 app.register_blueprint(environments)
@@ -73,6 +75,7 @@ app.register_blueprint(variables)
 app.register_blueprint(quota)
 app.register_blueprint(locks)
 app.register_blueprint(import_export)
+app.register_blueprint(helps)
 
 from pebbles.views.sso import oauth2_login
 
