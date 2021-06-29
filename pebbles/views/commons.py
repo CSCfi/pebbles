@@ -29,12 +29,6 @@ workspace_user_association_fields = {
     'is_banned': fields.Boolean,
 }
 
-# TODO: remove when AngularJS based old UI has been phased out
-admin_icons = ["Dashboard", "Users", "Workspaces", "Environments", "Configure", "Statistics", "Account"]
-workspace_owner_icons = ["Dashboard", "", "Workspaces", "Environments", "", "", "Account"]
-workspace_manager_icons = ["Dashboard", "", "", "Environments", "", "", "Account"]
-user_icons = ["Dashboard", "", "", "", "", "", "Account"]
-
 auth = HTTPBasicAuth()
 auth.authenticate_header = lambda: "Authentication Required"
 

@@ -10,7 +10,6 @@ from flask import abort
 
 from pebbles.app import app
 from pebbles.models import db, User
-from pebbles.views.commons import admin_icons, workspace_owner_icons, workspace_manager_icons, user_icons
 from pebbles.views.commons import create_user, is_workspace_manager
 
 
@@ -109,19 +108,10 @@ def oauth2_login():
     user.last_login_date = datetime.datetime.utcnow()
     db.session.commit()
 
-    if user.is_admin:
-        icons = admin_icons
-    elif user.is_workspace_owner:
-        icons = workspace_owner_icons
-    elif is_workspace_manager(user):
-        icons = workspace_manager_icons
-    else:
-        icons = user_icons
-
     logging.info('new oauth2 session for user %s', user.id)
 
     token = user.generate_auth_token(app.config['SECRET_KEY'])
-    # does not support angularJS
+
     return render_template(
         'login.html',
         token=token,
@@ -130,5 +120,4 @@ def oauth2_login():
         is_workspace_owner=user.is_workspace_owner,
         is_workspace_manager=is_workspace_manager(user),
         userid=user.id,
-        icon_value=icons
     )

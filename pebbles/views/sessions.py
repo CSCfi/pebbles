@@ -3,13 +3,11 @@ from flask import Blueprint as FlaskBlueprint, current_app
 
 import datetime
 import logging
-import json
 
 from pebbles.models import db, User
 from pebbles.forms import SessionCreateForm
 import flask_restful as restful
-from pebbles.views.commons import is_workspace_manager, update_email  # changed
-from pebbles.views.commons import admin_icons, workspace_owner_icons, workspace_manager_icons, user_icons
+from pebbles.views.commons import is_workspace_manager, update_email
 
 sessions = FlaskBlueprint('sessions', __name__)
 
@@ -19,8 +17,6 @@ token_fields = {
     'is_admin': fields.Boolean,
     'is_workspace_owner': fields.Boolean,
     'is_workspace_manager': fields.Boolean,
-    # TODO: remove when AngularJS based old UI has been phased out
-    'icon_value': fields.String
 }
 
 
@@ -41,15 +37,6 @@ class SessionView(restful.Resource):
             # after successful validations clock last_login_date
             user.last_login_date = datetime.datetime.utcnow()
             db.session.commit()
-            # TODO: remove when AngularJS based old UI has been phased out
-            if user.is_admin:
-                icons = json.dumps(admin_icons)
-            elif user.is_workspace_owner:
-                icons = json.dumps(workspace_owner_icons)
-            elif is_workspace_manager(user):
-                icons = json.dumps(workspace_manager_icons)
-            else:
-                icons = json.dumps(user_icons)
 
             logging.info("new session for user %s", user.id)
 
@@ -59,7 +46,6 @@ class SessionView(restful.Resource):
                 'is_workspace_owner': user.is_workspace_owner,
                 'is_workspace_manager': is_workspace_manager(user),
                 'user_id': user.id,
-                'icon_value': icons
             }, token_fields)
         logging.warning("invalid login credentials for %s" % form.ext_id.data)
         return dict(message='Unauthorized', status=401), 401
