@@ -90,54 +90,46 @@ class BaseConfig(object):
         then the system level config file and finally the default values,
         in that order of precedence.
     """
-    DEBUG = (
-        True,
-        'Controls debug mode'
-    )
+
+    # Flask config
+    # flask debug mode, see https://flask.palletsprojects.com/en/2.0.x/quickstart/#debug-mode
+    DEBUG = False
+    # secret for encrypting session tokens
     SECRET_KEY = 'change_me'
     WTF_CSRF_ENABLED = False
-    SSL_VERIFY = False
-    # SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.db'
-    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:pebbles@localhost/pebbles'
-    DATABASE_PASSWORD = None
+    # form content limit
+    MAX_CONTENT_LENGTH = 1024 * 1024
+    # safety for never showing the request content in the exception
+    # https://flask.palletsprojects.com/en/2.0.x/config/#PRESERVE_CONTEXT_ON_EXCEPTION
+    PRESERVE_CONTEXT_ON_EXCEPTION = False
+
+    # Database connection
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:__PASSWORD__@localhost/pebbles'
+    DATABASE_PASSWORD = 'pebbles'
 
     # Base url for this installation used for creating hyperlinks
     BASE_URL = 'https://localhost:8888'
     # Internal url for contacting the API, defaults to 'api' Service
     INTERNAL_API_BASE_URL = 'http://api:8080/api/v1'
+    # prefix all instance names with this
+    INSTANCE_NAME_PREFIX = 'pb-'
 
-    # form content limit in flask
-    MAX_CONTENT_LENGTH = 1024 * 1024
+    # Info about the system for frontend
+    INSTALLATION_NAME = 'Pebbles'
+    INSTALLATION_DESCRIPTION = 'A tool for provisioning ephemeral private cloud resources.'
+    SHORT_DESCRIPTION = 'Welcome to Pebbles'
+    BRAND_IMAGE_URL = 'img/Notebooks_neg300px.png'
+    COURSE_REQUEST_FORM_URL = 'http://link-to-form'
 
-    SENDER_EMAIL = 'sender@example.org'
+    # Mail settings
     MAIL_SERVER = 'smtp.example.org'
+    MAIL_SENDER_EMAIL = 'sender@example.org'
     MAIL_SUPPRESS_SEND = True
     MAIL_USE_TLS = False
-    SKIP_TASK_QUEUE = False
-    INSTANCE_NAME_PREFIX = (
-        'pb-',
-        'all spawned instance names will have this prefix'
-    )
-    INSTALLATION_NAME = 'Pebbles'
-    INSTALLATION_DESCRIPTION = ('A tool for provisioning '
-                                'ephemeral private cloud resources.')
-    SHORT_DESCRIPTION = 'Welcome to Notebooks'
-    BRAND_IMAGE = (
-        'img/Notebooks_neg300px.png',
-        'An image URL for branding the installation'
-    )
-    COURSE_REQUEST_FORM = 'http://link-to-form'
-    HAKA_INSTITUTION_LIST = (
-        '{"university": [], "polytechnic": [], "institution": []}',
-        'Dictionary of institution types and corresponding domains'
-    )
-
-    PRESERVE_CONTEXT_ON_EXCEPTION = False
 
     # Oauth2 settings
     OAUTH2_LOGIN_ENABLED = False
     OAUTH2_LOGO_URL = '/img/CSC_login.png'
-
     OAUTH2_AUTH_METHODS = ['list of idps allowed to login via sso']
     OAUTH2_OPENID_CONFIGURATION_URL = 'https://openid-configuration'
 
@@ -148,14 +140,14 @@ class BaseConfig(object):
     AGREEMENT_PRIVACY_PATH = 'http://link-to-privacy'
     AGREEMENT_LOGO_PATH = 'assets/images/login/csc_front_logo.svg'
 
+    # Logging settings
     LOG_DIRECTORY = '/opt/log'
-
     ENABLE_FILE_LOGGING = False
 
+    # Clusters configuration
     CLUSTER_CONFIG_FILE = '/run/secrets/pebbles/cluster-config.yaml'
     CLUSTER_PASSWORDS_FILE = '/run/secrets/pebbles/cluster-passwords.yaml'
     CLUSTER_KUBECONFIG_FILE = '/var/run/secrets/pebbles/cluster-kubeconfig'
-
     DEFAULT_CLUSTER = 'local_kubernetes'
 
     # enable access by []
@@ -176,22 +168,6 @@ class BaseConfig(object):
 class TestConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     MAIL_SUPPRESS_SEND = True
-    SKIP_TASK_QUEUE = True
     BCRYPT_LOG_ROUNDS = 4
     TEST_MODE = True
     INSTALLATION_NAME = 'Pebbles'
-
-
-class LiveTestConfig(TestConfig):
-    """ Config for testing live. e.g. with Selenium.
-    """
-    # Live testing setup spawns a subprocess for the live server so in-memory
-    # is not easily achievable.
-    # ToDo: we could use tempfile to create a temporary named file in __init__
-    # and close it in __del__. If we do it's important to log the location so
-    # that the tester can access the db manually.
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/change_me.livetest.db'
-    PRESERVE_CONTEXT_ON_EXCEPTION = False
-    # bit of culture never hurt anybody
-    INSTALLATION_NAME = 'Underworld Branding Iron'
-    INSTALLATION_DESCRIPTION = 'Abandon all hope, ye who enter here.'
