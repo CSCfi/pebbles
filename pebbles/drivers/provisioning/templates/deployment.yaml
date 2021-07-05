@@ -30,10 +30,10 @@ spec:
               if [ -z $AUTODOWNLOAD_URL ]; then exit 0; fi
               cd /data
               if [ $AUTODOWNLOAD_METHOD = "http-get" ]; then
-                wget $AUTODOWNLOAD_URL 2>/tmp/download_error.txt || (mv -v /tmp/download_error.txt .)
+                wget $AUTODOWNLOAD_URL 2>/tmp/download_error.txt || (cp -v /tmp/download_error.txt .)
               fi
               if [ $AUTODOWNLOAD_METHOD = "git-clone" ]; then
-                git clone $AUTODOWNLOAD_URL 2>/tmp/git_clone_error.txt || (mv -v /tmp/git_clone_error.txt .)
+                git clone $AUTODOWNLOAD_URL 2>/tmp/git_clone_error.txt || (cp -v /tmp/git_clone_error.txt .)
               fi
           volumeMounts:
             - mountPath: "/data"
@@ -47,7 +47,7 @@ spec:
               mountPath: /opt/bitnami/nginx/conf/server_blocks
           resources:
             requests:
-              cpu: "200m"
+              cpu: "50m"
               memory: "64Mi"
             limits:
               cpu: "200m"
