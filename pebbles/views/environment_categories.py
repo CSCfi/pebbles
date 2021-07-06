@@ -23,5 +23,9 @@ class EnvironmentCategoryList(restful.Resource):
                 name='Data Analytics',
                 labels=['analytics', 'statistics']
             ),
+            dict(
+                name='Quantum Computing',
+                labels=['quantum computing']
+            ),
         ]
         return categories
