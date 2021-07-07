@@ -29,41 +29,46 @@ def oauth2_login():
     oidc_jwk = requests.get(oidc_key_endpoint).json()['keys'][0]
 
     if not oidc_jwk:
-        logging.warning("JWK could not be fetched")
+        logging.warning("Login aborted: JWK could not be fetched")
         abort(500)
 
     try:
         options = {'verify_aud': False, 'verify_at_hash': False}
         claims = jwt.decode(token, oidc_jwk, algorithms=['RS256'], options=options)
     except Exception as e:
-        logging.warning("JWT error: %s" % e)
+        logging.warning("Login aborted: JWT error: %s" % e)
         abort(401)
 
     auth_methods = app.config['OAUTH2_AUTH_METHODS'].split(' ')
 
     if claims['acr'] not in auth_methods:
-        logging.warning("Login abort: Authentication method is not allowed")
-        abort(422)
-    if 'nsAccountLock' in claims and claims['nsAccountLock'] == 'true':
-        logging.warning("Login abort: Account is locked")
+        logging.warning("Login aborted: Authentication method '%s' is not allowed", claims['acr'])
         abort(422)
 
     # Check what virtu sends - 'vppn' instead of 'eppn'
-
     if 'eppn' in claims:
-        eppn = claims['eppn'].lower()
+        ext_id = claims['eppn'].lower()
     elif 'vppn' in claims:
-        eppn = claims['vppn'].lower()
+        ext_id = claims['vppn'].lower()
     else:
-        logging.warning("Login abort: Valid eppn nor vppn is received")
+        ext_id = None
+
+    if 'nsAccountLock' in claims and claims['nsAccountLock'] == 'true':
+        logging.warning("Login aborted: Account '%s' is locked", ext_id)
+        abort(422)
+
+    if not ext_id:
+        logging.warning("Login aborted: No valid eppn nor vppn received")
         abort(422)
 
     if 'email' in claims:
         email_id = claims['email']
     else:
-        logging.warning("Login abort: Valid email is not received")
+        logging.warning("Login aborted: No valid email received")
         abort(422)
-    user = User.query.filter_by(ext_id=eppn).first()
+
+    # fetch matching user object from the database
+    user = User.query.filter_by(ext_id=ext_id).first()
 
     # New users: Get credentials from aai proxy and then send agreement to user to sign.
     if not user:
@@ -77,7 +82,7 @@ def oauth2_login():
                 logo_path=app.config['AGREEMENT_LOGO_PATH']
             )
         elif args.agreement_sign == 'signed':
-            user = create_user(ext_id=eppn, password=uuid.uuid4().hex, email_id=email_id)
+            user = create_user(ext_id=ext_id, password=uuid.uuid4().hex, email_id=email_id)
             user.tc_acceptance_date = datetime.datetime.utcnow()
             db.session.commit()
 
@@ -94,28 +99,28 @@ def oauth2_login():
             user.tc_acceptance_date = datetime.datetime.utcnow()
             db.session.commit()
         else:
-            logging.warning("Login abort: User cannot access")
+            logging.warning("Login aborted: User '%s' did not agree to terms, access denied", user.id)
             abort(403)
 
     if not user.is_active:
         user.is_active = True
         db.session.commit()
     if user.is_blocked:
-        logging.warning("Login abort: User is blocked")
+        logging.warning("Login aborted: User '%s' is blocked", user.id)
         abort(403)
 
     # after successful validations above clock last_login_date
     user.last_login_date = datetime.datetime.utcnow()
     db.session.commit()
 
-    logging.info('new oauth2 session for user %s', user.id)
+    logging.info("new oauth2 session for user '%s'", user.id)
 
     token = user.generate_auth_token(app.config['SECRET_KEY'])
 
     return render_template(
         'login.html',
         token=token,
-        username=eppn,
+        username=ext_id,
         is_admin=user.is_admin,
         is_workspace_owner=user.is_workspace_owner,
         is_workspace_manager=is_workspace_manager(user),
