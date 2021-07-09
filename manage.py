@@ -177,24 +177,40 @@ def list_routes():
 
 @manager.command
 def load_test_data(file):
-    """Loads an annotated YAML file into database"""
+    print()
+    print('deprecated, use load_data instead')
+    print()
+    load_data(file)
+
+@manager.command
+def load_data(file, update=False):
+    """
+    Loads an annotated YAML file into database. Use -u/--update to update existing entries instead of skipping.
+    """
     with open(file, 'r') as f:
         data = pebbles.tests.fixtures.load_yaml(f)
         for obj in data['data']:
-            db.session.add(obj)
-            try:
-                db.session.commit()
-                logging.info('inserted %s %s' % (
-                    type(obj).__name__,
-                    getattr(obj, 'id', '')
-                ))
-            except IntegrityError as e:
-                logging.info('skipping %s %s, it already exists' % (
-                    type(obj).__name__,
-                    getattr(obj, 'id', '')
-                ))
-                db.session.rollback()
-
+                try:
+                    db.session.add(obj)
+                    db.session.commit()
+                    logging.info('inserted %s %s' % (
+                        type(obj).__name__,
+                        getattr(obj, 'id', '')
+                    ))
+                except IntegrityError as e:
+                    db.session.rollback()
+                    if update:
+                        db.session.merge(obj)
+                        db.session.commit()
+                        logging.info('updated %s %s' % (
+                            type(obj).__name__,
+                            getattr(obj, 'id', '')
+                        ))
+                    else:
+                        logging.info('skipping %s %s, it already exists' % (
+                            type(obj).__name__,
+                            getattr(obj, 'id', '')
+                        ))
 
 @manager.command
 def reset_worker_password():
