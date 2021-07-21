@@ -368,12 +368,14 @@ class WorkspaceExit(restful.Resource):
 
 
 class WorkspaceUsersList(restful.Resource):
-    parser = reqparse.RequestParser()
+    get_parser = reqparse.RequestParser()
+    get_parser.add_argument('members_count', type=bool, default=False, location='args')
 
     @auth.login_required
     @requires_workspace_owner_or_admin
     @marshal_with(total_users_fields)
     def get(self, workspace_id):
+        args = self.get_parser.parse_args()
         user = g.user
         workspace = Workspace.query.filter_by(id=workspace_id).first()
         if not workspace:
@@ -408,6 +410,10 @@ class WorkspaceUsersList(restful.Resource):
             'normal_users': normal_users,
             'banned_users': banned_users
         }
+        if args is not None and 'members_count' in args and args.get('members_count'):
+            # count the list of other members and add extra one (owner user)
+            total_users_count = sum([len(total_users[key]) for key in total_users.keys() if key != 'owner']) + 1
+            return total_users_count
         return total_users
 
 
