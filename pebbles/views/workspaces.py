@@ -6,7 +6,7 @@ import flask_restful as restful
 from dateutil.relativedelta import relativedelta
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
-from flask_restful import marshal_with, reqparse, fields
+from flask_restful import marshal, marshal_with, reqparse, fields
 
 from pebbles import rules
 from pebbles.app import app
@@ -373,7 +373,6 @@ class WorkspaceUsersList(restful.Resource):
 
     @auth.login_required
     @requires_workspace_owner_or_admin
-    @marshal_with(total_users_fields)
     def get(self, workspace_id):
         args = self.get_parser.parse_args()
         user = g.user
@@ -411,10 +410,10 @@ class WorkspaceUsersList(restful.Resource):
             'banned_users': banned_users
         }
         if args is not None and 'members_count' in args and args.get('members_count'):
-            # count the list of other members and add extra one (owner user)
-            total_users_count = sum([len(total_users[key]) for key in total_users.keys() if key != 'owner']) + 1
+            # count the list of members. Exclude owner as he is counted as a manager
+            total_users_count = sum([len(total_users[key]) for key in total_users.keys() if key != 'owner'])
             return total_users_count
-        return total_users
+        return marshal(total_users, total_users_fields)
 
 
 class WorkspaceClearUsers(restful.Resource):
