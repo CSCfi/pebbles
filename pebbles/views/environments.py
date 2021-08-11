@@ -80,6 +80,8 @@ def marshal_based_on_role(user, environment):
 class EnvironmentList(restful.Resource):
     get_parser = reqparse.RequestParser()
     get_parser.add_argument('show_all', type=bool, default=False, location='args')
+    get_parser.add_argument('environments_count', type=bool, default=False, location='args')
+    get_parser.add_argument('workspace_id', type=str, default=None, required=False, location='args')
 
     @auth.login_required
     def get(self):
@@ -92,6 +94,8 @@ class EnvironmentList(restful.Resource):
         for environment in query.all():
             environment = process_environment(environment)
             results.append(marshal_based_on_role(user, environment))
+        if args is not None and 'environments_count' in args and args.get('environments_count'):
+            return len(results)
         return results
 
     @auth.login_required

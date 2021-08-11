@@ -841,10 +841,22 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/workspaces/%s/list_users' % self.known_workspace_id)
         self.assertStatus(response, 403)
 
+        response = self.make_authenticated_user_request(
+            method='GET',
+            path='/api/v1/workspaces/%s/list_users?members_count=true' % self.known_workspace_id)
+        self.assertStatus(response, 403)
+
         # Authenticated Workspace Owner , who does not own the workspace
         response = self.make_authenticated_workspace_owner_request(
             method='GET',
             path='/api/v1/workspaces/%s/list_users' % self.known_workspace_id_2,
+            data=json.dumps({})
+        )
+        self.assertStatus(response, 403)
+
+        response = self.make_authenticated_workspace_owner_request(
+            method='GET',
+            path='/api/v1/workspaces/%s/list_users?members_count=true' % self.known_workspace_id_2,
             data=json.dumps({})
         )
         self.assertStatus(response, 403)
@@ -862,6 +874,11 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertEqual(len(response.json['normal_users']), 1)
         self.assertEqual(len(response.json['banned_users']), 0)
 
+        response = self.make_authenticated_workspace_owner_request(
+            method='GET',
+            path='/api/v1/workspaces/%s/list_users?members_count=true' % self.known_workspace_id)
+        self.assertEqual(response.json, 3)
+
         # Authenticated Workspace Owner , is a Manager too
         response = self.make_authenticated_admin_request(
             method='GET',
@@ -869,11 +886,17 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps({})
         )
         self.assertStatus(response, 200)
+
         # 1 normal user + 1 manager + 1 workspace owner
         self.assertTrue(response.json['owner']['id'] == self.known_workspace_owner_id)
         self.assertEqual(len(response.json['manager_users']), 2)
         self.assertEqual(len(response.json['normal_users']), 1)
         self.assertEqual(len(response.json['banned_users']), 0)
+
+        response = self.make_authenticated_admin_request(
+            method='GET',
+            path='/api/v1/workspaces/%s/list_users?members_count=true' % self.known_workspace_id)
+        self.assertEqual(response.json, 3)
 
     def test_clear_users_from_workspace(self):
         name = 'WorkspaceToBeCleared'
@@ -1111,14 +1134,36 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_user_request(path='/api/v1/environments')
         self.assert_200(response)
         self.assertEqual(len(response.json), 3)
-        # Authenticated Workspace Owner for Workspace 1 and Normal User for Workspace 2
+        response = self.make_authenticated_user_request(path='/api/v1/environments?workspace_id=%s' % self.known_workspace_id)
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 3)
+        response = self.make_authenticated_user_request(path='/api/v1/environments?workspace_id=%s&environments_count=true' % self.known_workspace_id)
+        self.assert_200(response)
+        self.assertEqual(response.json, 3)
+
+        # Authenticated Workspace Owner for Workspace 1(with 4 envs) and Normal User for Workspace 2
         response = self.make_authenticated_workspace_owner_request(path='/api/v1/environments')
         self.assert_200(response)
         self.assertEqual(len(response.json), 5)
+
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environments?workspace_id=%s' % self.known_workspace_id)
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 4)
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environments?workspace_id=%s&environments_count=true' % self.known_workspace_id)
+        self.assert_200(response)
+        self.assertEqual(response.json, 4)
+
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/environments')
         self.assert_200(response)
         self.assertEqual(len(response.json), 6)
+        response = self.make_authenticated_admin_request(path='/api/v1/environments?workspace_id=%s' % self.known_workspace_id)
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 4)
+        response = self.make_authenticated_admin_request(path='/api/v1/environments?workspace_id=%s&environments_count=true' % self.known_workspace_id)
+        self.assert_200(response)
+        self.assertEqual(response.json, 4)
+
         response = self.make_authenticated_admin_request(path='/api/v1/environments?show_all=true')
         self.assert_200(response)
         self.assertEqual(len(response.json), 8)

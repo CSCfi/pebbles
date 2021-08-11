@@ -53,8 +53,11 @@ def apply_rules_environments(user, args=None):
         else:
             q = q.filter_by(status=Environment.STATUS_ACTIVE)
 
-    if args is not None and 'environment_id' in args:
-        q = q.filter_by(id=args.get('environment_id'))
+    if args is not None:
+        if 'environment_id' in args:
+            q = q.filter_by(id=args.get('environment_id'))
+        elif 'workspace_id' in args and args.get('workspace_id'):
+            q = q.filter_by(workspace_id=args.get('workspace_id'))
 
     return q
 
