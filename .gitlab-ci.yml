@@ -103,6 +103,7 @@ ci-pipeline:
     PEBBLES_COMMIT_REF_NAME: "${CI_COMMIT_REF_NAME}"
     PEBBLES_ENVIRONMENTS_COMMIT_REF_NAME: "${CI_COMMIT_REF_NAME}"
     PEBBLES_DEPLOY_COMMIT_REF_NAME: "${CI_COMMIT_REF_NAME}"
+    ENV_NAME_QA: "${CI_ENV_NAME_QA}"
   trigger:
     project: pebbles/cicd-pipeline
     branch: master
