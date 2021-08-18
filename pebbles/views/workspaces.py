@@ -6,7 +6,8 @@ import flask_restful as restful
 from dateutil.relativedelta import relativedelta
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
-from flask_restful import marshal, marshal_with, reqparse, fields
+from flask_restful import marshal, marshal_with, reqparse, fields, inputs
+from sqlalchemy.orm import subqueryload
 
 from pebbles import rules
 from pebbles.app import app
@@ -369,7 +370,7 @@ class WorkspaceExit(restful.Resource):
 
 class WorkspaceUsersList(restful.Resource):
     get_parser = reqparse.RequestParser()
-    get_parser.add_argument('members_count', type=bool, default=False, location='args')
+    get_parser.add_argument('members_count', type=inputs.boolean, default=False, location='args')
 
     @auth.login_required
     @requires_workspace_owner_or_admin
@@ -381,28 +382,24 @@ class WorkspaceUsersList(restful.Resource):
             logging.warning('workspace %s does not exist', workspace_id)
             abort(404)
 
-        workspace_user_query = WorkspaceUserAssociation.query
         if not (user.is_admin or rules.is_user_owner_of_workspace(user, workspace)):
             logging.warning('Workspace %s not owned, cannot see users', workspace_id)
             abort(403)
 
-        banned_users = [wua.user for wua in workspace.user_associations if wua.is_banned]
-        workspace_user_objs = workspace_user_query.filter_by(
-            workspace_id=workspace.id,
-            is_owner=False,
-            is_manager=False
+        user_associations = WorkspaceUserAssociation.query.filter_by(workspace_id=workspace_id).options(
+            subqueryload(WorkspaceUserAssociation.user)
         ).all()
-        normal_users = [workspace_user_obj.user for workspace_user_obj in workspace_user_objs]
-        workspace_user_objs = workspace_user_query.filter_by(
-            workspace_id=workspace.id,
-            is_owner=True
-        ).first()
-        owner_user = workspace_user_objs.user
-        workspace_user_objs = workspace_user_query.filter_by(
-            workspace_id=workspace.id,
-            is_manager=True
-        ).all()
-        manager_users = [workspace_user_obj.user for workspace_user_obj in workspace_user_objs]
+
+        owners = [wua.user for wua in user_associations if wua.is_owner]
+        if len(owners) == 1:
+            owner_user = owners[0]
+        else:
+            owner_user = None
+            logging.warning('number of owners for workspace %s is not exactly 1', workspace_id)
+
+        banned_users = [wua.user for wua in user_associations if wua.is_banned]
+        normal_users = [wua.user for wua in user_associations if not (wua.is_owner or wua.is_manager)]
+        manager_users = [wua.user for wua in user_associations if wua.is_manager]
         total_users = {
             'owner': owner_user,
             'manager_users': manager_users,
