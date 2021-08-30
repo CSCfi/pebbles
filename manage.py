@@ -11,9 +11,6 @@ from flask_script import Manager, Server, Shell
 from sqlalchemy.exc import IntegrityError
 from werkzeug.middleware.profiler import ProfilerMiddleware
 
-# Remove when jose is updated and cryptography calls are fixed
-warnings.filterwarnings('ignore', message='int_from_bytes is deprecated')
-
 import pebbles.tests.fixtures
 from pebbles import models
 from pebbles.config import BaseConfig
