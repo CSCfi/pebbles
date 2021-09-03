@@ -131,6 +131,10 @@ def get_provisioning_config(environment):
     else:
         logging.warning('unknown environment_type %s', template.environment_type)
 
+    # pick the persistent work folder option
+    if env_config.get('enable_user_work_folder'):
+        custom_config['enable_user_work_folder'] = env_config.get('enable_user_work_folder')
+
     provisioning_config['custom_config'] = custom_config
 
     # assign cluster from workspace

@@ -37,11 +37,21 @@ def parse_template(name, values):
         return format_with_jinja2(template, values)
 
 
-def get_user_volume_name(instance, persistence_level=VolumePersistenceLevel.INSTANCE_LIFETIME):
+def get_session_volume_name(instance, persistence_level=VolumePersistenceLevel.INSTANCE_LIFETIME):
     if persistence_level == VolumePersistenceLevel.INSTANCE_LIFETIME:
         return 'pvc-%s-%s' % (instance['user']['pseudonym'], instance['name'])
     else:
         raise RuntimeError('volume persistence level %s is not supported' % persistence_level)
+
+
+def get_user_work_volume_name(instance, persistence_level=VolumePersistenceLevel.WORKSPACE_LIFETIME):
+    if persistence_level != VolumePersistenceLevel.WORKSPACE_LIFETIME:
+        raise RuntimeError('volume persistence level %s is not supported' % persistence_level)
+
+    if instance['provisioning_config']['custom_config'].get('enable_user_work_folder'):
+        return 'pvc-%s-work' % instance['user']['pseudonym']
+
+    return None
 
 
 def get_shared_volume_name(instance):
@@ -112,21 +122,33 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         return deployment_dict
 
     def do_provision(self, token, instance_id):
+        # figure out parameters
         instance = self.fetch_and_populate_instance(token, instance_id)
         namespace = self.get_instance_namespace(instance)
-        user_volume_name = get_user_volume_name(instance)
+        session_volume_name = get_session_volume_name(instance)
+        user_volume_name = get_user_work_volume_name(instance)
         shared_volume_name = get_shared_volume_name(instance)
+        session_storage_class_name = self.cluster_config.get('storageClassNameSession')
         user_storage_class_name = self.cluster_config.get('storageClassNameUser')
         shared_storage_class_name = self.cluster_config.get('storageClassNameShared')
         volume_size = self.cluster_config.get('volumeSize', '20Gi')
+
+        # create namespace if necessary
         self.ensure_namespace(namespace)
+        # create volumes if necessary
+        self.ensure_volume(namespace, instance, session_volume_name, volume_size, session_storage_class_name)
+        self.ensure_volume(namespace, instance, shared_volume_name, volume_size, shared_storage_class_name,
+                           'ReadWriteMany')
+        if user_volume_name:
+            self.ensure_volume(namespace, instance, user_volume_name, volume_size, user_storage_class_name,
+                               'ReadWriteMany')
+
+        # create actual session/instance objects
         self.create_deployment(namespace, instance)
         self.create_configmap(namespace, instance)
         self.create_service(namespace, instance)
         self.create_ingress(namespace, instance)
-        self.create_volume(namespace, instance, user_volume_name, volume_size, user_storage_class_name)
-        self.create_volume(namespace, instance, shared_volume_name, volume_size, shared_storage_class_name,
-                           'ReadWriteMany')
+
         # tell base_driver that we need to check on the readiness later by explicitly returning STATE_STARTING
         return Instance.STATE_STARTING
 
@@ -216,7 +238,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         # remove user volume (only level 1 persistence implemented so far)
         try:
-            volume_name = get_user_volume_name(instance)
+            volume_name = get_session_volume_name(instance)
             self.delete_volume(namespace, volume_name)
         except ApiException as e:
             if e.status == 404:
@@ -253,7 +275,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def create_deployment(self, namespace, instance):
         # get provisioning configuration and extract environment specific custom config
         provisioning_config = instance['provisioning_config']
-        custom_config = provisioning_config.pop('custom_config')
+        custom_config = provisioning_config['custom_config']
 
         # create a dict out of space separated list of VAR=VAL entries
         env_var_array = provisioning_config.get('environment_vars', '').split()
@@ -271,13 +293,14 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         else:
             shared_data_read_only_mode = True
 
-        deployment_yaml = parse_template('deployment.yaml', dict(
+        deployment_yaml = parse_template('deployment.yaml.j2', dict(
             name=instance['name'],
             image=provisioning_config['image'],
             volume_mount_path=provisioning_config['volume_mount_path'],
             port=int(provisioning_config['port']),
             memory_limit=provisioning_config.get('memory_limit', '512Mi'),
-            pvc_name_user=get_user_volume_name(instance),
+            pvc_name_session=get_session_volume_name(instance),
+            pvc_name_user_work=get_user_work_volume_name(instance),
             pvc_name_shared=get_shared_volume_name(instance),
             shared_data_read_only_mode=shared_data_read_only_mode,
         ))
@@ -410,7 +433,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         api = self.dynamic_client.resources.get(api_version='extensions/v1beta1', kind='Ingress')
         api.delete(namespace=namespace, name=instance.get('name'))
 
-    def create_volume(self, namespace, instance, volume_name, volume_size, storage_class_name,
+    def ensure_volume(self, namespace, instance, volume_name, volume_size, storage_class_name,
                       access_mode='ReadWriteOnce'):
         api = self.dynamic_client.resources.get(api_version='v1', kind='PersistentVolumeClaim')
         try:

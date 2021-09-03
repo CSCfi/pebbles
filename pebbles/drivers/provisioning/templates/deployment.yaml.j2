@@ -37,7 +37,7 @@ spec:
               fi
           volumeMounts:
             - mountPath: "/data"
-              name: data
+              name: session-data
       containers:
         - name: proxy
           image: docker.io/bitnami/nginx:1.19.8
@@ -60,9 +60,13 @@ spec:
           env: [ ]
           volumeMounts:
             - mountPath: "{{volume_mount_path}}"
-              name: data
+              name: session-data
             - mountPath: "{{volume_mount_path}}/shared-data"
               name: shared-data
+            {% if pvc_name_user_work %}
+            - mountPath: "{{volume_mount_path}}/work"
+              name: user-work
+            {% endif %}
           # generic check if the pod is accepting connections, poll every 1 second
           readinessProbe:
             tcpSocket:
@@ -77,17 +81,22 @@ spec:
               memory: "{{memory_limit}}"
 
       volumes:
-        - name: data
+        - name: session-data
           persistentVolumeClaim:
-            claimName: "{{pvc_name_user}}"
+            claimName: "{{pvc_name_session}}"
             readOnly: false
+        {% if pvc_name_user_work %}
+        - name: user-work
+          persistentVolumeClaim:
+            claimName: "{{pvc_name_user_work}}"
+        {% endif %}
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: "{{pvc_name_shared}}"
+            readOnly: {{shared_data_read_only_mode}}
         - name: nginx-config
           configMap:
             name: "{{name}}"
             items:
               - key: "proxy.conf"
                 path: "proxy.conf"
-        - name: shared-data
-          persistentVolumeClaim:
-            claimName: "{{pvc_name_shared}}"
-            readOnly: {{shared_data_read_only_mode}}
