@@ -126,7 +126,8 @@ def apply_filter_users(args=None):
 
     page = args.get('page', None)
     page_size = args.get('page_size', None)
-    if page and page_size:
+    # zero for page is valid, where as 0 as page_size is not
+    if page is not None and page_size:
         q = q.offset(page * page_size)
         q = q.limit(page_size)
 
