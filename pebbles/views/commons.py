@@ -18,7 +18,9 @@ user_fields = {
     'is_admin': fields.Boolean,
     'is_deleted': fields.Boolean,
     'is_blocked': fields.Boolean,
-    'expiry_date': fields.DateTime,
+    'joining_ts': fields.Integer,
+    'expiry_ts': fields.Integer,
+    'last_login_ts': fields.Integer,
 }
 
 workspace_user_association_fields = {

@@ -22,13 +22,12 @@ class UserList(restful.Resource):
     parser.add_argument('filter_str', type=str)
     parser.add_argument('user_type', type=str)
     parser.add_argument('count', type=int)
-    parser.add_argument('expiry_date', type=int)
+    parser.add_argument('expiry_ts', type=int)
+    parser.add_argument('addresses')
 
     @staticmethod
     def address_list(value):
         return set(x for x in re.split(r"[, \n\t]", value) if x)
-
-    parser.add_argument('addresses')
 
     @auth.login_required
     @marshal_with(user_fields)

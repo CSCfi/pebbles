@@ -81,9 +81,9 @@ class User(db.Model):
     _email_id = db.Column('email_id', db.String(MAX_EMAIL_LENGTH))
     pseudonym = db.Column(db.String(MAX_PSEUDONYM_LENGTH), unique=True, nullable=False)
     password = db.Column(db.String(MAX_PASSWORD_LENGTH))
-    joining_date = db.Column(db.DateTime)
-    last_login_date = db.Column(db.DateTime)
-    expiry_date = db.Column(db.DateTime)
+    _joining_ts = db.Column('joining_ts', db.DateTime)
+    _last_login_ts = db.Column('last_login_ts', db.DateTime)
+    _expiry_ts = db.Column('expiry_ts', db.DateTime)
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
@@ -94,13 +94,14 @@ class User(db.Model):
     instances = db.relationship('Instance', backref='user', lazy='dynamic')
     workspace_associations = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
 
-    def __init__(self, ext_id, password=None, is_admin=False, email_id=None, expiry_date=None, pseudonym=None,
+    def __init__(self, ext_id, password=None, is_admin=False, email_id=None, expiry_ts=None, pseudonym=None,
                  workspace_quota=None):
         self.id = uuid.uuid4().hex
         self.ext_id = ext_id
         self.is_admin = is_admin
-        self.joining_date = datetime.datetime.utcnow()
-        self.expiry_date = expiry_date
+        self.joining_ts = time.time()
+        if expiry_ts:
+            self.expiry_ts = expiry_ts
         if email_id:
             self.email_id = email_id
         if password:
@@ -160,6 +161,30 @@ class User(db.Model):
     @is_workspace_owner.setter
     def is_workspace_owner(self, value):
         raise RuntimeError('Set workspace owner status through workspace quota and membership')
+
+    @hybrid_property
+    def joining_ts(self):
+        return self._joining_ts.timestamp()
+
+    @joining_ts.setter
+    def joining_ts(self, value):
+        self._joining_ts = datetime.datetime.fromtimestamp(value)
+
+    @hybrid_property
+    def expiry_ts(self):
+        return self._expiry_ts.timestamp()
+
+    @expiry_ts.setter
+    def expiry_ts(self, value):
+        self._expiry_ts = datetime.datetime.fromtimestamp(value)
+
+    @hybrid_property
+    def last_login_ts(self):
+        return self._last_login_ts.timestamp()
+
+    @last_login_ts.setter
+    def last_login_ts(self, value):
+        self._last_login_ts = datetime.datetime.fromtimestamp(value)
 
     def delete(self):
         if self.is_deleted:
