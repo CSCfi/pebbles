@@ -1218,7 +1218,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
         labels = response.json['labels']
         expected_labels = ['label1', 'label with space', 'label2']
-        self.assertEquals(labels, expected_labels, 'label array matches')
+        self.assertEqual(labels, expected_labels, 'label array matches')
 
     def test_create_environment(self):
         # Anonymous
@@ -1739,7 +1739,7 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps({})
         )
         self.assert_200(response_get)
-        self.assertEquals(0, len(response_get.json))
+        self.assertEqual(0, len(response_get.json))
 
         # test patching running logs - should be replaced, not appended
         log_record['log_type'] = 'running'
@@ -1762,8 +1762,8 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps({})
         )
         self.assert_200(response_get)
-        self.assertEquals(1, len(response_get.json))
-        self.assertEquals('patched running logs', response_get.json[0]['message'])
+        self.assertEqual(1, len(response_get.json))
+        self.assertEqual('patched running logs', response_get.json[0]['message'])
 
     def test_update_admin_quota_relative(self):
         response = self.make_authenticated_admin_request(
@@ -1901,7 +1901,7 @@ class FlaskApiTestCase(BaseTestCase):
 
         response = self.make_authenticated_admin_request(path='/api/v1/import_export/environment_templates')
         self.assertStatus(response, 200)
-        self.assertEquals(len(response.json), 2)  # There were total 2 templates initialized during setup
+        self.assertEqual(len(response.json), 2)  # There were total 2 templates initialized during setup
 
     def test_user_and_workspace_owner_import_environment_templates(self):
 
@@ -1973,13 +1973,13 @@ class FlaskApiTestCase(BaseTestCase):
     def test_workspace_owner_export_environments(self):
         response = self.make_authenticated_workspace_owner_request(path='/api/v1/import_export/environments')
         self.assertStatus(response, 200)
-        self.assertEquals(len(response.json), 4)
+        self.assertEqual(len(response.json), 4)
 
     def test_admin_export_environments(self):
 
         response = self.make_authenticated_admin_request(path='/api/v1/import_export/environments')
         self.assertStatus(response, 200)
-        self.assertEquals(len(response.json), 8)  # There were total 8 environments initialized during setup
+        self.assertEqual(len(response.json), 8)  # There were total 8 environments initialized during setup
 
     def test_anonymous_import_environments(self):
 
@@ -2277,6 +2277,92 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response)
         self.assertGreater(len(response.json), 0)
+
+    def test_get_alerts_access(self):
+        response = self.make_request(
+            path='/api/v1/alerts'
+        )
+        self.assert_401(response)
+
+        response = self.make_authenticated_user_request(
+            path='/api/v1/alerts'
+        )
+        self.assert_403(response)
+
+        response = self.make_authenticated_workspace_owner_request(
+            path='/api/v1/alerts'
+        )
+        self.assert_403(response)
+
+    def test_alerts_admin(self):
+        alert1 = dict(
+            target='cluster-1',
+            source='prometheus',
+            status='firing',
+            data=[dict(some_key='value')]
+        )
+        alert2 = dict(
+            target='cluster-2',
+            source='prometheus',
+            status='ok',
+            data=[dict(some_key='different value')]
+        )
+
+        # add alerts
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/alerts',
+            data=json.dumps(alert1)
+        )
+        self.assertStatus(response, 200)
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/alerts',
+            data=json.dumps(alert2)
+        )
+        self.assertStatus(response, 200)
+
+        # query a single alert
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/alerts/%s/%s' % (alert1['target'], alert1['source']),
+        )
+        self.assertStatus(response, 200)
+        self.assertEqual(response.json['target'], 'cluster-1')
+        self.assertEqual(response.json['source'], 'prometheus')
+        self.assertEqual(response.json['data'][0]['some_key'], 'value')
+
+        # query list
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/alerts',
+        )
+        self.assertStatus(response, 200)
+        self.assertEqual(len(response.json), 2)
+
+        # modify alert
+        alert1['status'] = 'ok'
+        alert1['data'] = []
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/alerts',
+            data=json.dumps(alert1)
+        )
+        self.assertStatus(response, 200)
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/alerts/%s/%s' % (alert1['target'], alert1['source']),
+        )
+        self.assertStatus(response, 200)
+        self.assertEqual(response.json['target'], 'cluster-1')
+        self.assertEqual(response.json['source'], 'prometheus')
+        self.assertEqual(response.json['status'], 'ok')
+
+        # invalid data
+        alert1['target'] = None
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/alerts',
+            data=json.dumps(alert1)
+        )
+        self.assertStatus(response, 422)
 
 
 if __name__ == '__main__':

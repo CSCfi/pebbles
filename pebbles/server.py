@@ -1,12 +1,14 @@
 import flask_restful as restful
 
 from pebbles.app import app
+from pebbles.views.alerts import alerts, AlertList, AlertView, SystemStatus
 from pebbles.views.clusters import clusters, ClusterList
 from pebbles.views.environment_categories import EnvironmentCategoryList
 from pebbles.views.environment_templates import EnvironmentTemplateList, EnvironmentTemplateView, \
     EnvironmentTemplateCopy
 from pebbles.views.environment_templates import environment_templates
 from pebbles.views.environments import environments, EnvironmentList, EnvironmentView, EnvironmentCopy
+from pebbles.views.helps import helps, HelpsList
 from pebbles.views.import_export import import_export, ImportExportEnvironmentTemplates, ImportExportEnvironments
 from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pebbles.views.locks import locks, LockView, LockList
@@ -19,7 +21,6 @@ from pebbles.views.variables import variables, PublicVariableList
 from pebbles.views.workspaces import WorkspaceClearUsers, join_workspace
 from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceUsersList
 from pebbles.views.workspaces import workspaces
-from pebbles.views.helps import helps, HelpsList
 
 api = restful.Api(app)
 api_root = '/api/v1'
@@ -62,6 +63,9 @@ api.add_resource(ImportExportEnvironmentTemplates, api_root + '/import_export/en
 api.add_resource(ImportExportEnvironments, api_root + '/import_export/environments')
 api.add_resource(EnvironmentCategoryList, api_root + '/environment_categories')
 api.add_resource(HelpsList, api_root + '/help')
+api.add_resource(AlertList, api_root + '/alerts')
+api.add_resource(AlertView, api_root + '/alerts/<string:target>/<string:source>')
+api.add_resource(SystemStatus, api_root + '/status')
 
 app.register_blueprint(environment_templates)
 app.register_blueprint(environments)
@@ -76,6 +80,7 @@ app.register_blueprint(quota)
 app.register_blueprint(locks)
 app.register_blueprint(import_export)
 app.register_blueprint(helps)
+app.register_blueprint(alerts)
 
 from pebbles.views.sso import oauth2_login
 

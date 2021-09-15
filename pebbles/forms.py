@@ -3,8 +3,8 @@ cause gray hair.
 """
 import re
 
-from flask_wtf import Form
-from wtforms import BooleanField, FloatField, StringField, IntegerField
+from flask_wtf import FlaskForm
+from wtforms import BooleanField, StringField, IntegerField
 from wtforms.validators import DataRequired, Email, Length, IPAddress, Regexp
 from wtforms_alchemy import model_form_factory
 
@@ -15,7 +15,7 @@ from pebbles.models import (
 )
 from pebbles.models import db
 
-BaseModelForm = model_form_factory(Form)
+BaseModelForm = model_form_factory(FlaskForm)
 
 
 class ModelForm(BaseModelForm):
@@ -98,14 +98,6 @@ class VariableForm(ModelForm):
         'key', validators=[DataRequired(), Length(max=MAX_VARIABLE_KEY_LENGTH)])
     value = StringField(
         'value', validators=[Length(max=MAX_VARIABLE_VALUE_LENGTH)])
-
-
-class NamespacedKeyValueForm(ModelForm):
-    namespace = StringField('namespace', validators=[DataRequired()])
-    key = StringField('key', validators=[DataRequired()])
-    value = StringField('value', validators=[DataRequired()])
-    schema = StringField('schema')
-    updated_version_ts = FloatField('updated_version_ts')
 
 
 class LockForm(ModelForm):

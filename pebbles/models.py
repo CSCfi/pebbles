@@ -588,3 +588,35 @@ class Lock(db.Model):
         self.id = id
         self.owner = owner
         self.acquired_at = datetime.datetime.utcnow()
+
+
+class Alert(db.Model):
+    __tablename__ = 'alerts'
+
+    target = db.Column(db.String(64), primary_key=True)
+    source = db.Column(db.String(64), primary_key=True)
+    status = db.Column(db.String(64), nullable=False)
+    _data = db.Column('data', db.Text)
+    _update_ts = db.Column('update_ts', db.DateTime, default=datetime.datetime.utcnow)
+
+    def __init__(self, target, source, status, data):
+        self.target = target
+        self.source = source
+        self.status = status
+        self.data = data
+
+    @hybrid_property
+    def update_ts(self):
+        return self._update_ts.timestamp()
+
+    @update_ts.setter
+    def update_ts(self, value):
+        self._update_ts = datetime.datetime.fromtimestamp(value)
+
+    @hybrid_property
+    def data(self):
+        return load_column(self._data)
+
+    @data.setter
+    def data(self, value):
+        self._data = json.dumps(value)
