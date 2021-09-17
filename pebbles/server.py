@@ -13,10 +13,8 @@ from pebbles.views.import_export import import_export, ImportExportEnvironmentTe
 from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.messages import MessageList, MessageView
-from pebbles.views.quota import quota, Quota, UserQuota
 from pebbles.views.sessions import sessions, SessionView
-from pebbles.views.users import users, UserList, UserView, UserBlacklist, UserWorkspaceOwner, \
-    UserWorkspaceAssociationList
+from pebbles.views.users import users, UserList, UserView, UserWorkspaceAssociationList
 from pebbles.views.variables import variables, PublicVariableList
 from pebbles.views.workspaces import WorkspaceClearUsers, join_workspace
 from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceUsersList
@@ -24,10 +22,8 @@ from pebbles.views.workspaces import workspaces
 
 api = restful.Api(app)
 api_root = '/api/v1'
-api.add_resource(UserList, api_root + '/users', methods=['GET', 'POST', 'PATCH'])
-api.add_resource(UserView, api_root + '/users/<string:user_id>')
-api.add_resource(UserBlacklist, api_root + '/users/<string:user_id>/user_blacklist')
-api.add_resource(UserWorkspaceOwner, api_root + '/users/<string:user_id>/user_workspace_owner')
+api.add_resource(UserList, api_root + '/users')
+api.add_resource(UserView, api_root + '/users/<string:user_id>', methods=['GET', 'DELETE', 'PATCH'])
 api.add_resource(UserWorkspaceAssociationList, api_root + '/users/<string:user_id>/workspace_associations')
 api.add_resource(WorkspaceList, api_root + '/workspaces')
 api.add_resource(WorkspaceView, api_root + '/workspaces/<string:workspace_id>')
@@ -55,8 +51,6 @@ api.add_resource(
     methods=['GET', 'PATCH', 'DELETE'])
 api.add_resource(ClusterList, api_root + '/clusters')
 api.add_resource(PublicVariableList, api_root + '/config')
-api.add_resource(Quota, api_root + '/quota')
-api.add_resource(UserQuota, api_root + '/quota/<string:user_id>')
 api.add_resource(LockList, api_root + '/locks')
 api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
 api.add_resource(ImportExportEnvironmentTemplates, api_root + '/import_export/environment_templates')
@@ -76,7 +70,6 @@ app.register_blueprint(join_workspace)
 app.register_blueprint(instances)
 app.register_blueprint(sessions)
 app.register_blueprint(variables)
-app.register_blueprint(quota)
 app.register_blueprint(locks)
 app.register_blueprint(import_export)
 app.register_blueprint(helps)

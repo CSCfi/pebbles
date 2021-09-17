@@ -193,64 +193,6 @@ class FlaskApiTestCase(BaseTestCase):
         user = User.query.filter_by(id=u.id).first()
         self.assertTrue(user.ext_id != ext_id)
 
-    def test_make_workspace_owner(self):
-        ext_id = "test_owner@example.org"
-        u = User(ext_id, "testuser", is_admin=False)
-        db.session.add(u)
-        db.session.commit()
-        # Anonymous
-        response = self.make_request(
-            method='PUT',
-            path='/api/v1/users/%s/user_workspace_owner' % u.id,
-            data=json.dumps({'make_workspace_owner': True})
-        )
-        self.assert_401(response)
-        # Authenticated
-        response = self.make_authenticated_user_request(
-            method='PUT',
-            path='/api/v1/users/%s/user_workspace_owner' % u.id,
-            data=json.dumps({'make_workspace_owner': True})
-        )
-        self.assert_403(response)
-        # Workspace Owner
-        response = self.make_authenticated_workspace_owner_request(
-            method='PUT',
-            path='/api/v1/users/%s/user_workspace_owner' % u.id,
-            data=json.dumps({'make_workspace_owner': True})
-        )
-        self.assert_403(response)
-        # Admin
-        # Make Workspace Owner
-        response = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/users/%s/user_workspace_owner' % u.id,
-            data=json.dumps({'make_workspace_owner': True})
-        )
-        self.assert_200(response)
-        user = User.query.filter_by(id=u.id).first()
-        self.assertTrue(user.is_workspace_owner)
-        # Remove Workspace Owner
-        response = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/users/%s/user_workspace_owner' % u.id,
-            data=json.dumps({'make_workspace_owner': False})
-        )
-        self.assert_200(response)
-        user = User.query.filter_by(id=u.id).first()
-        self.assertFalse(user.is_workspace_owner)
-
-    def test_remove_workspace_ownership(self):
-        user = User.query.filter_by(id=self.known_workspace_owner_id).first()
-        self.assertTrue(user.is_workspace_owner)
-        response = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/users/%s/user_workspace_owner' % user.id,
-            data=json.dumps({'make_workspace_owner': False})
-        )
-        self.assert_200(response)
-        user = User.query.filter_by(id=self.known_workspace_owner_id).first()
-        self.assertFalse(user.is_workspace_owner)
-
     def test_block_user(self):
         ext_id = "test@example.org"
         u = User(ext_id, "testuser", is_admin=False)
@@ -258,39 +200,39 @@ class FlaskApiTestCase(BaseTestCase):
         db.session.commit()
         # Anonymous
         response = self.make_request(
-            method='PUT',
-            path='/api/v1/users/%s/user_blacklist' % u.id,
-            data=json.dumps({'block': True})
+            method='PATCH',
+            path='/api/v1/users/%s' % u.id,
+            data=json.dumps({'is_blocked': True})
         )
         self.assert_401(response)
         # Authenticated
         response = self.make_authenticated_user_request(
-            method='PUT',
-            path='/api/v1/users/%s/user_blacklist' % u.id,
-            data=json.dumps({'block': True})
+            method='PATCH',
+            path='/api/v1/users/%s' % u.id,
+            data=json.dumps({'is_blocked': True})
         )
         self.assert_403(response)
         response = self.make_authenticated_user_request(
-            method='PUT',
-            path='/api/v1/users/%s/user_blacklist' % u.id,
-            data=json.dumps({'block': True})
+            method='PATCH',
+            path='/api/v1/users/%s' % u.id,
+            data=json.dumps({'is_blocked': True})
         )
         self.assert_403(response)
         # Admin
         # Block
         response = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/users/%s/user_blacklist' % u.id,
-            data=json.dumps({'block': True})
+            method='PATCH',
+            path='/api/v1/users/%s' % u.id,
+            data=json.dumps({'is_blocked': True})
         )
         self.assert_200(response)
         user = User.query.filter_by(id=u.id).first()
         self.assertTrue(user.is_blocked)
         # Unblock
         response = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/users/%s/user_blacklist' % u.id,
-            data=json.dumps({'block': False})
+            method='PATCH',
+            path='/api/v1/users/%s' % u.id,
+            data=json.dumps({'is_blocked': False})
         )
         self.assert_200(response)
         user = User.query.filter_by(id=u.id).first()
@@ -438,9 +380,10 @@ class FlaskApiTestCase(BaseTestCase):
 
         # increase workspace quota to 4 for owner 1
         response2 = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/quota/%s' % self.known_workspace_owner_id,
-            data=json.dumps({'type': "absolute", 'value': 4, 'credits_type': 'workspace_quota_value'}))
+            method='PATCH',
+            path='/api/v1/users/%s' % self.known_workspace_owner_id,
+            data=json.dumps(dict(workspace_quota=4))
+        )
         self.assert_200(response2)
 
         # Workspace Owner
@@ -1765,79 +1708,39 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertEqual(1, len(response_get.json))
         self.assertEqual('patched running logs', response_get.json[0]['message'])
 
-    def test_update_admin_quota_relative(self):
-        response = self.make_authenticated_admin_request(
-            path='/api/v1/users'
-        )
-        # entry 3 is the workspace owner
-        assert response.json[2]['workspace_quota'] == 2
-        user_id = response.json[2]['id']
-        response2 = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/quota/%s' % user_id,
-            data=json.dumps({'type': 'relative', 'value': 10, 'credits_type': 'workspace_quota_value'}))
-        self.assertEqual(response2.status_code, 200)
-        response = self.make_authenticated_admin_request(
-            path='/api/v1/users'
-        )
-        self.assertEqual(user_id, response.json[2]['id'])
-        self.assertEqual(response.json[2]['workspace_quota'], 12)
-
-    def test_user_cannot_update_user_quota_absolute(self):
-        user_id = self.known_workspace_owner_id_2
-        response2 = self.make_authenticated_user_request(
-            method='PUT',
-            path='/api/v1/quota/%s' % user_id,
-            data=json.dumps({'type': "absolute", 'value': 10, 'credits_type': 'workspace_quota_value'}))
-        self.assert_403(response2)
-
-    def test_anonymous_cannot_see_quota_list(self):
+    def test_user_workspace_quota(self):
+        # Anonymous
         response = self.make_request(
-            path='/api/v1/quota'
+            method='PATCH',
+            path='/api/v1/users/%s' % self.known_user_id,
+            data=json.dumps(dict(workspace_quota=1))
         )
         self.assert_401(response)
 
-    def test_user_cannot_see_quota_list(self):
+        # Authenticated
         response = self.make_authenticated_user_request(
-            path='/api/v1/quota'
+            method='PATCH',
+            path='/api/v1/users/%s' % self.known_user_id,
+            data=json.dumps(dict(workspace_quota=1))
         )
         self.assert_403(response)
 
-    def test_admin_get_quota_list(self):
+        # Admin
         response = self.make_authenticated_admin_request(
-            path='/api/v1/quota'
+            method='PATCH',
+            path='/api/v1/users/%s' % self.known_user_id,
+            data=json.dumps(dict(workspace_quota=1))
         )
         self.assert_200(response)
 
-    def test_anonymous_cannot_see_user_quota(self):
-        response2 = self.make_request(
-            path='/api/v1/quota/%s' % self.known_user_id
-        )
-        self.assert_401(response2)
-
-    def test_user_get_own_quota(self):
-        response = self.make_authenticated_user_request(
-            path='/api/v1/quota/%s' % self.known_user_id
-        )
-        self.assert_200(response)
-
-    def test_parse_invalid_quota_update(self):
-        response = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/quota/%s' % self.known_user_id,
-            data=json.dumps({'type': "invalid_type", 'value': 10}))
-        self.assertStatus(response, 422)
-        response = self.make_authenticated_admin_request(
-            method='PUT',
-            path='/api/v1/quota/%s' % self.known_user_id,
-            data=json.dumps({'type': "relative", 'value': "foof"}))
-        self.assertStatus(response, 422)
-
-    def test_user_cannot_see_other_users(self):
-        response = self.make_authenticated_user_request(
-            path='/api/v1/quota/%s' % self.known_admin_id
-        )
-        self.assert_403(response)
+        # invalid inputs
+        for invalid_input in [-1, 1000 * 1000, 'foo']:
+            response = self.make_authenticated_admin_request(
+                method='PATCH',
+                path='/api/v1/users/%s' % self.known_user_id,
+                data=json.dumps(dict(workspace_quota=invalid_input))
+            )
+            self.assertTrue(response.status_code in [400, 422])
 
     def test_admin_acquire_lock(self):
         unique_id = 'abc123'
