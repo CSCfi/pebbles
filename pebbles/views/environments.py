@@ -10,7 +10,7 @@ from sqlalchemy.orm.session import make_transient
 
 from pebbles import rules
 from pebbles.forms import EnvironmentForm
-from pebbles.models import db, Environment, EnvironmentTemplate, Workspace, Instance
+from pebbles.models import db, Environment, EnvironmentTemplate, Workspace, EnvironmentSession
 from pebbles.rules import apply_rules_environments
 from pebbles.utils import requires_workspace_owner_or_admin, requires_admin
 from pebbles.views.commons import auth, requires_workspace_manager_or_admin, is_workspace_manager
@@ -230,7 +230,7 @@ class EnvironmentView(restful.Resource):
         user = g.user
         query = apply_rules_environments(user, dict(environment_id=environment_id))
         environment = query.first()
-        environment_instances = Instance.query.filter_by(environment_id=environment_id).all()
+        environment_sessions = EnvironmentSession.query.filter_by(environment_id=environment_id).all()
         if not environment:
             logging.warning("trying to delete non-existing environment")
             abort(404)
@@ -239,15 +239,15 @@ class EnvironmentView(restful.Resource):
         elif environment.status == Environment.STATUS_ARCHIVED:
             abort(403)
 
-        if not environment_instances:
+        if not environment_sessions:
             db.session.delete(environment)
             db.session.commit()
-        elif environment_instances:
-            for instance in environment_instances:
-                if instance.state != Instance.STATE_DELETED:
-                    instance.to_be_deleted = True
-                    instance.state = Instance.STATE_DELETING
-                    instance.deprovisioned_at = datetime.datetime.utcnow()
+        elif environment_sessions:
+            for environment_session in environment_sessions:
+                if environment_session.state != EnvironmentSession.STATE_DELETED:
+                    environment_session.to_be_deleted = True
+                    environment_session.state = EnvironmentSession.STATE_DELETING
+                    environment_session.deprovisioned_at = datetime.datetime.utcnow()
             environment.status = environment.STATUS_DELETED
             db.session.commit()
         else:

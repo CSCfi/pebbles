@@ -21,7 +21,7 @@ are:
 - `OpenStack driver`_,
   which can be used to launch instances on OpenStack cloud.
 - `Docker driver`_,
-  for running web notebook instances in Docker containers on a pool of virtual machines. 
+  for running web notebook instances in Docker containers on a pool of virtual machines.
     
 Additional resources can be added by implementing the driver interface. 
 

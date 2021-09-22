@@ -162,17 +162,17 @@ Click 'Create Environment' next to OpenStackDriver in the plugin list and you
 are presented by a dialog for configuring the new environment. We'll create a
 environment for Ubuntu-14.04 based VM, using standard.tiny flavor, running for
 1h maximum. We'll also test running a custom command as part of the boot
-process and allow user to open ssh access to the instance from an arbitrary
+process and allow user to open ssh access to the environment_session from an arbitrary
 address
  
 * Name: Ubuntu-14.04 test
 * Description: Test environment for launching a single core Ubuntu-14.04 VM in cPouta
 * Flavor: standard.tiny
 * Maximum lifetime: 1h
-* Maximum instances per user: 1
+* Maximum environment_sessions per user: 1
 * Cost multiplier: 0
 * Remove the example Frontend firewall rule
-* Allow user to request instance firewall to allow access to user's IP address: check
+* Allow user to request environment_session firewall to allow access to user's IP address: check
 
 Also add a Customization script, just for test purposes:
 
@@ -181,19 +181,19 @@ Also add a Customization script, just for test purposes:
 
 Save the new environment and enable it in the Environments list.
 
-Launch a test instance
+Launch a test environment_session
 ----------------------
 
 Go to 'Dashboard' tab. If you have not uploaded your ssh public key yet,
 you'll see a notice with a link to do so in the Environment list. Click the link
 and upload or generate a public key.
 
-Go back to 'Dashboard' and launch an instance. You'll notice the new instance
-in the Instance list. Click on the instance name, that will take you to the
+Go back to 'Dashboard' and launch an environment_session. You'll notice the new environment_session
+in the EnvironmentSession list. Click on the environment_session name, that will take you to the
 detailed view, where you can see the provisioning logs and update access to
-your IP once the instance is up and running. Click on 'Query client IP' to let
+your IP once the environment_session is up and running. Click on 'Query client IP' to let
 the system take an educated guess of your IP and then 'Change client IP'. Now
-the instance firewall is open to that given IP. Copy the ssh -command from the
+the environment_session firewall is open to that given IP. Copy the ssh -command from the
 Access field above and paste that to a terminal (or an ssh-client):
 
     $ ssh cloud-user@86.50.xxx.xxx

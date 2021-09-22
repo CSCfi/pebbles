@@ -52,14 +52,14 @@ CONFIG = {
                 'pattern': '^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)?$',
                 'validationMessage': 'Value should be in format [days]d [hours]h [minutes]m'
             },
-            "maximum_instances_per_user": {
+            "maximum_environment_sessions_per_user": {
                 "type": "integer",
-                "title": "Maximum instances per user",
+                "title": "Maximum environment_sessions per user",
                 "default": 1
             },
             "allow_update_client_connectivity": {
                 "type": "boolean",
-                "title": "Allow user to request instance firewall to allow access to user's IP address",
+                "title": "Allow user to request environment_session firewall to allow access to user's IP address",
                 "default": False,
             },
         }
@@ -77,7 +77,7 @@ CONFIG = {
         "labels",
         "capabilities",
         "maximum_lifetime",
-        "maximum_instances_per_user",
+        "maximum_environment_sessions_per_user",
         "secgroup-rules",
         "allow_update_client_connectivity",
     ],

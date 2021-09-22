@@ -5,7 +5,7 @@ import time
 
 from jose import jwt
 
-from pebbles.models import User, Workspace, Environment, EnvironmentTemplate, Instance
+from pebbles.models import User, Workspace, Environment, EnvironmentTemplate, EnvironmentSession
 from pebbles.tests.base import db, BaseTestCase
 
 
@@ -61,14 +61,14 @@ class ModelsTestCase(BaseTestCase):
         with self.assertRaises(Exception):
             db.session.commit()
 
-    def test_instance_states(self):
-        i1 = Instance(self.known_environment, self.known_user)
-        for state in Instance.VALID_STATES:
+    def test_environment_session_states(self):
+        i1 = EnvironmentSession(self.known_environment, self.known_user)
+        for state in EnvironmentSession.VALID_STATES:
             i1.state = state
 
-        invalid_states = [x + 'foo' for x in Instance.VALID_STATES]
+        invalid_states = [x + 'foo' for x in EnvironmentSession.VALID_STATES]
         invalid_states.append('')
-        invalid_states.extend([x.upper() for x in Instance.VALID_STATES])
+        invalid_states.extend([x.upper() for x in EnvironmentSession.VALID_STATES])
 
         for state in invalid_states:
             try:

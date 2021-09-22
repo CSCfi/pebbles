@@ -73,8 +73,8 @@ class PBClient:
     def do_delete(self, object_url, form_data=None, json_data=None):
         return self.do_modify(method='delete', object_url=object_url, form_data=form_data, json_data=json_data)
 
-    def do_instance_patch(self, instance_id, form_data=None, json_data=None):
-        url = 'instances/%s' % instance_id
+    def do_environment_session_patch(self, environment_session_id, form_data=None, json_data=None):
+        url = 'environment_sessions/%s' % environment_session_id
         resp = self.do_patch(url, form_data=form_data, json_data=json_data)
         return resp
 
@@ -97,20 +97,20 @@ class PBClient:
 
         return resp.json()
 
-    def get_instances(self):
-        resp = self.do_get('instances')
+    def get_environment_sessions(self):
+        resp = self.do_get('environment_sessions')
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for instances, %s' % resp.reason)
+            raise RuntimeError('Cannot fetch data for environment_sessions, %s' % resp.reason)
         return resp.json()
 
-    def get_instance(self, instance_id):
-        resp = self.do_get('instances/%s' % instance_id)
+    def get_environment_session(self, environment_session_id):
+        resp = self.do_get('environment_sessions/%s' % environment_session_id)
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for instances %s, %s' % (instance_id, resp.reason))
+            raise RuntimeError('Cannot fetch data for environment_sessions %s, %s' % (environment_session_id, resp.reason))
         return resp.json()
 
-    def get_instance_environment(self, instance_id):
-        environment_id = self.get_instance(instance_id)['environment_id']
+    def get_environment_session_environment(self, environment_session_id):
+        environment_id = self.get_environment_session(environment_session_id)['environment_id']
 
         # try to get all environments to cover the case where the environment has been just archived
         resp = self.do_get('environments/%s?show_all=1' % environment_id)
@@ -119,7 +119,7 @@ class PBClient:
 
         return resp.json()
 
-    def add_provisioning_log(self, instance_id, message, timestamp=None, log_type='provisioning', log_level='info'):
+    def add_provisioning_log(self, environment_session_id, message, timestamp=None, log_type='provisioning', log_level='info'):
         payload = dict(
             log_record=dict(
                 timestamp=timestamp if timestamp else time(),
@@ -128,9 +128,9 @@ class PBClient:
                 message=message
             )
         )
-        self.do_patch('instances/%s/logs' % instance_id, json_data=payload)
+        self.do_patch('environment_sessions/%s/logs' % environment_session_id, json_data=payload)
 
-    def update_instance_running_logs(self, instance_id, logs):
+    def update_environment_session_running_logs(self, environment_session_id, logs):
         payload = dict(
             log_record=dict(
                 log_type='running',
@@ -139,16 +139,16 @@ class PBClient:
                 message=logs
             )
         )
-        self.do_patch('instances/%s/logs' % instance_id, json_data=payload)
+        self.do_patch('environment_sessions/%s/logs' % environment_session_id, json_data=payload)
 
-    def clear_running_instance_logs(self, instance_id):
+    def clear_running_environment_session_logs(self, environment_session_id):
         headers = {'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % self.auth}
-        url = '%s/instances/%s/logs' % (self.api_base_url, instance_id)
+        url = '%s/environment_sessions/%s/logs' % (self.api_base_url, environment_session_id)
         params = {'log_type': 'running'}
         resp = requests.delete(url, params=params, headers=headers, verify=self.ssl_verify)
         if resp.status_code != 200:
-            raise RuntimeError('Unable to delete running logs for instance %s, %s' % (instance_id, resp.reason))
+            raise RuntimeError('Unable to delete running logs for environment_session %s, %s' % (environment_session_id, resp.reason))
         return resp
 
     def query_locks(self, lock_id=None):

@@ -8,7 +8,7 @@ import abc
 import json
 
 from pebbles.client import PBClient
-from pebbles.models import Instance
+from pebbles.models import EnvironmentSession
 
 
 class ProvisioningDriverBase(object):
@@ -43,107 +43,107 @@ class ProvisioningDriverBase(object):
                 {'style': 'btn-info', 'title': 'Create', 'type': 'submit'}
             ], 'model': {}}
 
-    def update(self, token, instance_id):
-        """ an update call  updates the status of an instance.
+    def update(self, token, environment_session_id):
+        """ an update call  updates the status of an environment_session.
 
-        If an instance is
+        If an environment_session is
           * queued it will be provisioned
           * starting it will be checked for readiness
           * tagged to be deleted it is deprovisioned
         """
-        self.logger.debug("update('%s')" % instance_id)
+        self.logger.debug("update('%s')" % environment_session_id)
 
         pbclient = self.get_pb_client(token)
-        instance = pbclient.get_instance(instance_id)
+        environment_session = pbclient.get_environment_session(environment_session_id)
 
-        if not instance['to_be_deleted']:
-            if instance['state'] in [Instance.STATE_QUEUEING]:
-                self.logger.info('provisioning starting for %s' % instance.get('name'))
-                self.provision(token, instance_id)
-                self.logger.info('provisioning done for %s' % instance.get('name'))
-            if instance['state'] in [Instance.STATE_STARTING]:
-                self.logger.debug('checking readiness of %s' % instance.get('name'))
-                self.check_readiness(token, instance_id)
-            if instance['state'] in [Instance.STATE_RUNNING] and instance['log_fetch_pending']:
-                self.logger.info('fetching instance logs for %s' % instance.get('name'))
-                self.fetch_running_instance_logs(token, instance_id)
+        if not environment_session['to_be_deleted']:
+            if environment_session['state'] in [EnvironmentSession.STATE_QUEUEING]:
+                self.logger.info('provisioning starting for %s' % environment_session.get('name'))
+                self.provision(token, environment_session_id)
+                self.logger.info('provisioning done for %s' % environment_session.get('name'))
+            if environment_session['state'] in [EnvironmentSession.STATE_STARTING]:
+                self.logger.debug('checking readiness of %s' % environment_session.get('name'))
+                self.check_readiness(token, environment_session_id)
+            if environment_session['state'] in [EnvironmentSession.STATE_RUNNING] and environment_session['log_fetch_pending']:
+                self.logger.info('fetching environment_session logs for %s' % environment_session.get('name'))
+                self.fetch_running_environment_session_logs(token, environment_session_id)
                 pass
             else:
-                self.logger.debug("update('%s') - nothing to do for %s" % (instance_id, instance))
-        elif instance['state'] not in [Instance.STATE_DELETED]:
-            self.logger.info('deprovisioning starting for %s' % instance.get('name'))
-            self.deprovision(token, instance_id)
-            pbclient.clear_running_instance_logs(instance_id)
-            self.logger.info('deprovisioning done for %s' % instance.get('name'))
+                self.logger.debug("update('%s') - nothing to do for %s" % (environment_session_id, environment_session))
+        elif environment_session['state'] not in [EnvironmentSession.STATE_DELETED]:
+            self.logger.info('deprovisioning starting for %s' % environment_session.get('name'))
+            self.deprovision(token, environment_session_id)
+            pbclient.clear_running_environment_session_logs(environment_session_id)
+            self.logger.info('deprovisioning done for %s' % environment_session.get('name'))
 
-    def provision(self, token, instance_id):
+    def provision(self, token, environment_session_id):
         self.logger.debug('starting provisioning')
         pbclient = self.get_pb_client(token)
-        pbclient.add_provisioning_log(instance_id, 'starting provisioning')
+        pbclient.add_provisioning_log(environment_session_id, 'starting provisioning')
 
         try:
-            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_PROVISIONING})
+            pbclient.do_environment_session_patch(environment_session_id, {'state': EnvironmentSession.STATE_PROVISIONING})
             self.logger.debug('calling subclass do_provision')
 
-            new_state = self.do_provision(token, instance_id)
-            self.logger.debug('got new state for instance: %s' % new_state)
+            new_state = self.do_provision(token, environment_session_id)
+            self.logger.debug('got new state for environment_session: %s' % new_state)
             if not new_state:
-                new_state = Instance.STATE_RUNNING
+                new_state = EnvironmentSession.STATE_RUNNING
 
-            pbclient.do_instance_patch(instance_id, {'state': new_state})
+            pbclient.do_environment_session_patch(environment_session_id, {'state': new_state})
         except Exception as e:
             self.logger.exception('do_provision raised %s' % e)
-            self.logger.warn('instance provisioning failed for %s' % instance_id)
-            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})
+            self.logger.warn('environment_session provisioning failed for %s' % environment_session_id)
+            pbclient.do_environment_session_patch(environment_session_id, {'state': EnvironmentSession.STATE_FAILED})
             raise e
 
-    def check_readiness(self, token, instance_id):
+    def check_readiness(self, token, environment_session_id):
         self.logger.debug('checking provisioning readiness')
         pbclient = self.get_pb_client(token)
 
         try:
             self.logger.debug('calling subclass do_check_readiness')
 
-            instance_data = self.do_check_readiness(token, instance_id)
-            if instance_data:
-                instance = pbclient.get_instance(instance_id)
-                self.logger.info('instance %s ready' % instance.get('name'))
+            session_data = self.do_check_readiness(token, environment_session_id)
+            if session_data:
+                environment_session = pbclient.get_environment_session(environment_session_id)
+                self.logger.info('environment_session %s ready' % environment_session.get('name'))
                 patch_data = dict(
-                    state=Instance.STATE_RUNNING,
-                    instance_data=json.dumps(instance_data)
+                    state=EnvironmentSession.STATE_RUNNING,
+                    session_data=json.dumps(session_data)
                 )
-                pbclient.do_instance_patch(instance_id, patch_data)
-                pbclient.add_provisioning_log(instance_id, 'checking readiness - ready')
+                pbclient.do_environment_session_patch(environment_session_id, patch_data)
+                pbclient.add_provisioning_log(environment_session_id, 'checking readiness - ready')
             else:
-                pbclient.add_provisioning_log(instance_id, 'checking readiness - not yet ready')
+                pbclient.add_provisioning_log(environment_session_id, 'checking readiness - not yet ready')
 
         except Exception as e:
             self.logger.exception('do_check_readiness raised %s' % e)
-            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})
+            pbclient.do_environment_session_patch(environment_session_id, {'state': EnvironmentSession.STATE_FAILED})
             raise e
 
-    def deprovision(self, token, instance_id):
+    def deprovision(self, token, environment_session_id):
         self.logger.debug('starting deprovisioning')
         pbclient = self.get_pb_client(token)
 
         try:
-            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETING})
+            pbclient.do_environment_session_patch(environment_session_id, {'state': EnvironmentSession.STATE_DELETING})
             self.logger.debug('calling subclass do_deprovision')
-            state = self.do_deprovision(token, instance_id)
+            state = self.do_deprovision(token, environment_session_id)
 
             # check if we got STATE_DELETING from subclass, indicating a retry is needed
-            if state and state == Instance.STATE_DELETING:
-                self.logger.info('instance deletion will be retried for %s', instance_id)
-                pbclient.add_provisioning_log(instance_id, 'deprovisioning - retrying')
+            if state and state == EnvironmentSession.STATE_DELETING:
+                self.logger.info('environment_session deletion will be retried for %s', environment_session_id)
+                pbclient.add_provisioning_log(environment_session_id, 'deprovisioning - retrying')
             elif state is None:
                 self.logger.debug('finishing deprovisioning')
-                pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_DELETED})
-                pbclient.add_provisioning_log(instance_id, 'deprovisioning - done')
+                pbclient.do_environment_session_patch(environment_session_id, {'state': EnvironmentSession.STATE_DELETED})
+                pbclient.add_provisioning_log(environment_session_id, 'deprovisioning - done')
             else:
                 raise RuntimeError('Received invalid state %s from do_deprovision()' % state)
         except Exception as e:
             self.logger.exception('do_deprovision raised %s' % e)
-            pbclient.do_instance_patch(instance_id, {'state': Instance.STATE_FAILED})
+            pbclient.do_environment_session_patch(environment_session_id, {'state': EnvironmentSession.STATE_FAILED})
             raise e
 
     def housekeep(self, token):
@@ -152,20 +152,20 @@ class ProvisioningDriverBase(object):
         self.logger.debug('housekeep')
         self.do_housekeep(token)
 
-    def fetch_running_instance_logs(self, token, instance_id):
-        """ get and uploads the logs of an instance which is in running state """
-        logs = self.do_get_running_logs(token, instance_id)
+    def fetch_running_environment_session_logs(self, token, environment_session_id):
+        """ get and uploads the logs of an environment_session which is in running state """
+        logs = self.do_get_running_logs(token, environment_session_id)
         pbclient = self.get_pb_client(token)
         if logs:
             # take only last 32k characters at maximum (64k char limit in the database, take half of that to
             # make sure we don't overflow it even in the theoretical case of all characters two bytes)
             logs = logs[-32768:]
-            pbclient.update_instance_running_logs(instance_id, logs)
-        pbclient.do_instance_patch(instance_id, json_data={'log_fetch_pending': False})
+            pbclient.update_environment_session_running_logs(environment_session_id, logs)
+        pbclient.do_environment_session_patch(environment_session_id, json_data={'log_fetch_pending': False})
 
     @abc.abstractmethod
     def is_expired(self):
-        """ called by worker to check if a new instance of this driver needs to be created
+        """ called by worker to check if a new environment_session of this driver needs to be created
         """
         pass
 
@@ -178,24 +178,24 @@ class ProvisioningDriverBase(object):
         pass
 
     @abc.abstractmethod
-    def do_provision(self, token, instance_id):
-        """ The steps to take to provision an instance.
+    def do_provision(self, token, environment_session_id):
+        """ The steps to take to provision an environment_session.
         Probably doesn't make sense not to implement.
         """
         pass
 
     @abc.abstractmethod
-    def do_check_readiness(self, token, instance_id):
-        """ Check if an instance in 'STATE_PROVISIONING' is ready yet """
+    def do_check_readiness(self, token, environment_session_id):
+        """ Check if an environment_session in 'STATE_PROVISIONING' is ready yet """
         pass
 
     @abc.abstractmethod
-    def do_deprovision(self, token, instance_id):
-        """ The steps to take to deprovision an instance.
+    def do_deprovision(self, token, environment_session_id):
+        """ The steps to take to deprovision an environment_session.
         """
         pass
 
     @abc.abstractmethod
-    def do_get_running_logs(self, token, instance_id):
-        """implement to return running logs for an instance as a string"""
+    def do_get_running_logs(self, token, environment_session_id):
+        """implement to return running logs for an environment_session as a string"""
         pass

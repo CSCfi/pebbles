@@ -20,7 +20,7 @@ This document defines concepts in Pebbles software.
 - Usually a Docker container - either JupyterLab or RStudio
 - Created by Workspace manager based on Environment template
 
-### Instance
+### EnvironmentSession
 
 - One running copy of an Environment
 - Owned by user
@@ -37,8 +37,8 @@ This document defines concepts in Pebbles software.
 
 ### Persistent user data
 
-- A persistent directory, storing data between instance launches
-- Available in the instance in a directory configured by Workspace manager
+- A persistent directory, storing data between environment session launches
+- Available in the environment session in a directory configured by Workspace manager
 - Is tied to a workspace
 - Has lifetime tied to a Workspace
 
@@ -63,7 +63,7 @@ This document defines concepts in Pebbles software.
 
 - A workspace participant or a user of public Environments
 - Is authenticated
-- May launch instances
+- May launch environment sessions
 - Has access to public Environments
 - May be part of Workspaces
 - Has access to Workspace Environments through membership
@@ -88,10 +88,10 @@ This document defines concepts in Pebbles software.
 
 ### Cluster
 
-- A resource for executing the instances
+- A resource for executing the environment sessions
 - In practice: some sort of Kubernetes cluster
 - Configured by Admin
 
 ### Provisioning driver
 
-- Software component that takes care of running instances in a Cluster
+- Software component that takes care of running environment sessions in a Cluster

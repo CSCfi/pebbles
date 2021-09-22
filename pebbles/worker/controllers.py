@@ -4,7 +4,7 @@ import traceback
 
 import requests
 
-from pebbles.models import Instance
+from pebbles.models import EnvironmentSession
 from pebbles.utils import find_driver_class
 
 
@@ -43,91 +43,91 @@ class ControllerBase:
         if not driver_class:
             raise RuntimeWarning('No matching driver %s found for %s' % (cluster.get('driver'), cluster_name))
 
-        # create and instance and populate the cache
+        # create an instance and populate the cache
         driver_instance = driver_class(logging.getLogger(), self.config, cluster)
         cluster['driver_instance'] = driver_instance
 
         return driver_instance
 
 
-class InstanceController(ControllerBase):
+class EnvironmentSessionController(ControllerBase):
     """
-    Controller that takes care of instances (i.e. environment sessions)
+    Controller that takes care of environment sessions
     """
 
-    def update_instance(self, instance):
-        logging.debug('updating %s' % instance)
-        instance_id = instance['id']
-        cluster_name = instance['provisioning_config']['cluster']
+    def update_environment_session(self, environment_session):
+        logging.debug('updating %s' % environment_session)
+        environment_session_id = environment_session['id']
+        cluster_name = environment_session['provisioning_config']['cluster']
         if cluster_name is None:
-            logging.warning('Cluster/driver config for the instance %s is not found' % instance.get('name'))
+            logging.warning('Cluster/driver config for the environment session %s is not found' % environment_session.get('name'))
 
-        driver_instance = self.get_driver(cluster_name)
-        driver_instance.update(self.client.token, instance_id)
+        driver_environment_session = self.get_driver(cluster_name)
+        driver_environment_session.update(self.client.token, environment_session_id)
 
-    def process_instance(self, instance):
-        # check if we need to deprovision the instance
-        if instance.get('state') in [Instance.STATE_RUNNING]:
-            if not instance.get('lifetime_left') and instance.get('maximum_lifetime'):
+    def process_environment_session(self, environment_session):
+        # check if we need to deprovision the environment session
+        if environment_session.get('state') in [EnvironmentSession.STATE_RUNNING]:
+            if not environment_session.get('lifetime_left') and environment_session.get('maximum_lifetime'):
                 logging.info(
-                    'deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % instance.get('id'))
-                self.client.do_instance_patch(instance['id'], {'to_be_deleted': True})
+                    'deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % environment_session.get('id'))
+                self.client.do_environment_session_patch(environment_session['id'], {'to_be_deleted': True})
 
-        self.update_instance(instance)
+        self.update_environment_session(environment_session)
 
     def process(self):
-        # we query all non-deleted instances
-        instances = self.client.get_instances()
+        # we query all non-deleted environment sessions
+        sessions = self.client.get_environment_sessions()
 
-        # extract instances need to be processed
+        # extract sessions that need to be processed
         # waiting to be provisioned
-        queueing_instances = filter(lambda x: x['state'] == Instance.STATE_QUEUEING, instances)
+        queueing_sessions = filter(lambda x: x['state'] == EnvironmentSession.STATE_QUEUEING, sessions)
         # starting asynchronously
-        starting_instances = filter(lambda x: x['state'] == Instance.STATE_STARTING, instances)
+        starting_sessions = filter(lambda x: x['state'] == EnvironmentSession.STATE_STARTING, sessions)
         # log fetching needed
-        log_fetch_instances = filter(
-            lambda x: x['state'] == Instance.STATE_RUNNING and x['log_fetch_pending'], instances)
-        # expired instances in need of deprovisioning
-        expired_instances = filter(
+        log_fetch_environment_sessions = filter(
+            lambda x: x['state'] == EnvironmentSession.STATE_RUNNING and x['log_fetch_pending'], sessions)
+        # expired sessions in need of deprovisioning
+        expired_sessions = filter(
             lambda x: x['to_be_deleted'] or (x['lifetime_left'] == 0 and x['maximum_lifetime']),
-            instances
+            sessions
         )
 
-        # process instances that need action
-        processed_instances = []
-        processed_instances.extend(queueing_instances)
-        processed_instances.extend(starting_instances)
-        processed_instances.extend(expired_instances)
-        processed_instances.extend(log_fetch_instances)
+        # process sessions that need action
+        processed_sessions = []
+        processed_sessions.extend(queueing_sessions)
+        processed_sessions.extend(starting_sessions)
+        processed_sessions.extend(expired_sessions)
+        processed_sessions.extend(log_fetch_environment_sessions)
 
-        if len(processed_instances):
-            # get locks for instances that are already being processed by another worker
+        if len(processed_sessions):
+            # get locks for sessions that are already being processed by another worker
             locks = self.client.query_locks()
-            locked_instance_ids = [lock['id'] for lock in locks]
+            locked_session_ids = [lock['id'] for lock in locks]
 
             # delete leftover locks that we own
             for lock in locks:
                 if lock['owner'] == self.worker_id:
                     self.client.release_lock(lock['id'], self.worker_id)
 
-            for instance in processed_instances:
+            for session in processed_sessions:
                 # skip the ones that are already in progress
-                if instance['id'] in locked_instance_ids:
+                if session['id'] in locked_session_ids:
                     continue
 
                 # try to obtain a lock. Should we lose the race, the winner takes it and we move on
-                lock = self.client.obtain_lock(instance.get('id'), self.worker_id)
+                lock = self.client.obtain_lock(session.get('id'), self.worker_id)
                 if lock is None:
                     continue
 
-                # process instance and release the lock
+                # process session and release the lock
                 try:
-                    self.process_instance(instance)
+                    self.process_environment_session(session)
                 except Exception as e:
                     logging.warning(e)
                     logging.debug(traceback.format_exc().splitlines()[-5:])
                 finally:
-                    self.client.release_lock(instance.get('id'), self.worker_id)
+                    self.client.release_lock(session.get('id'), self.worker_id)
 
 
 class ClusterController(ControllerBase):

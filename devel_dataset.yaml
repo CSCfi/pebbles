@@ -42,7 +42,7 @@ data:
     allowed_attrs:
       - maximum_lifetime
     base_config:
-      args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{instance_id}}' --NotebookApp.allow_origin='*'
+      args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{session_id}}' --NotebookApp.allow_origin='*'
       environment_vars: ''
       image: jupyter/minimal-notebook
       labels:
@@ -64,7 +64,7 @@ data:
     allowed_attrs:
       - maximum_lifetime
     base_config:
-      args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{instance_id}}' --NotebookApp.allow_origin='*'
+      args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{session_id}}' --NotebookApp.allow_origin='*'
       environment_vars: ''
       image: docker-registry.rahti.csc.fi/notebook-images/pb-jupyter-ml:latest
       labels:

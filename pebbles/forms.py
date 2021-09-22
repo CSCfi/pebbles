@@ -80,7 +80,7 @@ class EnvironmentImportForm(ModelForm):
     workspace_name = StringField('workspace_name', validators=[DataRequired()])
 
 
-class InstanceForm(ModelForm):
+class EnvironmentSessionForm(ModelForm):
     environment = StringField('environment_id', validators=[DataRequired()])
 
 

@@ -181,7 +181,7 @@ def load_cluster_config(
         cluster_config_file='/run/secrets/pebbles/cluster-config.yaml',
         cluster_passwords_file='/run/secrets/pebbles/cluster-passwords.yaml',
 ):
-    """load configuration for clusters where the instances are executed"""
+    """load configuration for clusters where the environment sessions are executed"""
 
     try:
         cluster_config = yaml.safe_load(open(cluster_config_file, 'r'))

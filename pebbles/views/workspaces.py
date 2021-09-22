@@ -12,7 +12,7 @@ from sqlalchemy.orm import subqueryload
 from pebbles import rules
 from pebbles.app import app
 from pebbles.forms import WorkspaceForm
-from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Environment, Instance
+from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Environment, EnvironmentSession
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin
 from pebbles.views.commons import auth, user_fields
 
@@ -246,13 +246,13 @@ class WorkspaceView(restful.Resource):
             environments = workspace.environments.all()
             for environment in environments:
                 environment.status = Environment.STATUS_DELETED
-                for instance in environment.instances:
-                    if instance.state in (Instance.STATE_DELETING, Instance.STATE_DELETED):
+                for environment_session in environment.environment_sessions:
+                    if environment_session.state in (EnvironmentSession.STATE_DELETING, EnvironmentSession.STATE_DELETED):
                         continue
-                    logging.info('Setting instance %s to be deleted', instance.name)
-                    instance.to_be_deleted = True
-                    instance.state = Instance.STATE_DELETING
-                    instance.deprovisioned_at = datetime.datetime.utcnow()
+                    logging.info('Setting environment_session %s to be deleted', environment_session.name)
+                    environment_session.to_be_deleted = True
+                    environment_session.state = EnvironmentSession.STATE_DELETING
+                    environment_session.deprovisioned_at = datetime.datetime.utcnow()
             db.session.commit()
 
         # marshal based on role

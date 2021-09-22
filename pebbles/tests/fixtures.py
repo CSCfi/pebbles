@@ -7,7 +7,7 @@ import yaml
 import pebbles
 from pebbles.models import (
     User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
-    Message, Instance, InstanceLog)
+    Message, EnvironmentSession, EnvironmentSessionLog)
 from pebbles.tests.base import db
 
 
@@ -210,44 +210,44 @@ def primary_test_setup(namespace):
     namespace.known_message2_id = m2.id
     db.session.add(m2)
 
-    i1 = Instance(
+    i1 = EnvironmentSession(
         Environment.query.filter_by(id=e2.id).first(),
         User.query.filter_by(ext_id="user@example.org").first())
     i1.name = 'pb-i1'
-    i1.state = Instance.STATE_RUNNING
+    i1.state = EnvironmentSession.STATE_RUNNING
     db.session.add(i1)
-    namespace.known_instance_id = i1.id
+    namespace.known_environment_session_id = i1.id
 
-    i2 = Instance(
+    i2 = EnvironmentSession(
         Environment.query.filter_by(id=e3.id).first(),
         User.query.filter_by(ext_id="user@example.org").first())
     i2.name = 'pb-i2'
-    i2.state = Instance.STATE_RUNNING
+    i2.state = EnvironmentSession.STATE_RUNNING
     db.session.add(i2)
-    db.session.add(InstanceLog(i2.id, 'info', 'provisioning', '1000.0', 'provisioning done'))
-    namespace.known_instance_id_2 = i2.id
+    db.session.add(EnvironmentSessionLog(i2.id, 'info', 'provisioning', '1000.0', 'provisioning done'))
+    namespace.known_environment_session_id_2 = i2.id
 
-    i3 = Instance(
+    i3 = EnvironmentSession(
         Environment.query.filter_by(id=e3.id).first(),
         User.query.filter_by(ext_id="user@example.org").first())
     i3.name = 'pb-i3'
     i3.to_be_deleted = True
-    i3.state = Instance.STATE_DELETED
+    i3.state = EnvironmentSession.STATE_DELETED
     db.session.add(i3)
 
-    i4 = Instance(
+    i4 = EnvironmentSession(
         Environment.query.filter_by(id=e3.id).first(),
         User.query.filter_by(ext_id="workspace_owner@example.org").first())
     i4.name = 'pb-i4'
-    i4.state = Instance.STATE_FAILED
+    i4.state = EnvironmentSession.STATE_FAILED
     db.session.add(i4)
-    namespace.known_instance_id_4 = i4.id
+    namespace.known_environment_session_id_4 = i4.id
 
-    i5 = Instance(
+    i5 = EnvironmentSession(
         Environment.query.filter_by(id=e4.id).first(),
         User.query.filter_by(ext_id="admin@example.org").first())
     i5.name = 'pb-i5'
-    i5.state = Instance.STATE_RUNNING
+    i5.state = EnvironmentSession.STATE_RUNNING
     db.session.add(i5)
 
     db.session.commit()

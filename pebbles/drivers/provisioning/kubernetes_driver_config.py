@@ -31,7 +31,7 @@ CONFIG = {
             },
             'args': {
                 'type': 'string',
-                'default': "jupyter notebook --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{instance_id}'"
+                'default': "jupyter notebook --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{environment_session_id}'"
             },
             'port': {
                 'type': 'integer',
@@ -43,9 +43,9 @@ CONFIG = {
                 'type': 'string',
                 'default': '512M',
             },
-            'maximum_instances_per_user': {
+            'maximum_environment_sessions_per_user': {
                 'type': 'integer',
-                'title': 'Maximum instances per user',
+                'title': 'Maximum environment_sessions per user',
                 'default': 1,
             },
             'maximum_lifetime': {
@@ -100,7 +100,7 @@ CONFIG = {
         'autodownload_filename',
         'show_password',
         'memory_limit',
-        'maximum_instances_per_user',
+        'maximum_environment_sessions_per_user',
         'maximum_lifetime',
         'cost_multiplier'
     ],

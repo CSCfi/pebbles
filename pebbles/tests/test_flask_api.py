@@ -9,7 +9,7 @@ from dateutil.relativedelta import relativedelta
 
 from pebbles.models import (
     User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
-    Instance, InstanceLog)
+    EnvironmentSession, EnvironmentSessionLog)
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.tests.fixtures import primary_test_setup
 
@@ -145,10 +145,10 @@ class FlaskApiTestCase(BaseTestCase):
             'Authorization': 'Basic %s' % token_b64,
             'token': token_b64
         }
-        # Test instance creation still works for the user
+        # Test environment session creation still works for the user
         response = self.make_request(
             method='POST',
-            path='/api/v1/instances',
+            path='/api/v1/environment_sessions',
             data=json.dumps({'environment': self.known_environment_id_empty}),
             headers=headers)
         self.assert_200(response)
@@ -158,10 +158,10 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/users/%s' % self.known_user_id
         )
         self.assert_200(response)
-        # Test instance creation fails for the user
+        # Test environment session creation fails for the user
         response = self.make_request(
             method='POST',
-            path='/api/v1/instances',
+            path='/api/v1/environment_sessions',
             data=json.dumps({'environment': self.known_environment_id_empty}),
             headers=headers)
         self.assert_401(response)
@@ -638,15 +638,15 @@ class FlaskApiTestCase(BaseTestCase):
         workspace = Workspace.query.filter_by(id=ws.id).first()
         self.assertEqual(Workspace.STATUS_DELETED, workspace.status)
 
-        # owner of the workspace with instances, check that instances are set to be deleted as well
+        # owner of the workspace with environment sessions, check that environment sessions are set to be deleted as well
         response = self.make_authenticated_workspace_owner_request(
             method='DELETE',
             path='/api/v1/workspaces/%s' % self.known_workspace_id
         )
         self.assert_200(response)
         for environment in Workspace.query.filter_by(id=self.known_workspace_id).first().environments:
-            for instance in environment.instances:
-                self.assertEqual(True, instance.to_be_deleted)
+            for environment_session in environment.environment_sessions:
+                self.assertEqual(True, environment_session.to_be_deleted)
 
     def test_join_workspace(self):
         # Anonymous
@@ -1392,55 +1392,55 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/environments/environment_copy/%s' % self.known_environment_id)
         self.assert_200(response)
 
-    def test_anonymous_create_instance(self):
+    def test_anonymous_create_environment_session(self):
         data = {'environment_id': self.known_environment_id}
         response = self.make_request(
             method='POST',
-            path='/api/v1/instances',
+            path='/api/v1/environment_sessions',
             data=json.dumps(data))
         self.assert_401(response)
 
-    def test_user_create_instance(self):
+    def test_user_create_environment_session(self):
         # User is not a part of the workspace (Workspace2)
         data = {'environment': self.known_environment_id_g2}
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/instances',
+            path='/api/v1/environment_sessions',
             data=json.dumps(data))
         self.assert_404(response)
         # User is a part of the workspace (Workspace1)
         data = {'environment': self.known_environment_id_empty}
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/instances',
+            path='/api/v1/environment_sessions',
             data=json.dumps(data))
         self.assert_200(response)
 
-    def test_user_create_instance_environment_disabled(self):
+    def test_user_create_environment_session_environment_disabled(self):
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/instances',
+            path='/api/v1/environment_sessions',
             data=json.dumps({'environment': self.known_environment_id_disabled}),
         )
         self.assert_404(response)
 
-    def test_user_create_instance_environment_deleted(self):
+    def test_user_create_environment_session_environment_deleted(self):
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/instances',
+            path='/api/v1/environment_sessions',
             data=json.dumps({'environment': self.known_environment_id_deleted}),
         )
         self.assert_404(response)
 
-    def test_user_create_instance_environment_archived(self):
+    def test_user_create_environment_session_environment_archived(self):
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/instances',
+            path='/api/v1/environment_sessions',
             data=json.dumps({'environment': self.known_environment_id_archived}),
         )
         self.assert_404(response)
 
-    def test_owner_create_instance_environment_disabled(self):
+    def test_owner_create_environment_session_environment_disabled(self):
         # Use Environment in ws2 that is owned by owner2 and has owner1 as user
 
         # first, disable known_environment_id_g2
@@ -1455,10 +1455,10 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(data))
         self.assert_200(put_response)
 
-        # 'owner2' should be able to launch an instance
+        # 'owner2' should be able to launch an environment session
         response = self.make_authenticated_workspace_owner2_request(
             method='POST',
-            path='/api/v1/instances',
+            path='/api/v1/environment_sessions',
             data=json.dumps({'environment': self.known_environment_id_g2}),
         )
         self.assert_200(response)
@@ -1466,62 +1466,62 @@ class FlaskApiTestCase(BaseTestCase):
         # 'owner' has a user role in this ws2, so this should be denied
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/instances',
+            path='/api/v1/environment_sessions',
             data=json.dumps({'environment': self.known_environment_id_g2}),
         )
         self.assert_404(response)
 
-    def test_get_instances(self):
+    def test_get_environment_sessions(self):
         # Anonymous
-        response = self.make_request(path='/api/v1/instances')
+        response = self.make_request(path='/api/v1/environment_sessions')
         self.assert_401(response)
         # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/instances')
+        response = self.make_authenticated_user_request(path='/api/v1/environment_sessions')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
-        # Workspace Manager (His own instance + other instances from his managed workspaces)
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/instances')
+        # Workspace Manager (His own session + other sessions from his managed workspaces)
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environment_sessions')
         self.assert_200(response)
         self.assertEqual(len(response.json), 3)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/instances')
+        response = self.make_authenticated_admin_request(path='/api/v1/environment_sessions')
         self.assert_200(response)
         self.assertEqual(len(response.json), 4)
-        response = self.make_authenticated_admin_request(path='/api/v1/instances?show_only_mine=1')
+        response = self.make_authenticated_admin_request(path='/api/v1/environment_sessions?show_only_mine=1')
         self.assert_200(response)
         self.assertEqual(len(response.json), 1)
 
-    def test_get_instance(self):
+    def test_get_environment_session(self):
         # Anonymous
-        response = self.make_request(path='/api/v1/instances/%s' % self.known_instance_id)
+        response = self.make_request(path='/api/v1/environment_sessions/%s' % self.known_environment_session_id)
         self.assert_401(response)
 
-        # Authenticated, someone else's instance
+        # Authenticated, someone else's environment session
         response = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/instances/%s' % self.known_instance_id_4
+            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id_4
         )
         self.assert_404(response)
 
         # Authenticated
         response = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/instances/%s' % self.known_instance_id
+            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id
         )
         self.assert_200(response)
 
         # Admin
         response = self.make_authenticated_admin_request(
             method='GET',
-            path='/api/v1/instances/%s' % self.known_instance_id
+            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id
         )
         self.assert_200(response)
 
-    def test_patch_instance(self):
+    def test_patch_environment_session(self):
         # Anonymous
         response = self.make_request(
             method='PATCH',
-            path='/api/v1/instances/%s' % self.known_instance_id,
+            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id,
             data=json.dumps(dict(state='deleting'))
         )
         self.assert_401(response)
@@ -1529,7 +1529,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Authenticated
         response = self.make_authenticated_user_request(
             method='PATCH',
-            path='/api/v1/instances/%s' % self.known_instance_id,
+            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id,
             data=json.dumps(dict(state='deleting'))
         )
         self.assert_403(response)
@@ -1537,7 +1537,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Owner
         response = self.make_authenticated_workspace_owner_request(
             method='PATCH',
-            path='/api/v1/instances/%s' % self.known_instance_id,
+            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id,
             data=json.dumps(dict(state='deleting'))
         )
         self.assert_403(response)
@@ -1545,95 +1545,95 @@ class FlaskApiTestCase(BaseTestCase):
         # Admin, invalid state
         response = self.make_authenticated_admin_request(
             method='PATCH',
-            path='/api/v1/instances/%s' % self.known_instance_id,
+            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id,
             data=json.dumps(dict(state='bogus'))
         )
         self.assertEqual(422, response.status_code)
 
-        # Admin, check that changing state to 'deleted' cleans logs. Instance 2 with logs.
-        self.assertEqual(1, len(InstanceLog.query.filter_by(instance_id=self.known_instance_id_2).all()))
+        # Admin, check that changing state to 'deleted' cleans logs. EnvironmentSession 2 with logs.
+        self.assertEqual(1, len(EnvironmentSessionLog.query.filter_by(environment_session_id=self.known_environment_session_id_2).all()))
         response = self.make_authenticated_admin_request(
             method='PATCH',
-            path='/api/v1/instances/%s' % self.known_instance_id_2,
+            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id_2,
             data=json.dumps(dict(state='deleted'))
         )
         self.assert_200(response)
-        self.assertEqual(0, len(InstanceLog.query.filter_by(instance_id=self.known_instance_id_2).all()))
+        self.assertEqual(0, len(EnvironmentSessionLog.query.filter_by(environment_session_id=self.known_environment_session_id_2).all()))
 
-    def test_delete_instance(self):
+    def test_delete_environment_session(self):
         environment = Environment.query.filter_by(id=self.known_environment_id).first()
         user = User.query.filter_by(id=self.known_user_id).first()
-        i1 = Instance(environment, user)
+        i1 = EnvironmentSession(environment, user)
         db.session.add(i1)
         db.session.commit()
         # Anonymous
         response = self.make_request(
             method='DELETE',
-            path='/api/v1/instances/%s' % i1.id
+            path='/api/v1/environment_sessions/%s' % i1.id
         )
         self.assert_401(response)
-        # Authenticated User of the instance
+        # Authenticated User of the environment session
         response = self.make_authenticated_user_request(
             method='DELETE',
-            path='/api/v1/instances/%s' % i1.id
+            path='/api/v1/environment_sessions/%s' % i1.id
         )
         self.assert_202(response)
 
-        i2 = Instance(environment, user)
+        i2 = EnvironmentSession(environment, user)
         db.session.add(i2)
         db.session.commit()
-        # Authenticated Workspace Owner of the instance
+        # Authenticated Workspace Owner of the environment session
         response = self.make_authenticated_workspace_owner_request(
             method='DELETE',
-            path='/api/v1/instances/%s' % i2.id
+            path='/api/v1/environment_sessions/%s' % i2.id
         )
         self.assert_202(response)
 
-        i3 = Instance(environment, user)
+        i3 = EnvironmentSession(environment, user)
         db.session.add(i3)
         db.session.commit()
-        # Authenticated Workspace Manager of the instance
+        # Authenticated Workspace Manager of the environment session
         response = self.make_authenticated_workspace_owner2_request(
             method='DELETE',
-            path='/api/v1/instances/%s' % i3.id
+            path='/api/v1/environment_sessions/%s' % i3.id
         )
         self.assert_202(response)
 
-        i4 = Instance(environment, user)
+        i4 = EnvironmentSession(environment, user)
         db.session.add(i4)
         db.session.commit()
         # Admin
         response = self.make_authenticated_admin_request(
             method='DELETE',
-            path='/api/v1/instances/%s' % i4.id
+            path='/api/v1/environment_sessions/%s' % i4.id
         )
         self.assert_202(response)
 
         environment2 = Environment.query.filter_by(id=self.known_environment_id_g2).first()
         user2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
-        i5 = Instance(environment2, user2)
+        i5 = EnvironmentSession(environment2, user2)
         db.session.add(i5)
         db.session.commit()
         # User is not part of the workspace
         response = self.make_authenticated_user_request(
             method='DELETE',
-            path='/api/v1/instances/%s' % i5.id
+            path='/api/v1/environment_sessions/%s' % i5.id
         )
         self.assert_404(response)
-        # Is just a Normal user of the workspace who didn't spawn the instance
+        # Is just a Normal user of the workspace who didn't spawn the environment session
         response = self.make_authenticated_workspace_owner_request(
             method='DELETE',
-            path='/api/v1/instances/%s' % i5.id
+            path='/api/v1/environment_sessions/%s' % i5.id
         )
         self.assert_403(response)
         # Authenticated Workspace Owner of the workspace
         response = self.make_authenticated_workspace_owner2_request(
             method='DELETE',
-            path='/api/v1/instances/%s' % i5.id
+            path='/api/v1/environment_sessions/%s' % i5.id
         )
         self.assert_202(response)
 
-    def test_instance_logs(self):
+    def test_environment_session_logs(self):
         epoch_time = time.time()
         log_record = {
             'log_level': 'INFO',
@@ -1643,42 +1643,42 @@ class FlaskApiTestCase(BaseTestCase):
         }
         response_patch = self.make_authenticated_admin_request(
             method='PATCH',
-            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
             data=json.dumps({'log_record': log_record})
         )
         self.assert_200(response_patch)
 
         response_get = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
             data=json.dumps({'log_type': 'provisioning'})
         )
         self.assert_200(response_get)
         self.assertEqual(response_get.json[0]['timestamp'], epoch_time)
 
-        response_instance_get = self.make_authenticated_user_request(
-            path='/api/v1/instances/%s' % self.known_instance_id
+        response_environment_session_get = self.make_authenticated_user_request(
+            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id
         )
-        self.assert_200(response_instance_get)
-        self.assertEqual(response_instance_get.json['logs'][0]['timestamp'], epoch_time)
+        self.assert_200(response_environment_session_get)
+        self.assertEqual(response_environment_session_get.json['logs'][0]['timestamp'], epoch_time)
 
         # delete logs as normal user
         response_delete = self.make_authenticated_user_request(
             method='DELETE',
-            path='/api/v1/instances/%s/logs' % self.known_instance_id
+            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id
         )
         self.assert_403(response_delete)
 
         # delete logs as admin
         response_delete = self.make_authenticated_admin_request(
             method='DELETE',
-            path='/api/v1/instances/%s/logs' % self.known_instance_id
+            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id
         )
         self.assert_200(response_delete)
         # check that logs are empty
         response_get = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
             data=json.dumps({})
         )
         self.assert_200(response_get)
@@ -1688,20 +1688,20 @@ class FlaskApiTestCase(BaseTestCase):
         log_record['log_type'] = 'running'
         response_patch = self.make_authenticated_admin_request(
             method='PATCH',
-            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
             data=json.dumps({'log_record': log_record})
         )
         self.assert_200(response_patch)
         log_record['message'] = 'patched running logs'
         response_patch = self.make_authenticated_admin_request(
             method='PATCH',
-            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
             data=json.dumps({'log_record': log_record})
         )
         self.assert_200(response_patch)
         response_get = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/instances/%s/logs' % self.known_instance_id,
+            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
             data=json.dumps({})
         )
         self.assert_200(response_get)

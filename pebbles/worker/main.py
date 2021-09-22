@@ -7,7 +7,7 @@ from time import sleep
 from pebbles.client import PBClient
 from pebbles.config import BaseConfig
 from pebbles.utils import init_logging, load_cluster_config
-from pebbles.worker.controllers import InstanceController, ClusterController
+from pebbles.worker.controllers import EnvironmentSessionController, ClusterController
 
 
 class Worker:
@@ -31,8 +31,8 @@ class Worker:
             cluster_config_file=self.config['CLUSTER_CONFIG_FILE'],
             cluster_passwords_file=self.config['CLUSTER_PASSWORDS_FILE']
         )
-        self.instance_controller = InstanceController()
-        self.instance_controller.initialize(self.id, self.config, self.cluster_config, self.client)
+        self.environment_session_controller = EnvironmentSessionController()
+        self.environment_session_controller.initialize(self.id, self.config, self.cluster_config, self.client)
         self.cluster_controller = ClusterController()
         self.cluster_controller.initialize(self.id, self.config, self.cluster_config, self.client)
 
@@ -67,8 +67,8 @@ class Worker:
             # make sure we have a fresh session
             self.client.check_and_refresh_session('worker@pebbles', self.api_key)
 
-            # process instances
-            self.instance_controller.process()
+            # process environment sessions
+            self.environment_session_controller.process()
 
             # process clusters
             self.cluster_controller.process()

@@ -91,7 +91,7 @@ class User(db.Model):
     latest_seen_message_ts = db.Column(db.DateTime)
     workspace_quota = db.Column(db.Integer, default=0)
     tc_acceptance_date = db.Column(db.DateTime)
-    instances = db.relationship('Instance', backref='user', lazy='dynamic')
+    environment_sessions = db.relationship('EnvironmentSession', backref='user', lazy='dynamic')
     workspace_associations = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
 
     def __init__(self, ext_id, password=None, is_admin=False, email_id=None, expiry_ts=None, pseudonym=None,
@@ -425,7 +425,7 @@ class Environment(db.Model):
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     expiry_time = db.Column(db.DateTime)
-    instances = db.relationship('Instance', backref='environment', lazy='dynamic')
+    environment_sessions = db.relationship('EnvironmentSession', backref='environment', lazy='dynamic')
     # status when created is "active". Later there are options to be "archived" or "deleted".
     _status = db.Column('status', db.String(32), default='active')
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
@@ -485,7 +485,7 @@ class Environment(db.Model):
         return self.name or "Unnamed environment"
 
 
-class Instance(db.Model):
+class EnvironmentSession(db.Model):
     STATE_QUEUEING = 'queueing'
     STATE_PROVISIONING = 'provisioning'
     STATE_STARTING = 'starting'
@@ -504,7 +504,7 @@ class Instance(db.Model):
         STATE_FAILED,
     )
 
-    __tablename__ = 'instances'
+    __tablename__ = 'environment_sessions'
     id = db.Column(db.String(32), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
     environment_id = db.Column(db.String(32), db.ForeignKey('environments.id'))
@@ -518,22 +518,22 @@ class Instance(db.Model):
     log_fetch_pending = db.Column(db.Boolean, default=False)
     error_msg = db.Column(db.String(256))
     _provisioning_config = db.Column('provisioning_config', db.Text)
-    _instance_data = db.Column('instance_data', db.Text)
+    _session_data = db.Column('session_data', db.Text)
 
     def __init__(self, environment, user):
         self.id = uuid.uuid4().hex
         self.environment_id = environment.id
         self.environment = environment
         self.user_id = user.id
-        self._state = Instance.STATE_QUEUEING
+        self._state = EnvironmentSession.STATE_QUEUEING
 
     @hybrid_property
-    def instance_data(self):
-        return load_column(self._instance_data)
+    def session_data(self):
+        return load_column(self._session_data)
 
-    @instance_data.setter
-    def instance_data(self, value):
-        self._instance_data = json.dumps(value)
+    @session_data.setter
+    def session_data(self, value):
+        self._session_data = json.dumps(value)
 
     @hybrid_property
     def provisioning_config(self):
@@ -549,7 +549,7 @@ class Instance(db.Model):
 
     @state.setter
     def state(self, value):
-        if value in Instance.VALID_STATES:
+        if value in EnvironmentSession.VALID_STATES:
             self._state = value
         else:
             raise ValueError("'%s' is not a valid state" % value)
@@ -559,18 +559,18 @@ class Instance(db.Model):
         return '%s%s-the-%s' % (prefix, names.get_first_name().lower(), random.choice(NAME_ADJECTIVES))
 
 
-class InstanceLog(db.Model):
-    __tablename__ = 'instance_logs'
+class EnvironmentSessionLog(db.Model):
+    __tablename__ = 'environment_session_logs'
     id = db.Column(db.String(32), primary_key=True)
-    instance_id = db.Column(db.String(32), db.ForeignKey('instances.id'), index=True, unique=False)
+    environment_session_id = db.Column(db.String(32), db.ForeignKey('environment_sessions.id'), index=True, unique=False)
     log_level = db.Column(db.String(8))
     log_type = db.Column(db.String(64))
     timestamp = db.Column(db.Float)
     message = db.Column(db.Text)
 
-    def __init__(self, instance_id, log_level, log_type, timestamp, message):
+    def __init__(self, environment_session_id, log_level, log_type, timestamp, message):
         self.id = uuid.uuid4().hex
-        self.instance_id = instance_id
+        self.environment_session_id = environment_session_id
         self.log_level = log_level
         self.log_type = log_type
         self.timestamp = timestamp

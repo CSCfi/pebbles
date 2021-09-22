@@ -31,9 +31,9 @@ CONFIG = {
                 'type': 'string',
                 'default': 'local_kubernetes',
             },
-            'maximum_instances_per_user': {
+            'maximum_environment_sessions_per_user': {
                 'type': 'integer',
-                'title': 'Maximum instances per user',
+                'title': 'Maximum environment_sessions per user',
                 'default': 1,
             },
             'maximum_lifetime': {
@@ -63,7 +63,7 @@ CONFIG = {
     'form': [
         {
             'type': 'help',
-            'helpvalue': '<h4>Openshift Template instance config</h4>'
+            'helpvalue': '<h4>Openshift Template environment session config</h4>'
         },
         'name',
         'description',
@@ -71,7 +71,7 @@ CONFIG = {
         'os_template',
         'cluster',
         'environment_vars',
-        'maximum_instances_per_user',
+        'maximum_environment_sessions_per_user',
         'maximum_lifetime',
         'cost_multiplier',
         'auto_authentication'

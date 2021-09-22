@@ -4,7 +4,7 @@ from sqlalchemy import or_, and_
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
 
-from pebbles.models import Environment, EnvironmentTemplate, Instance, User, WorkspaceUserAssociation
+from pebbles.models import Environment, EnvironmentTemplate, EnvironmentSession, User, WorkspaceUserAssociation
 from pebbles.views.commons import is_workspace_manager
 
 
@@ -73,24 +73,24 @@ def apply_rules_export_environments(user):
     return q
 
 
-def apply_rules_instances(user, args=None):
-    # basic query filter out the deleted instances
-    q = Instance.query.filter(Instance.state != Instance.STATE_DELETED)
+def apply_rules_environment_sessions(user, args=None):
+    # basic query filter out the deleted environment_sessions
+    q = EnvironmentSession.query.filter(EnvironmentSession.state != EnvironmentSession.STATE_DELETED)
     if not user.is_admin:
-        # user's own instances
+        # user's own environment_sessions
         q1 = q.filter_by(user_id=user.id)
         if is_workspace_manager(user):
-            # include also instances of the environments of managed workspaces
-            workspace_environments_id = get_workspace_environment_ids_for_instances(user, only_managed=True)
-            q2 = q.filter(Instance.environment_id.in_(workspace_environments_id))
+            # include also environment_sessions of the environments of managed workspaces
+            workspace_environments_id = get_workspace_environment_ids_for_environment_sessions(user, only_managed=True)
+            q2 = q.filter(EnvironmentSession.environment_id.in_(workspace_environments_id))
             q = q1.union(q2)
         else:
             q = q1
 
     # additional filtering
     if args is not None:
-        if 'instance_id' in args:
-            q = q.filter_by(id=args.get('instance_id'))
+        if 'environment_session_id' in args:
+            q = q.filter_by(id=args.get('environment_session_id'))
         if args.get('show_only_mine'):
             q = q.filter_by(user_id=user.id)
         if 'offset' in args:
@@ -146,8 +146,8 @@ def get_manager_workspace_ids(user):
     return manager_workspace_ids
 
 
-def get_workspace_environment_ids_for_instances(user, only_managed=False):
-    """Return the valid environment ids based on user's workspaces to be used in instances view"""
+def get_workspace_environment_ids_for_environment_sessions(user, only_managed=False):
+    """Return the valid environment ids based on user's workspaces to be used in environment_sessions view"""
     workspace_user_query = WorkspaceUserAssociation.query
     if only_managed:  # if we require only managed workspaces
         workspace_user_objs = workspace_user_query.filter_by(user_id=user.id, is_manager=True).all()

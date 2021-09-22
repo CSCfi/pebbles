@@ -10,7 +10,7 @@ from pebbles.views.environment_templates import environment_templates
 from pebbles.views.environments import environments, EnvironmentList, EnvironmentView, EnvironmentCopy
 from pebbles.views.helps import helps, HelpsList
 from pebbles.views.import_export import import_export, ImportExportEnvironmentTemplates, ImportExportEnvironments
-from pebbles.views.instances import instances, InstanceList, InstanceView, InstanceLogs
+from pebbles.views.environment_sessions import environment_sessions, EnvironmentSessionList, EnvironmentSessionView, EnvironmentSessionLogs
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.sessions import sessions, SessionView
@@ -40,14 +40,14 @@ api.add_resource(EnvironmentTemplateCopy, api_root + '/environment_templates/tem
 api.add_resource(EnvironmentList, api_root + '/environments')
 api.add_resource(EnvironmentView, api_root + '/environments/<string:environment_id>')
 api.add_resource(EnvironmentCopy, api_root + '/environments/environment_copy/<string:environment_id>')
-api.add_resource(InstanceList, api_root + '/instances')
+api.add_resource(EnvironmentSessionList, api_root + '/environment_sessions')
 api.add_resource(
-    InstanceView,
-    api_root + '/instances/<string:instance_id>',
+    EnvironmentSessionView,
+    api_root + '/environment_sessions/<string:environment_session_id>',
     methods=['GET', 'POST', 'DELETE', 'PATCH'])
 api.add_resource(
-    InstanceLogs,
-    api_root + '/instances/<string:instance_id>/logs',
+    EnvironmentSessionLogs,
+    api_root + '/environment_sessions/<string:environment_session_id>/logs',
     methods=['GET', 'PATCH', 'DELETE'])
 api.add_resource(ClusterList, api_root + '/clusters')
 api.add_resource(PublicVariableList, api_root + '/config')
@@ -67,7 +67,7 @@ app.register_blueprint(clusters)
 app.register_blueprint(users)
 app.register_blueprint(workspaces)
 app.register_blueprint(join_workspace)
-app.register_blueprint(instances)
+app.register_blueprint(environment_sessions)
 app.register_blueprint(sessions)
 app.register_blueprint(variables)
 app.register_blueprint(locks)

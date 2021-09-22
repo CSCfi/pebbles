@@ -111,7 +111,7 @@ class BaseConfig(object):
     BASE_URL = 'https://localhost:8888'
     # Internal url for contacting the API, defaults to 'api' Service
     INTERNAL_API_BASE_URL = 'http://api:8080/api/v1'
-    # prefix all instance names with this
+    # prefix all environment_session names with this
     INSTANCE_NAME_PREFIX = 'pb-'
 
     # Info about the system for frontend
