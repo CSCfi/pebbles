@@ -60,7 +60,10 @@ class EnvironmentSessionController(ControllerBase):
         environment_session_id = environment_session['id']
         cluster_name = environment_session['provisioning_config']['cluster']
         if cluster_name is None:
-            logging.warning('Cluster/driver config for the environment session %s is not found' % environment_session.get('name'))
+            logging.warning(
+                'Cluster/driver config for the environment session %s is not found',
+                environment_session.get('name')
+            )
 
         driver_environment_session = self.get_driver(cluster_name)
         driver_environment_session.update(self.client.token, environment_session_id)
@@ -70,7 +73,9 @@ class EnvironmentSessionController(ControllerBase):
         if environment_session.get('state') in [EnvironmentSession.STATE_RUNNING]:
             if not environment_session.get('lifetime_left') and environment_session.get('maximum_lifetime'):
                 logging.info(
-                    'deprovisioning triggered for %s (reason: maximum lifetime exceeded)' % environment_session.get('id'))
+                    'deprovisioning triggered for %s (reason: maximum lifetime exceeded)',
+                    environment_session.get('id')
+                )
                 self.client.do_environment_session_patch(environment_session['id'], {'to_be_deleted': True})
 
         self.update_environment_session(environment_session)
@@ -156,10 +161,9 @@ class ClusterController(ControllerBase):
                 logging.debug('alerts disabled for cluster %s ' % cluster_name)
                 continue
 
-            logging.debug(cluster)
             res = requests.get(
                 url="https://" + cluster['appDomain'] + "/prometheus/api/v1/alerts",
-                auth=('token', 'pebbles!selddeq')
+                auth=('token', cluster.get('monitoringToken'))
             )
             if not res.ok:
                 logging.warning('unable to get alerts from cluster %s' % cluster_name)
@@ -173,7 +177,11 @@ class ClusterController(ControllerBase):
                 logging.warning('zero alerts, watchdog is not working for cluster %s' % cluster_name)
                 continue
 
-            real_alerts = list(filter(lambda x: x['labels']['severity'] != 'none', alerts))
+            # filter out low severity ('none', 'info') and speculative alerts (state not 'firing')
+            real_alerts = list(filter(
+                lambda x: x['labels']['severity'] not in ('none', 'info') and x['state'] == 'firing',
+                alerts
+            ))
 
             if len(real_alerts) > 0:
                 logging.info('found %d alerts for cluster %s' % (len(real_alerts), cluster_name))

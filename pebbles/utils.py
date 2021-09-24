@@ -203,10 +203,16 @@ def load_cluster_config(
 
     for cluster in cluster_config.get('clusters'):
         cluster_name = cluster.get('name')
-        password = cluster_passwords.get(cluster_name)
-        if password:
-            logging.debug('setting password for cluster %s' % cluster_name)
-            cluster['password'] = password
+        password_data = cluster_passwords.get(cluster_name)
+        if not password_data:
+            continue
+        logging.debug('setting password data for cluster %s' % cluster_name)
+        if isinstance(password_data, str):
+            # simple string is password in an old style structure
+            cluster['password'] = password_data
+        else:
+            cluster['password'] = password_data.get('password')
+            cluster['monitoringToken'] = password_data.get('monitoringToken')
 
     return cluster_config
 
