@@ -155,8 +155,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def do_check_readiness(self, token, environment_session_id):
         environment_session = self.fetch_and_populate_environment_session(token, environment_session_id)
         namespace = self.get_environment_session_namespace(environment_session)
-        api = self.dynamic_client.resources.get(api_version='v1', kind='Pod')
-        pods = api.get(
+        pod_api = self.dynamic_client.resources.get(api_version='v1', kind='Pod')
+        pods = pod_api.get(
             namespace=namespace,
             label_selector='name=%s' % environment_session.get('name')
         )
@@ -170,32 +170,61 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         # no pods, continue waiting
         if len(pods.items) == 0:
             return None
+
         # more than one pod with given search condition, we have a logic error
         if len(pods.items) > 1:
             raise RuntimeWarning('pod results length is not one. dump: %s' % pods.to_str())
 
         pod = pods.items[0]
-        # first check that the pod is running
-        if pod.status.phase != 'Running':
-            return None
-        # then check readiness of all containers
-        for containerStatus in pod.status.containerStatuses:
-            if not containerStatus.ready:
-                return None
+        # first check that the pod is running, then check readiness of all containers
+        if pod.status.phase == 'Running' and not [x for x in pod.status.containerStatuses if not x.ready]:
+            # environment session ready, create and publish an endpoint url. note that we pick the protocol
+            # from a property that can be set in a subclass
+            return dict(
+                namespace=namespace,
+                endpoints=[dict(
+                    name='https',
+                    access='%s://%s%s' % (
+                        self.endpoint_protocol,
+                        self.get_environment_session_hostname(environment_session),
+                        self.get_environment_session_path(environment_session) + '/'
+                    )
+                )]
+            )
 
-        # environment session ready, create and publish an endpoint url. note that we pick the protocol
-        # from a property that can be set in a subclass
-        return dict(
+        # pod not ready yet, extract status for the user
+        event_api = self.dynamic_client.resources.get(api_version='v1', kind='Event')
+        event_resp = event_api.get(
             namespace=namespace,
-            endpoints=[dict(
-                name='https',
-                access='%s://%s%s' % (
-                    self.endpoint_protocol,
-                    self.get_environment_session_hostname(environment_session),
-                    self.get_environment_session_path(environment_session) + '/'
-                )
-            )]
+            field_selector='involvedObject.name=%s' % pod.metadata.name
         )
+        if event_resp.items:
+            # turn k8s events into provisioning log entries
+            def extract_log_entries(x):
+                event_time = x.firstTimestamp if x.firstTimestamp else x.eventTime
+                ts = datetime.datetime.fromisoformat(event_time[:-1]).timestamp()
+                if ts < time.time() - 30:
+                    return None
+                if 'assigned' in x.message:
+                    return ts, 'scheduled to a node'
+                if 'ulling image' in x.message:
+                    return ts, 'pulling container image'
+                if 'olume' in x.message:
+                    return ts, 'waiting for volumes'
+                if 'eadiness probe' in x.message:
+                    return ts, 'starting'
+                return None
+            log_entries = map(extract_log_entries, event_resp.items)
+            log_entries = [x for x in log_entries if x]
+            if log_entries:
+                ts, message = log_entries[-1]
+                self.get_pb_client(token).add_provisioning_log(
+                    environment_session_id=environment_session_id,
+                    timestamp=ts,
+                    message=message
+                )
+
+        return None
 
     def do_deprovision(self, token, environment_session_id):
         environment_session = self.fetch_and_populate_environment_session(token, environment_session_id)
@@ -263,7 +292,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         # now we got the pod, query the logs
         resp = self.dynamic_client.request(
             'GET',
-            '/api/v1/namespaces/%s/pods/%s/log' % (namespace, pods.items[0].metadata.name))
+            '/api/v1/namespaces/%s/pods/%s/log?container=pebbles-session' % (namespace, pods.items[0].metadata.name))
         return resp
 
     def is_expired(self):
@@ -504,16 +533,19 @@ class KubernetesRemoteDriver(KubernetesDriverBase):
         if 'session_data' in environment_session and 'namespace' in environment_session['session_data']:
             # environment_session already has namespace assigned in session_data
             namespace = environment_session['session_data']['namespace']
-            self.logger.debug('found namespace %s for environment_session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug(
+                'found namespace %s for environment_session %s' % (namespace, environment_session.get('name')))
         elif 'namespace' in self.cluster_config.keys():
             # if we have a single namespace configured, use that
             namespace = self.cluster_config['namespace']
-            self.logger.debug('using fixed namespace %s for environment_session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug(
+                'using fixed namespace %s for environment_session %s' % (namespace, environment_session.get('name')))
         else:
             # generate namespace name based on prefix and workspace pseudonym
             namespace_prefix = self.cluster_config.get('namespacePrefix', 'pb-')
             namespace = '%s%s' % (namespace_prefix, environment_session['environment']['workspace_pseudonym'])
-            self.logger.debug('assigned namespace %s to environment_session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug(
+                'assigned namespace %s to environment_session %s' % (namespace, environment_session.get('name')))
         return namespace
 
     def create_namespace(self, namespace):
@@ -619,16 +651,19 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
         if 'session_data' in environment_session and 'namespace' in environment_session['session_data']:
             # environment_session already has namespace assigned in session_data
             namespace = environment_session['session_data']['namespace']
-            self.logger.debug('found namespace %s for environment_session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug(
+                'found namespace %s for environment_session %s' % (namespace, environment_session.get('name')))
         elif 'namespace' in self.cluster_config.keys():
             # if we have a single namespace configured, use that
             namespace = self.cluster_config['namespace']
-            self.logger.debug('using fixed namespace %s for environment_session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug(
+                'using fixed namespace %s for environment_session %s' % (namespace, environment_session.get('name')))
         else:
             # generate namespace name based on prefix and workspace pseudonym
             namespace_prefix = self.cluster_config.get('namespacePrefix', 'pb-')
             namespace = '%s%s' % (namespace_prefix, environment_session['environment']['workspace_pseudonym'])
-            self.logger.debug('assigned namespace %s to environment_session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug(
+                'assigned namespace %s to environment_session %s' % (namespace, environment_session.get('name')))
         return namespace
 
     def create_namespace(self, namespace):

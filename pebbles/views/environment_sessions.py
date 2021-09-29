@@ -36,7 +36,6 @@ environment_session_fields = {
     'environment_id': fields.String,
     'provisioning_config': fields.Raw,
     'session_data': fields.Raw,
-    'logs': fields.Raw,
 }
 
 environment_session_log_fields = {
@@ -96,7 +95,8 @@ class EnvironmentSessionList(restful.Resource):
 
             environment = get_environment(environment_session.environment_id)
             if not environment:
-                logging.warning("environment_session %s has a reference to non-existing environment" % environment_session.id)
+                logging.warning(
+                    "environment_session %s has a reference to non-existing environment" % environment_session.id)
                 continue
 
             age = 0
@@ -161,15 +161,6 @@ class EnvironmentSessionList(restful.Resource):
 
 
 class EnvironmentSessionView(restful.Resource):
-    parser = reqparse.RequestParser()
-    parser.add_argument('state', type=str)
-    parser.add_argument('public_ip', type=str)
-    parser.add_argument('error_msg', type=str)
-    parser.add_argument('client_ip', type=str)
-    parser.add_argument('session_data', type=str)
-    parser.add_argument('to_be_deleted', type=bool)
-    parser.add_argument('log_fetch_pending', type=bool)
-    parser.add_argument('send_email', type=bool)
 
     @auth.login_required
     @marshal_with(environment_session_fields)
@@ -184,8 +175,6 @@ class EnvironmentSessionView(restful.Resource):
         environment = Environment.query.filter_by(id=environment_session.environment_id).first()
         environment_session.environment_id = environment.id
         environment_session.username = environment_session.user
-        environment_session_logs = get_logs_from_db(environment_session.id)
-        environment_session.logs = marshal(environment_session_logs, environment_session_log_fields)
 
         age = 0
         if environment_session.provisioned_at:
@@ -215,10 +204,20 @@ class EnvironmentSessionView(restful.Resource):
         # Action queued, return 202 Accepted
         return None, 202
 
+    patch_parser = reqparse.RequestParser()
+    patch_parser.add_argument('state', type=str)
+    patch_parser.add_argument('public_ip', type=str)
+    patch_parser.add_argument('error_msg', type=str)
+    patch_parser.add_argument('client_ip', type=str)
+    patch_parser.add_argument('session_data', type=str)
+    patch_parser.add_argument('to_be_deleted', type=bool)
+    patch_parser.add_argument('log_fetch_pending', type=bool)
+    patch_parser.add_argument('send_email', type=bool)
+
     @auth.login_required
     @requires_admin
     def patch(self, environment_session_id):
-        args = self.parser.parse_args()
+        args = self.patch_parser.parse_args()
         environment_session = EnvironmentSession.query.filter_by(id=environment_session_id).first()
         if not environment_session:
             abort(404)
@@ -283,17 +282,42 @@ class EnvironmentSessionLogs(restful.Resource):
     @auth.login_required
     @requires_admin
     def patch(self, environment_session_id):
-        parser = reqparse.RequestParser()
-        parser.add_argument('log_record', type=dict)
-        parser.add_argument('log_type', type=str)
-        args = parser.parse_args()
-        environment_session = EnvironmentSession.query.filter_by(id=environment_session_id).first()
-        if not environment_session:
-            abort(404)
+        patch_parser = reqparse.RequestParser()
+        patch_parser.add_argument('log_record', type=dict)
+        args = patch_parser.parse_args()
+
         if args.get('log_record'):
             log_record = args['log_record']
-            environment_session_log = process_logs(environment_session_id, log_record)
-            db.session.add(environment_session_log)
+
+            environment_session_log = None
+            # provisioning logs: check if we already have a matching line and can skip adding a duplicate
+            if log_record['log_type'] == 'provisioning':
+                existing_logs = get_logs_from_db(environment_session_id, log_record['log_type'])
+                for log_line in existing_logs:
+                    if log_line.timestamp == log_record['timestamp'] and \
+                            log_line.environment_session_id == log_record['environment_session_id'] and \
+                            log_line.log_type == log_record['log_type']:
+                        return 'no change'
+
+            # running logs: patch the the existing entry with new timestamp and message
+            if log_record['log_type'] == 'running':
+                existing_logs = get_logs_from_db(environment_session_id, log_record['log_type'])
+                if existing_logs:
+                    environment_session_log = existing_logs[0]
+                    environment_session_log.timestamp = float(log_record['timestamp'])
+                    environment_session_log.message = log_record['message']
+
+            # no previous log record found, add a new one to the session
+            if not environment_session_log:
+                environment_session_log = EnvironmentSessionLog(
+                    environment_session_id,
+                    log_record['log_level'],
+                    log_record['log_type'],
+                    log_record['timestamp'],
+                    log_record['message'],
+                )
+                db.session.add(environment_session_log)
+
             db.session.commit()
 
         return 'ok'
@@ -308,8 +332,9 @@ class EnvironmentSessionLogs(restful.Resource):
 
 
 def get_logs_from_db(environment_session_id, log_type=None):
-    logs_query = EnvironmentSessionLog.query\
-        .filter_by(environment_session_id=environment_session_id)
+    logs_query = EnvironmentSessionLog.query \
+        .filter_by(environment_session_id=environment_session_id) \
+        .order_by(EnvironmentSessionLog.timestamp)
     if log_type:
         logs_query = logs_query.filter_by(log_type=log_type)
     logs_query = logs_query.order_by(EnvironmentSessionLog.timestamp)
@@ -325,26 +350,3 @@ def delete_logs_from_db(environment_session_id, log_type=None):
     for environment_session_log in environment_session_logs:
         db.session.delete(environment_session_log)
     db.session.commit()
-
-
-def process_logs(environment_session_id, log_record):
-
-    # in case of running logs, the whole message is replaced again (thus only 1 running log record with all info)
-    if log_record['log_type'] == 'running':
-        existing_runnings_logs = get_logs_from_db(environment_session_id, 'running')
-        if existing_runnings_logs:
-            environment_session_log = existing_runnings_logs[0]
-            environment_session_log.timestamp = float(log_record['timestamp'])
-            # replace the whole text (older text now appended with the new text)
-            environment_session_log.message = log_record['message']
-            return environment_session_log
-
-    environment_session_log = EnvironmentSessionLog(
-        environment_session_id,
-        log_record['log_level'],
-        log_record['log_type'],
-        log_record['timestamp'],
-        log_record['message'],
-    )
-
-    return environment_session_log

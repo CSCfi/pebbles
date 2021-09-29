@@ -142,6 +142,7 @@ class ClusterController(ControllerBase):
     """
 
     def __init__(self):
+        super().__init__()
         self.last_check_ts = 0
 
     def process(self):

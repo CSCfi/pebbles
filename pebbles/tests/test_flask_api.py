@@ -1656,12 +1656,6 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response_get)
         self.assertEqual(response_get.json[0]['timestamp'], epoch_time)
 
-        response_environment_session_get = self.make_authenticated_user_request(
-            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id
-        )
-        self.assert_200(response_environment_session_get)
-        self.assertEqual(response_environment_session_get.json['logs'][0]['timestamp'], epoch_time)
-
         # delete logs as normal user
         response_delete = self.make_authenticated_user_request(
             method='DELETE',
@@ -1675,14 +1669,15 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id
         )
         self.assert_200(response_delete)
+
         # check that logs are empty
         response_get = self.make_authenticated_user_request(
             method='GET',
             path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
-            data=json.dumps({})
+            data=json.dumps({'log_type': 'provisioning'})
         )
         self.assert_200(response_get)
-        self.assertEqual(0, len(response_get.json))
+        self.assertEqual(len(response_get.json), 0)
 
         # test patching running logs - should be replaced, not appended
         log_record['log_type'] = 'running'

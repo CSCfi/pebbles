@@ -79,7 +79,7 @@ class ProvisioningDriverBase(object):
     def provision(self, token, environment_session_id):
         self.logger.debug('starting provisioning')
         pbclient = self.get_pb_client(token)
-        pbclient.add_provisioning_log(environment_session_id, 'starting provisioning')
+        pbclient.add_provisioning_log(environment_session_id, 'created')
 
         try:
             pbclient.do_environment_session_patch(environment_session_id, {'state': EnvironmentSession.STATE_PROVISIONING})
@@ -105,6 +105,7 @@ class ProvisioningDriverBase(object):
             self.logger.debug('calling subclass do_check_readiness')
 
             session_data = self.do_check_readiness(token, environment_session_id)
+            # if we got a result, the session is ready and the returned value is session_data
             if session_data:
                 environment_session = pbclient.get_environment_session(environment_session_id)
                 self.logger.info('environment_session %s ready' % environment_session.get('name'))
@@ -113,9 +114,7 @@ class ProvisioningDriverBase(object):
                     session_data=json.dumps(session_data)
                 )
                 pbclient.do_environment_session_patch(environment_session_id, patch_data)
-                pbclient.add_provisioning_log(environment_session_id, 'checking readiness - ready')
-            else:
-                pbclient.add_provisioning_log(environment_session_id, 'checking readiness - not yet ready')
+                pbclient.add_provisioning_log(environment_session_id, 'ready')
 
         except Exception as e:
             self.logger.exception('do_check_readiness raised %s' % e)
@@ -138,7 +137,6 @@ class ProvisioningDriverBase(object):
             elif state is None:
                 self.logger.debug('finishing deprovisioning')
                 pbclient.do_environment_session_patch(environment_session_id, {'state': EnvironmentSession.STATE_DELETED})
-                pbclient.add_provisioning_log(environment_session_id, 'deprovisioning - done')
             else:
                 raise RuntimeError('Received invalid state %s from do_deprovision()' % state)
         except Exception as e:
