@@ -131,17 +131,21 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         session_storage_class_name = self.cluster_config.get('storageClassNameSession')
         user_storage_class_name = self.cluster_config.get('storageClassNameUser')
         shared_storage_class_name = self.cluster_config.get('storageClassNameShared')
-        volume_size = self.cluster_config.get('volumeSize', '20Gi')
+
+        session_volume_size = self.cluster_config.get('volumeSizeSession', '5Gi')
+        shared_volume_size = self.cluster_config.get('volumeSizeShared', '20Gi')
+        user_volume_size = self.cluster_config.get('volumeSizeUser', '1Gi')
 
         # create namespace if necessary
         self.ensure_namespace(namespace)
         # create volumes if necessary
-        self.ensure_volume(namespace, environment_session, session_volume_name, volume_size, session_storage_class_name)
-        self.ensure_volume(namespace, environment_session, shared_volume_name, volume_size, shared_storage_class_name,
-                           'ReadWriteMany')
+        self.ensure_volume(namespace, environment_session,
+                           session_volume_name, session_volume_size, session_storage_class_name)
+        self.ensure_volume(namespace, environment_session,
+                           shared_volume_name, shared_volume_size, shared_storage_class_name, 'ReadWriteMany')
         if user_volume_name:
-            self.ensure_volume(namespace, environment_session, user_volume_name, volume_size, user_storage_class_name,
-                               'ReadWriteMany')
+            self.ensure_volume(namespace, environment_session,
+                               user_volume_name, user_volume_size, user_storage_class_name, 'ReadWriteMany')
 
         # create actual session/environment_session objects
         self.create_deployment(namespace, environment_session)
@@ -533,19 +537,16 @@ class KubernetesRemoteDriver(KubernetesDriverBase):
         if 'session_data' in environment_session and 'namespace' in environment_session['session_data']:
             # environment_session already has namespace assigned in session_data
             namespace = environment_session['session_data']['namespace']
-            self.logger.debug(
-                'found namespace %s for environment_session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug('found namespace %s for session %s' % (namespace, environment_session.get('name')))
         elif 'namespace' in self.cluster_config.keys():
             # if we have a single namespace configured, use that
             namespace = self.cluster_config['namespace']
-            self.logger.debug(
-                'using fixed namespace %s for environment_session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug('using fixed namespace %s for session %s' % (namespace, environment_session.get('name')))
         else:
             # generate namespace name based on prefix and workspace pseudonym
             namespace_prefix = self.cluster_config.get('namespacePrefix', 'pb-')
             namespace = '%s%s' % (namespace_prefix, environment_session['environment']['workspace_pseudonym'])
-            self.logger.debug(
-                'assigned namespace %s to environment_session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug('assigned namespace %s to session %s' % (namespace, environment_session.get('name')))
         return namespace
 
     def create_namespace(self, namespace):
@@ -651,19 +652,16 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
         if 'session_data' in environment_session and 'namespace' in environment_session['session_data']:
             # environment_session already has namespace assigned in session_data
             namespace = environment_session['session_data']['namespace']
-            self.logger.debug(
-                'found namespace %s for environment_session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug('found namespace %s for session %s' % (namespace, environment_session.get('name')))
         elif 'namespace' in self.cluster_config.keys():
             # if we have a single namespace configured, use that
             namespace = self.cluster_config['namespace']
-            self.logger.debug(
-                'using fixed namespace %s for environment_session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug('using fixed namespace %s for session %s' % (namespace, environment_session.get('name')))
         else:
             # generate namespace name based on prefix and workspace pseudonym
             namespace_prefix = self.cluster_config.get('namespacePrefix', 'pb-')
             namespace = '%s%s' % (namespace_prefix, environment_session['environment']['workspace_pseudonym'])
-            self.logger.debug(
-                'assigned namespace %s to environment_session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug('assigned namespace %s to session %s' % (namespace, environment_session.get('name')))
         return namespace
 
     def create_namespace(self, namespace):
