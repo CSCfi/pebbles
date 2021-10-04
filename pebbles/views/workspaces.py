@@ -14,7 +14,7 @@ from pebbles.app import app
 from pebbles.forms import WorkspaceForm
 from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Environment, EnvironmentSession
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin
-from pebbles.views.commons import auth, user_fields
+from pebbles.views.commons import auth
 
 workspaces = FlaskBlueprint('workspaces', __name__)
 join_workspace = FlaskBlueprint('join_workspace', __name__)
@@ -58,12 +58,14 @@ workspace_fields_user = {
     'description': fields.Raw,
 }
 
-total_users_fields = {
-    'owner': fields.Nested(user_fields),
-    'manager_users': fields.List(fields.Nested(user_fields)),
-    'normal_users': fields.List(fields.Nested(user_fields)),
-    'banned_users': fields.List(fields.Nested(user_fields))
-}
+member_fields = dict(
+    user_id=fields.String,
+    ext_id=fields.String,
+    email_id=fields.String,
+    is_owner=fields.Boolean,
+    is_manager=fields.Boolean,
+    is_banned=fields.Boolean,
+)
 
 
 def marshal_based_on_role(user, workspace):
@@ -247,7 +249,8 @@ class WorkspaceView(restful.Resource):
             for environment in environments:
                 environment.status = Environment.STATUS_DELETED
                 for environment_session in environment.environment_sessions:
-                    if environment_session.state in (EnvironmentSession.STATE_DELETING, EnvironmentSession.STATE_DELETED):
+                    if environment_session.state in (
+                            EnvironmentSession.STATE_DELETING, EnvironmentSession.STATE_DELETED):
                         continue
                     logging.info('Setting environment_session %s to be deleted', environment_session.name)
                     environment_session.to_be_deleted = True
@@ -368,12 +371,11 @@ class WorkspaceExit(restful.Resource):
         db.session.commit()
 
 
-class WorkspaceUsersList(restful.Resource):
+class WorkspaceMemberList(restful.Resource):
     get_parser = reqparse.RequestParser()
-    get_parser.add_argument('members_count', type=inputs.boolean, default=False, location='args')
+    get_parser.add_argument('member_count', type=inputs.boolean, default=False, location='args')
 
     @auth.login_required
-    @requires_workspace_owner_or_admin
     def get(self, workspace_id):
         args = self.get_parser.parse_args()
         user = g.user
@@ -382,38 +384,79 @@ class WorkspaceUsersList(restful.Resource):
             logging.warning('workspace %s does not exist', workspace_id)
             abort(404)
 
-        if not (user.is_admin or rules.is_user_owner_of_workspace(user, workspace)):
-            logging.warning('Workspace %s not owned, cannot see users', workspace_id)
+        if not (user.is_admin or rules.is_user_manager_in_workspace(user, workspace)):
+            logging.warning('workspace %s not managed by %s, cannot see users', workspace_id, user.ext_id)
             abort(403)
 
-        user_associations = WorkspaceUserAssociation.query.filter_by(workspace_id=workspace_id).options(
-            subqueryload(WorkspaceUserAssociation.user)
-        ).all()
+        user_associations = WorkspaceUserAssociation.query\
+            .filter_by(workspace_id=workspace_id)\
+            .options(subqueryload(WorkspaceUserAssociation.user))\
+            .all()
 
-        owners = [wua.user for wua in user_associations if wua.is_owner]
-        if len(owners) == 1:
-            owner_user = owners[0]
+        members = []
+        for wua in user_associations:
+            if wua.user.is_deleted:
+                continue
+            members.append(dict(
+                user_id=wua.user_id,
+                ext_id=wua.user.ext_id,
+                email_id=wua.user.email_id,
+                is_owner=wua.is_owner,
+                is_manager=wua.is_manager,
+                is_banned=wua.is_banned
+            ))
+        if args is not None and 'member_count' in args and args.get('member_count'):
+            return len(members)
+        return marshal(members, member_fields)
+
+    patch_parser = reqparse.RequestParser()
+    patch_parser.add_argument('user_id', type=str, required=True, location='json')
+    patch_parser.add_argument('operation', type=str, required=True, location='json')
+
+    @auth.login_required
+    def patch(self, workspace_id):
+        user = g.user
+        args = self.patch_parser.parse_args()
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+        if not workspace:
+            logging.warning('workspace %s does not exist', workspace_id)
+            abort(404)
+
+        if not (user.is_admin or rules.is_user_manager_in_workspace(user, workspace)):
+            logging.warning('workspace %s not managed by %s, cannot see users', workspace_id, user.ext_id)
+            abort(403)
+
+        wua = WorkspaceUserAssociation.query \
+            .filter_by(workspace_id=workspace_id) \
+            .filter_by(user_id=args.user_id) \
+            .options(subqueryload(WorkspaceUserAssociation.user)) \
+            .first()
+        if not wua:
+            logging.warning('member %s not found', args.user_id)
+            abort(404)
+
+        # block operations on owners
+        if wua.is_owner:
+            logging.warning('cannot operate on owners, workspace %s', workspace_id)
+            abort(403)
+
+        if args.operation == 'promote':
+            wua.is_manager = True
+        elif args.operation == 'demote':
+            wua.is_manager = False
+        elif args.operation == 'ban':
+            wua.is_banned = True
+        elif args.operation == 'unban':
+            wua.is_banned = False
         else:
-            owner_user = None
-            logging.warning('number of owners for workspace %s is not exactly 1', workspace_id)
+            logging.info('unknown operation %s', args.operation)
+            abort(422)
 
-        banned_users = [wua.user for wua in user_associations if wua.is_banned]
-        normal_users = [wua.user for wua in user_associations if not (wua.is_owner or wua.is_manager)]
-        manager_users = [wua.user for wua in user_associations if wua.is_manager]
-        total_users = {
-            'owner': owner_user,
-            'manager_users': manager_users,
-            'normal_users': normal_users,
-            'banned_users': banned_users
-        }
-        if args is not None and 'members_count' in args and args.get('members_count'):
-            # count the list of members. Exclude owner as he is counted as a manager
-            total_users_count = sum([len(total_users[key]) for key in total_users.keys() if key != 'owner'])
-            return total_users_count
-        return marshal(total_users, total_users_fields)
+        logging.info('%s member %s in workspace %s', args.operation, wua.user_id, wua.workspace_id)
+        db.session.commit()
 
 
-class WorkspaceClearUsers(restful.Resource):
+class WorkspaceClearMembers(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('workspace_id', type=str)
 
@@ -426,7 +469,7 @@ class WorkspaceClearUsers(restful.Resource):
         workspace_user_query = WorkspaceUserAssociation.query
 
         if not workspace:
-            logging.warning('Workspace %s does not exist', workspace_id)
+            logging.warning('workspace %s does not exist', workspace_id)
             return {"error": "The workspace does not exist"}, 404
 
         if workspace.name.startswith('System.'):
@@ -437,5 +480,5 @@ class WorkspaceClearUsers(restful.Resource):
             workspace_user_query.filter_by(workspace_id=workspace_id, is_owner=False, is_manager=False).delete()
             db.session.commit()
         else:
-            logging.warning('Workspace %s not owned, cannot clear users', workspace_id)
+            logging.warning('workspace %s not owned, cannot clear users', workspace_id)
             return {"error": "Only the workspace owner can clear users"}, 403

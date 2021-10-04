@@ -143,7 +143,7 @@ data:
     user_id: u-user-1
 
   #############################################################################
-  ### User owner-1 with one Workspace
+  ### User owner-1 with one Workspace and one manager user
 
   - !User
     id: u-owner-1
@@ -164,6 +164,17 @@ data:
     workspace_id: ws-1
     user_id: u-owner-1
     is_owner: True
+    is_manager: True
+
+  - !User
+    id: u-manager-1
+    ext_id: manager-1@example.org
+    password: manager-1
+
+  - !WorkspaceUserAssociation
+    workspace_id: ws-1
+    user_id: u-manager-1
+    is_owner: False
     is_manager: True
 
 

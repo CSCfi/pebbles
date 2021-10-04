@@ -16,8 +16,8 @@ from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.users import users, UserList, UserView, UserWorkspaceAssociationList
 from pebbles.views.variables import variables, PublicVariableList
-from pebbles.views.workspaces import WorkspaceClearUsers, join_workspace
-from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceUsersList
+from pebbles.views.workspaces import WorkspaceClearMembers, join_workspace
+from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceMemberList
 from pebbles.views.workspaces import workspaces
 
 api = restful.Api(app)
@@ -27,8 +27,11 @@ api.add_resource(UserView, api_root + '/users/<string:user_id>', methods=['GET',
 api.add_resource(UserWorkspaceAssociationList, api_root + '/users/<string:user_id>/workspace_associations')
 api.add_resource(WorkspaceList, api_root + '/workspaces')
 api.add_resource(WorkspaceView, api_root + '/workspaces/<string:workspace_id>')
-api.add_resource(WorkspaceUsersList, api_root + '/workspaces/<string:workspace_id>/list_users')
-api.add_resource(WorkspaceClearUsers, api_root + '/workspaces/<string:workspace_id>/clear_users')
+api.add_resource(
+    WorkspaceMemberList,
+    api_root + '/workspaces/<string:workspace_id>/members',
+    methods=['GET', 'PATCH'])
+api.add_resource(WorkspaceClearMembers, api_root + '/workspaces/<string:workspace_id>/clear_members')
 api.add_resource(WorkspaceExit, api_root + '/workspaces/<string:workspace_id>/exit')
 api.add_resource(JoinWorkspace, api_root + '/join_workspace/<string:join_code>')
 api.add_resource(MessageList, api_root + '/messages')

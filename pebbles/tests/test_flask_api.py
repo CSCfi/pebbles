@@ -776,72 +776,124 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/workspaces/%s/exit' % g.id)
         self.assertStatus(response, 422)  # owner of the workspace cannot exit the workspace
 
-    def test_get_workspace_users(self):
+    def test_get_workspace_members(self):
+        # Anonymous
+        response = self.make_request(
+            method='GET',
+            path='/api/v1/workspaces/%s/members' % self.known_workspace_id
+        )
+        self.assert_401(response)
 
         # Authenticated User, not a manager
         response = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/workspaces/%s/list_users' % self.known_workspace_id)
+            path='/api/v1/workspaces/%s/members' % self.known_workspace_id)
         self.assertStatus(response, 403)
 
         response = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/workspaces/%s/list_users?members_count=true' % self.known_workspace_id)
+            path='/api/v1/workspaces/%s/members?member_count=true' % self.known_workspace_id)
         self.assertStatus(response, 403)
 
         # Authenticated Workspace Owner , who does not own the workspace
         response = self.make_authenticated_workspace_owner_request(
             method='GET',
-            path='/api/v1/workspaces/%s/list_users' % self.known_workspace_id_2,
+            path='/api/v1/workspaces/%s/members' % self.known_workspace_id_2,
             data=json.dumps({})
         )
         self.assertStatus(response, 403)
 
         response = self.make_authenticated_workspace_owner_request(
             method='GET',
-            path='/api/v1/workspaces/%s/list_users?members_count=true' % self.known_workspace_id_2,
+            path='/api/v1/workspaces/%s/members?member_count=true' % self.known_workspace_id_2,
             data=json.dumps({})
         )
         self.assertStatus(response, 403)
 
-        # Authenticated Workspace Owner , is a Manager too
+        # Authenticated Workspace Owner (owners are managers, too)
         response = self.make_authenticated_workspace_owner_request(
             method='GET',
-            path='/api/v1/workspaces/%s/list_users' % self.known_workspace_id,
+            path='/api/v1/workspaces/%s/members' % self.known_workspace_id,
             data=json.dumps({})
         )
         self.assertStatus(response, 200)
         # 1 normal user + 1 manager + 1 workspace owner
-        self.assertTrue(response.json['owner']['id'] == self.known_workspace_owner_id)
-        self.assertEqual(len(response.json['manager_users']), 2)
-        self.assertEqual(len(response.json['normal_users']), 1)
-        self.assertEqual(len(response.json['banned_users']), 0)
+        self.assertEqual(
+            len([member for member in response.json
+                 if member['user_id'] == self.known_workspace_owner_id and member['is_owner']]
+                ),
+            1)
+        self.assertEqual(len([member for member in response.json if member['is_manager']]), 2)
+        self.assertEqual(len([member for member in response.json if not (member['is_manager'] or member['is_owner'])]), 1)
+        self.assertEqual(len([member for member in response.json if member['is_banned']]), 0)
 
         response = self.make_authenticated_workspace_owner_request(
             method='GET',
-            path='/api/v1/workspaces/%s/list_users?members_count=true' % self.known_workspace_id)
+            path='/api/v1/workspaces/%s/members?member_count=true' % self.known_workspace_id)
         self.assertEqual(response.json, 3)
 
-        # Authenticated Workspace Owner , is a Manager too
+        # Admins
         response = self.make_authenticated_admin_request(
             method='GET',
-            path='/api/v1/workspaces/%s/list_users' % self.known_workspace_id,
+            path='/api/v1/workspaces/%s/members' % self.known_workspace_id,
             data=json.dumps({})
         )
         self.assertStatus(response, 200)
-
         # 1 normal user + 1 manager + 1 workspace owner
-        self.assertTrue(response.json['owner']['id'] == self.known_workspace_owner_id)
-        self.assertEqual(len(response.json['manager_users']), 2)
-        self.assertEqual(len(response.json['normal_users']), 1)
-        self.assertEqual(len(response.json['banned_users']), 0)
+        self.assertEqual(
+            len([member for member in response.json
+                 if member['user_id'] == self.known_workspace_owner_id and member['is_owner']]
+                ),
+            1)
+        self.assertEqual(len([member for member in response.json if member['is_manager']]), 2)
+        self.assertEqual(len([member for member in response.json if not (member['is_manager'] or member['is_owner'])]), 1)
+        self.assertEqual(len([member for member in response.json if member['is_banned']]), 0)
 
         response = self.make_authenticated_admin_request(
             method='GET',
-            path='/api/v1/workspaces/%s/list_users?members_count=true' % self.known_workspace_id)
+            path='/api/v1/workspaces/%s/members?member_count=true' % self.known_workspace_id)
         self.assertEqual(response.json, 3)
 
-    def test_clear_users_from_workspace(self):
+    def test_promote_and_demote_workspace_members(self):
+        # Anonymous
+        response = self.make_request(
+            method='PATCH',
+            data=json.dumps(dict(user_id=self.known_user_id, operation='promote')),
+            path='/api/v1/workspaces/%s/members' % self.known_workspace_id
+        )
+        self.assert_401(response)
+
+        # Authenticated
+        response = self.make_authenticated_user_request(
+            method='PATCH',
+            data=json.dumps(dict(user_id=self.known_user_id, operation='promote')),
+            path='/api/v1/workspaces/%s/members' % self.known_workspace_id
+        )
+        self.assert_403(response)
+
+        # Manager should be able to promote and demote
+        response = self.make_authenticated_workspace_owner2_request(
+            method='PATCH',
+            data=json.dumps(dict(user_id=self.known_user_id, operation='promote')),
+            path='/api/v1/workspaces/%s/members' % self.known_workspace_id
+        )
+        self.assert_200(response)
+        response = self.make_authenticated_workspace_owner2_request(
+            method='PATCH',
+            data=json.dumps(dict(user_id=self.known_user_id, operation='demote')),
+            path='/api/v1/workspaces/%s/members' % self.known_workspace_id
+        )
+        self.assert_200(response)
+
+        # Manager should not be able to demote owner
+        response = self.make_authenticated_workspace_owner2_request(
+            method='PATCH',
+            data=json.dumps(dict(user_id=self.known_workspace_owner_id, operation='demote')),
+            path='/api/v1/workspaces/%s/members' % self.known_workspace_id
+        )
+        self.assert_403(response)
+
+    def test_clear_members_from_workspace(self):
         name = 'WorkspaceToBeCleared'
         g = Workspace(name)
         u1 = User.query.filter_by(id=self.known_user_id).first()
@@ -858,49 +910,49 @@ class FlaskApiTestCase(BaseTestCase):
         # Anonymous
         response = self.make_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_users' % g.id,
+            path='/api/v1/workspaces/%s/clear_members' % g.id,
             data=json.dumps({})
         )
         self.assert_401(response)
         # Authenticated user
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_users' % g.id,
+            path='/api/v1/workspaces/%s/clear_members' % g.id,
             data=json.dumps({})
         )
         self.assert_403(response)
         # Authenticated workspace owner
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_users' % g.id,
+            path='/api/v1/workspaces/%s/clear_members' % g.id,
             data=json.dumps({})
         )
         self.assert_200(response)
         # Authenticated workspace owner, invalid workspace id
         invalid_response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_users' % '',
+            path='/api/v1/workspaces/%s/clear_members' % '',
             data=json.dumps({})
         )
         self.assertStatus(invalid_response, 405)
         # Authenticated workspace manager
         response = self.make_authenticated_workspace_owner2_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_users' % g.id,
+            path='/api/v1/workspaces/%s/clear_members' % g.id,
             data=json.dumps({})
         )
         self.assert_403(response)
         # Admin, system.default workspace
         invalid_response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_users' % self.system_default_workspace_id,
+            path='/api/v1/workspaces/%s/clear_members' % self.system_default_workspace_id,
             data=json.dumps({})
         )
         self.assertStatus(invalid_response, 422)
         # Admin
         response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_users' % g.id,
+            path='/api/v1/workspaces/%s/clear_members' % g.id,
             data=json.dumps({})
         )
         self.assert_200(response)
