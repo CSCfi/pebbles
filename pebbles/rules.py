@@ -91,46 +91,13 @@ def apply_rules_environment_sessions(user, args=None):
     if args is not None:
         if 'environment_session_id' in args:
             q = q.filter_by(id=args.get('environment_session_id'))
-        if args.get('show_only_mine'):
-            q = q.filter_by(user_id=user.id)
-        if 'offset' in args:
-            q = q.offset(args.get('offset'))
-        if 'limit' in args:
-            q = q.limit(args.get('limit'))
     return q
 
 
-def apply_filter_users(args=None):
-    if args is None:
-        args = {}
-
+# This should be refactored to return only list the user can access
+def apply_filter_users():
     q = User.query
     q = q.filter_by(is_deleted=False)
-
-    if 'filter_str' in args and args.filter_str:
-        filter_str = str.lower(args.filter_str)
-        q = q.filter(User._ext_id.contains(filter_str))
-
-    if 'user_type' in args and args.user_type:
-        user_type = args.get('user_type')
-        if user_type == 'Admins':
-            q = q.filter_by(is_admin=True)
-        elif user_type == 'Workspace Owners':
-            q = q.filter_by(is_workspace_owner=True)
-        elif user_type == 'Active':
-            q = q.filter_by(is_active=True)
-        elif user_type == 'Inactive':
-            q = q.filter_by(is_active=False)
-        elif user_type == 'Blocked':
-            q = q.filter_by(is_blocked=True)
-
-    page = args.get('page', None)
-    page_size = args.get('page_size', None)
-    # zero for page is valid, where as 0 as page_size is not
-    if page is not None and page_size:
-        q = q.offset(page * page_size)
-        q = q.limit(page_size)
-
     return q
 
 ###############################################

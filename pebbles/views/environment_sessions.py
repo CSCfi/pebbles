@@ -16,8 +16,6 @@ from pebbles.views.commons import auth, is_workspace_manager
 
 environment_sessions = FlaskBlueprint('environment_sessions', __name__)
 
-USER_INSTANCE_LIMIT = 5
-
 environment_session_fields = {
     'id': fields.String,
     'name': fields.String,
@@ -69,17 +67,12 @@ def positive_integer(input_value):
 
 
 class EnvironmentSessionList(restful.Resource):
-    parser = reqparse.RequestParser()
-    parser.add_argument('show_only_mine', type=bool, default=False, location='args')
-    parser.add_argument('offset', type=positive_integer, location='args')
-    parser.add_argument('limit', type=positive_integer, location='args')
 
     @auth.login_required
     @marshal_with(environment_session_fields)
     def get(self):
         user = g.user
-        args = self.parser.parse_args()
-        q = apply_rules_environment_sessions(user, args)
+        q = apply_rules_environment_sessions(user)
         q = q.order_by(EnvironmentSession.provisioned_at)
         environment_sessions = q.all()
 
@@ -206,9 +199,7 @@ class EnvironmentSessionView(restful.Resource):
 
     patch_parser = reqparse.RequestParser()
     patch_parser.add_argument('state', type=str)
-    patch_parser.add_argument('public_ip', type=str)
     patch_parser.add_argument('error_msg', type=str)
-    patch_parser.add_argument('client_ip', type=str)
     patch_parser.add_argument('session_data', type=str)
     patch_parser.add_argument('to_be_deleted', type=bool)
     patch_parser.add_argument('log_fetch_pending', type=bool)
@@ -247,10 +238,6 @@ class EnvironmentSessionView(restful.Resource):
 
         if args.get('error_msg'):
             environment_session.error_msg = args['error_msg']
-            db.session.commit()
-
-        if args.get('public_ip'):
-            environment_session.public_ip = args['public_ip']
             db.session.commit()
 
         if args.get('session_data'):

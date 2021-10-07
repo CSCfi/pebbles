@@ -1,11 +1,9 @@
-Database Migrations
-*******************
+# Database Migrations
 
 The tool stack we use for databases is SQLAlchemy, Alembic, Flask-SQLAlchemy
 and Flask-Migrate.
 
-Overview
-========
+## Overview
 
 It's always possible to just use the db.create_all() to create all database
 tables based on code at that point. This is what unit tests do to save time.
@@ -24,20 +22,16 @@ All the automated deployment systems assume that the migrations will sync the
 system to the state in which models.py is. This includes the dev server
 deployment.
 
-Process
-=======
+## Process
 
 After you change the models (add fields, constraints etc), first make sure you
 have the correct packages installed etc, either by using a virtualenv or running
 the command in the api container. Set "FLASK_APP" environment variable to "pebbles.server:app"
 in your shell before running the commands.
-.. code-block:: sh
 
         (env) pebbles/ $ export FLASK_APP=pebbles.server:app
 
 Then to make sure db is up to date with latest version file, run
-
-.. code-block:: sh
 
         (env) pebbles/ $ flask db upgrade
 
@@ -46,8 +40,6 @@ This reads through all the files, introspects the state of your configured db
 
 Then to create a new file, run 
         
-.. code-block:: sh
-
         (env) pebbles/ $ flask db revision --autogenerate -m "short message describing the change"
 
 inspect that you have a new .py file under migrations/versions and at the very
@@ -55,13 +47,9 @@ least change the name. Sometimes something doesn't work or the system isn't
 good at divining what you want to happen so checking the actual migration code
 is very much recommended. You can list all migrations with
 
-.. code-block:: sh
-
         (env) pebbles/ $ flask db history
 
 To apply the migration you have created, run
-
-.. code-block:: sh
 
         (env) pebbles/ $ flask db upgrade
 
@@ -71,12 +59,9 @@ and applies it.
 To downgrade e.g. after something appears broken and you don't want to start
 generating the db from scratch you can run
 
-.. code-block:: sh
-
         (env) pebbles/ $ flask db downgrade [revision identifier]
 
-Notes
-=====
+## Notes
 
 The verbs that flask-migrate uses are unintuitive. The verb "migrate" actually
 creates a migration and the verbs "upgrade" and "downgrade" apply migrations

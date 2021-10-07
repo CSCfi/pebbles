@@ -16,7 +16,7 @@ flake8:
   needs: []
   script:
     - pip install flake8
-    - flake8 --extend-ignore E722,W605 pebbles
+    - flake8 pebbles
 
 
 pylint:

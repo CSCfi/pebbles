@@ -275,8 +275,7 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_401(response)
         # Authenticated
         response = self.make_authenticated_user_request(path='/api/v1/users')
-        self.assert_200(response)
-        self.assertEqual(len(response.json), 1)
+        self.assert_403(response)
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/users')
         self.assert_200(response)
@@ -1539,9 +1538,6 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/environment_sessions')
         self.assert_200(response)
         self.assertEqual(len(response.json), 4)
-        response = self.make_authenticated_admin_request(path='/api/v1/environment_sessions?show_only_mine=1')
-        self.assert_200(response)
-        self.assertEqual(len(response.json), 1)
 
     def test_get_environment_session(self):
         # Anonymous

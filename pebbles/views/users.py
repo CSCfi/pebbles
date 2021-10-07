@@ -5,7 +5,6 @@ import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
 from flask_restful import marshal_with, reqparse, inputs
-from werkzeug import exceptions
 
 from pebbles.models import db, User, WorkspaceUserAssociation
 from pebbles.rules import apply_filter_users
@@ -16,32 +15,16 @@ users = FlaskBlueprint('users', __name__)
 
 
 class UserList(restful.Resource):
-    parser = reqparse.RequestParser()
-    parser.add_argument('page', type=int, location='args')
-    parser.add_argument('page_size', type=int, location='args')
-    parser.add_argument('filter_str', type=str)
-    parser.add_argument('user_type', type=str)
-    parser.add_argument('count', type=int)
-    parser.add_argument('expiry_ts', type=int)
-    parser.add_argument('addresses')
 
     @staticmethod
     def address_list(value):
         return set(x for x in re.split(r'[, \n\t]', value) if x)
 
     @auth.login_required
+    @requires_admin
     @marshal_with(user_fields)
     def get(self):
-        user = g.user
-        if user.is_admin:
-            try:
-                args = self.parser.parse_args()
-                user_query = apply_filter_users(args)
-            except exceptions.BadRequest:
-                logging.warning('no arguments found')
-                user_query = apply_filter_users()
-            return user_query.order_by(User._joining_ts).all()
-        return [user]
+        return apply_filter_users().order_by(User._joining_ts).all()
 
 
 class UserView(restful.Resource):
