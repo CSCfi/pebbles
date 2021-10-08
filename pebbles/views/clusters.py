@@ -9,9 +9,6 @@ clusters = FlaskBlueprint('clusters', __name__)
 
 cluster_fields = {
     'name': fields.String,
-    'schema': fields.Raw,
-    'form': fields.Raw,
-    'model': fields.Raw,
 }
 
 

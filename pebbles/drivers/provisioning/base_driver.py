@@ -26,23 +26,6 @@ class ProvisioningDriverBase(object):
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         return pbclient
 
-    @staticmethod
-    def get_configuration():
-        return {
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'name': {
-                        'type': 'string'
-                    }
-                },
-            },
-            'form': [
-                {'type': 'help', 'helpvalue': 'config is empty'},
-                '*',
-                {'style': 'btn-info', 'title': 'Create', 'type': 'submit'}
-            ], 'model': {}}
-
     def update(self, token, environment_session_id):
         """ an update call  updates the status of an environment_session.
 

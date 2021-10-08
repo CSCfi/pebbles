@@ -59,16 +59,6 @@ def get_shared_volume_name(environment_session):
 
 
 class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
-    @staticmethod
-    def get_configuration():
-        """ Return the default config values which are needed for the
-            driver creation (via schemaform)
-        """
-        from pebbles.drivers.provisioning.kubernetes_driver_config import CONFIG
-
-        config = CONFIG.copy()
-        return config
-
     def __init__(self, logger, config, cluster_config):
         super().__init__(logger, config, cluster_config)
 
@@ -458,12 +448,12 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         ))
         self.logger.debug('creating ingress\n%s' % ingress_yaml)
 
-        api = self.dynamic_client.resources.get(api_version='extensions/v1beta1', kind='Ingress')
+        api = self.dynamic_client.resources.get(api_version='networking.k8s.io/v1', kind='Ingress')
         return api.create(body=yaml.safe_load(ingress_yaml), namespace=namespace)
 
     def delete_ingress(self, namespace, environment_session):
         self.logger.debug('deleting ingress %s' % environment_session.get('name'))
-        api = self.dynamic_client.resources.get(api_version='extensions/v1beta1', kind='Ingress')
+        api = self.dynamic_client.resources.get(api_version='networking.k8s.io/v1', kind='Ingress')
         api.delete(namespace=namespace, name=environment_session.get('name'))
 
     def ensure_volume(self, namespace, environment_session, volume_name, volume_size, storage_class_name,

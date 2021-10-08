@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import logging
-import warnings
 import getpass
 import random
 import string

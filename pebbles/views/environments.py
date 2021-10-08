@@ -29,8 +29,6 @@ environment_fields_admin = {
     'is_enabled': fields.Boolean,
     'config': fields.Raw,
     'full_config': fields.Raw,
-    'schema': fields.Raw,
-    'form': fields.Raw,
     'workspace_id': fields.String,
     'workspace_name': fields.String,
     'workspace_pseudonym': fields.String,
@@ -48,8 +46,6 @@ environment_fields_manager = {
     'is_enabled': fields.Boolean,
     'config': fields.Raw,
     'full_config': fields.Raw,
-    'schema': fields.Raw,
-    'form': fields.Raw,
     'workspace_id': fields.String,
     'workspace_name': fields.String,
 }

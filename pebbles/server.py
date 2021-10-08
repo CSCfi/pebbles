@@ -4,13 +4,14 @@ from pebbles.app import app
 from pebbles.views.alerts import alerts, AlertList, AlertView, SystemStatus
 from pebbles.views.clusters import clusters, ClusterList
 from pebbles.views.environment_categories import EnvironmentCategoryList
+from pebbles.views.environment_sessions import environment_sessions, EnvironmentSessionList, EnvironmentSessionView, \
+    EnvironmentSessionLogs
 from pebbles.views.environment_templates import EnvironmentTemplateList, EnvironmentTemplateView, \
     EnvironmentTemplateCopy
 from pebbles.views.environment_templates import environment_templates
 from pebbles.views.environments import environments, EnvironmentList, EnvironmentView, EnvironmentCopy
 from pebbles.views.helps import helps, HelpsList
 from pebbles.views.import_export import import_export, ImportExportEnvironmentTemplates, ImportExportEnvironments
-from pebbles.views.environment_sessions import environment_sessions, EnvironmentSessionList, EnvironmentSessionView, EnvironmentSessionLogs
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.sessions import sessions, SessionView

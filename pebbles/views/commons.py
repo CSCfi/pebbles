@@ -80,15 +80,8 @@ def get_clusters():
         if not driver_class:
             logging.warning('No class for driver %s found', cluster.get('driver'))
             continue
-        driver_config = driver_class.get_configuration()
         logging.debug('adding cluster %s to cluster_data', cluster['name'])
-        cluster_data.append(dict(
-            name=cluster['name'],
-            conf=driver_config,
-            schema=driver_config['schema'],
-            model=driver_config['model'],
-            form=driver_config['form'],
-        ))
+        cluster_data.append(dict(name=cluster['name']))
 
     return cluster_data
 

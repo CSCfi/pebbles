@@ -21,16 +21,6 @@ class OpenShiftTemplateDriver(OpenShiftRemoteDriver):
         Since this driver is subclassed from OpenShiftRemoteDriver, it uses a lot of methods from it.
     """
 
-    @staticmethod
-    def get_configuration():
-        """ Return the default config values which are needed for the
-            driver creation (via schemaform)
-        """
-        from pebbles.drivers.provisioning.openshift_template_driver_config import CONFIG
-
-        config = CONFIG.copy()
-        return config
-
     def do_provision(self, token, environment_session_id):
         """ Implements provisioning, called by superclass.
             A namespace is created if necessary.
