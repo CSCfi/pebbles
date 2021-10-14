@@ -34,6 +34,9 @@ workspace_user_association_fields = {
 auth = HTTPBasicAuth()
 auth.authenticate_header = lambda: "Authentication Required"
 
+# Delimiter between optional identity domain/prefix and username(eppn/vppn/email)
+EXT_ID_PREFIX_DELIMITER = '/'
+
 
 @auth.verify_password
 def verify_password(userid_or_token, password):

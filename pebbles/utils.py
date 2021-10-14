@@ -7,6 +7,7 @@ from logging.handlers import RotatingFileHandler
 
 import yaml
 from flask import abort, g
+from yaml import YAMLError
 
 from pebbles.config import LOG_FORMAT
 
@@ -230,3 +231,13 @@ def find_driver_class(driver_name):
             break
 
     return driver_class
+
+
+def load_auth_config(path):
+    try:
+        return yaml.safe_load(open(path))
+    except IOError as e:
+        logging.warning('cannot open auth-config.yaml, error %s', e)
+    except YAMLError as e:
+        logging.warning('cannot parse auth-config.yaml, error %s', e)
+    return None

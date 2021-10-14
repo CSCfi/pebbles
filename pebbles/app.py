@@ -44,7 +44,6 @@ def add_headers(r):
     csp_list = [
         "img-src 'self' data:",
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-        "connect-src 'self' wss://{{ domain_name }}",
         "style-src 'self' 'unsafe-inline'",
         "default-src 'self'",
     ]

@@ -127,11 +127,8 @@ class BaseConfig(object):
     MAIL_SUPPRESS_SEND = True
     MAIL_USE_TLS = False
 
-    # Oauth2 settings
+    # Oauth2 master switch
     OAUTH2_LOGIN_ENABLED = False
-    OAUTH2_LOGO_URL = '/img/CSC_login.png'
-    OAUTH2_AUTH_METHODS = ['list of idps allowed to login via sso']
-    OAUTH2_OPENID_CONFIGURATION_URL = 'https://openid-configuration'
 
     # Terms and conditions settings
     AGREEMENT_TITLE = 'Title here'
@@ -149,6 +146,10 @@ class BaseConfig(object):
     CLUSTER_PASSWORDS_FILE = '/run/secrets/pebbles/cluster-passwords.yaml'
     CLUSTER_KUBECONFIG_FILE = '/var/run/secrets/pebbles/cluster-kubeconfig'
     DEFAULT_CLUSTER = 'local_kubernetes'
+
+    # API configmap paths
+    API_AUTH_CONFIG_FILE = '/run/configmaps/pebbles/api-configmap/auth-config.yaml'
+    API_FAQ_FILE = '/run/configmaps/pebbles/api-configmap/faq-content.yaml'
 
     # enable access by []
     def __getitem__(self, item):
