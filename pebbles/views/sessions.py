@@ -1,12 +1,12 @@
-from flask_restful import fields, marshal
-from flask import Blueprint as FlaskBlueprint, current_app
-
-import datetime
 import logging
+import time
 
-from pebbles.models import db, User
-from pebbles.forms import SessionCreateForm
 import flask_restful as restful
+from flask import Blueprint as FlaskBlueprint, current_app
+from flask_restful import fields, marshal
+
+from pebbles.forms import SessionCreateForm
+from pebbles.models import db, User
 from pebbles.views.commons import is_workspace_manager, update_email, EXT_ID_PREFIX_DELIMITER
 
 sessions = FlaskBlueprint('sessions', __name__)
@@ -38,8 +38,8 @@ class SessionView(restful.Resource):
             # update existing email of users and reuse the function
             user = update_email(ext_id=user.ext_id, email_id=user.ext_id)
         if user and user.check_password(form.password.data):
-            # after successful validations clock last_login_date
-            user.last_login_date = datetime.datetime.utcnow()
+            # after successful validation update last_login_ts
+            user.last_login_ts = time.time()
             db.session.commit()
 
             logging.info('SessionView.post() new session for user %s', user.id)

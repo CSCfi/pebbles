@@ -1,5 +1,6 @@
 import datetime
 import logging
+import time
 import uuid
 
 import requests
@@ -137,8 +138,8 @@ def oauth2_login():
         logging.warning('Login aborted: User "%s" is blocked', user.id)
         abort(403)
 
-    # after successful validations above clock last_login_date
-    user.last_login_date = datetime.datetime.utcnow()
+    # after successful validation update last_login_ts
+    user.last_login_ts = time.time()
     db.session.commit()
 
     logging.info('new oauth2 session for user "%s"', user.id)
