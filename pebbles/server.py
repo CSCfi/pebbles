@@ -16,7 +16,7 @@ from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.users import users, UserList, UserView, UserWorkspaceAssociationList
-from pebbles.views.variables import variables, PublicVariableList
+from pebbles.views.public_config import variables, PublicConfigList
 from pebbles.views.workspaces import WorkspaceClearMembers, join_workspace
 from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceMemberList
 from pebbles.views.workspaces import workspaces
@@ -54,7 +54,7 @@ api.add_resource(
     api_root + '/environment_sessions/<string:environment_session_id>/logs',
     methods=['GET', 'PATCH', 'DELETE'])
 api.add_resource(ClusterList, api_root + '/clusters')
-api.add_resource(PublicVariableList, api_root + '/config')
+api.add_resource(PublicConfigList, api_root + '/config')
 api.add_resource(LockList, api_root + '/locks')
 api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
 api.add_resource(ImportExportEnvironmentTemplates, api_root + '/import_export/environment_templates')

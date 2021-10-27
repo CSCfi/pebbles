@@ -21,7 +21,7 @@ SESSION_STARTUP_TIME_LIMIT = 10 * 60
 
 @unique
 class VolumePersistenceLevel(Enum):
-    INSTANCE_LIFETIME = 1
+    SESSION_LIFETIME = 1
     WORKSPACE_LIFETIME = 2
     USER_LIFETIME = 3
 
@@ -37,8 +37,8 @@ def parse_template(name, values):
         return format_with_jinja2(template, values)
 
 
-def get_session_volume_name(environment_session, persistence_level=VolumePersistenceLevel.INSTANCE_LIFETIME):
-    if persistence_level == VolumePersistenceLevel.INSTANCE_LIFETIME:
+def get_session_volume_name(environment_session, persistence_level=VolumePersistenceLevel.SESSION_LIFETIME):
+    if persistence_level == VolumePersistenceLevel.SESSION_LIFETIME:
         return 'pvc-%s-%s' % (environment_session['user']['pseudonym'], environment_session['name'])
     else:
         raise RuntimeError('volume persistence level %s is not supported' % persistence_level)

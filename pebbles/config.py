@@ -22,7 +22,7 @@ import os
 import yaml
 import functools
 
-CONFIG_FILE = '/etc/pebbles/config.yaml'
+CONFIG_FILE = '/run/configmaps/pebbles/api-configmap/pebbles.yaml'
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
 
@@ -50,7 +50,7 @@ def _parse_env_value(val):
 
 def resolve_configuration_value(key, default=None, *args, **kwargs):
     def get_key_from_config(config_file, key):
-        return yaml.load(open(config_file)).get(key)
+        return yaml.safe_load(open(config_file)).get(key)
 
     # check environment
     pb_key = 'PB_' + key
@@ -111,15 +111,21 @@ class BaseConfig(object):
     BASE_URL = 'https://localhost:8888'
     # Internal url for contacting the API, defaults to 'api' Service
     INTERNAL_API_BASE_URL = 'http://api:8080/api/v1'
-    # prefix all environment_session names with this
-    INSTANCE_NAME_PREFIX = 'pb-'
+    # prefix all environment session names with this
+    SESSION_NAME_PREFIX = 'pb-'
 
     # Info about the system for frontend
     INSTALLATION_NAME = 'Pebbles'
-    INSTALLATION_DESCRIPTION = 'A tool for provisioning ephemeral private cloud resources.'
-    SHORT_DESCRIPTION = 'Welcome to Pebbles'
+    SHORT_DESCRIPTION = 'Easy-to-use environments for working with data and programming.'
+    INSTALLATION_DESCRIPTION = 'Log in to see the catalogue of available environments. ' +\
+                               'Environments run in the cloud and are accessed with your browser.'
+
     BRAND_IMAGE_URL = 'img/Notebooks_neg300px.png'
     COURSE_REQUEST_FORM_URL = 'http://link-to-form'
+    TERMS_OF_USE_URL = 'http://link-to-tou'
+    ACCESSIBILITY_STATEMENT_URL = 'http://link-to-accessibility-statement'
+    CONTACT_EMAIL = 'support@example.org'
+    SERVICE_DOCUMENTATION_URL = 'http://link-to-service-documentation'
 
     # Mail settings
     MAIL_SERVER = 'smtp.example.org'

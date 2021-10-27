@@ -132,7 +132,7 @@ class EnvironmentSessionList(restful.Resource):
         ).filter(EnvironmentSession.state != 'deleted').all()
 
         if environment_sessions_for_user:
-            return {'error': 'ENVIRONMENT_INSTANCE_LIMIT_REACHED'}, 409
+            return {'error': 'ENVIRONMENT_SESSION_LIMIT_REACHED'}, 409
 
         # create the environment_session and assign provisioning config from current environment + template
         environment_session = EnvironmentSession(environment, user)
@@ -143,7 +143,7 @@ class EnvironmentSessionList(restful.Resource):
         existing_names = set(x.name for x in EnvironmentSession.query.all())
         # Note: the potential race is solved by unique constraint in database
         while True:
-            c_name = EnvironmentSession.generate_name(prefix=current_app.config.get('INSTANCE_NAME_PREFIX'))
+            c_name = EnvironmentSession.generate_name(prefix=current_app.config.get('SESSION_NAME_PREFIX'))
             if c_name not in existing_names:
                 environment_session.name = c_name
                 break
