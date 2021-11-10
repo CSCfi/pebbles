@@ -16,7 +16,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.schema import MetaData
 
-from pebbles.utils import get_environment_fields_from_config
+from pebbles.utils import get_application_fields_from_config
 
 MAX_PSEUDONYM_LENGTH = 32
 MAX_PASSWORD_LENGTH = 100
@@ -91,7 +91,7 @@ class User(db.Model):
     latest_seen_message_ts = db.Column(db.DateTime)
     workspace_quota = db.Column(db.Integer, default=0)
     tc_acceptance_date = db.Column(db.DateTime)
-    environment_sessions = db.relationship('EnvironmentSession', backref='user', lazy='dynamic')
+    application_sessions = db.relationship('ApplicationSession', backref='user', lazy='dynamic')
     workspace_associations = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
 
     def __init__(self, ext_id, password=None, is_admin=False, email_id=None, expiry_ts=None, pseudonym=None,
@@ -290,8 +290,8 @@ class Workspace(db.Model):
     )
     user_associations = db.relationship("WorkspaceUserAssociation", back_populates="workspace", lazy='dynamic',
                                         cascade="all, delete-orphan")
-    environment_quota = db.Column(db.Integer, default=10)
-    environments = db.relationship('Environment', backref='workspace', lazy='dynamic')
+    application_quota = db.Column(db.Integer, default=10)
+    applications = db.relationship('Application', backref='workspace', lazy='dynamic')
 
     def __init__(self, name, description='', cluster=None):
         self.id = uuid.uuid4().hex
@@ -360,28 +360,28 @@ class Message(db.Model):
         self.message = message
 
 
-class EnvironmentTemplate(db.Model):
+class ApplicationTemplate(db.Model):
     ENVIRONMENT_TYPES = ['jupyter', 'rstudio', 'generic']
 
-    __tablename__ = 'environment_templates'
+    __tablename__ = 'application_templates'
     id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(MAX_NAME_LENGTH))
     description = db.Column(db.Text)
-    environment_type = db.Column(db.String(MAX_NAME_LENGTH))
+    application_type = db.Column(db.String(MAX_NAME_LENGTH))
     _base_config = db.Column('base_config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
-    environments = db.relationship('Environment', backref='template', lazy='dynamic')
+    applications = db.relationship('Application', backref='template', lazy='dynamic')
     _allowed_attrs = db.Column('allowed_attrs', db.Text)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, name=None, description=None, environment_type='generic', allowed_attrs=None,
+    def __init__(self, name=None, description=None, application_type='generic', allowed_attrs=None,
                  base_config=None, is_enabled=False):
         self.id = uuid.uuid4().hex
         self.name = name
         self.description = description
-        if environment_type not in EnvironmentTemplate.ENVIRONMENT_TYPES:
-            raise ValueError('Illegal environment type: "%s"' % environment_type)
-        self.environment_type = environment_type
+        if application_type not in ApplicationTemplate.ENVIRONMENT_TYPES:
+            raise ValueError('Illegal application type: "%s"' % application_type)
+        self.application_type = application_type
         self._allowed_attrs = json.dumps(allowed_attrs)
         self._base_config = json.dumps(base_config)
         self.is_enabled = is_enabled
@@ -403,7 +403,7 @@ class EnvironmentTemplate(db.Model):
         self._allowed_attrs = json.dumps(value)
 
 
-class Environment(db.Model):
+class Application(db.Model):
     STATUS_ACTIVE = 'active'
     STATUS_ARCHIVED = 'archived'
     STATUS_DELETED = 'deleted'
@@ -414,18 +414,18 @@ class Environment(db.Model):
         STATUS_DELETED,
     )
 
-    __tablename__ = 'environments'
+    __tablename__ = 'applications'
     id = db.Column(db.String(32), primary_key=True)
     name = db.Column(db.String(MAX_NAME_LENGTH))
     description = db.Column(db.Text)
-    template_id = db.Column(db.String(32), db.ForeignKey('environment_templates.id'))
+    template_id = db.Column(db.String(32), db.ForeignKey('application_templates.id'))
     workspace_id = db.Column(db.String(32), db.ForeignKey('workspaces.id'))
     _labels = db.Column('labels', db.Text)
     maximum_lifetime = db.Column(db.Integer)
     _config = db.Column('config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     expiry_time = db.Column(db.DateTime)
-    environment_sessions = db.relationship('EnvironmentSession', backref='environment', lazy='dynamic')
+    application_sessions = db.relationship('ApplicationSession', backref='application', lazy='dynamic')
     # status when created is "active". Later there are options to be "archived" or "deleted".
     _status = db.Column('status', db.String(32), default='active')
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
@@ -443,7 +443,7 @@ class Environment(db.Model):
         if not config:
             config = dict()
         self._config = json.dumps(config)
-        self._status = Environment.STATUS_ACTIVE
+        self._status = Application.STATUS_ACTIVE
 
     @hybrid_property
     def config(self):
@@ -467,14 +467,14 @@ class Environment(db.Model):
 
     @status.setter
     def status(self, value):
-        if value in Environment.VALID_STATUSES:
+        if value in Application.VALID_STATUSES:
             self._status = value
         else:
-            raise ValueError("'%s' is not a valid status for Environment" % value)
+            raise ValueError("'%s' is not a valid status for Application" % value)
 
     @hybrid_property
     def cost_multiplier(self):
-        return get_environment_fields_from_config(self, 'cost_multiplier')
+        return get_application_fields_from_config(self, 'cost_multiplier')
 
     def cost(self, duration=None):
         if not duration:
@@ -482,10 +482,10 @@ class Environment(db.Model):
         return self.cost_multiplier * duration / 3600
 
     def __repr__(self):
-        return self.name or "Unnamed environment"
+        return self.name or "Unnamed application"
 
 
-class EnvironmentSession(db.Model):
+class ApplicationSession(db.Model):
     STATE_QUEUEING = 'queueing'
     STATE_PROVISIONING = 'provisioning'
     STATE_STARTING = 'starting'
@@ -504,10 +504,10 @@ class EnvironmentSession(db.Model):
         STATE_FAILED,
     )
 
-    __tablename__ = 'environment_sessions'
+    __tablename__ = 'application_sessions'
     id = db.Column(db.String(32), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
-    environment_id = db.Column(db.String(32), db.ForeignKey('environments.id'))
+    application_id = db.Column(db.String(32), db.ForeignKey('applications.id'))
     name = db.Column(db.String(64), unique=True)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     provisioned_at = db.Column(db.DateTime)
@@ -520,12 +520,12 @@ class EnvironmentSession(db.Model):
     _provisioning_config = db.Column('provisioning_config', db.Text)
     _session_data = db.Column('session_data', db.Text)
 
-    def __init__(self, environment, user):
+    def __init__(self, application, user):
         self.id = uuid.uuid4().hex
-        self.environment_id = environment.id
-        self.environment = environment
+        self.application_id = application.id
+        self.application = application
         self.user_id = user.id
-        self._state = EnvironmentSession.STATE_QUEUEING
+        self._state = ApplicationSession.STATE_QUEUEING
 
     @hybrid_property
     def session_data(self):
@@ -549,7 +549,7 @@ class EnvironmentSession(db.Model):
 
     @state.setter
     def state(self, value):
-        if value in EnvironmentSession.VALID_STATES:
+        if value in ApplicationSession.VALID_STATES:
             self._state = value
         else:
             raise ValueError("'%s' is not a valid state" % value)
@@ -559,18 +559,18 @@ class EnvironmentSession(db.Model):
         return '%s%s-the-%s' % (prefix, names.get_first_name().lower(), random.choice(NAME_ADJECTIVES))
 
 
-class EnvironmentSessionLog(db.Model):
-    __tablename__ = 'environment_session_logs'
+class ApplicationSessionLog(db.Model):
+    __tablename__ = 'application_session_logs'
     id = db.Column(db.String(32), primary_key=True)
-    environment_session_id = db.Column(db.String(32), db.ForeignKey('environment_sessions.id'), index=True, unique=False)
+    application_session_id = db.Column(db.String(32), db.ForeignKey('application_sessions.id'), index=True, unique=False)
     log_level = db.Column(db.String(8))
     log_type = db.Column(db.String(64))
     timestamp = db.Column(db.Float)
     message = db.Column(db.Text)
 
-    def __init__(self, environment_session_id, log_level, log_type, timestamp, message):
+    def __init__(self, application_session_id, log_level, log_type, timestamp, message):
         self.id = uuid.uuid4().hex
-        self.environment_session_id = environment_session_id
+        self.application_session_id = application_session_id
         self.log_level = log_level
         self.log_type = log_type
         self.timestamp = timestamp

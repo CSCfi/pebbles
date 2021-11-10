@@ -12,10 +12,10 @@ from kubernetes.client.rest import ApiException
 from openshift.dynamic import DynamicClient
 
 from pebbles.drivers.provisioning import base_driver
-from pebbles.models import EnvironmentSession
+from pebbles.models import ApplicationSession
 from pebbles.utils import b64encode_string
 
-# limit for environment session startup duration before it is marked as failed
+# limit for application session startup duration before it is marked as failed
 SESSION_STARTUP_TIME_LIMIT = 10 * 60
 
 
@@ -37,24 +37,24 @@ def parse_template(name, values):
         return format_with_jinja2(template, values)
 
 
-def get_session_volume_name(environment_session, persistence_level=VolumePersistenceLevel.SESSION_LIFETIME):
+def get_session_volume_name(application_session, persistence_level=VolumePersistenceLevel.SESSION_LIFETIME):
     if persistence_level == VolumePersistenceLevel.SESSION_LIFETIME:
-        return 'pvc-%s-%s' % (environment_session['user']['pseudonym'], environment_session['name'])
+        return 'pvc-%s-%s' % (application_session['user']['pseudonym'], application_session['name'])
     else:
         raise RuntimeError('volume persistence level %s is not supported' % persistence_level)
 
 
-def get_user_work_volume_name(environment_session, persistence_level=VolumePersistenceLevel.WORKSPACE_LIFETIME):
+def get_user_work_volume_name(application_session, persistence_level=VolumePersistenceLevel.WORKSPACE_LIFETIME):
     if persistence_level != VolumePersistenceLevel.WORKSPACE_LIFETIME:
         raise RuntimeError('volume persistence level %s is not supported' % persistence_level)
 
-    if environment_session['provisioning_config']['custom_config'].get('enable_user_work_folder'):
-        return 'pvc-%s-work' % environment_session['user']['pseudonym']
+    if application_session['provisioning_config']['custom_config'].get('enable_user_work_folder'):
+        return 'pvc-%s-work' % application_session['user']['pseudonym']
 
     return None
 
 
-def get_shared_volume_name(environment_session):
+def get_shared_volume_name(application_session):
     return 'pvc-ws-vol-1'
 
 
@@ -70,15 +70,15 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         self.kubernetes_api_client = self.create_kube_client()
         self.dynamic_client = DynamicClient(self.kubernetes_api_client)
 
-    def get_environment_session_hostname(self, environment_session):
+    def get_application_session_hostname(self, application_session):
         return self.ingress_app_domain
 
-    def get_environment_session_path(self, environment_session):
-        return '/notebooks/%s' % environment_session['id']
+    def get_application_session_path(self, application_session):
+        return '/notebooks/%s' % application_session['id']
 
-    def get_environment_session_namespace(self, environment_session):
+    def get_application_session_namespace(self, application_session):
         # implement this in subclass if you need to override simple default behaviour
-        self.logger.debug('returning static namespace for environment_session %s' % environment_session.get('name'))
+        self.logger.debug('returning static namespace for application_session %s' % application_session.get('name'))
         return self._namespace
 
     def ensure_namespace(self, namespace):
@@ -111,13 +111,13 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         return deployment_dict
 
-    def do_provision(self, token, environment_session_id):
+    def do_provision(self, token, application_session_id):
         # figure out parameters
-        environment_session = self.fetch_and_populate_environment_session(token, environment_session_id)
-        namespace = self.get_environment_session_namespace(environment_session)
-        session_volume_name = get_session_volume_name(environment_session)
-        user_volume_name = get_user_work_volume_name(environment_session)
-        shared_volume_name = get_shared_volume_name(environment_session)
+        application_session = self.fetch_and_populate_application_session(token, application_session_id)
+        namespace = self.get_application_session_namespace(application_session)
+        session_volume_name = get_session_volume_name(application_session)
+        user_volume_name = get_user_work_volume_name(application_session)
+        shared_volume_name = get_shared_volume_name(application_session)
         session_storage_class_name = self.cluster_config.get('storageClassNameSession')
         user_storage_class_name = self.cluster_config.get('storageClassNameUser')
         shared_storage_class_name = self.cluster_config.get('storageClassNameShared')
@@ -129,37 +129,37 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         # create namespace if necessary
         self.ensure_namespace(namespace)
         # create volumes if necessary
-        self.ensure_volume(namespace, environment_session,
+        self.ensure_volume(namespace, application_session,
                            session_volume_name, session_volume_size, session_storage_class_name)
-        self.ensure_volume(namespace, environment_session,
+        self.ensure_volume(namespace, application_session,
                            shared_volume_name, shared_volume_size, shared_storage_class_name, 'ReadWriteMany')
         if user_volume_name:
-            self.ensure_volume(namespace, environment_session,
+            self.ensure_volume(namespace, application_session,
                                user_volume_name, user_volume_size, user_storage_class_name, 'ReadWriteMany')
 
-        # create actual session/environment_session objects
-        self.create_deployment(namespace, environment_session)
-        self.create_configmap(namespace, environment_session)
-        self.create_service(namespace, environment_session)
-        self.create_ingress(namespace, environment_session)
+        # create actual session/application_session objects
+        self.create_deployment(namespace, application_session)
+        self.create_configmap(namespace, application_session)
+        self.create_service(namespace, application_session)
+        self.create_ingress(namespace, application_session)
 
         # tell base_driver that we need to check on the readiness later by explicitly returning STATE_STARTING
-        return EnvironmentSession.STATE_STARTING
+        return ApplicationSession.STATE_STARTING
 
-    def do_check_readiness(self, token, environment_session_id):
-        environment_session = self.fetch_and_populate_environment_session(token, environment_session_id)
-        namespace = self.get_environment_session_namespace(environment_session)
+    def do_check_readiness(self, token, application_session_id):
+        application_session = self.fetch_and_populate_application_session(token, application_session_id)
+        namespace = self.get_application_session_namespace(application_session)
         pod_api = self.dynamic_client.resources.get(api_version='v1', kind='Pod')
         pods = pod_api.get(
             namespace=namespace,
-            label_selector='name=%s' % environment_session.get('name')
+            label_selector='name=%s' % application_session.get('name')
         )
 
-        # if it is long since creation, mark the environment session as failed
+        # if it is long since creation, mark the application session as failed
         # TODO: when we implement queueing, change the reference time
-        create_ts = datetime.datetime.fromisoformat(environment_session['created_at']).timestamp()
+        create_ts = datetime.datetime.fromisoformat(application_session['created_at']).timestamp()
         if create_ts < time.time() - SESSION_STARTUP_TIME_LIMIT:
-            raise RuntimeWarning('environment_session %s takes too long to start' % environment_session_id)
+            raise RuntimeWarning('application_session %s takes too long to start' % application_session_id)
 
         # no pods, continue waiting
         if len(pods.items) == 0:
@@ -172,7 +172,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         pod = pods.items[0]
         # first check that the pod is running, then check readiness of all containers
         if pod.status.phase == 'Running' and not [x for x in pod.status.containerStatuses if not x.ready]:
-            # environment session ready, create and publish an endpoint url. note that we pick the protocol
+            # application session ready, create and publish an endpoint url. note that we pick the protocol
             # from a property that can be set in a subclass
             return dict(
                 namespace=namespace,
@@ -180,8 +180,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                     name='https',
                     access='%s://%s%s' % (
                         self.endpoint_protocol,
-                        self.get_environment_session_hostname(environment_session),
-                        self.get_environment_session_path(environment_session) + '/'
+                        self.get_application_session_hostname(application_session),
+                        self.get_application_session_path(application_session) + '/'
                     )
                 )]
             )
@@ -213,19 +213,19 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             if log_entries:
                 ts, message = log_entries[-1]
                 self.get_pb_client(token).add_provisioning_log(
-                    environment_session_id=environment_session_id,
+                    application_session_id=application_session_id,
                     timestamp=ts,
                     message=message
                 )
 
         return None
 
-    def do_deprovision(self, token, environment_session_id):
-        environment_session = self.fetch_and_populate_environment_session(token, environment_session_id)
-        namespace = self.get_environment_session_namespace(environment_session)
+    def do_deprovision(self, token, application_session_id):
+        application_session = self.fetch_and_populate_application_session(token, application_session_id)
+        namespace = self.get_application_session_namespace(application_session)
         # remove deployment
         try:
-            self.delete_deployment(namespace, environment_session)
+            self.delete_deployment(namespace, application_session)
         except ApiException as e:
             if e.status == 404:
                 self.logger.warning('Deployment not found, assuming it is already deleted')
@@ -234,7 +234,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         # remove configmap
         try:
-            self.delete_configmap(namespace, environment_session)
+            self.delete_configmap(namespace, application_session)
         except ApiException as e:
             if e.status == 404:
                 self.logger.warning('ConfigMap not found, assuming it is already deleted')
@@ -243,7 +243,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         # remove service
         try:
-            self.delete_service(namespace, environment_session)
+            self.delete_service(namespace, application_session)
         except ApiException as e:
             if e.status == 404:
                 self.logger.warning('Service not found, assuming it is already deleted')
@@ -252,7 +252,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         # remove ingress
         try:
-            self.delete_ingress(namespace, environment_session)
+            self.delete_ingress(namespace, application_session)
         except ApiException as e:
             if e.status == 404:
                 self.logger.warning('Ingress not found, assuming it is already deleted')
@@ -261,7 +261,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         # remove user volume (only level 1 persistence implemented so far)
         try:
-            volume_name = get_session_volume_name(environment_session)
+            volume_name = get_session_volume_name(application_session)
             self.delete_volume(namespace, volume_name)
         except ApiException as e:
             if e.status == 404:
@@ -272,13 +272,13 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def do_housekeep(self, token):
         pass
 
-    def do_get_running_logs(self, token, environment_session_id):
-        environment_session = self.fetch_and_populate_environment_session(token, environment_session_id)
-        namespace = self.get_environment_session_namespace(environment_session)
+    def do_get_running_logs(self, token, application_session_id):
+        application_session = self.fetch_and_populate_application_session(token, application_session_id)
+        namespace = self.get_application_session_namespace(application_session)
         api = self.dynamic_client.resources.get(api_version='v1', kind='Pod')
         pods = api.get(
             namespace=namespace,
-            label_selector='name=%s' % environment_session.get('name')
+            label_selector='name=%s' % application_session.get('name')
         )
         if len(pods.items) != 1:
             raise RuntimeWarning('pod results length is not one. dump: %s' % pods.to_str())
@@ -295,45 +295,45 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                 return True
         return False
 
-    def create_deployment(self, namespace, environment_session):
-        # get provisioning configuration and extract environment specific custom config
-        provisioning_config = environment_session['provisioning_config']
+    def create_deployment(self, namespace, application_session):
+        # get provisioning configuration and extract application specific custom config
+        provisioning_config = application_session['provisioning_config']
         custom_config = provisioning_config['custom_config']
 
         # create a dict out of space separated list of VAR=VAL entries
         env_var_array = provisioning_config.get('environment_vars', '').split()
         env_var_dict = {k: v for k, v in [x.split('=') for x in env_var_array]}
-        env_var_dict['SESSION_ID'] = environment_session['id']
+        env_var_dict['SESSION_ID'] = application_session['id']
         if custom_config.get('download_method', 'none') != 'none':
             env_var_dict['AUTODOWNLOAD_METHOD'] = custom_config.get('download_method', '')
             env_var_dict['AUTODOWNLOAD_URL'] = custom_config.get('download_url', '')
 
         env_var_list = [dict(name=x, value=env_var_dict[x]) for x in env_var_dict.keys()]
         # admins do not have this defined, so first check if we have WUA
-        if environment_session['workspace_user_association']:
+        if application_session['workspace_user_association']:
             # read_write only for managers
-            shared_data_read_only_mode = not environment_session['workspace_user_association']['is_manager']
+            shared_data_read_only_mode = not application_session['workspace_user_association']['is_manager']
         else:
             shared_data_read_only_mode = True
 
         deployment_yaml = parse_template('deployment.yaml.j2', dict(
-            name=environment_session['name'],
+            name=application_session['name'],
             image=provisioning_config['image'],
             volume_mount_path=provisioning_config['volume_mount_path'],
             port=int(provisioning_config['port']),
             memory_limit=provisioning_config.get('memory_limit', '512Mi'),
-            pvc_name_session=get_session_volume_name(environment_session),
-            pvc_name_user_work=get_user_work_volume_name(environment_session),
-            pvc_name_shared=get_shared_volume_name(environment_session),
+            pvc_name_session=get_session_volume_name(application_session),
+            pvc_name_user_work=get_user_work_volume_name(application_session),
+            pvc_name_shared=get_shared_volume_name(application_session),
             shared_data_read_only_mode=shared_data_read_only_mode,
         ))
         deployment_dict = yaml.safe_load(deployment_yaml)
 
-        # find the spec for pebbles environment_session container
-        environment_session_spec = list(filter(
+        # find the spec for pebbles application_session container
+        application_session_spec = list(filter(
             lambda x: x['name'] == 'pebbles-session',
             deployment_dict['spec']['template']['spec']['containers']))[0]
-        environment_session_spec['env'] = env_var_list
+        application_session_spec['env'] = env_var_list
         deployment_dict['spec']['template']['spec']['initContainers'][0]['env'] = env_var_list
 
         # process templated arguments
@@ -341,11 +341,11 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             args = format_with_jinja2(
                 provisioning_config.get('args'),
                 dict(
-                    session_id='%s' % environment_session['id'],
+                    session_id='%s' % application_session['id'],
                     **custom_config
                 )
             )
-            environment_session_spec['args'] = args.split()
+            application_session_spec['args'] = args.split()
 
         deployment_dict = self.customize_deployment_dict(deployment_dict)
 
@@ -354,19 +354,19 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         api = self.dynamic_client.resources.get(api_version='apps/v1', kind='Deployment')
         return api.create(body=deployment_dict, namespace=namespace)
 
-    def delete_deployment(self, namespace, environment_session):
-        self.logger.debug('deleting deployment %s' % environment_session.get('name'))
+    def delete_deployment(self, namespace, application_session):
+        self.logger.debug('deleting deployment %s' % application_session.get('name'))
         api_deployment = self.dynamic_client.resources.get(api_version='apps/v1', kind='Deployment')
-        return api_deployment.delete(namespace=namespace, name=environment_session.get('name'))
+        return api_deployment.delete(namespace=namespace, name=application_session.get('name'))
 
-    def create_configmap(self, namespace, environment_session):
-        provisioning_config = environment_session['provisioning_config']
+    def create_configmap(self, namespace, application_session):
+        provisioning_config = application_session['provisioning_config']
 
         configmap_yaml = parse_template('configmap.yaml', dict(
-            name=environment_session['name'],
+            name=application_session['name'],
         ))
         configmap_dict = yaml.safe_load(configmap_yaml)
-        if environment_session['provisioning_config'].get('proxy_rewrite') == 'nginx':
+        if application_session['provisioning_config'].get('proxy_rewrite') == 'nginx':
             proxy_config = """
                 server {
                   server_name             _;
@@ -406,9 +406,9 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             proxy_config,
             dict(
                 port=int(provisioning_config['port']),
-                name=environment_session['name'],
-                path=self.get_environment_session_path(environment_session),
-                host=self.get_environment_session_hostname(environment_session),
+                name=application_session['name'],
+                path=self.get_application_session_path(application_session),
+                host=self.get_application_session_hostname(application_session),
                 proto=self.endpoint_protocol
             )
         )
@@ -417,14 +417,14 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         api = self.dynamic_client.resources.get(api_version='v1', kind='ConfigMap')
         return api.create(body=configmap_dict, namespace=namespace)
 
-    def delete_configmap(self, namespace, environment_session):
-        self.logger.debug('deleting configmap %s' % environment_session.get('name'))
+    def delete_configmap(self, namespace, application_session):
+        self.logger.debug('deleting configmap %s' % application_session.get('name'))
         api_configmap = self.dynamic_client.resources.get(api_version='v1', kind='ConfigMap')
-        return api_configmap.delete(namespace=namespace, name=environment_session.get('name'))
+        return api_configmap.delete(namespace=namespace, name=application_session.get('name'))
 
-    def create_service(self, namespace, environment_session):
+    def create_service(self, namespace, application_session):
         service_yaml = parse_template('service.yaml', dict(
-            name=environment_session['name'],
+            name=application_session['name'],
             target_port=8080
         ))
         self.logger.debug('creating service\n%s' % service_yaml)
@@ -432,31 +432,31 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         api = self.dynamic_client.resources.get(api_version='v1', kind='Service')
         return api.create(body=yaml.safe_load(service_yaml), namespace=namespace)
 
-    def delete_service(self, namespace, environment_session):
-        self.logger.debug('deleting service %s' % environment_session.get('name'))
+    def delete_service(self, namespace, application_session):
+        self.logger.debug('deleting service %s' % application_session.get('name'))
         api = self.dynamic_client.resources.get(api_version='v1', kind='Service')
         api.delete(
             namespace=namespace,
-            name=environment_session.get('name')
+            name=application_session.get('name')
         )
 
-    def create_ingress(self, namespace, environment_session):
+    def create_ingress(self, namespace, application_session):
         ingress_yaml = parse_template('ingress.yaml', dict(
-            name=environment_session['name'],
-            path=self.get_environment_session_path(environment_session),
-            host=self.get_environment_session_hostname(environment_session),
+            name=application_session['name'],
+            path=self.get_application_session_path(application_session),
+            host=self.get_application_session_hostname(application_session),
         ))
         self.logger.debug('creating ingress\n%s' % ingress_yaml)
 
         api = self.dynamic_client.resources.get(api_version='networking.k8s.io/v1', kind='Ingress')
         return api.create(body=yaml.safe_load(ingress_yaml), namespace=namespace)
 
-    def delete_ingress(self, namespace, environment_session):
-        self.logger.debug('deleting ingress %s' % environment_session.get('name'))
+    def delete_ingress(self, namespace, application_session):
+        self.logger.debug('deleting ingress %s' % application_session.get('name'))
         api = self.dynamic_client.resources.get(api_version='networking.k8s.io/v1', kind='Ingress')
-        api.delete(namespace=namespace, name=environment_session.get('name'))
+        api.delete(namespace=namespace, name=application_session.get('name'))
 
-    def ensure_volume(self, namespace, environment_session, volume_name, volume_size, storage_class_name,
+    def ensure_volume(self, namespace, application_session, volume_name, volume_size, storage_class_name,
                       access_mode='ReadWriteOnce'):
         api = self.dynamic_client.resources.get(api_version='v1', kind='PersistentVolumeClaim')
         try:
@@ -486,18 +486,18 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             name=volume_name
         )
 
-    def fetch_and_populate_environment_session(self, token, environment_session_id):
+    def fetch_and_populate_application_session(self, token, application_session_id):
         pbclient = self.get_pb_client(token)
-        environment_session = pbclient.get_environment_session(environment_session_id)
-        environment_session['environment'] = pbclient.get_environment_session_environment(environment_session_id)
-        environment_session['user'] = pbclient.get_user(environment_session['user_id'])
+        application_session = pbclient.get_application_session(application_session_id)
+        application_session['application'] = pbclient.get_application_session_application(application_session_id)
+        application_session['user'] = pbclient.get_user(application_session['user_id'])
         # get workspace associations for the user and find the relevant one
-        environment_session['workspace_user_association'] = next(filter(
-            lambda x: x['workspace_id'] == environment_session['environment']['workspace_id'],
-            pbclient.get_workspace_user_associations(user_id=environment_session['user_id'])
+        application_session['workspace_user_association'] = next(filter(
+            lambda x: x['workspace_id'] == application_session['application']['workspace_id'],
+            pbclient.get_workspace_user_associations(user_id=application_session['user_id'])
         ), None)
 
-        return environment_session
+        return application_session
 
 
 class KubernetesLocalDriver(KubernetesDriverBase):
@@ -523,20 +523,20 @@ class KubernetesRemoteDriver(KubernetesDriverBase):
             context=self.cluster_config['name']
         )
 
-    def get_environment_session_namespace(self, environment_session):
-        if 'session_data' in environment_session and 'namespace' in environment_session['session_data']:
-            # environment_session already has namespace assigned in session_data
-            namespace = environment_session['session_data']['namespace']
-            self.logger.debug('found namespace %s for session %s' % (namespace, environment_session.get('name')))
+    def get_application_session_namespace(self, application_session):
+        if 'session_data' in application_session and 'namespace' in application_session['session_data']:
+            # application_session already has namespace assigned in session_data
+            namespace = application_session['session_data']['namespace']
+            self.logger.debug('found namespace %s for session %s' % (namespace, application_session.get('name')))
         elif 'namespace' in self.cluster_config.keys():
             # if we have a single namespace configured, use that
             namespace = self.cluster_config['namespace']
-            self.logger.debug('using fixed namespace %s for session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug('using fixed namespace %s for session %s' % (namespace, application_session.get('name')))
         else:
             # generate namespace name based on prefix and workspace pseudonym
             namespace_prefix = self.cluster_config.get('namespacePrefix', 'pb-')
-            namespace = '%s%s' % (namespace_prefix, environment_session['environment']['workspace_pseudonym'])
-            self.logger.debug('assigned namespace %s to session %s' % (namespace, environment_session.get('name')))
+            namespace = '%s%s' % (namespace_prefix, application_session['application']['workspace_pseudonym'])
+            self.logger.debug('assigned namespace %s to session %s' % (namespace, application_session.get('name')))
         return namespace
 
     def create_namespace(self, namespace):
@@ -564,23 +564,23 @@ class KubernetesRemoteDriver(KubernetesDriverBase):
 
 class OpenShiftLocalDriver(KubernetesLocalDriver):
 
-    def create_ingress(self, namespace, environment_session):
-        pod_name = environment_session.get('name')
+    def create_ingress(self, namespace, application_session):
+        pod_name = application_session.get('name')
         route_yaml = parse_template('route.yaml', dict(
             name=pod_name,
-            host=self.get_environment_session_hostname(environment_session)
+            host=self.get_application_session_hostname(application_session)
         ))
         api = self.dynamic_client.resources.get(api_version='route.openshift.io/v1', kind='Route')
         api.create(body=yaml.safe_load(route_yaml), namespace=namespace)
 
-    def delete_ingress(self, namespace, environment_session):
+    def delete_ingress(self, namespace, application_session):
         api = self.dynamic_client.resources.get(api_version='route.openshift.io/v1', kind='Route')
-        api.delete(name=environment_session.get('name'), namespace=namespace)
+        api.delete(name=application_session.get('name'), namespace=namespace)
 
-    def get_environment_session_hostname(self, environment_session):
-        return '%s.%s' % (environment_session.get('name'), self.ingress_app_domain)
+    def get_application_session_hostname(self, application_session):
+        return '%s.%s' % (application_session.get('name'), self.ingress_app_domain)
 
-    def get_environment_session_path(self, environment_session):
+    def get_application_session_path(self, application_session):
         return ''
 
 
@@ -638,20 +638,20 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
 
         return kubernetes.client.ApiClient(conf)
 
-    def get_environment_session_namespace(self, environment_session):
-        if 'session_data' in environment_session and 'namespace' in environment_session['session_data']:
-            # environment_session already has namespace assigned in session_data
-            namespace = environment_session['session_data']['namespace']
-            self.logger.debug('found namespace %s for session %s' % (namespace, environment_session.get('name')))
+    def get_application_session_namespace(self, application_session):
+        if 'session_data' in application_session and 'namespace' in application_session['session_data']:
+            # application_session already has namespace assigned in session_data
+            namespace = application_session['session_data']['namespace']
+            self.logger.debug('found namespace %s for session %s' % (namespace, application_session.get('name')))
         elif 'namespace' in self.cluster_config.keys():
             # if we have a single namespace configured, use that
             namespace = self.cluster_config['namespace']
-            self.logger.debug('using fixed namespace %s for session %s' % (namespace, environment_session.get('name')))
+            self.logger.debug('using fixed namespace %s for session %s' % (namespace, application_session.get('name')))
         else:
             # generate namespace name based on prefix and workspace pseudonym
             namespace_prefix = self.cluster_config.get('namespacePrefix', 'pb-')
-            namespace = '%s%s' % (namespace_prefix, environment_session['environment']['workspace_pseudonym'])
-            self.logger.debug('assigned namespace %s to session %s' % (namespace, environment_session.get('name')))
+            namespace = '%s%s' % (namespace_prefix, application_session['application']['workspace_pseudonym'])
+            self.logger.debug('assigned namespace %s to session %s' % (namespace, application_session.get('name')))
         return namespace
 
     def create_namespace(self, namespace):

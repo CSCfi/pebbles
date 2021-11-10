@@ -12,7 +12,7 @@ from sqlalchemy.orm import subqueryload
 from pebbles import rules
 from pebbles.app import app
 from pebbles.forms import WorkspaceForm
-from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Environment, EnvironmentSession
+from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Application, ApplicationSession
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin
 from pebbles.views.commons import auth
 
@@ -28,7 +28,7 @@ workspace_fields_admin = {
     'create_ts': fields.Integer,
     'expiry_ts': fields.Integer,
     'owner_ext_id': fields.String,
-    'environment_quota': fields.Integer,
+    'application_quota': fields.Integer,
 }
 
 workspace_fields_owner = {
@@ -39,7 +39,7 @@ workspace_fields_owner = {
     'create_ts': fields.Integer,
     'expiry_ts': fields.Integer,
     'owner_ext_id': fields.String,
-    'environment_quota': fields.Integer,
+    'application_quota': fields.Integer,
 }
 
 workspace_fields_manager = {
@@ -49,7 +49,7 @@ workspace_fields_manager = {
     'description': fields.Raw,
     'create_ts': fields.Integer,
     'expiry_ts': fields.Integer,
-    'environment_quota': fields.Integer,
+    'application_quota': fields.Integer,
 }
 
 workspace_fields_user = {
@@ -236,26 +236,26 @@ class WorkspaceView(restful.Resource):
         if new_status == Workspace.STATUS_ARCHIVED:
             logging.info('Archiving workspace %s "%s"', workspace.id, workspace.name)
             workspace.status = Workspace.STATUS_ARCHIVED
-            environments = workspace.environments.all()
-            for environment in environments:
-                environment.status = Environment.STATUS_DELETED
+            applications = workspace.applications.all()
+            for application in applications:
+                application.status = Application.STATUS_DELETED
             db.session.commit()
 
         # delete
         if new_status == Workspace.STATUS_DELETED:
             logging.info('Deleting workspace %s "%s"', workspace.id, workspace.name)
             workspace.status = Workspace.STATUS_DELETED
-            environments = workspace.environments.all()
-            for environment in environments:
-                environment.status = Environment.STATUS_DELETED
-                for environment_session in environment.environment_sessions:
-                    if environment_session.state in (
-                            EnvironmentSession.STATE_DELETING, EnvironmentSession.STATE_DELETED):
+            applications = workspace.applications.all()
+            for application in applications:
+                application.status = Application.STATUS_DELETED
+                for application_session in application.application_sessions:
+                    if application_session.state in (
+                            ApplicationSession.STATE_DELETING, ApplicationSession.STATE_DELETED):
                         continue
-                    logging.info('Setting environment_session %s to be deleted', environment_session.name)
-                    environment_session.to_be_deleted = True
-                    environment_session.state = EnvironmentSession.STATE_DELETING
-                    environment_session.deprovisioned_at = datetime.datetime.utcnow()
+                    logging.info('Setting application_session %s to be deleted', application_session.name)
+                    application_session.to_be_deleted = True
+                    application_session.state = ApplicationSession.STATE_DELETING
+                    application_session.deprovisioned_at = datetime.datetime.utcnow()
             db.session.commit()
 
         # marshal based on role

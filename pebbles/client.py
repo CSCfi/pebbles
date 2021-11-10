@@ -73,8 +73,8 @@ class PBClient:
     def do_delete(self, object_url, form_data=None, json_data=None):
         return self.do_modify(method='delete', object_url=object_url, form_data=form_data, json_data=json_data)
 
-    def do_environment_session_patch(self, environment_session_id, form_data=None, json_data=None):
-        url = 'environment_sessions/%s' % environment_session_id
+    def do_application_session_patch(self, application_session_id, form_data=None, json_data=None):
+        url = 'application_sessions/%s' % application_session_id
         resp = self.do_patch(url, form_data=form_data, json_data=json_data)
         return resp
 
@@ -97,29 +97,29 @@ class PBClient:
 
         return resp.json()
 
-    def get_environment_sessions(self):
-        resp = self.do_get('environment_sessions')
+    def get_application_sessions(self):
+        resp = self.do_get('application_sessions')
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for environment_sessions, %s' % resp.reason)
+            raise RuntimeError('Cannot fetch data for application_sessions, %s' % resp.reason)
         return resp.json()
 
-    def get_environment_session(self, environment_session_id):
-        resp = self.do_get('environment_sessions/%s' % environment_session_id)
+    def get_application_session(self, application_session_id):
+        resp = self.do_get('application_sessions/%s' % application_session_id)
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for environment_sessions %s, %s' % (environment_session_id, resp.reason))
+            raise RuntimeError('Cannot fetch data for application_sessions %s, %s' % (application_session_id, resp.reason))
         return resp.json()
 
-    def get_environment_session_environment(self, environment_session_id):
-        environment_id = self.get_environment_session(environment_session_id)['environment_id']
+    def get_application_session_application(self, application_session_id):
+        application_id = self.get_application_session(application_session_id)['application_id']
 
-        # try to get all environments to cover the case where the environment has been just archived
-        resp = self.do_get('environments/%s?show_all=1' % environment_id)
+        # try to get all applications to cover the case where the application has been just archived
+        resp = self.do_get('applications/%s?show_all=1' % application_id)
         if resp.status_code != 200:
-            raise RuntimeError('Error loading environment data: %s, %s' % (environment_id, resp.reason))
+            raise RuntimeError('Error loading application data: %s, %s' % (application_id, resp.reason))
 
         return resp.json()
 
-    def add_provisioning_log(self, environment_session_id, message, timestamp=None, log_type='provisioning', log_level='info'):
+    def add_provisioning_log(self, application_session_id, message, timestamp=None, log_type='provisioning', log_level='info'):
         payload = dict(
             log_record=dict(
                 timestamp=timestamp if timestamp else time(),
@@ -128,9 +128,9 @@ class PBClient:
                 message=message
             )
         )
-        self.do_patch('environment_sessions/%s/logs' % environment_session_id, json_data=payload)
+        self.do_patch('application_sessions/%s/logs' % application_session_id, json_data=payload)
 
-    def update_environment_session_running_logs(self, environment_session_id, logs):
+    def update_application_session_running_logs(self, application_session_id, logs):
         payload = dict(
             log_record=dict(
                 log_type='running',
@@ -139,16 +139,16 @@ class PBClient:
                 message=logs
             )
         )
-        self.do_patch('environment_sessions/%s/logs' % environment_session_id, json_data=payload)
+        self.do_patch('application_sessions/%s/logs' % application_session_id, json_data=payload)
 
-    def clear_running_environment_session_logs(self, environment_session_id):
+    def clear_running_application_session_logs(self, application_session_id):
         headers = {'Accept': 'text/plain',
                    'Authorization': 'Basic %s' % self.auth}
-        url = '%s/environment_sessions/%s/logs' % (self.api_base_url, environment_session_id)
+        url = '%s/application_sessions/%s/logs' % (self.api_base_url, application_session_id)
         params = {'log_type': 'running'}
         resp = requests.delete(url, params=params, headers=headers, verify=self.ssl_verify)
         if resp.status_code != 200:
-            raise RuntimeError('Unable to delete running logs for environment_session %s, %s' % (environment_session_id, resp.reason))
+            raise RuntimeError('Unable to delete running logs for application_session %s, %s' % (application_session_id, resp.reason))
         return resp
 
     def query_locks(self, lock_id=None):

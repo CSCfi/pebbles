@@ -3,7 +3,7 @@ Pebbles is configured with a number of **variables**.
 
 These variables come, in the order of precedence from
 
-- environment variables
+- application variables
 - a configuration file
 - built-in defaults
 
@@ -14,7 +14,7 @@ Only some have been documented.
 
 The idea is that you could have a single docker container with multiple
 entry points. All containers can (or should) see the same configuration file
-and then at start-up time environment variables can be set to e.g.
+and then at start-up time application variables can be set to e.g.
 differentiate workers to run a particular driver.
 
 """
@@ -28,7 +28,7 @@ LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
 def _parse_env_value(val):
     """
-    Pars environment variables to bool, integer or float or default to string.
+    Pars application variables to bool, integer or float or default to string.
 
     :param val:
     :return: val coerced into a type if it looks to be of one
@@ -52,7 +52,7 @@ def resolve_configuration_value(key, default=None, *args, **kwargs):
     def get_key_from_config(config_file, key):
         return yaml.safe_load(open(config_file)).get(key)
 
-    # check environment
+    # check application
     pb_key = 'PB_' + key
     value = os.getenv(pb_key)
     if value is not None:
@@ -86,7 +86,7 @@ def fields_to_properties(cls):
 @fields_to_properties
 class BaseConfig(object):
     """ Stores the default key, value pairs for the system configuration.
-        Rendered with a decorator which considers any environment variables,
+        Rendered with a decorator which considers any application variables,
         then the system level config file and finally the default values,
         in that order of precedence.
     """
@@ -111,14 +111,14 @@ class BaseConfig(object):
     BASE_URL = 'https://localhost:8888'
     # Internal url for contacting the API, defaults to 'api' Service
     INTERNAL_API_BASE_URL = 'http://api:8080/api/v1'
-    # prefix all environment session names with this
+    # prefix all application session names with this
     SESSION_NAME_PREFIX = 'pb-'
 
     # Info about the system for frontend
     INSTALLATION_NAME = 'Pebbles'
-    SHORT_DESCRIPTION = 'Easy-to-use environments for working with data and programming.'
-    INSTALLATION_DESCRIPTION = 'Log in to see the catalogue of available environments. ' +\
-                               'Environments run in the cloud and are accessed with your browser.'
+    SHORT_DESCRIPTION = 'Easy-to-use applications for working with data and programming.'
+    INSTALLATION_DESCRIPTION = 'Log in to see the catalogue of available applications. ' +\
+                               'Applications run in the cloud and are accessed with your browser.'
 
     BRAND_IMAGE_URL = 'img/Notebooks_neg300px.png'
     COURSE_REQUEST_FORM_URL = 'http://link-to-form'

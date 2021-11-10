@@ -16,9 +16,9 @@ class Flavor(object):
         self.id = "flavor_1"
 
 
-class EnvironmentSession(object):
+class ApplicationSession(object):
     def __init__(self):
-        self.id = "environment_session_1"
+        self.id = "application_session_1"
         self.status = "READY"
         self.networks = {'id': ["network_1"]}
 
@@ -71,10 +71,10 @@ class NovaClientMock(object):
 
     class ServerManagerMock(object):
         def create(self, *args, **kwargs):
-            return EnvironmentSession()
+            return ApplicationSession()
 
         def get(self, *args, **kwargs):
-            return EnvironmentSession()
+            return ApplicationSession()
 
         def delete(self, *args, **kwargs):
             return

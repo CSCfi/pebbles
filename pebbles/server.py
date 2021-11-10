@@ -3,15 +3,15 @@ import flask_restful as restful
 from pebbles.app import app
 from pebbles.views.alerts import alerts, AlertList, AlertView, SystemStatus
 from pebbles.views.clusters import clusters, ClusterList
-from pebbles.views.environment_categories import EnvironmentCategoryList
-from pebbles.views.environment_sessions import environment_sessions, EnvironmentSessionList, EnvironmentSessionView, \
-    EnvironmentSessionLogs
-from pebbles.views.environment_templates import EnvironmentTemplateList, EnvironmentTemplateView, \
-    EnvironmentTemplateCopy
-from pebbles.views.environment_templates import environment_templates
-from pebbles.views.environments import environments, EnvironmentList, EnvironmentView, EnvironmentCopy
+from pebbles.views.application_categories import ApplicationCategoryList
+from pebbles.views.application_sessions import application_sessions, ApplicationSessionList, ApplicationSessionView, \
+    ApplicationSessionLogs
+from pebbles.views.application_templates import ApplicationTemplateList, ApplicationTemplateView, \
+    ApplicationTemplateCopy
+from pebbles.views.application_templates import application_templates
+from pebbles.views.applications import applications, ApplicationList, ApplicationView, ApplicationCopy
 from pebbles.views.helps import helps, HelpsList
-from pebbles.views.import_export import import_export, ImportExportEnvironmentTemplates, ImportExportEnvironments
+from pebbles.views.import_export import import_export, ImportExportApplicationTemplates, ImportExportApplications
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.sessions import sessions, SessionView
@@ -38,40 +38,40 @@ api.add_resource(JoinWorkspace, api_root + '/join_workspace/<string:join_code>')
 api.add_resource(MessageList, api_root + '/messages')
 api.add_resource(MessageView, api_root + '/messages/<string:message_id>')
 api.add_resource(SessionView, api_root + '/sessions')
-api.add_resource(EnvironmentTemplateList, api_root + '/environment_templates')
-api.add_resource(EnvironmentTemplateView, api_root + '/environment_templates/<string:template_id>')
-api.add_resource(EnvironmentTemplateCopy, api_root + '/environment_templates/template_copy/<string:template_id>')
-api.add_resource(EnvironmentList, api_root + '/environments')
-api.add_resource(EnvironmentView, api_root + '/environments/<string:environment_id>')
-api.add_resource(EnvironmentCopy, api_root + '/environments/environment_copy/<string:environment_id>')
-api.add_resource(EnvironmentSessionList, api_root + '/environment_sessions')
+api.add_resource(ApplicationTemplateList, api_root + '/application_templates')
+api.add_resource(ApplicationTemplateView, api_root + '/application_templates/<string:template_id>')
+api.add_resource(ApplicationTemplateCopy, api_root + '/application_templates/template_copy/<string:template_id>')
+api.add_resource(ApplicationList, api_root + '/applications')
+api.add_resource(ApplicationView, api_root + '/applications/<string:application_id>')
+api.add_resource(ApplicationCopy, api_root + '/applications/application_copy/<string:application_id>')
+api.add_resource(ApplicationSessionList, api_root + '/application_sessions')
 api.add_resource(
-    EnvironmentSessionView,
-    api_root + '/environment_sessions/<string:environment_session_id>',
+    ApplicationSessionView,
+    api_root + '/application_sessions/<string:application_session_id>',
     methods=['GET', 'POST', 'DELETE', 'PATCH'])
 api.add_resource(
-    EnvironmentSessionLogs,
-    api_root + '/environment_sessions/<string:environment_session_id>/logs',
+    ApplicationSessionLogs,
+    api_root + '/application_sessions/<string:application_session_id>/logs',
     methods=['GET', 'PATCH', 'DELETE'])
 api.add_resource(ClusterList, api_root + '/clusters')
 api.add_resource(PublicConfigList, api_root + '/config')
 api.add_resource(LockList, api_root + '/locks')
 api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
-api.add_resource(ImportExportEnvironmentTemplates, api_root + '/import_export/environment_templates')
-api.add_resource(ImportExportEnvironments, api_root + '/import_export/environments')
-api.add_resource(EnvironmentCategoryList, api_root + '/environment_categories')
+api.add_resource(ImportExportApplicationTemplates, api_root + '/import_export/application_templates')
+api.add_resource(ImportExportApplications, api_root + '/import_export/applications')
+api.add_resource(ApplicationCategoryList, api_root + '/application_categories')
 api.add_resource(HelpsList, api_root + '/help')
 api.add_resource(AlertList, api_root + '/alerts')
 api.add_resource(AlertView, api_root + '/alerts/<string:target>/<string:source>')
 api.add_resource(SystemStatus, api_root + '/status')
 
-app.register_blueprint(environment_templates)
-app.register_blueprint(environments)
+app.register_blueprint(application_templates)
+app.register_blueprint(applications)
 app.register_blueprint(clusters)
 app.register_blueprint(users)
 app.register_blueprint(workspaces)
 app.register_blueprint(join_workspace)
-app.register_blueprint(environment_sessions)
+app.register_blueprint(application_sessions)
 app.register_blueprint(sessions)
 app.register_blueprint(variables)
 app.register_blueprint(locks)

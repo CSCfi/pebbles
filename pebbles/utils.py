@@ -96,57 +96,57 @@ def parse_port_range(port_range):
         raise ValueError('No port range found')
 
 
-def get_provisioning_config(environment):
-    """Render provisioning config for environment"""
+def get_provisioning_config(application):
+    """Render provisioning config for application"""
 
-    # old style override of template base_config with environment config
-    template = environment.template
+    # old style override of template base_config with application config
+    template = application.template
     allowed_attrs = template.allowed_attrs
     provisioning_config = template.base_config
-    env_config = environment.config if environment.config else {}
+    app_config = application.config if application.config else {}
     for attr in allowed_attrs:
-        if attr in env_config:
-            provisioning_config[attr] = env_config[attr]
+        if attr in app_config:
+            provisioning_config[attr] = app_config[attr]
 
-    # here we pick configuration options from environment to full_config that is used in provisioning
+    # here we pick configuration options from application to full_config that is used in provisioning
     custom_config = {}
     # common autodownload options
-    if env_config.get('download_method'):
-        method = env_config.get('download_method')
+    if app_config.get('download_method'):
+        method = app_config.get('download_method')
         if method in ('http-get', 'git-clone'):
             custom_config['download_method'] = method
-            custom_config['download_url'] = env_config.get('download_url')
+            custom_config['download_url'] = app_config.get('download_url')
         elif method != 'none':
             logging.warning('unknown download_method %s', method)
 
-    # environment type specific configs
-    if template.environment_type == 'jupyter':
-        if env_config.get('jupyter_interface') in ('notebook', 'lab'):
-            custom_config['jupyter_interface'] = env_config.get('jupyter_interface')
+    # application type specific configs
+    if template.application_type == 'jupyter':
+        if app_config.get('jupyter_interface') in ('notebook', 'lab'):
+            custom_config['jupyter_interface'] = app_config.get('jupyter_interface')
         else:
             custom_config['jupyter_interface'] = 'lab'
 
-    elif template.environment_type == 'rstudio':
+    elif template.application_type == 'rstudio':
         # nothing special required for rstudio yet
         pass
     else:
-        logging.warning('unknown environment_type %s', template.environment_type)
+        logging.warning('unknown application_type %s', template.application_type)
 
     # pick the persistent work folder option
-    if env_config.get('enable_user_work_folder'):
-        custom_config['enable_user_work_folder'] = env_config.get('enable_user_work_folder')
+    if app_config.get('enable_user_work_folder'):
+        custom_config['enable_user_work_folder'] = app_config.get('enable_user_work_folder')
 
     provisioning_config['custom_config'] = custom_config
 
     # assign cluster from workspace
-    provisioning_config['cluster'] = environment.workspace.cluster
+    provisioning_config['cluster'] = application.workspace.cluster
 
     return provisioning_config
 
 
-def get_environment_fields_from_config(environment, field_name):
-    """Hybrid fields for Environment model which need processing"""
-    full_config = get_provisioning_config(environment)
+def get_application_fields_from_config(application, field_name):
+    """Hybrid fields for Application model which need processing"""
+    full_config = get_provisioning_config(application)
 
     if field_name == 'cost_multiplier':
         cost_multiplier = 1.0  # Default value
@@ -182,7 +182,7 @@ def load_cluster_config(
         cluster_config_file='/run/secrets/pebbles/cluster-config.yaml',
         cluster_passwords_file='/run/secrets/pebbles/cluster-passwords.yaml',
 ):
-    """load configuration for clusters where the environment sessions are executed"""
+    """load configuration for clusters where the application sessions are executed"""
 
     try:
         cluster_config = yaml.safe_load(open(cluster_config_file, 'r'))

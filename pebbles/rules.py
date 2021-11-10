@@ -4,14 +4,14 @@ from sqlalchemy import or_, and_
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
 
-from pebbles.models import Environment, EnvironmentTemplate, EnvironmentSession, User, WorkspaceUserAssociation
+from pebbles.models import Application, ApplicationTemplate, ApplicationSession, User, WorkspaceUserAssociation
 from pebbles.views.commons import is_workspace_manager
 
 
-def apply_rules_environment_templates(user, args=None):
-    q = EnvironmentTemplate.query
+def apply_rules_application_templates(user, args=None):
+    q = ApplicationTemplate.query
     if not user.is_admin:
-        query_exp = EnvironmentTemplate.is_enabled == true()
+        query_exp = ApplicationTemplate.is_enabled == true()
         q = q.filter(query_exp)
     if args is not None and 'template_id' in args:
         q = q.filter_by(id=args.get('template_id'))
@@ -19,78 +19,78 @@ def apply_rules_environment_templates(user, args=None):
     return q
 
 
-def apply_rules_environments(user, args=None):
-    q = Environment.query
+def apply_rules_applications(user, args=None):
+    q = Application.query
     if not user.is_admin:
         workspace_user_objs = WorkspaceUserAssociation.query.filter_by(
             user_id=user.id, is_manager=False, is_banned=False).all()
         allowed_workspace_ids = [workspace_user_obj.workspace.id for workspace_user_obj in workspace_user_objs]
 
         # Start building query expressions based on the condition that :
-        # a workspace manager can see all of his environments and only enabled ones of other workspaces
-        query_exp = Environment.is_enabled == true()
+        # a workspace manager can see all of his applications and only enabled ones of other workspaces
+        query_exp = Application.is_enabled == true()
         allowed_workspace_ids_exp = None
         if allowed_workspace_ids:
-            allowed_workspace_ids_exp = Environment.workspace_id.in_(allowed_workspace_ids)
+            allowed_workspace_ids_exp = Application.workspace_id.in_(allowed_workspace_ids)
         query_exp = and_(allowed_workspace_ids_exp, query_exp)
 
         manager_workspace_ids = get_manager_workspace_ids(user)
         manager_workspace_ids_exp = None
         if manager_workspace_ids:
-            manager_workspace_ids_exp = Environment.workspace_id.in_(manager_workspace_ids)
+            manager_workspace_ids_exp = Application.workspace_id.in_(manager_workspace_ids)
         query_exp = or_(query_exp, manager_workspace_ids_exp)
         q = q.filter(query_exp).filter_by(status='active')
     else:
-        # admins can optionally also see archived and deleted environments
+        # admins can optionally also see archived and deleted applications
         if args is not None and 'show_all' in args and args.get('show_all'):
             q = q.filter(
                 or_(
-                    Environment.status == Environment.STATUS_ACTIVE,
-                    Environment.status == Environment.STATUS_ARCHIVED,
-                    Environment.status == Environment.STATUS_DELETED
+                    Application.status == Application.STATUS_ACTIVE,
+                    Application.status == Application.STATUS_ARCHIVED,
+                    Application.status == Application.STATUS_DELETED
                 )
             )
         else:
-            q = q.filter_by(status=Environment.STATUS_ACTIVE)
+            q = q.filter_by(status=Application.STATUS_ACTIVE)
 
     if args is not None:
-        if 'environment_id' in args:
-            q = q.filter_by(id=args.get('environment_id'))
+        if 'application_id' in args:
+            q = q.filter_by(id=args.get('application_id'))
         elif 'workspace_id' in args and args.get('workspace_id'):
             q = q.filter_by(workspace_id=args.get('workspace_id'))
 
     return q
 
 
-def apply_rules_export_environments(user):
-    q = Environment.query
+def apply_rules_export_applications(user):
+    q = Application.query
     if not user.is_admin:
         manager_workspace_ids = get_manager_workspace_ids(user)
         query_exp = None
         if manager_workspace_ids:
-            query_exp = Environment.workspace_id.in_(manager_workspace_ids)
+            query_exp = Application.workspace_id.in_(manager_workspace_ids)
         q = q.filter(query_exp)
     return q
 
 
-def apply_rules_environment_sessions(user, args=None):
-    # basic query filter out the deleted environment_sessions
-    q = EnvironmentSession.query.filter(EnvironmentSession.state != EnvironmentSession.STATE_DELETED)
+def apply_rules_application_sessions(user, args=None):
+    # basic query filter out the deleted application_sessions
+    q = ApplicationSession.query.filter(ApplicationSession.state != ApplicationSession.STATE_DELETED)
     if not user.is_admin:
-        # user's own environment_sessions
+        # user's own application_sessions
         q1 = q.filter_by(user_id=user.id)
         if is_workspace_manager(user):
-            # include also environment_sessions of the environments of managed workspaces
-            workspace_environments_id = get_workspace_environment_ids_for_environment_sessions(user, only_managed=True)
-            q2 = q.filter(EnvironmentSession.environment_id.in_(workspace_environments_id))
+            # include also application_sessions of the applications of managed workspaces
+            workspace_applications_id = get_workspace_application_ids_for_application_sessions(user, only_managed=True)
+            q2 = q.filter(ApplicationSession.application_id.in_(workspace_applications_id))
             q = q1.union(q2)
         else:
             q = q1
 
     # additional filtering
     if args is not None:
-        if 'environment_session_id' in args:
-            q = q.filter_by(id=args.get('environment_session_id'))
+        if 'application_session_id' in args:
+            q = q.filter_by(id=args.get('application_session_id'))
     return q
 
 
@@ -113,8 +113,8 @@ def get_manager_workspace_ids(user):
     return manager_workspace_ids
 
 
-def get_workspace_environment_ids_for_environment_sessions(user, only_managed=False):
-    """Return the valid environment ids based on user's workspaces to be used in environment_sessions view"""
+def get_workspace_application_ids_for_application_sessions(user, only_managed=False):
+    """Return the valid application ids based on user's workspaces to be used in application_sessions view"""
     workspace_user_query = WorkspaceUserAssociation.query
     if only_managed:  # if we require only managed workspaces
         workspace_user_objs = workspace_user_query.filter_by(user_id=user.id, is_manager=True).all()
@@ -122,12 +122,12 @@ def get_workspace_environment_ids_for_environment_sessions(user, only_managed=Fa
         workspace_user_objs = workspace_user_query.filter_by(user_id=user.id).all()
     workspaces = [workspace_user_obj.workspace for workspace_user_obj in workspace_user_objs]
     # loading only id column rest will be deferred
-    workspace_environments = [workspace.environments.options(load_only("id")).all() for workspace in workspaces]
+    workspace_applications = [workspace.applications.options(load_only("id")).all() for workspace in workspaces]
     # merge the list of lists into one list
-    workspace_environments_flat = list(itertools.chain.from_iterable(workspace_environments))
+    workspace_applications_flat = list(itertools.chain.from_iterable(workspace_applications))
     # Get the ids in a list
-    workspace_environments_id = [environment_item.id for environment_item in workspace_environments_flat]
-    return workspace_environments_id
+    workspace_applications_id = [application_item.id for application_item in workspace_applications_flat]
+    return workspace_applications_id
 
 
 def is_user_owner_of_workspace(user, workspace):

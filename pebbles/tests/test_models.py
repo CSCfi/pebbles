@@ -5,7 +5,7 @@ import time
 
 from jose import jwt
 
-from pebbles.models import User, Workspace, Environment, EnvironmentTemplate, EnvironmentSession
+from pebbles.models import User, Workspace, Application, ApplicationTemplate, ApplicationSession
 from pebbles.tests.base import db, BaseTestCase
 
 
@@ -21,22 +21,22 @@ class ModelsTestCase(BaseTestCase):
         self.known_group = ws
         db.session.add(ws)
 
-        t1 = EnvironmentTemplate()
+        t1 = ApplicationTemplate()
         t1.name = 'EnabledTestTemplate'
         t1.is_enabled = True
         t1.allowed_attrs = ['cost_multiplier']
         db.session.add(t1)
         self.known_template_id = t1.id
 
-        b1 = Environment()
-        b1.name = "TestEnvironment"
+        b1 = Application()
+        b1.name = "TestApplication"
         b1.template_id = t1.id
         b1.workspace_id = ws.id
         # b1.cost_multiplier = 1.5
         b1.config = {
             'cost_multiplier': '1.5'
         }
-        self.known_environment = b1
+        self.known_application = b1
         db.session.add(b1)
 
         db.session.commit()
@@ -61,14 +61,14 @@ class ModelsTestCase(BaseTestCase):
         with self.assertRaises(Exception):
             db.session.commit()
 
-    def test_environment_session_states(self):
-        i1 = EnvironmentSession(self.known_environment, self.known_user)
-        for state in EnvironmentSession.VALID_STATES:
+    def test_application_session_states(self):
+        i1 = ApplicationSession(self.known_application, self.known_user)
+        for state in ApplicationSession.VALID_STATES:
             i1.state = state
 
-        invalid_states = [x + 'foo' for x in EnvironmentSession.VALID_STATES]
+        invalid_states = [x + 'foo' for x in ApplicationSession.VALID_STATES]
         invalid_states.append('')
-        invalid_states.extend([x.upper() for x in EnvironmentSession.VALID_STATES])
+        invalid_states.extend([x.upper() for x in ApplicationSession.VALID_STATES])
 
         for state in invalid_states:
             try:

@@ -48,14 +48,14 @@ class MessageForm(ModelForm):
     message = StringField('message', validators=[DataRequired()])
 
 
-class EnvironmentTemplateForm(ModelForm):
+class ApplicationTemplateForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
     base_config = StringField('base_config', validators=[DataRequired()])
     allowed_attrs = StringField('allowed_attrs')
     is_enabled = BooleanField('is_enabled', default=False)
 
 
-class EnvironmentForm(ModelForm):
+class ApplicationForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
     description = StringField('description')
     template_id = StringField('template_id', validators=[DataRequired()])
@@ -66,22 +66,22 @@ class EnvironmentForm(ModelForm):
     workspace_id = StringField('workspace_id', validators=[DataRequired()])
 
 
-class EnvironmentTemplateImportForm(ModelForm):
+class ApplicationTemplateImportForm(ModelForm):
     name = StringField('name', validators=[DataRequired()])
     config = StringField('config', validators=[DataRequired()])
     cluster_name = StringField('cluster_name', validators=[DataRequired()])
     allowed_attrs = StringField('allowed_attrs')
 
 
-class EnvironmentImportForm(ModelForm):
+class ApplicationImportForm(ModelForm):
     name = StringField('name', validators=[DataRequired()])
     config = StringField('config', validators=[DataRequired()])
     template_name = StringField('template_name', validators=[DataRequired()])
     workspace_name = StringField('workspace_name', validators=[DataRequired()])
 
 
-class EnvironmentSessionForm(ModelForm):
-    environment = StringField('environment_id', validators=[DataRequired()])
+class ApplicationSessionForm(ModelForm):
+    application_id = StringField('application_id', validators=[DataRequired()])
 
 
 class SessionCreateForm(ModelForm):

@@ -8,8 +8,8 @@ import uuid
 from dateutil.relativedelta import relativedelta
 
 from pebbles.models import (
-    User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
-    EnvironmentSession, EnvironmentSessionLog)
+    User, Workspace, WorkspaceUserAssociation, ApplicationTemplate, Application,
+    ApplicationSession, ApplicationSessionLog)
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.tests.fixtures import primary_test_setup
 
@@ -145,11 +145,11 @@ class FlaskApiTestCase(BaseTestCase):
             'Authorization': 'Basic %s' % token_b64,
             'token': token_b64
         }
-        # Test environment session creation still works for the user
+        # Test application session creation still works for the user
         response = self.make_request(
             method='POST',
-            path='/api/v1/environment_sessions',
-            data=json.dumps({'environment': self.known_environment_id_empty}),
+            path='/api/v1/application_sessions',
+            data=json.dumps({'application_id': self.known_application_id_empty}),
             headers=headers)
         self.assert_200(response)
         # Delete the user with admin credentials
@@ -158,11 +158,11 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/users/%s' % self.known_user_id
         )
         self.assert_200(response)
-        # Test environment session creation fails for the user
+        # Test application session creation fails for the user
         response = self.make_request(
             method='POST',
-            path='/api/v1/environment_sessions',
-            data=json.dumps({'environment': self.known_environment_id_empty}),
+            path='/api/v1/application_sessions',
+            data=json.dumps({'application_id': self.known_application_id_empty}),
             headers=headers)
         self.assert_401(response)
 
@@ -637,15 +637,15 @@ class FlaskApiTestCase(BaseTestCase):
         workspace = Workspace.query.filter_by(id=ws.id).first()
         self.assertEqual(Workspace.STATUS_DELETED, workspace.status)
 
-        # owner of the workspace with environment sessions, check that environment sessions are set to be deleted as well
+        # owner of the workspace with application sessions, check that application sessions are set to be deleted as well
         response = self.make_authenticated_workspace_owner_request(
             method='DELETE',
             path='/api/v1/workspaces/%s' % self.known_workspace_id
         )
         self.assert_200(response)
-        for environment in Workspace.query.filter_by(id=self.known_workspace_id).first().environments:
-            for environment_session in environment.environment_sessions:
-                self.assertEqual(True, environment_session.to_be_deleted)
+        for application in Workspace.query.filter_by(id=self.known_workspace_id).first().applications:
+            for application_session in application.application_sessions:
+                self.assertEqual(True, application_session.to_be_deleted)
 
     def test_join_workspace(self):
         # Anonymous
@@ -967,94 +967,94 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/clusters')
         self.assert_200(response)
 
-    def test_get_environment_templates(self):
+    def test_get_application_templates(self):
         # Anonymous
-        response = self.make_request(path='/api/v1/environment_templates')
+        response = self.make_request(path='/api/v1/application_templates')
         self.assert_401(response)
         # Authenticated User
-        response = self.make_authenticated_user_request(path='/api/v1/environment_templates')
+        response = self.make_authenticated_user_request(path='/api/v1/application_templates')
         self.assert_403(response)
         # Authenticated Workspace Owner
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environment_templates')
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/application_templates')
         self.assert_200(response)
         self.assertEqual(len(response.json), 1)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/environment_templates')
+        response = self.make_authenticated_admin_request(path='/api/v1/application_templates')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
 
-    def test_get_environment_template(self):
-        # Existing environment
+    def test_get_application_template(self):
+        # Existing application
         # Anonymous
-        response = self.make_request(path='/api/v1/environment_templates/%s' % self.known_template_id)
+        response = self.make_request(path='/api/v1/application_templates/%s' % self.known_template_id)
         self.assert_401(response)
         # Authenticated User
-        response = self.make_authenticated_user_request(path='/api/v1/environment_templates/%s' % self.known_template_id)
+        response = self.make_authenticated_user_request(path='/api/v1/application_templates/%s' % self.known_template_id)
         self.assert_403(response)
         # Workspace Owner
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environment_templates/%s' % self.known_template_id)
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/application_templates/%s' % self.known_template_id)
         self.assert_200(response)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/environment_templates/%s' % self.known_template_id)
+        response = self.make_authenticated_admin_request(path='/api/v1/application_templates/%s' % self.known_template_id)
         self.assert_200(response)
 
-        # non-existing environment
+        # non-existing application
         # Anonymous
-        response = self.make_request(path='/api/v1/environment_templates/%s' % uuid.uuid4().hex)
+        response = self.make_request(path='/api/v1/application_templates/%s' % uuid.uuid4().hex)
         self.assert_401(response)
         # Authenticated User
-        response = self.make_authenticated_user_request(path='/api/v1/environment_templates/%s' % uuid.uuid4().hex)
+        response = self.make_authenticated_user_request(path='/api/v1/application_templates/%s' % uuid.uuid4().hex)
         self.assert_403(response)
         # Workspace Owner
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environment_templates/%s' % uuid.uuid4().hex)
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/application_templates/%s' % uuid.uuid4().hex)
         self.assert_404(response)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/environment_templates/%s' % uuid.uuid4().hex)
+        response = self.make_authenticated_admin_request(path='/api/v1/application_templates/%s' % uuid.uuid4().hex)
         self.assert_404(response)
 
-    def test_create_environment_template(self):
+    def test_create_application_template(self):
         # Anonymous
-        data = {'name': 'test_environment_template_1', 'base_config': ''}
+        data = {'name': 'test_application_template_1', 'base_config': ''}
         response = self.make_request(
             method='POST',
-            path='/api/v1/environment_templates',
+            path='/api/v1/application_templates',
             data=json.dumps(data))
         self.assert_401(response)
         # Authenticated User
-        data = {'name': 'test_environment_template_1', 'base_config': ''}
+        data = {'name': 'test_application_template_1', 'base_config': ''}
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/environment_templates',
+            path='/api/v1/application_templates',
             data=json.dumps(data))
         self.assert_403(response)
         # Authenticated Workspace Owner
-        data = {'name': 'test_environment_template_1', 'base_config': ''}
+        data = {'name': 'test_application_template_1', 'base_config': ''}
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/environment_templates',
+            path='/api/v1/application_templates',
             data=json.dumps(data))
         self.assert_403(response)
         # Admin
-        data = {'name': 'test_environment_template_1', 'base_config': {'foo': 'bar'}}
+        data = {'name': 'test_application_template_1', 'base_config': {'foo': 'bar'}}
         response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/environment_templates',
+            path='/api/v1/application_templates',
             data=json.dumps(data))
         self.assert_200(response)
         # Admin
         data = {
-            'name': 'test_environment_template_2',
+            'name': 'test_application_template_2',
             'base_config': {'foo': 'bar', 'maximum_lifetime': '1h'},
             'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']},
         }
         response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/environment_templates',
+            path='/api/v1/application_templates',
             data=json.dumps(data))
         self.assert_200(response)
 
-    def test_modify_environment_template(self):
-        t = EnvironmentTemplate()
+    def test_modify_application_template(self):
+        t = ApplicationTemplate()
         t.name = 'TestTemplate'
         t.base_config = {'memory_limit': '512m', 'maximum_lifetime': '1h'}
         t.allowed_attrs = ['maximum_lifetime']
@@ -1063,246 +1063,246 @@ class FlaskApiTestCase(BaseTestCase):
         db.session.commit()
 
         # Anonymous
-        data = {'name': 'test_environment_template_1', 'base_config': ''}
+        data = {'name': 'test_application_template_1', 'base_config': ''}
         response = self.make_request(
             method='PUT',
-            path='/api/v1/environment_templates/%s' % t.id,
+            path='/api/v1/application_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_401(response)
         # Authenticated User
-        data = {'name': 'test_environment_template_1', 'base_config': ''}
+        data = {'name': 'test_application_template_1', 'base_config': ''}
         response = self.make_authenticated_user_request(
             method='PUT',
-            path='/api/v1/environment_templates/%s' % t.id,
+            path='/api/v1/application_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_403(response)
         # Authenticated Workspace Owner
-        data = {'name': 'test_environment_template_1', 'base_config': ''}
+        data = {'name': 'test_application_template_1', 'base_config': ''}
         response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/environment_templates/%s' % t.id,
+            path='/api/v1/application_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_403(response)
         # Admin
-        data = {'name': 'test_environment_template_1', 'base_config': {'foo': 'bar'}}
+        data = {'name': 'test_application_template_1', 'base_config': {'foo': 'bar'}}
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/environment_templates/%s' % t.id,
+            path='/api/v1/application_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_200(response)
         # Admin
         data = {
-            'name': 'test_environment_template_2',
+            'name': 'test_application_template_2',
             'base_config': {'foo': 'bar', 'maximum_lifetime': '1h'},
             'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']},
         }
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/environment_templates/%s' % t.id,
+            path='/api/v1/application_templates/%s' % t.id,
             data=json.dumps(data))
         self.assert_200(response)
 
-    def test_copy_environment_template(self):
+    def test_copy_application_template(self):
 
         # Authenticated User
         response = self.make_authenticated_user_request(
             method='PUT',
-            path='/api/v1/environment_templates/template_copy/%s' % self.known_template_id)
+            path='/api/v1/application_templates/template_copy/%s' % self.known_template_id)
         self.assert_403(response)
         # Authenticated Workspace Owner
         response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/environment_templates/template_copy/%s' % self.known_template_id)
+            path='/api/v1/application_templates/template_copy/%s' % self.known_template_id)
         self.assert_403(response)
         # Admin
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/environment_templates/template_copy/%s' % self.known_template_id)
+            path='/api/v1/application_templates/template_copy/%s' % self.known_template_id)
         self.assert_200(response)
 
-    def test_get_environments(self):
+    def test_get_applications(self):
         # Anonymous
-        response = self.make_request(path='/api/v1/environments')
+        response = self.make_request(path='/api/v1/applications')
         self.assert_401(response)
         # Authenticated User for Workspace 1
-        response = self.make_authenticated_user_request(path='/api/v1/environments')
+        response = self.make_authenticated_user_request(path='/api/v1/applications')
         self.assert_200(response)
         self.assertEqual(len(response.json), 3)
-        response = self.make_authenticated_user_request(path='/api/v1/environments?workspace_id=%s' % self.known_workspace_id)
+        response = self.make_authenticated_user_request(path='/api/v1/applications?workspace_id=%s' % self.known_workspace_id)
         self.assert_200(response)
         self.assertEqual(len(response.json), 3)
-        response = self.make_authenticated_user_request(path='/api/v1/environments?workspace_id=%s&environments_count=true' % self.known_workspace_id)
+        response = self.make_authenticated_user_request(path='/api/v1/applications?workspace_id=%s&applications_count=true' % self.known_workspace_id)
         self.assert_200(response)
         self.assertEqual(response.json, 3)
 
         # Authenticated Workspace Owner for Workspace 1(with 4 envs) and Normal User for Workspace 2
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environments')
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/applications')
         self.assert_200(response)
         self.assertEqual(len(response.json), 5)
 
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environments?workspace_id=%s' % self.known_workspace_id)
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/applications?workspace_id=%s' % self.known_workspace_id)
         self.assert_200(response)
         self.assertEqual(len(response.json), 4)
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environments?workspace_id=%s&environments_count=true' % self.known_workspace_id)
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/applications?workspace_id=%s&applications_count=true' % self.known_workspace_id)
         self.assert_200(response)
         self.assertEqual(response.json, 4)
 
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/environments')
+        response = self.make_authenticated_admin_request(path='/api/v1/applications')
         self.assert_200(response)
         self.assertEqual(len(response.json), 6)
-        response = self.make_authenticated_admin_request(path='/api/v1/environments?workspace_id=%s' % self.known_workspace_id)
+        response = self.make_authenticated_admin_request(path='/api/v1/applications?workspace_id=%s' % self.known_workspace_id)
         self.assert_200(response)
         self.assertEqual(len(response.json), 4)
-        response = self.make_authenticated_admin_request(path='/api/v1/environments?workspace_id=%s&environments_count=true' % self.known_workspace_id)
+        response = self.make_authenticated_admin_request(path='/api/v1/applications?workspace_id=%s&applications_count=true' % self.known_workspace_id)
         self.assert_200(response)
         self.assertEqual(response.json, 4)
 
-        response = self.make_authenticated_admin_request(path='/api/v1/environments?show_all=true')
+        response = self.make_authenticated_admin_request(path='/api/v1/applications?show_all=true')
         self.assert_200(response)
         self.assertEqual(len(response.json), 8)
 
-    def test_get_environment(self):
-        # Existing environment
+    def test_get_application(self):
+        # Existing application
         # Anonymous
-        response = self.make_request(path='/api/v1/environments/%s' % self.known_environment_id)
+        response = self.make_request(path='/api/v1/applications/%s' % self.known_application_id)
         self.assert_401(response)
         # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/environments/%s' % self.known_environment_id)
+        response = self.make_authenticated_user_request(path='/api/v1/applications/%s' % self.known_application_id)
         self.assert_200(response)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/environments/%s' % self.known_environment_id)
+        response = self.make_authenticated_admin_request(path='/api/v1/applications/%s' % self.known_application_id)
         self.assert_200(response)
 
-        # non-existing environment
+        # non-existing application
         # Anonymous
-        response = self.make_request(path='/api/v1/environments/%s' % uuid.uuid4().hex)
+        response = self.make_request(path='/api/v1/applications/%s' % uuid.uuid4().hex)
         self.assert_401(response)
         # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/environments/%s' % uuid.uuid4().hex)
+        response = self.make_authenticated_user_request(path='/api/v1/applications/%s' % uuid.uuid4().hex)
         self.assert_404(response)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/environments/%s' % uuid.uuid4().hex)
+        response = self.make_authenticated_admin_request(path='/api/v1/applications/%s' % uuid.uuid4().hex)
         self.assert_404(response)
 
-    def test_get_environment_archived(self):
+    def test_get_application_archived(self):
         # Anonymous
-        response = self.make_request(path='/api/v1/environments/%s?show_all=1' % self.known_environment_id_archived)
+        response = self.make_request(path='/api/v1/applications/%s?show_all=1' % self.known_application_id_archived)
         self.assert_401(response)
         # Authenticated, user not in workspace
         response = self.make_authenticated_user_request(
-            path='/api/v1/environments/%s?show_all=1' % self.known_environment_id_archived)
+            path='/api/v1/applications/%s?show_all=1' % self.known_application_id_archived)
         self.assert_404(response)
         # Authenticated, user is workspace owner
         response = self.make_authenticated_workspace_owner2_request(
-            path='/api/v1/environments/%s?show_all=1' % self.known_environment_id_archived)
+            path='/api/v1/applications/%s?show_all=1' % self.known_application_id_archived)
         self.assert_404(response)
         # Admin
         response = self.make_authenticated_admin_request(
-            path='/api/v1/environments/%s?show_all=1' % self.known_environment_id_archived)
+            path='/api/v1/applications/%s?show_all=1' % self.known_application_id_archived)
         self.assert_200(response)
         # Admin without show_all
         response = self.make_authenticated_admin_request(
-            path='/api/v1/environments/%s' % self.known_environment_id_archived)
+            path='/api/v1/applications/%s' % self.known_application_id_archived)
         self.assert_404(response)
 
-    def test_get_environment_labels(self):
+    def test_get_application_labels(self):
         # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/environments/%s' % self.known_environment_id)
+        response = self.make_authenticated_user_request(path='/api/v1/applications/%s' % self.known_application_id)
         self.assert_200(response)
         labels = response.json['labels']
         expected_labels = ['label1', 'label with space', 'label2']
         self.assertEqual(labels, expected_labels, 'label array matches')
 
-    def test_create_environment(self):
+    def test_create_application(self):
         # Anonymous
-        data = {'name': 'test_environment_1', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
+        data = {'name': 'test_application_1', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
         response = self.make_request(
             method='POST',
-            path='/api/v1/environments',
+            path='/api/v1/applications',
             data=json.dumps(data))
         self.assert_401(response)
         # Authenticated
-        data = {'name': 'test_environment_1', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
+        data = {'name': 'test_application_1', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/environments',
+            path='/api/v1/applications',
             data=json.dumps(data))
         self.assert_403(response)
         # Workspace Owner 1
-        data = {'name': 'test_environment_1', 'maximum_lifetime': 3600, 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
-        data_2 = {'name': 'test_environment_2', 'maximum_lifetime': 3600, 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
+        data = {'name': 'test_application_1', 'maximum_lifetime': 3600, 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
+        data_2 = {'name': 'test_application_2', 'maximum_lifetime': 3600, 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/environments',
+            path='/api/v1/applications',
             data=json.dumps(data))
         self.assert_200(response)
         # Workspace Owner 2 (extra owner added to workspace 1)
         response = self.make_authenticated_workspace_owner2_request(
             method='POST',
-            path='/api/v1/environments',
+            path='/api/v1/applications',
             data=json.dumps(data))
         self.assert_200(response)
-        # check if possible to create more environments than quota in the workspace
+        # check if possible to create more applications than quota in the workspace
         response = self.make_authenticated_workspace_owner2_request(
             method='POST',
-            path='/api/v1/environments',
+            path='/api/v1/applications',
             data=json.dumps(data_2))
         self.assertStatus(response, 422)
         # Admin ignores quota
-        data = {'name': 'test_environment_1', 'maximum_lifetime': 3600, 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
+        data = {'name': 'test_application_1', 'maximum_lifetime': 3600, 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
         response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/environments',
+            path='/api/v1/applications',
             data=json.dumps(data))
         self.assert_200(response)
 
-    def test_delete_environment(self):
+    def test_delete_application(self):
         # Anonymous
         response = self.make_request(
             method='DELETE',
-            path='/api/v1/environments/%s' % self.known_environment_id
+            path='/api/v1/applications/%s' % self.known_application_id
         )
         self.assert_401(response)
 
         # Authenticated
         response = self.make_authenticated_user_request(
             method='DELETE',
-            path='/api/v1/environments/%s' % self.known_environment_id
+            path='/api/v1/applications/%s' % self.known_application_id
         )
         self.assert_403(response)
 
-        # Workspace Owner 1, an environment in some other workspace
+        # Workspace Owner 1, an application in some other workspace
         response = self.make_authenticated_workspace_owner_request(
             method='DELETE',
-            path='/api/v1/environments/%s' % self.known_environment_id_g2
+            path='/api/v1/applications/%s' % self.known_application_id_g2
         )
         self.assert_403(response)
 
         # Workspace Owner 1
         response = self.make_authenticated_workspace_owner_request(
             method='DELETE',
-            path='/api/v1/environments/%s' % self.known_environment_id
+            path='/api/v1/applications/%s' % self.known_application_id
         )
         self.assert_200(response)
 
         # Workspace Owner 2 (extra owner added to workspace 1)
         response = self.make_authenticated_workspace_owner2_request(
             method='DELETE',
-            path='/api/v1/environments/%s' % self.known_environment_id_2
+            path='/api/v1/applications/%s' % self.known_application_id_2
         )
         self.assert_200(response)
 
         # Admin
         response = self.make_authenticated_admin_request(
             method='DELETE',
-            path='/api/v1/environments/%s' % self.known_environment_id_g2
+            path='/api/v1/applications/%s' % self.known_application_id_g2
         )
         self.assert_200(response)
 
-    def test_modify_environment_activate(self):
+    def test_modify_application_activate(self):
         data = {
-            'name': 'test_environment_activate',
+            'name': 'test_application_activate',
             'maximum_lifetime': 3600,
             'config': {
                 "maximum_lifetime": "0h"
@@ -1314,67 +1314,67 @@ class FlaskApiTestCase(BaseTestCase):
         # Authenticated Normal User
         put_response = self.make_authenticated_user_request(
             method='PUT',
-            path='/api/v1/environments/%s' % self.known_environment_id_disabled,
+            path='/api/v1/applications/%s' % self.known_application_id_disabled,
             data=json.dumps(data))
         self.assert_403(put_response)
-        # Workspace owner not an owner of the environment workspace 2
+        # Workspace owner not an owner of the application workspace 2
         put_response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/environments/%s' % self.known_environment_id_disabled_2,
+            path='/api/v1/applications/%s' % self.known_application_id_disabled_2,
             data=json.dumps(data))
         self.assert_403(put_response)
-        # Workspace Owner is an owner of the environment workspace 1
+        # Workspace Owner is an owner of the application workspace 1
         put_response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/environments/%s' % self.known_environment_id_disabled,
+            path='/api/v1/applications/%s' % self.known_application_id_disabled,
             data=json.dumps(data))
         self.assert_200(put_response)
-        # Workspace owner 2 is part of the environment workspace 1 as an additional owner
+        # Workspace owner 2 is part of the application workspace 1 as an additional owner
         put_response = self.make_authenticated_workspace_owner2_request(
             method='PUT',
-            path='/api/v1/environments/%s' % self.known_environment_id_disabled,
+            path='/api/v1/applications/%s' % self.known_application_id_disabled,
             data=json.dumps(data))
         self.assert_200(put_response)
-        # Workspace owner 2 owner of the environment workspace 2
+        # Workspace owner 2 owner of the application workspace 2
         put_response = self.make_authenticated_workspace_owner2_request(
             method='PUT',
-            path='/api/v1/environments/%s' % self.known_environment_id_disabled,
+            path='/api/v1/applications/%s' % self.known_application_id_disabled,
             data=json.dumps(data))
         self.assert_200(put_response)
         # Admin
         put_response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/environments/%s' % self.known_environment_id_disabled,
+            path='/api/v1/applications/%s' % self.known_application_id_disabled,
             data=json.dumps(data))
         self.assert_200(put_response)
 
-        environment = Environment.query.filter_by(id=self.known_environment_id_disabled).first()
-        self.assertEqual(environment.is_enabled, False)
+        application = Application.query.filter_by(id=self.known_application_id_disabled).first()
+        self.assertEqual(application.is_enabled, False)
 
-    def test_create_environment_admin_invalid_data(self):
+    def test_create_application_admin_invalid_data(self):
         invalid_form_data = [
             {'name': '', 'config': 'foo: bar', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': 'foo: bar', 'template_id': self.known_template_id},
-            {'name': 'test_environment_2', 'config': 'foo: bar', 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": ' '}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '10 100'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '1hh'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '-1m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '-10h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '2d -10h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '30s'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'workspace_id': 'unknown'},
-            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': 'unknown', 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': 'foo: bar', 'template_id': self.known_template_id},
+            {'name': 'test_application_2', 'config': 'foo: bar', 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": ' '}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '10 100'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '1hh'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '-1m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '-10h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '2d -10h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '30s'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'workspace_id': 'unknown'},
+            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': 'unknown', 'workspace_id': self.known_workspace_id},
         ]
         for data in invalid_form_data:
             response = self.make_authenticated_admin_request(
                 method='POST',
-                path='/api/v1/environments',
+                path='/api/v1/applications',
                 data=json.dumps(data))
             self.assertStatus(response, 422)
 
-    def test_create_environment_template_admin_invalid_data(self):
+    def test_create_application_template_admin_invalid_data(self):
         invalid_form_data = [
             {'name': '', 'config': 'foo: bar'},
             {'name': 'test_template_2', 'config': ''},
@@ -1391,185 +1391,185 @@ class FlaskApiTestCase(BaseTestCase):
         for data in invalid_form_data:
             response = self.make_authenticated_admin_request(
                 method='POST',
-                path='/api/v1/environment_templates',
+                path='/api/v1/application_templates',
                 data=json.dumps(data))
             self.assertStatus(response, 422)
 
-    def test_create_environment_workspace_owner_invalid_data(self):
+    def test_create_application_workspace_owner_invalid_data(self):
         invalid_form_data = [
             {'name': '', 'config': 'foo: bar', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': 'foo: bar', 'template_id': self.known_template_id},
-            {'name': 'test_environment_2', 'config': 'foo: bar', 'workspace_id': self.known_workspace_id},
-            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'workspace_id': 'unknown'},
-            {'name': 'test_environment_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': 'unknown', 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': 'foo: bar', 'template_id': self.known_template_id},
+            {'name': 'test_application_2', 'config': 'foo: bar', 'workspace_id': self.known_workspace_id},
+            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'workspace_id': 'unknown'},
+            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': 'unknown', 'workspace_id': self.known_workspace_id},
         ]
         for data in invalid_form_data:
             response = self.make_authenticated_workspace_owner_request(
                 method='POST',
-                path='/api/v1/environments',
+                path='/api/v1/applications',
                 data=json.dumps(data))
             self.assertStatus(response, 422)
 
         # Workspace owner is a user but not the owner of the workspace with id : known_workspace_id_2
-        invalid_workspace_data = {'name': 'test_environment_2', 'maximum_lifetime': 3600, 'config': {"name": "foo"}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id_2}
+        invalid_workspace_data = {'name': 'test_application_2', 'maximum_lifetime': 3600, 'config': {"name": "foo"}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id_2}
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/environments',
+            path='/api/v1/applications',
             data=json.dumps(invalid_workspace_data))
         self.assertStatus(response, 403)
 
         put_response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/environments/%s' % self.known_environment_id_g2,
+            path='/api/v1/applications/%s' % self.known_application_id_g2,
             data=json.dumps(invalid_workspace_data))
         self.assertStatus(put_response, 403)
 
-    def test_copy_environments(self):
+    def test_copy_applications(self):
 
         # Authenticated User
         response = self.make_authenticated_user_request(
             method='PUT',
-            path='/api/v1/environments/environment_copy/%s' % self.known_environment_id)
+            path='/api/v1/applications/application_copy/%s' % self.known_application_id)
         self.assert_403(response)
         # Authenticated Workspace Owner
         response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/environments/environment_copy/%s' % self.known_environment_id)
+            path='/api/v1/applications/application_copy/%s' % self.known_application_id)
         self.assert_200(response)
         # Admin
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/environments/environment_copy/%s' % self.known_environment_id)
+            path='/api/v1/applications/application_copy/%s' % self.known_application_id)
         self.assert_200(response)
 
-    def test_anonymous_create_environment_session(self):
-        data = {'environment_id': self.known_environment_id}
+    def test_anonymous_create_application_session(self):
+        data = {'application_id': self.known_application_id}
         response = self.make_request(
             method='POST',
-            path='/api/v1/environment_sessions',
+            path='/api/v1/application_sessions',
             data=json.dumps(data))
         self.assert_401(response)
 
-    def test_user_create_environment_session(self):
+    def test_user_create_application_session(self):
         # User is not a part of the workspace (Workspace2)
-        data = {'environment': self.known_environment_id_g2}
+        data = {'application_id': self.known_application_id_g2}
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/environment_sessions',
+            path='/api/v1/application_sessions',
             data=json.dumps(data))
         self.assert_404(response)
         # User is a part of the workspace (Workspace1)
-        data = {'environment': self.known_environment_id_empty}
+        data = {'application_id': self.known_application_id_empty}
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/environment_sessions',
+            path='/api/v1/application_sessions',
             data=json.dumps(data))
         self.assert_200(response)
 
-    def test_user_create_environment_session_environment_disabled(self):
+    def test_user_create_application_session_application_disabled(self):
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/environment_sessions',
-            data=json.dumps({'environment': self.known_environment_id_disabled}),
+            path='/api/v1/application_sessions',
+            data=json.dumps({'application_id': self.known_application_id_disabled}),
         )
         self.assert_404(response)
 
-    def test_user_create_environment_session_environment_deleted(self):
+    def test_user_create_application_session_application_deleted(self):
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/environment_sessions',
-            data=json.dumps({'environment': self.known_environment_id_deleted}),
+            path='/api/v1/application_sessions',
+            data=json.dumps({'application_id': self.known_application_id_deleted}),
         )
         self.assert_404(response)
 
-    def test_user_create_environment_session_environment_archived(self):
+    def test_user_create_application_session_application_archived(self):
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/environment_sessions',
-            data=json.dumps({'environment': self.known_environment_id_archived}),
+            path='/api/v1/application_sessions',
+            data=json.dumps({'application_id': self.known_application_id_archived}),
         )
         self.assert_404(response)
 
-    def test_owner_create_environment_session_environment_disabled(self):
-        # Use Environment in ws2 that is owned by owner2 and has owner1 as user
+    def test_owner_create_application_session_application_disabled(self):
+        # Use Application in ws2 that is owned by owner2 and has owner1 as user
 
-        # first, disable known_environment_id_g2
+        # first, disable known_application_id_g2
         resp = self.make_authenticated_workspace_owner2_request(
-            path='/api/v1/environments/%s' % self.known_environment_id_g2
+            path='/api/v1/applications/%s' % self.known_application_id_g2
         )
         data = resp.json
         data['is_enabled'] = False
         put_response = self.make_authenticated_workspace_owner2_request(
             method='PUT',
-            path='/api/v1/environments/%s' % self.known_environment_id_g2,
+            path='/api/v1/applications/%s' % self.known_application_id_g2,
             data=json.dumps(data))
         self.assert_200(put_response)
 
-        # 'owner2' should be able to launch an environment session
+        # 'owner2' should be able to launch an application session
         response = self.make_authenticated_workspace_owner2_request(
             method='POST',
-            path='/api/v1/environment_sessions',
-            data=json.dumps({'environment': self.known_environment_id_g2}),
+            path='/api/v1/application_sessions',
+            data=json.dumps({'application_id': self.known_application_id_g2}),
         )
         self.assert_200(response)
 
         # 'owner' has a user role in this ws2, so this should be denied
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/environment_sessions',
-            data=json.dumps({'environment': self.known_environment_id_g2}),
+            path='/api/v1/application_sessions',
+            data=json.dumps({'application_id': self.known_application_id_g2}),
         )
         self.assert_404(response)
 
-    def test_get_environment_sessions(self):
+    def test_get_application_sessions(self):
         # Anonymous
-        response = self.make_request(path='/api/v1/environment_sessions')
+        response = self.make_request(path='/api/v1/application_sessions')
         self.assert_401(response)
         # Authenticated
-        response = self.make_authenticated_user_request(path='/api/v1/environment_sessions')
+        response = self.make_authenticated_user_request(path='/api/v1/application_sessions')
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
         # Workspace Manager (His own session + other sessions from his managed workspaces)
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/environment_sessions')
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/application_sessions')
         self.assert_200(response)
         self.assertEqual(len(response.json), 3)
         # Admin
-        response = self.make_authenticated_admin_request(path='/api/v1/environment_sessions')
+        response = self.make_authenticated_admin_request(path='/api/v1/application_sessions')
         self.assert_200(response)
         self.assertEqual(len(response.json), 4)
 
-    def test_get_environment_session(self):
+    def test_get_application_session(self):
         # Anonymous
-        response = self.make_request(path='/api/v1/environment_sessions/%s' % self.known_environment_session_id)
+        response = self.make_request(path='/api/v1/application_sessions/%s' % self.known_application_session_id)
         self.assert_401(response)
 
-        # Authenticated, someone else's environment session
+        # Authenticated, someone else's application session
         response = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id_4
+            path='/api/v1/application_sessions/%s' % self.known_application_session_id_4
         )
         self.assert_404(response)
 
         # Authenticated
         response = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id
+            path='/api/v1/application_sessions/%s' % self.known_application_session_id
         )
         self.assert_200(response)
 
         # Admin
         response = self.make_authenticated_admin_request(
             method='GET',
-            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id
+            path='/api/v1/application_sessions/%s' % self.known_application_session_id
         )
         self.assert_200(response)
 
-    def test_patch_environment_session(self):
+    def test_patch_application_session(self):
         # Anonymous
         response = self.make_request(
             method='PATCH',
-            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id,
+            path='/api/v1/application_sessions/%s' % self.known_application_session_id,
             data=json.dumps(dict(state='deleting'))
         )
         self.assert_401(response)
@@ -1577,7 +1577,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Authenticated
         response = self.make_authenticated_user_request(
             method='PATCH',
-            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id,
+            path='/api/v1/application_sessions/%s' % self.known_application_session_id,
             data=json.dumps(dict(state='deleting'))
         )
         self.assert_403(response)
@@ -1585,7 +1585,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Owner
         response = self.make_authenticated_workspace_owner_request(
             method='PATCH',
-            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id,
+            path='/api/v1/application_sessions/%s' % self.known_application_session_id,
             data=json.dumps(dict(state='deleting'))
         )
         self.assert_403(response)
@@ -1593,95 +1593,95 @@ class FlaskApiTestCase(BaseTestCase):
         # Admin, invalid state
         response = self.make_authenticated_admin_request(
             method='PATCH',
-            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id,
+            path='/api/v1/application_sessions/%s' % self.known_application_session_id,
             data=json.dumps(dict(state='bogus'))
         )
         self.assertEqual(422, response.status_code)
 
-        # Admin, check that changing state to 'deleted' cleans logs. EnvironmentSession 2 with logs.
-        self.assertEqual(1, len(EnvironmentSessionLog.query.filter_by(environment_session_id=self.known_environment_session_id_2).all()))
+        # Admin, check that changing state to 'deleted' cleans logs. ApplicationSession 2 with logs.
+        self.assertEqual(1, len(ApplicationSessionLog.query.filter_by(application_session_id=self.known_application_session_id_2).all()))
         response = self.make_authenticated_admin_request(
             method='PATCH',
-            path='/api/v1/environment_sessions/%s' % self.known_environment_session_id_2,
+            path='/api/v1/application_sessions/%s' % self.known_application_session_id_2,
             data=json.dumps(dict(state='deleted'))
         )
         self.assert_200(response)
-        self.assertEqual(0, len(EnvironmentSessionLog.query.filter_by(environment_session_id=self.known_environment_session_id_2).all()))
+        self.assertEqual(0, len(ApplicationSessionLog.query.filter_by(application_session_id=self.known_application_session_id_2).all()))
 
-    def test_delete_environment_session(self):
-        environment = Environment.query.filter_by(id=self.known_environment_id).first()
+    def test_delete_application_session(self):
+        application = Application.query.filter_by(id=self.known_application_id).first()
         user = User.query.filter_by(id=self.known_user_id).first()
-        i1 = EnvironmentSession(environment, user)
+        i1 = ApplicationSession(application, user)
         db.session.add(i1)
         db.session.commit()
         # Anonymous
         response = self.make_request(
             method='DELETE',
-            path='/api/v1/environment_sessions/%s' % i1.id
+            path='/api/v1/application_sessions/%s' % i1.id
         )
         self.assert_401(response)
-        # Authenticated User of the environment session
+        # Authenticated User of the application session
         response = self.make_authenticated_user_request(
             method='DELETE',
-            path='/api/v1/environment_sessions/%s' % i1.id
+            path='/api/v1/application_sessions/%s' % i1.id
         )
         self.assert_202(response)
 
-        i2 = EnvironmentSession(environment, user)
+        i2 = ApplicationSession(application, user)
         db.session.add(i2)
         db.session.commit()
-        # Authenticated Workspace Owner of the environment session
+        # Authenticated Workspace Owner of the application session
         response = self.make_authenticated_workspace_owner_request(
             method='DELETE',
-            path='/api/v1/environment_sessions/%s' % i2.id
+            path='/api/v1/application_sessions/%s' % i2.id
         )
         self.assert_202(response)
 
-        i3 = EnvironmentSession(environment, user)
+        i3 = ApplicationSession(application, user)
         db.session.add(i3)
         db.session.commit()
-        # Authenticated Workspace Manager of the environment session
+        # Authenticated Workspace Manager of the application session
         response = self.make_authenticated_workspace_owner2_request(
             method='DELETE',
-            path='/api/v1/environment_sessions/%s' % i3.id
+            path='/api/v1/application_sessions/%s' % i3.id
         )
         self.assert_202(response)
 
-        i4 = EnvironmentSession(environment, user)
+        i4 = ApplicationSession(application, user)
         db.session.add(i4)
         db.session.commit()
         # Admin
         response = self.make_authenticated_admin_request(
             method='DELETE',
-            path='/api/v1/environment_sessions/%s' % i4.id
+            path='/api/v1/application_sessions/%s' % i4.id
         )
         self.assert_202(response)
 
-        environment2 = Environment.query.filter_by(id=self.known_environment_id_g2).first()
+        environment2 = Application.query.filter_by(id=self.known_application_id_g2).first()
         user2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
-        i5 = EnvironmentSession(environment2, user2)
+        i5 = ApplicationSession(environment2, user2)
         db.session.add(i5)
         db.session.commit()
         # User is not part of the workspace
         response = self.make_authenticated_user_request(
             method='DELETE',
-            path='/api/v1/environment_sessions/%s' % i5.id
+            path='/api/v1/application_sessions/%s' % i5.id
         )
         self.assert_404(response)
-        # Is just a Normal user of the workspace who didn't spawn the environment session
+        # Is just a Normal user of the workspace who didn't spawn the application session
         response = self.make_authenticated_workspace_owner_request(
             method='DELETE',
-            path='/api/v1/environment_sessions/%s' % i5.id
+            path='/api/v1/application_sessions/%s' % i5.id
         )
         self.assert_403(response)
         # Authenticated Workspace Owner of the workspace
         response = self.make_authenticated_workspace_owner2_request(
             method='DELETE',
-            path='/api/v1/environment_sessions/%s' % i5.id
+            path='/api/v1/application_sessions/%s' % i5.id
         )
         self.assert_202(response)
 
-    def test_environment_session_logs(self):
+    def test_application_session_logs(self):
         epoch_time = time.time()
         log_record = {
             'log_level': 'INFO',
@@ -1691,14 +1691,14 @@ class FlaskApiTestCase(BaseTestCase):
         }
         response_patch = self.make_authenticated_admin_request(
             method='PATCH',
-            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
+            path='/api/v1/application_sessions/%s/logs' % self.known_application_session_id,
             data=json.dumps({'log_record': log_record})
         )
         self.assert_200(response_patch)
 
         response_get = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
+            path='/api/v1/application_sessions/%s/logs' % self.known_application_session_id,
             data=json.dumps({'log_type': 'provisioning'})
         )
         self.assert_200(response_get)
@@ -1707,21 +1707,21 @@ class FlaskApiTestCase(BaseTestCase):
         # delete logs as normal user
         response_delete = self.make_authenticated_user_request(
             method='DELETE',
-            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id
+            path='/api/v1/application_sessions/%s/logs' % self.known_application_session_id
         )
         self.assert_403(response_delete)
 
         # delete logs as admin
         response_delete = self.make_authenticated_admin_request(
             method='DELETE',
-            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id
+            path='/api/v1/application_sessions/%s/logs' % self.known_application_session_id
         )
         self.assert_200(response_delete)
 
         # check that logs are empty
         response_get = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
+            path='/api/v1/application_sessions/%s/logs' % self.known_application_session_id,
             data=json.dumps({'log_type': 'provisioning'})
         )
         self.assert_200(response_get)
@@ -1731,20 +1731,20 @@ class FlaskApiTestCase(BaseTestCase):
         log_record['log_type'] = 'running'
         response_patch = self.make_authenticated_admin_request(
             method='PATCH',
-            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
+            path='/api/v1/application_sessions/%s/logs' % self.known_application_session_id,
             data=json.dumps({'log_record': log_record})
         )
         self.assert_200(response_patch)
         log_record['message'] = 'patched running logs'
         response_patch = self.make_authenticated_admin_request(
             method='PATCH',
-            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
+            path='/api/v1/application_sessions/%s/logs' % self.known_application_session_id,
             data=json.dumps({'log_record': log_record})
         )
         self.assert_200(response_patch)
         response_get = self.make_authenticated_user_request(
             method='GET',
-            path='/api/v1/environment_sessions/%s/logs' % self.known_environment_session_id,
+            path='/api/v1/application_sessions/%s/logs' % self.known_application_session_id,
             data=json.dumps({})
         )
         self.assert_200(response_get)
@@ -1836,22 +1836,22 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assertStatus(response, 200)
 
-    def test_user_and_workspace_owner_export_environment_templates(self):
-        response = self.make_authenticated_user_request(path='/api/v1/import_export/environment_templates')
+    def test_user_and_workspace_owner_export_application_templates(self):
+        response = self.make_authenticated_user_request(path='/api/v1/import_export/application_templates')
         self.assertStatus(response, 403)
 
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/import_export/environment_templates')
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/import_export/application_templates')
         self.assertStatus(response, 403)
 
-    def test_admin_export_environment_templates(self):
+    def test_admin_export_application_templates(self):
 
-        response = self.make_authenticated_admin_request(path='/api/v1/import_export/environment_templates')
+        response = self.make_authenticated_admin_request(path='/api/v1/import_export/application_templates')
         self.assertStatus(response, 200)
         self.assertEqual(len(response.json), 2)  # There were total 2 templates initialized during setup
 
-    def test_user_and_workspace_owner_import_environment_templates(self):
+    def test_user_and_workspace_owner_import_application_templates(self):
 
-        environments_data = [
+        applications_data = [
             {'name': 'foo',
              'config': {
                  'maximum_lifetime': '1h'
@@ -1861,30 +1861,30 @@ class FlaskApiTestCase(BaseTestCase):
              },
             {'name': 'foobar',
              'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy application'
              },
              'cluster_name': 'dummy',
              'allowed_attrs': []
              }
         ]
         # Authenticated User
-        for environment_item in environments_data:
+        for application_item in applications_data:
             response = self.make_authenticated_user_request(
                 method='POST',
-                path='/api/v1/import_export/environment_templates',
-                data=json.dumps(environment_item))
+                path='/api/v1/import_export/application_templates',
+                data=json.dumps(application_item))
             self.assertEqual(response.status_code, 403)
         # Workspace Owner
-        for environment_item in environments_data:
+        for application_item in applications_data:
             response = self.make_authenticated_workspace_owner_request(
                 method='POST',
-                path='/api/v1/import_export/environment_templates',
-                data=json.dumps(environment_item))
+                path='/api/v1/import_export/application_templates',
+                data=json.dumps(application_item))
             self.assertEqual(response.status_code, 403)
 
-    def test_admin_import_environment_templates(self):
+    def test_admin_import_application_templates(self):
 
-        environments_data = [
+        applications_data = [
             {'name': 'foo',
              'config': {
                  'maximum_lifetime': '1h'
@@ -1894,42 +1894,42 @@ class FlaskApiTestCase(BaseTestCase):
              },
             {'name': 'foobar',
              'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy application'
              },
              'cluster_name': 'dummy_cluster_1',
              'allowed_attrs': []
              }
         ]
         # Admin
-        for environment_item in environments_data:
+        for application_item in applications_data:
             response = self.make_authenticated_admin_request(
                 method='POST',
-                path='/api/v1/import_export/environment_templates',
-                data=json.dumps(environment_item))
+                path='/api/v1/import_export/application_templates',
+                data=json.dumps(application_item))
             self.assertEqual(response.status_code, 200)
 
-    def test_anonymous_export_environments(self):
-        response = self.make_request(path='/api/v1/import_export/environments')
+    def test_anonymous_export_applications(self):
+        response = self.make_request(path='/api/v1/import_export/applications')
         self.assertStatus(response, 401)
 
-    def test_user_export_environments(self):
-        response = self.make_authenticated_user_request(path='/api/v1/import_export/environments')
+    def test_user_export_applications(self):
+        response = self.make_authenticated_user_request(path='/api/v1/import_export/applications')
         self.assertStatus(response, 403)
 
-    def test_workspace_owner_export_environments(self):
-        response = self.make_authenticated_workspace_owner_request(path='/api/v1/import_export/environments')
+    def test_workspace_owner_export_applications(self):
+        response = self.make_authenticated_workspace_owner_request(path='/api/v1/import_export/applications')
         self.assertStatus(response, 200)
         self.assertEqual(len(response.json), 4)
 
-    def test_admin_export_environments(self):
+    def test_admin_export_applications(self):
 
-        response = self.make_authenticated_admin_request(path='/api/v1/import_export/environments')
+        response = self.make_authenticated_admin_request(path='/api/v1/import_export/applications')
         self.assertStatus(response, 200)
-        self.assertEqual(len(response.json), 8)  # There were total 8 environments initialized during setup
+        self.assertEqual(len(response.json), 8)  # There were total 8 applications initialized during setup
 
-    def test_anonymous_import_environments(self):
+    def test_anonymous_import_applications(self):
 
-        environments_data = [
+        applications_data = [
             {'name': 'foo',
              'config': {
                  'maximum_lifetime': '1h'
@@ -1939,23 +1939,23 @@ class FlaskApiTestCase(BaseTestCase):
              },
             {'name': 'foobar',
              'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy application'
              },
              'template_name': 'TestTemplate',
              'workspace_name': 'Workspace1'
              }
         ]
 
-        for environment_item in environments_data:
+        for application_item in applications_data:
             response = self.make_request(  # Test for authenticated user
                 method='POST',
-                path='/api/v1/import_export/environments',
-                data=json.dumps(environment_item))
+                path='/api/v1/import_export/applications',
+                data=json.dumps(application_item))
             self.assertEqual(response.status_code, 401)
 
-    def test_user_import_environments(self):
+    def test_user_import_applications(self):
 
-        environments_data = [
+        applications_data = [
             {'name': 'foo',
              'config': {
                  'maximum_lifetime': '1h'
@@ -1965,23 +1965,23 @@ class FlaskApiTestCase(BaseTestCase):
              },
             {'name': 'foobar',
              'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy application'
              },
              'template_name': 'TestTemplate',
              'workspace_name': 'Workspace1'
              }
         ]
 
-        for environment_item in environments_data:
+        for application_item in applications_data:
             response = self.make_authenticated_user_request(  # Test for authenticated user
                 method='POST',
-                path='/api/v1/import_export/environments',
-                data=json.dumps(environment_item))
+                path='/api/v1/import_export/applications',
+                data=json.dumps(application_item))
             self.assertEqual(response.status_code, 403)
 
-    def test_admin_import_environments(self):
+    def test_admin_import_applications(self):
 
-        environments_data = [
+        applications_data = [
             {'name': 'foo',
              'config': {
                  'maximum_lifetime': '1h'
@@ -1991,51 +1991,51 @@ class FlaskApiTestCase(BaseTestCase):
              },
             {'name': 'foobar',
              'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy application'
              },
              'template_name': 'EnabledTestTemplate',
              'workspace_name': 'Workspace1'
              }
         ]
 
-        for environment_item in environments_data:
+        for application_item in applications_data:
             response = self.make_authenticated_admin_request(
                 method='POST',
-                path='/api/v1/import_export/environments',
-                data=json.dumps(environment_item))
+                path='/api/v1/import_export/applications',
+                data=json.dumps(application_item))
             self.assertEqual(response.status_code, 200)
 
-        environment_invalid1 = {'name': 'foo', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'}
+        application_invalid1 = {'name': 'foo', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'}
         response1 = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/import_export/environments',
-            data=json.dumps(environment_invalid1))
+            path='/api/v1/import_export/applications',
+            data=json.dumps(application_invalid1))
         self.assertEqual(response1.status_code, 422)
 
-        environment_invalid2 = {'name': '', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'}
+        application_invalid2 = {'name': '', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'}
         response2 = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/import_export/environments',
-            data=json.dumps(environment_invalid2))
+            path='/api/v1/import_export/applications',
+            data=json.dumps(application_invalid2))
         self.assertEqual(response2.status_code, 422)
 
-        environment_invalid3 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': '', 'workspace_name': 'Workspace1'}
+        application_invalid3 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': '', 'workspace_name': 'Workspace1'}
         response3 = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/import_export/environments',
-            data=json.dumps(environment_invalid3))
+            path='/api/v1/import_export/applications',
+            data=json.dumps(application_invalid3))
         self.assertEqual(response3.status_code, 422)
 
-        environment_invalid4 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': 'EnabledTestTemplate', 'workspace_name': ''}
+        application_invalid4 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': 'EnabledTestTemplate', 'workspace_name': ''}
         response3 = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/import_export/environments',
-            data=json.dumps(environment_invalid4))
+            path='/api/v1/import_export/applications',
+            data=json.dumps(application_invalid4))
         self.assertEqual(response3.status_code, 422)
 
-    def test_workspace_owner_import_environments(self):
+    def test_workspace_owner_import_applications(self):
 
-        environments_data = [
+        applications_data = [
             {'name': 'foo',
              'config': {
                  'maximum_lifetime': '1h'
@@ -2045,21 +2045,21 @@ class FlaskApiTestCase(BaseTestCase):
              },
             {'name': 'foobar',
              'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy application'
              },
              'template_name': 'EnabledTestTemplate',
              'workspace_name': 'Workspace1'
              }
         ]
 
-        for environment in environments_data:
+        for application in applications_data:
             response = self.make_authenticated_workspace_owner_request(
                 method='POST',
-                path='/api/v1/import_export/environments',
-                data=json.dumps(environment))
+                path='/api/v1/import_export/applications',
+                data=json.dumps(application))
             self.assertEqual(response.status_code, 200)
 
-        environment_invalid = {
+        application_invalid = {
             'name': 'bar5',
             'config': {
                 'maximum_lifetime': '1h'
@@ -2070,11 +2070,11 @@ class FlaskApiTestCase(BaseTestCase):
         # owner should not be able to import to other workspaces where he is normal user
         response1 = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/import_export/environments',
-            data=json.dumps(environment_invalid))
+            path='/api/v1/import_export/applications',
+            data=json.dumps(application_invalid))
         self.assertEqual(response1.status_code, 404)
 
-        environment_invalid_data = [
+        application_invalid_data = [
             {'name': 'foo', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'},
             {'name': '', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'},
             {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': '', 'workspace_name': 'Workspace1'},
@@ -2082,14 +2082,14 @@ class FlaskApiTestCase(BaseTestCase):
              'workspace_name': ''}
         ]
 
-        for environment in environment_invalid_data:
+        for application in application_invalid_data:
             response1 = self.make_authenticated_workspace_owner_request(
                 method='POST',
-                path='/api/v1/import_export/environments',
-                data=json.dumps(environment))
+                path='/api/v1/import_export/applications',
+                data=json.dumps(application))
             self.assertStatus(response1, 422)
 
-    def test_workspace_manager_import_environments(self):
+    def test_workspace_manager_import_applications(self):
         g = Workspace('Workspace1')
         u4 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
         wmu4_obj = WorkspaceUserAssociation(user=u4, workspace=g, is_manager=True, is_owner=False)
@@ -2097,7 +2097,7 @@ class FlaskApiTestCase(BaseTestCase):
         db.session.add(g)
         db.session.commit()
 
-        environments_data = [
+        applications_data = [
             {'name': 'foo',
              'config': {
                  'maximum_lifetime': '1h'
@@ -2107,18 +2107,18 @@ class FlaskApiTestCase(BaseTestCase):
              },
             {'name': 'foobar',
              'config': {
-                 'maximum_lifetime': '1d 10m', 'description': 'dummy environment'
+                 'maximum_lifetime': '1d 10m', 'description': 'dummy application'
              },
              'template_name': 'EnabledTestTemplate',
              'workspace_name': 'Workspace1'
              }
         ]
 
-        for environment in environments_data:
+        for application in applications_data:
             response = self.make_authenticated_workspace_owner2_request(
                 method='POST',
-                path='/api/v1/import_export/environments',
-                data=json.dumps(environment))
+                path='/api/v1/import_export/applications',
+                data=json.dumps(application))
             self.assertEqual(response.status_code, 200)
 
     def test_anonymous_get_messages(self):
@@ -2211,15 +2211,15 @@ class FlaskApiTestCase(BaseTestCase):
         for h in required_headers:
             self.assertIn(h, response.headers.keys())
 
-    def test_anonymous_get_environment_categories(self):
+    def test_anonymous_get_application_categories(self):
         response = self.make_request(
-            path='/api/v1/environment_categories'
+            path='/api/v1/application_categories'
         )
         self.assert_401(response)
 
-    def test_user_environment_categories(self):
+    def test_user_application_categories(self):
         response = self.make_authenticated_user_request(
-            path='/api/v1/environment_categories'
+            path='/api/v1/application_categories'
         )
         self.assert_200(response)
         self.assertGreater(len(response.json), 0)

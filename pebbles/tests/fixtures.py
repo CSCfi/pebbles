@@ -6,8 +6,8 @@ import yaml
 
 import pebbles
 from pebbles.models import (
-    User, Workspace, WorkspaceUserAssociation, EnvironmentTemplate, Environment,
-    Message, EnvironmentSession, EnvironmentSessionLog)
+    User, Workspace, WorkspaceUserAssociation, ApplicationTemplate, Application,
+    Message, ApplicationSession, ApplicationSessionLog)
 from pebbles.tests.base import db
 
 
@@ -71,7 +71,7 @@ def primary_test_setup(namespace):
     ws1 = Workspace('Workspace1')
     ws1.id = 'ws1'
     ws1.cluster = 'dummy_cluster_1'
-    ws1.environment_quota = 6
+    ws1.application_quota = 6
     ws1.user_associations.append(WorkspaceUserAssociation(user=u2))
     ws1.user_associations.append(WorkspaceUserAssociation(user=u3, is_manager=True, is_owner=True))
     ws1.user_associations.append(WorkspaceUserAssociation(user=u4, is_manager=True))
@@ -105,16 +105,16 @@ def primary_test_setup(namespace):
     namespace.known_workspace_join_id = ws4.join_code
     namespace.system_default_workspace_id = ws0.id
 
-    t1 = EnvironmentTemplate()
+    t1 = ApplicationTemplate()
     t1.name = 'TestTemplate'
-    t1.environment_type = 'generic'
+    t1.application_type = 'generic'
     t1.base_config = {}
     db.session.add(t1)
     namespace.known_template_id_disabled = t1.id
 
-    t2 = EnvironmentTemplate()
+    t2 = ApplicationTemplate()
     t2.name = 'EnabledTestTemplate'
-    t2.environment_type = 'generic'
+    t2.application_type = 'generic'
     t2.base_config = {
         'labels': '["label1", "label with space", "label2"]',
         'cost_multiplier': '1.0',
@@ -131,76 +131,76 @@ def primary_test_setup(namespace):
     db.session.add(t2)
     namespace.known_template_id = t2.id
 
-    e1 = Environment()
-    e1.name = "TestEnvironment"
+    e1 = Application()
+    e1.name = "TestApplication"
     e1.labels = ['label1', 'label with space', 'label2']
     e1.template_id = t2.id
     e1.workspace_id = ws1.id
     db.session.add(e1)
-    namespace.known_environment_id_disabled = e1.id
+    namespace.known_application_id_disabled = e1.id
 
-    e2 = Environment()
-    e2.name = "EnabledTestEnvironment"
+    e2 = Application()
+    e2.name = "EnabledTestApplication"
     e2.labels = ['label1', 'label with space', 'label2']
     e2.template_id = t2.id
     e2.workspace_id = ws1.id
     e2.is_enabled = True
     db.session.add(e2)
-    namespace.known_environment_id = e2.id
+    namespace.known_application_id = e2.id
 
-    e3 = Environment()
-    e3.name = "EnabledTestEnvironmentClientIp"
+    e3 = Application()
+    e3.name = "EnabledTestApplicationClientIp"
     e3.labels = ['label1', 'label with space', 'label2']
     e3.template_id = t2.id
     e3.workspace_id = ws1.id
     e3.is_enabled = True
     e3.config = {'allow_update_client_connectivity': True}
     db.session.add(e3)
-    namespace.known_environment_id_2 = e3.id
+    namespace.known_application_id_2 = e3.id
 
-    e4 = Environment()
-    e4.name = "EnabledTestEnvironmentOtherWorkspace"
+    e4 = Application()
+    e4.name = "EnabledTestApplicationOtherWorkspace"
     e2.labels = ['label1', 'label with space', 'label2']
     e4.template_id = t2.id
     e4.workspace_id = ws2.id
     e4.is_enabled = True
     db.session.add(e4)
-    namespace.known_environment_id_g2 = e4.id
+    namespace.known_application_id_g2 = e4.id
 
-    e5 = Environment()
-    e5.name = "DisabledTestEnvironmentOtherWorkspace"
+    e5 = Application()
+    e5.name = "DisabledTestApplicationOtherWorkspace"
     e5.labels = ['label1', 'label with space', 'label2']
     e5.template_id = t2.id
     e5.workspace_id = ws2.id
     db.session.add(e5)
-    namespace.known_environment_id_disabled_2 = e5.id
+    namespace.known_application_id_disabled_2 = e5.id
 
-    e6 = Environment()
-    e6.name = "TestArchivedEnvironment"
+    e6 = Application()
+    e6.name = "TestArchivedApplication"
     e6.labels = ['label1', 'label with space', 'label2']
     e6.template_id = t2.id
     e6.workspace_id = ws2.id
-    e6.status = Environment.STATUS_ARCHIVED
+    e6.status = Application.STATUS_ARCHIVED
     db.session.add(e6)
-    namespace.known_environment_id_archived = e6.id
+    namespace.known_application_id_archived = e6.id
 
-    e7 = Environment()
-    e7.name = "TestDeletedEnvironment"
+    e7 = Application()
+    e7.name = "TestDeletedApplication"
     e7.labels = ['label1', 'label with space', 'label2']
     e7.template_id = t2.id
     e7.workspace_id = ws2.id
-    e7.status = Environment.STATUS_DELETED
+    e7.status = Application.STATUS_DELETED
     db.session.add(e7)
-    namespace.known_environment_id_deleted = e7.id
+    namespace.known_application_id_deleted = e7.id
 
-    e8 = Environment()
-    e8.name = "EnabledTestEnvironment"
+    e8 = Application()
+    e8.name = "EnabledTestApplication"
     e8.labels = ['label1', 'label with space', 'label2']
     e8.template_id = t2.id
     e8.workspace_id = ws1.id
     e8.is_enabled = True
     db.session.add(e8)
-    namespace.known_environment_id_empty = e8.id
+    namespace.known_application_id_empty = e8.id
 
     m1 = Message("First message", "First message message")
     namespace.known_message_id = m1.id
@@ -210,44 +210,44 @@ def primary_test_setup(namespace):
     namespace.known_message2_id = m2.id
     db.session.add(m2)
 
-    i1 = EnvironmentSession(
-        Environment.query.filter_by(id=e2.id).first(),
+    i1 = ApplicationSession(
+        Application.query.filter_by(id=e2.id).first(),
         User.query.filter_by(ext_id="user@example.org").first())
     i1.name = 'pb-i1'
-    i1.state = EnvironmentSession.STATE_RUNNING
+    i1.state = ApplicationSession.STATE_RUNNING
     db.session.add(i1)
-    namespace.known_environment_session_id = i1.id
+    namespace.known_application_session_id = i1.id
 
-    i2 = EnvironmentSession(
-        Environment.query.filter_by(id=e3.id).first(),
+    i2 = ApplicationSession(
+        Application.query.filter_by(id=e3.id).first(),
         User.query.filter_by(ext_id="user@example.org").first())
     i2.name = 'pb-i2'
-    i2.state = EnvironmentSession.STATE_RUNNING
+    i2.state = ApplicationSession.STATE_RUNNING
     db.session.add(i2)
-    db.session.add(EnvironmentSessionLog(i2.id, 'info', 'provisioning', '1000.0', 'provisioning done'))
-    namespace.known_environment_session_id_2 = i2.id
+    db.session.add(ApplicationSessionLog(i2.id, 'info', 'provisioning', '1000.0', 'provisioning done'))
+    namespace.known_application_session_id_2 = i2.id
 
-    i3 = EnvironmentSession(
-        Environment.query.filter_by(id=e3.id).first(),
+    i3 = ApplicationSession(
+        Application.query.filter_by(id=e3.id).first(),
         User.query.filter_by(ext_id="user@example.org").first())
     i3.name = 'pb-i3'
     i3.to_be_deleted = True
-    i3.state = EnvironmentSession.STATE_DELETED
+    i3.state = ApplicationSession.STATE_DELETED
     db.session.add(i3)
 
-    i4 = EnvironmentSession(
-        Environment.query.filter_by(id=e3.id).first(),
+    i4 = ApplicationSession(
+        Application.query.filter_by(id=e3.id).first(),
         User.query.filter_by(ext_id="workspace_owner@example.org").first())
     i4.name = 'pb-i4'
-    i4.state = EnvironmentSession.STATE_FAILED
+    i4.state = ApplicationSession.STATE_FAILED
     db.session.add(i4)
-    namespace.known_environment_session_id_4 = i4.id
+    namespace.known_application_session_id_4 = i4.id
 
-    i5 = EnvironmentSession(
-        Environment.query.filter_by(id=e4.id).first(),
+    i5 = ApplicationSession(
+        Application.query.filter_by(id=e4.id).first(),
         User.query.filter_by(ext_id="admin@example.org").first())
     i5.name = 'pb-i5'
-    i5.state = EnvironmentSession.STATE_RUNNING
+    i5.state = ApplicationSession.STATE_RUNNING
     db.session.add(i5)
 
     db.session.commit()

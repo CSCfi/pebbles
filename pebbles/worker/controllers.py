@@ -4,7 +4,7 @@ import traceback
 
 import requests
 
-from pebbles.models import EnvironmentSession
+from pebbles.models import ApplicationSession
 from pebbles.utils import find_driver_class
 
 
@@ -50,48 +50,48 @@ class ControllerBase:
         return driver_instance
 
 
-class EnvironmentSessionController(ControllerBase):
+class ApplicationSessionController(ControllerBase):
     """
-    Controller that takes care of environment sessions
+    Controller that takes care of application sessions
     """
 
-    def update_environment_session(self, environment_session):
-        logging.debug('updating %s' % environment_session)
-        environment_session_id = environment_session['id']
-        cluster_name = environment_session['provisioning_config']['cluster']
+    def update_application_session(self, application_session):
+        logging.debug('updating %s' % application_session)
+        application_session_id = application_session['id']
+        cluster_name = application_session['provisioning_config']['cluster']
         if cluster_name is None:
             logging.warning(
-                'Cluster/driver config for the environment session %s is not found',
-                environment_session.get('name')
+                'Cluster/driver config for the application session %s is not found',
+                application_session.get('name')
             )
 
-        driver_environment_session = self.get_driver(cluster_name)
-        driver_environment_session.update(self.client.token, environment_session_id)
+        driver_application_session = self.get_driver(cluster_name)
+        driver_application_session.update(self.client.token, application_session_id)
 
-    def process_environment_session(self, environment_session):
-        # check if we need to deprovision the environment session
-        if environment_session.get('state') in [EnvironmentSession.STATE_RUNNING]:
-            if not environment_session.get('lifetime_left') and environment_session.get('maximum_lifetime'):
+    def process_application_session(self, application_session):
+        # check if we need to deprovision the application session
+        if application_session.get('state') in [ApplicationSession.STATE_RUNNING]:
+            if not application_session.get('lifetime_left') and application_session.get('maximum_lifetime'):
                 logging.info(
                     'deprovisioning triggered for %s (reason: maximum lifetime exceeded)',
-                    environment_session.get('id')
+                    application_session.get('id')
                 )
-                self.client.do_environment_session_patch(environment_session['id'], {'to_be_deleted': True})
+                self.client.do_application_session_patch(application_session['id'], {'to_be_deleted': True})
 
-        self.update_environment_session(environment_session)
+        self.update_application_session(application_session)
 
     def process(self):
-        # we query all non-deleted environment sessions
-        sessions = self.client.get_environment_sessions()
+        # we query all non-deleted application sessions
+        sessions = self.client.get_application_sessions()
 
         # extract sessions that need to be processed
         # waiting to be provisioned
-        queueing_sessions = filter(lambda x: x['state'] == EnvironmentSession.STATE_QUEUEING, sessions)
+        queueing_sessions = filter(lambda x: x['state'] == ApplicationSession.STATE_QUEUEING, sessions)
         # starting asynchronously
-        starting_sessions = filter(lambda x: x['state'] == EnvironmentSession.STATE_STARTING, sessions)
+        starting_sessions = filter(lambda x: x['state'] == ApplicationSession.STATE_STARTING, sessions)
         # log fetching needed
-        log_fetch_environment_sessions = filter(
-            lambda x: x['state'] == EnvironmentSession.STATE_RUNNING and x['log_fetch_pending'], sessions)
+        log_fetch_application_sessions = filter(
+            lambda x: x['state'] == ApplicationSession.STATE_RUNNING and x['log_fetch_pending'], sessions)
         # expired sessions in need of deprovisioning
         expired_sessions = filter(
             lambda x: x['to_be_deleted'] or (x['lifetime_left'] == 0 and x['maximum_lifetime']),
@@ -103,7 +103,7 @@ class EnvironmentSessionController(ControllerBase):
         processed_sessions.extend(queueing_sessions)
         processed_sessions.extend(starting_sessions)
         processed_sessions.extend(expired_sessions)
-        processed_sessions.extend(log_fetch_environment_sessions)
+        processed_sessions.extend(log_fetch_application_sessions)
 
         if len(processed_sessions):
             # get locks for sessions that are already being processed by another worker
@@ -127,7 +127,7 @@ class EnvironmentSessionController(ControllerBase):
 
                 # process session and release the lock
                 try:
-                    self.process_environment_session(session)
+                    self.process_application_session(session)
                 except Exception as e:
                     logging.warning(e)
                     logging.debug(traceback.format_exc().splitlines()[-5:])

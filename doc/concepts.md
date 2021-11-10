@@ -14,21 +14,21 @@ This document defines concepts in Pebbles software.
 
 ## Core concepts
 
-### Environment
+### Application
 
 - Predefined content for one learning session
 - Usually a Docker container - either JupyterLab or RStudio
-- Created by Workspace manager based on Environment template
+- Created by Workspace manager based on Application template
 
-### EnvironmentSession
+### ApplicationSession
 
-- One running copy of an Environment
+- One running copy of an Application
 - Owned by user
-- Has lifetime set by Environment
+- Has lifetime set by Application
 
 ### Workspace
 
-- A collection of Environments and Users.
+- A collection of Applications and Users.
 - Has an owner
 - May have managers
 - Has a lifetime
@@ -37,8 +37,8 @@ This document defines concepts in Pebbles software.
 
 ### Persistent user data
 
-- A persistent directory, storing data between environment session launches
-- Available in the environment session in a directory configured by Workspace manager
+- A persistent directory, storing data between application session launches
+- Available in the application session in a directory configured by Workspace manager
 - Is tied to a workspace
 - Has lifetime tied to a Workspace
 
@@ -49,24 +49,24 @@ This document defines concepts in Pebbles software.
 - Is tied to a workspace
 - Has lifetime tied to a Workspace
 
-### Environment template
+### Application template
 
-- A environment for Environments
+- A template for Applications
 - Created by Admin
 - Tied to a Cluster
 - Has attributes needed by Cluster
-- Has attributes selected for customization per Environment
+- Has attributes selected for customization per Application
 
 ## Roles
 
 ### End user
 
-- A workspace participant or a user of public Environments
+- A workspace participant or a user of public Applications
 - Is authenticated
-- May launch environment sessions
-- Has access to public Environments
+- May launch application sessions
+- Has access to public Applications
 - May be part of Workspaces
-- Has access to Workspace Environments through membership
+- Has access to Workspace Applications through membership
 
 ### Workspace owner
 
@@ -77,7 +77,7 @@ This document defines concepts in Pebbles software.
 ### Workspace manager (Assistant?)
 
 - May add users
-- May add Environments based on Environments templates
+- May add Applications based on Applications templates
 
 ### Admin
 
@@ -88,10 +88,10 @@ This document defines concepts in Pebbles software.
 
 ### Cluster
 
-- A resource for executing the environment sessions
+- A resource for executing the application sessions
 - In practice: some sort of Kubernetes cluster
 - Configured by Admin
 
 ### Provisioning driver
 
-- Software component that takes care of running environment sessions in a Cluster
+- Software component that takes care of running application sessions in a Cluster

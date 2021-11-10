@@ -3,12 +3,12 @@ from flask_restful import fields, marshal_with
 from flask import Blueprint as FlaskBlueprint
 import logging
 
-from pebbles.models import db, Environment, EnvironmentTemplate, Workspace
+from pebbles.models import db, Application, ApplicationTemplate, Workspace
 import flask_restful as restful
 from pebbles.views.commons import auth, requires_workspace_manager_or_admin, match_cluster, is_workspace_manager
 from pebbles.utils import requires_admin
-from pebbles.rules import apply_rules_export_environments
-from pebbles.forms import EnvironmentImportForm, EnvironmentTemplateImportForm
+from pebbles.rules import apply_rules_export_applications
+from pebbles.forms import ApplicationImportForm, ApplicationTemplateImportForm
 
 import_export = FlaskBlueprint('import_export', __name__)
 
@@ -20,7 +20,7 @@ template_export_fields = {
     'allowed_attrs': fields.Raw
 }
 
-environment_export_fields = {
+application_export_fields = {
     'maximum_lifetime': fields.Integer,
     'name': fields.String,
     'is_enabled': fields.Boolean,
@@ -30,12 +30,12 @@ environment_export_fields = {
 }
 
 
-class ImportExportEnvironmentTemplates(restful.Resource):
+class ImportExportApplicationTemplates(restful.Resource):
     @auth.login_required
     @requires_admin
     @marshal_with(template_export_fields)
     def get(self):
-        query = EnvironmentTemplate.query
+        query = ApplicationTemplate.query
 
         templates = query.all()
 
@@ -54,14 +54,14 @@ class ImportExportEnvironmentTemplates(restful.Resource):
     @auth.login_required
     @requires_admin
     def post(self):
-        form = EnvironmentTemplateImportForm()
+        form = ApplicationTemplateImportForm()
 
         if not form.validate_on_submit():
             logging.warning(form.errors)
-            logging.warning("validation error on create environment")
+            logging.warning("validation error on create application")
             return form.errors, 422
 
-        template = EnvironmentTemplate()
+        template = ApplicationTemplate()
         template.name = form.name.data
         selected_cluster = match_cluster(form.cluster_name.data)
         template.cluster = selected_cluster["name"]
@@ -72,25 +72,25 @@ class ImportExportEnvironmentTemplates(restful.Resource):
         db.session.commit()
 
 
-class ImportExportEnvironments(restful.Resource):
+class ImportExportApplications(restful.Resource):
     @auth.login_required
     @requires_workspace_manager_or_admin
-    @marshal_with(environment_export_fields)
+    @marshal_with(application_export_fields)
     def get(self):
         user = g.user
-        query = apply_rules_export_environments(user)
-        environments = query.all()
+        query = apply_rules_export_applications(user)
+        applications = query.all()
 
         results = []
-        for environment in environments:
-            template = EnvironmentTemplate.query.filter_by(id=environment.template_id).first()
+        for application in applications:
+            template = ApplicationTemplate.query.filter_by(id=application.template_id).first()
             obj = {
-                'name': environment.name,
-                'maximum_lifetime': environment.maximum_lifetime,
-                'is_enabled': environment.is_enabled,
-                'config': environment.config,
+                'name': application.name,
+                'maximum_lifetime': application.maximum_lifetime,
+                'is_enabled': application.is_enabled,
+                'config': application.config,
                 'template_name': template.name,
-                'workspace_name': environment.workspace.name
+                'workspace_name': application.workspace.name
             }
             results.append(obj)
         return results
@@ -99,18 +99,18 @@ class ImportExportEnvironments(restful.Resource):
     @requires_workspace_manager_or_admin
     def post(self):
         user = g.user
-        form = EnvironmentImportForm()
+        form = ApplicationImportForm()
 
         if not form.validate_on_submit():
             logging.warning(form.errors)
-            logging.warning("validation error on creating environments with import")
+            logging.warning("validation error on creating applications with import")
             return form.errors, 422
 
         template_name = form.template_name.data
-        template = EnvironmentTemplate.query.filter_by(name=template_name).first()
+        template = ApplicationTemplate.query.filter_by(name=template_name).first()
         if not template:
-            logging.warning('no environment template found with name %s', template_name)
-            return {"error": "No environment template found"}, 404
+            logging.warning('no application template found with name %s', template_name)
+            return {"error": "No application template found"}, 404
 
         workspace_name = form.workspace_name.data
         workspace = Workspace.query.filter_by(name=workspace_name).first()
@@ -119,11 +119,11 @@ class ImportExportEnvironments(restful.Resource):
                 logging.warning('no workspace found with name %s', workspace_name)
                 return {"error": "No workspace found"}, 404
 
-        environment = Environment()
-        environment.name = form.name.data
-        environment.template_id = template.id
-        environment.workspace_id = workspace.id
-        environment.config = form.config.data
+        application = Application()
+        application.name = form.name.data
+        application.template_id = template.id
+        application.workspace_id = workspace.id
+        application.config = form.config.data
 
-        db.session.add(environment)
+        db.session.add(application)
         db.session.commit()

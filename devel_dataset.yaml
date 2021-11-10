@@ -30,14 +30,14 @@ data:
     is_manager: True
 
   #############################################################################
-  ### EnvironmentTemplates
+  ### ApplicationTemplates
 
-  # example Jupyter template + environment in public workspace
-  - !EnvironmentTemplate
+  # example Jupyter template + application in public workspace
+  - !ApplicationTemplate
     id: et-jupyter-1
     name: Example
     description: Jupyter in local k8s
-    environment_type: jupyter
+    application_type: jupyter
     is_enabled: True
     allowed_attrs:
       - maximum_lifetime
@@ -55,11 +55,11 @@ data:
       volume_mount_path: /home/jovyan
 
   # second template, Jupyter machine learning
-  - !EnvironmentTemplate
+  - !ApplicationTemplate
     id: et-jupyter-2
     name: Example
     description: Jupyter ML in local k8s using notebook-images autodownload feature
-    environment_type: jupyter
+    application_type: jupyter
     is_enabled: True
     allowed_attrs:
       - maximum_lifetime
@@ -78,11 +78,11 @@ data:
       volume_mount_path: /home/jovyan
 
   # Template for local RStudio
-  - !EnvironmentTemplate
+  - !ApplicationTemplate
     id: et-rstudio-1
     name: R-Studio
     description: R-Studio in local k8s
-    environment_type: rstudio
+    application_type: rstudio
     is_enabled: True
     allowed_attrs:
       - maximum_lifetime
@@ -98,9 +98,9 @@ data:
       proxy_rewrite: nginx
 
   #############################################################################
-  ### Environments
+  ### Applications
 
-  - !Environment
+  - !Application
     id: e-1
     name: Jupyter minimal notebook
     description: Standard minimal Jupyter notebook
@@ -117,7 +117,7 @@ data:
       download_method: http-get
       download_url: https://www.csc.fi/
 
-  - !Environment
+  - !Application
     id: e-2
     name: RStudio
     description: RStudio
