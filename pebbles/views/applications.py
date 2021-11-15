@@ -32,6 +32,10 @@ application_fields_admin = {
     'workspace_id': fields.String,
     'workspace_name': fields.String,
     'workspace_pseudonym': fields.String,
+    'info': {
+        'memory': fields.String,
+        'work_folder_enabled': fields.Boolean,
+    },
 }
 
 application_fields_manager = {
@@ -48,6 +52,10 @@ application_fields_manager = {
     'full_config': fields.Raw,
     'workspace_id': fields.String,
     'workspace_name': fields.String,
+    'info': {
+        'memory': fields.String,
+        'work_folder_enabled': fields.Boolean,
+    },
 }
 
 application_fields_user = {
@@ -60,6 +68,10 @@ application_fields_user = {
     'is_enabled': fields.Boolean,
     'workspace_id': fields.String,
     'workspace_name': fields.String,
+    'info': {
+        'memory': fields.String,
+        'work_folder_enabled': fields.Boolean,
+    },
 }
 
 
@@ -284,6 +296,11 @@ def process_application(application):
     application.cluster = application.workspace.cluster
     if user.is_admin or is_workspace_manager(user, application.workspace):
         application.manager = True
+    if 'enable_user_work_folder' in application.config and application.config['enable_user_work_folder']:
+        application.work_folder_enabled = True
+    else:
+        application.work_folder_enabled = False
+    application.memory = application.template.base_config['memory_limit']
 
     return application
 
