@@ -55,7 +55,10 @@ def get_user_work_volume_name(application_session, persistence_level=VolumePersi
 
 
 def get_shared_volume_name(application_session):
-    return 'pvc-ws-vol-1'
+    if application_session['provisioning_config']['custom_config'].get('enable_shared_folder', False):
+        return 'pvc-ws-vol-1'
+
+    return None
 
 
 class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
@@ -208,6 +211,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                 if 'eadiness probe' in x.message:
                     return ts, 'starting'
                 return None
+
             log_entries = map(extract_log_entries, event_resp.items)
             log_entries = [x for x in log_entries if x]
             if log_entries:

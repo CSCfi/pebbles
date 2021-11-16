@@ -61,8 +61,10 @@ spec:
           volumeMounts:
             - mountPath: "{{volume_mount_path}}"
               name: session-data
+            {% if pvc_name_shared %}
             - mountPath: "{{volume_mount_path}}/shared"
               name: shared-data
+            {% endif %}
             {% if pvc_name_user_work %}
             - mountPath: "{{volume_mount_path}}/my-work"
               name: user-work
@@ -90,10 +92,12 @@ spec:
           persistentVolumeClaim:
             claimName: "{{pvc_name_user_work}}"
         {% endif %}
+        {% if pvc_name_shared %}
         - name: shared-data
           persistentVolumeClaim:
             claimName: "{{pvc_name_shared}}"
             readOnly: {{shared_data_read_only_mode}}
+        {% endif %}
         - name: nginx-config
           configMap:
             name: "{{name}}"

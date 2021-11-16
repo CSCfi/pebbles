@@ -136,6 +136,12 @@ def get_provisioning_config(application):
     if app_config.get('enable_user_work_folder'):
         custom_config['enable_user_work_folder'] = app_config.get('enable_user_work_folder')
 
+    # enable shared folder for non-public workspaces - this should be refined later
+    if application.workspace.name.startswith('System.'):
+        custom_config['enable_shared_folder'] = False
+    else:
+        custom_config['enable_shared_folder'] = True
+
     provisioning_config['custom_config'] = custom_config
 
     # assign cluster from workspace
