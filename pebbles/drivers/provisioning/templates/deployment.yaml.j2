@@ -61,10 +61,10 @@ spec:
           volumeMounts:
             - mountPath: "{{volume_mount_path}}"
               name: session-data
-            - mountPath: "{{volume_mount_path}}/shared-data"
+            - mountPath: "{{volume_mount_path}}/shared"
               name: shared-data
             {% if pvc_name_user_work %}
-            - mountPath: "{{volume_mount_path}}/work"
+            - mountPath: "{{volume_mount_path}}/my-work"
               name: user-work
             {% endif %}
           # generic check if the pod is accepting connections, poll every 1 second
