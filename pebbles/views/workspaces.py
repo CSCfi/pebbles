@@ -179,7 +179,8 @@ class WorkspaceView(restful.Resource):
             abort(403)
         if workspace.name != form.name.data:
             workspace.name = form.name.data
-            workspace.join_code = form.name.data  # hybrid property
+            # assigning to this hybrid property triggers regeneration of join code
+            workspace.join_code = form.name.data
         workspace.description = form.description.data
 
         user_config = form.user_config.data

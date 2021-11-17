@@ -311,10 +311,16 @@ class Workspace(db.Model):
 
     @join_code.setter
     def join_code(self, name):
-        name = name.replace(' ', '').lower()
-        ascii_name = name.encode('ascii', 'ignore').decode()
-        random_chars = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(5))
-        self._join_code = ascii_name + '-' + random_chars
+        # pick a prefix from first characters in name
+        prefix = ''.join(filter(
+            lambda c: c in string.ascii_lowercase, name.lower().encode('ascii', 'ignore').decode()
+        ))[:3]
+        if prefix:
+            prefix += '-'
+
+        # append random characters
+        random_chars = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(8))
+        self._join_code = prefix + random_chars
 
     @hybrid_property
     def create_ts(self):
