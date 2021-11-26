@@ -118,7 +118,7 @@ def add_user_to_default_workspace(user):
 def requires_workspace_manager_or_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not g.user.is_admin and not g.user.is_workspace_owner and not is_workspace_manager(g.user):
+        if not g.user.is_admin and not g.user.is_workspace_owner and not g.user.is_workspace_manager:
             abort(403)
         return f(*args, **kwargs)
 
@@ -127,13 +127,15 @@ def requires_workspace_manager_or_admin(f):
 
 def is_workspace_manager(user, workspace=None):
     if workspace:
-        match = WorkspaceUserAssociation.query.filter_by(
-            user_id=user.id,
-            workspace_id=workspace.id,
-            is_manager=True
-        ).first()
+        # query specific active workspace
+        match = WorkspaceUserAssociation.query \
+            .filter_by(user_id=user.id, workspace_id=workspace.id, is_manager=True) \
+            .join(Workspace) \
+            .filter_by(status='active') \
+            .first()
     else:
-        match = WorkspaceUserAssociation.query.filter_by(user_id=user.id, is_manager=True).first()
+        # generic property can be obtained from User
+        match = user.is_workspace_manager
     if match:
         return True
     return False

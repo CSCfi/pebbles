@@ -98,6 +98,14 @@ def primary_test_setup(namespace):
     ws4.user_associations.append(WorkspaceUserAssociation(user=u1, is_manager=True, is_owner=True))
     db.session.add(ws4)
 
+    # deleted workspace
+    ws5 = Workspace('Workspace5')
+    ws5.id = 'ws5'
+    ws5.cluster = 'dummy_cluster_1'
+    ws5.status = 'deleted'
+    ws5.user_associations.append(WorkspaceUserAssociation(user=u2, is_manager=True, is_owner=True))
+    db.session.add(ws5)
+
     namespace.known_workspace_id = ws1.id
     namespace.known_workspace_id_2 = ws2.id
     namespace.known_workspace_id_3 = ws3.id

@@ -151,12 +151,12 @@ class User(db.Model):
     @hybrid_property
     def is_workspace_owner(self):
         # we are a workspace owner if we have existing workspaces or have quota to create one
-        return self.workspace_quota > 0 or self.get_owned_workspace_associations()
+        return self.workspace_quota > 0 or len(self.get_owned_workspace_associations()) > 0
 
     @hybrid_property
     def is_workspace_manager(self):
         # we are a workspace managerif we are mapped to be one
-        return self.get_managed_workspace_associations()
+        return len(self.get_managed_workspace_associations()) > 0
 
     @is_workspace_owner.setter
     def is_workspace_owner(self, value):
@@ -222,10 +222,10 @@ class User(db.Model):
         return not self.is_deleted and self.is_active and not self.is_blocked
 
     def get_owned_workspace_associations(self):
-        return [wua for wua in self.workspace_associations if wua.is_owner]
+        return [wua for wua in self.workspace_associations if wua.is_owner and wua.workspace.status == 'active']
 
     def get_managed_workspace_associations(self):
-        return [wua for wua in self.workspace_associations if wua.is_manager]
+        return [wua for wua in self.workspace_associations if wua.is_manager and wua.workspace.status == 'active']
 
     @staticmethod
     def verify_auth_token(token, app_secret):

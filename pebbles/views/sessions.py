@@ -7,7 +7,7 @@ from flask_restful import fields, marshal
 
 from pebbles.forms import SessionCreateForm
 from pebbles.models import db, User
-from pebbles.views.commons import is_workspace_manager, update_email, EXT_ID_PREFIX_DELIMITER
+from pebbles.views.commons import update_email, EXT_ID_PREFIX_DELIMITER
 
 sessions = FlaskBlueprint('sessions', __name__)
 
@@ -48,7 +48,7 @@ class SessionView(restful.Resource):
                 'token': user.generate_auth_token(current_app.config['SECRET_KEY']),
                 'is_admin': user.is_admin,
                 'is_workspace_owner': user.is_workspace_owner,
-                'is_workspace_manager': is_workspace_manager(user),
+                'is_workspace_manager': user.is_workspace_manager,
                 'user_id': user.id,
             }, token_fields)
         logging.warning('SessionView.post() invalid login credentials for %s', form.ext_id.data)
