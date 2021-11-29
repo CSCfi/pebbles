@@ -63,18 +63,20 @@ build-image:
     - docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLIC_IMAGE}:${CI_COMMIT_REF_NAME}
     - docker push ${PUBLIC_IMAGE}:${CI_COMMIT_REF_NAME}
 
-    # if we are on master branch, create latest and versioned tags and also push to PUBLISH repo
+    # if we are on master branch, create master and versioned tags and also push to PUBLISH repo
     - |
       if [[ ${CI_COMMIT_REF_NAME} == 'master' ]]; then
-        echo "Tagging and publishing ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} as latest"
-        docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PRIVATE_IMAGE}:latest
-        docker push ${PRIVATE_IMAGE}:latest
+        echo "Tagging and publishing ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME}:master"
+        docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PRIVATE_IMAGE}:master
+        docker push ${PRIVATE_IMAGE}:master
 
         # push to PUBLIC registry
-        docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLIC_IMAGE}:latest
-        docker push ${PUBLIC_IMAGE}:latest
+        docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLIC_IMAGE}:master
+        docker push ${PUBLIC_IMAGE}:master
 
         # push to PUBLISH registry
+        docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLISH_IMAGE}:master
+        docker push ${PUBLISH_IMAGE}:master
         docker tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} ${PUBLISH_IMAGE}:latest
         docker push ${PUBLISH_IMAGE}:latest
 
