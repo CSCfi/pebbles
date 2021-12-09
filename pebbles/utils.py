@@ -136,6 +136,9 @@ def get_provisioning_config(application):
     if app_config.get('enable_user_work_folder'):
         custom_config['enable_user_work_folder'] = app_config.get('enable_user_work_folder')
 
+    if app_config.get('image_url'):
+        provisioning_config['image'] = app_config.get('image_url')
+
     # enable shared folder for non-public workspaces - this should be refined later
     if application.workspace.name.startswith('System.'):
         custom_config['enable_shared_folder'] = False
