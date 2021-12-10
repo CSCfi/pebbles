@@ -1425,6 +1425,39 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(invalid_workspace_data))
         self.assertStatus(put_response, 403)
 
+    def test_create_application_workspace_owner_quota(self):
+        # Workspace Owner 1
+
+        # delete all existing applications, these should no longer be counted towards quota after that
+        ws_apps = self.make_authenticated_workspace_owner_request(
+            path='/api/v1/applications?workspace_id=%s' % self.known_workspace_id
+        )
+        for application in ws_apps.json:
+            resp = self.make_authenticated_workspace_owner_request(
+                method='DELETE',
+                path='/api/v1/applications/%s' % application['id']
+            )
+            self.assert_200(resp)
+        ws_apps = self.make_authenticated_workspace_owner_request(
+            path='/api/v1/applications?workspace_id=%s' % self.known_workspace_id
+        )
+        data = {'name': 'test_application_1', 'maximum_lifetime': 3600, 'config': {'foo': 'bar'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id}
+
+        # we should be able to create 6
+        for i in range(6):
+            response = self.make_authenticated_workspace_owner_request(
+                method='POST',
+                path='/api/v1/applications',
+                data=json.dumps(data))
+            self.assert_200(response)
+
+        # ...and the 7th should fail
+        response = self.make_authenticated_workspace_owner_request(
+            method='POST',
+            path='/api/v1/applications',
+            data=json.dumps(data))
+        self.assertStatus(response, 422)
+
     def test_copy_applications(self):
 
         # Authenticated User
