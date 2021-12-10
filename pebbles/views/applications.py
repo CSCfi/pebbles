@@ -128,7 +128,7 @@ class ApplicationList(restful.Resource):
             logging.warning("invalid workspace for the user")
             abort(403)
         # check workspace quota
-        if not user.is_admin and len([e for e in workspace.applications]) >= workspace.application_quota:
+        if not user.is_admin and len([e for e in workspace.applications.filter_by(status='active').all()]) >= workspace.application_quota:
             logging.warning("Maximum number of applications in workspace reached %s" + workspace.id)
             return dict(
                 message="You have reached the maximum number of applications for this workspace."
