@@ -14,10 +14,17 @@ spec:
           name: kube-system
   egress:
     - to:
+        # allow access to the outside world, block private networks
         - ipBlock:
             cidr: 0.0.0.0/0
-            # allow access to the outside world, block private networks
             except:
               - 192.168.0.0/16
               - 10.0.0.0/8
               - 172.16.0.0/12
+        # allow access to coreDNS service for DNS lookups
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
