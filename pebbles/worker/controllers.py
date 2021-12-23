@@ -1,6 +1,7 @@
 import logging
 import time
 import traceback
+from random import randrange
 
 import requests
 
@@ -143,12 +144,12 @@ class ClusterController(ControllerBase):
 
     def __init__(self):
         super().__init__()
-        self.last_check_ts = 0
+        self.next_check_ts = 0
 
     def process(self):
-        if time.time() - self.last_check_ts < 60:
+        if time.time() < self.next_check_ts:
             return
-        self.last_check_ts = time.time()
+        self.next_check_ts = time.time() + randrange(30, 90)
 
         logging.debug('checking cluster alerts')
 
