@@ -136,6 +136,18 @@ def get_provisioning_config(application):
     if app_config.get('enable_user_work_folder'):
         custom_config['enable_user_work_folder'] = app_config.get('enable_user_work_folder')
 
+    # if 'user_work_folder_size' not specified k8s driver will default to '1Gi'
+    if app_config.get('user_work_folder_size'):
+        try:
+            if int(app_config.get('user_work_folder_size')) <= 5:
+                custom_config['user_work_folder_size'] = str(app_config.get('user_work_folder_size')) + 'Gi'
+            else:
+                custom_config['user_work_folder_size'] = '1Gi'
+        except Exception as e:
+            logging.warning(e)
+            logging.warning("setting up default 1Gi for my-work volume")
+            custom_config['user_work_folder_size'] = '1Gi'
+
     if app_config.get('image_url'):
         provisioning_config['image'] = app_config.get('image_url')
 

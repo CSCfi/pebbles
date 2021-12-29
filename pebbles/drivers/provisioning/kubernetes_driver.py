@@ -61,6 +61,12 @@ def get_shared_volume_name(application_session):
     return None
 
 
+def get_workspace_user_volume_size(application_session):
+    if application_session['provisioning_config']['custom_config'].get('user_work_folder_size', False):
+        return application_session['provisioning_config']['custom_config']['user_work_folder_size']
+    return '1Gi'
+
+
 class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def __init__(self, logger, config, cluster_config):
         super().__init__(logger, config, cluster_config)
@@ -127,7 +133,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         session_volume_size = self.cluster_config.get('volumeSizeSession', '5Gi')
         shared_volume_size = self.cluster_config.get('volumeSizeShared', '20Gi')
-        user_volume_size = self.cluster_config.get('volumeSizeUser', '1Gi')
+        user_volume_size = get_workspace_user_volume_size(application_session)
 
         # create namespace if necessary
         self.ensure_namespace(namespace)
