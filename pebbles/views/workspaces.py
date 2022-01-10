@@ -29,6 +29,7 @@ workspace_fields_admin = {
     'expiry_ts': fields.Integer,
     'owner_ext_id': fields.String,
     'application_quota': fields.Integer,
+    'user_role': fields.String(default='admin'),
 }
 
 workspace_fields_owner = {
@@ -40,6 +41,7 @@ workspace_fields_owner = {
     'expiry_ts': fields.Integer,
     'owner_ext_id': fields.String,
     'application_quota': fields.Integer,
+    'user_role': fields.String(default='owner'),
 }
 
 workspace_fields_manager = {
@@ -50,12 +52,14 @@ workspace_fields_manager = {
     'create_ts': fields.Integer,
     'expiry_ts': fields.Integer,
     'application_quota': fields.Integer,
+    'user_role': fields.String(default='manager'),
 }
 
 workspace_fields_user = {
     'id': fields.String,
     'name': fields.String,
     'description': fields.Raw,
+    'user_role': fields.String(default='member'),
 }
 
 member_fields = dict(
