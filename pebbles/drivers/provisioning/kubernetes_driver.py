@@ -331,6 +331,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             image=provisioning_config['image'],
             volume_mount_path=provisioning_config['volume_mount_path'],
             port=int(provisioning_config['port']),
+            cpu_limit=provisioning_config.get('cpu_limit', '1800m'),
             memory_limit=provisioning_config.get('memory_limit', '512Mi'),
             pvc_name_session=get_session_volume_name(application_session),
             pvc_name_user_work=get_user_work_volume_name(application_session),
