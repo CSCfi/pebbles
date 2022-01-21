@@ -45,6 +45,8 @@ application_session_log_fields = {
     'message': fields.String
 }
 
+MAX_APPLICATION_SESSIONS_PER_USER = 2
+
 
 def query_application(application_id):
     return Application.query.filter_by(id=application_id).first()
@@ -74,11 +76,11 @@ class ApplicationSessionList(restful.Resource):
         user = g.user
         q = apply_rules_application_sessions(user)
         q = q.order_by(ApplicationSession.provisioned_at)
-        application_sessions = q.all()
+        current_sessions = q.all()
 
         get_application = memoize(query_application)
         get_user = memoize(query_user)
-        for application_session in application_sessions:
+        for application_session in current_sessions:
             application_session_logs = get_logs_from_db(application_session.id)
             application_session.logs = marshal(application_session_logs, application_session_log_fields)
 
@@ -102,7 +104,7 @@ class ApplicationSessionList(restful.Resource):
             if application_session.to_be_deleted and application_session.state != ApplicationSession.STATE_DELETED:
                 application_session.state = ApplicationSession.STATE_DELETING
 
-        return application_sessions
+        return current_sessions
 
     @auth.login_required
     def post(self):
@@ -126,19 +128,24 @@ class ApplicationSessionList(restful.Resource):
             logging.warning('application_session creation failed, application %s is disabled', application_id)
             abort(403)
 
+        # check existing sessions and enforce limits. There is still a potential race here by request flooding, this
+        # can be fixed later by obtaining a lock per user
         application_sessions_for_user = ApplicationSession.query.filter_by(
-            application_id=application.id,
             user_id=user.id
         ).filter(ApplicationSession.state != 'deleted').all()
-
-        if application_sessions_for_user:
-            return {'error': 'ENVIRONMENT_SESSION_LIMIT_REACHED'}, 409
+        # first check the global limit
+        if not user.is_admin and len(application_sessions_for_user) >= MAX_APPLICATION_SESSIONS_PER_USER:
+            return 'Application session limit %s reached. Please close existing sessions first' \
+                   ' before starting this application.' % MAX_APPLICATION_SESSIONS_PER_USER, 409
+        # then check that we don't have an existing session already
+        for session in application_sessions_for_user:
+            if session.application_id == application_id:
+                return 'There is already an existing session for this application', 409
 
         # create the application_session and assign provisioning config from current application + template
         application_session = ApplicationSession(application, user)
         application_session.provisioning_config = utils.get_provisioning_config(application)
 
-        # XXX: Choosing the name should be done in the model's constructor method
         # decide on a name that is not used currently
         existing_names = set(x.name for x in ApplicationSession.query.all())
         # Note: the potential race is solved by unique constraint in database
@@ -286,7 +293,7 @@ class ApplicationSessionLogs(restful.Resource):
                             log_line.log_type == log_record['log_type']:
                         return 'no change'
 
-            # running logs: patch the the existing entry with new timestamp and message
+            # running logs: patch the existing entry with new timestamp and message
             if log_record['log_type'] == 'running':
                 existing_logs = get_logs_from_db(application_session_id, log_record['log_type'])
                 if existing_logs:

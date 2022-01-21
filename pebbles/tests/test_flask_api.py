@@ -15,6 +15,7 @@ from pebbles.tests.fixtures import primary_test_setup
 
 ADMIN_TOKEN = None
 USER_TOKEN = None
+USER_2_TOKEN = None
 COURSE_OWNER_TOKEN = None
 COURSE_OWNER_TOKEN2 = None
 
@@ -93,6 +94,17 @@ class FlaskApiTestCase(BaseTestCase):
         return self.make_authenticated_request(method, path, headers, data,
                                                auth_token=self.user_token)
 
+    def make_authenticated_user_2_request(self, method='GET', path='/', headers=None, data=None):
+        global USER_2_TOKEN
+        if not USER_2_TOKEN:
+            USER_2_TOKEN = self.get_auth_token(creds={
+                'ext_id': self.known_user_2_ext_id,
+                'password': self.known_user_2_password}
+            )
+        self.user_token = USER_2_TOKEN
+        return self.make_authenticated_request(method, path, headers, data,
+                                               auth_token=self.user_token)
+
     def make_authenticated_workspace_owner_request(self, method='GET', path='/', headers=None, data=None):
         global COURSE_OWNER_TOKEN
         if not COURSE_OWNER_TOKEN:
@@ -133,7 +145,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'ext_id': 'user@example.org', 'password': 'user'})
+            data=json.dumps({'ext_id': 'user-2@example.org', 'password': 'user-2'})
         )
         self.assert_200(response)
 
@@ -145,24 +157,26 @@ class FlaskApiTestCase(BaseTestCase):
             'Authorization': 'Basic %s' % token_b64,
             'token': token_b64
         }
-        # Test application session creation still works for the user
+        # Test application session creation works for the user before the test
         response = self.make_request(
             method='POST',
             path='/api/v1/application_sessions',
-            data=json.dumps({'application_id': self.known_application_id_empty}),
+            data=json.dumps({'application_id': self.known_application_public}),
             headers=headers)
         self.assert_200(response)
-        # Delete the user with admin credentials
+
+        # Delete user-2 'u6' with admin credentials
         response = self.make_authenticated_admin_request(
             method='DELETE',
-            path='/api/v1/users/%s' % self.known_user_id
+            path='/api/v1/users/%s' % 'u6'
         )
         self.assert_200(response)
-        # Test application session creation fails for the user
+
+        # Test application session creation fails for the user after the deletion
         response = self.make_request(
             method='POST',
             path='/api/v1/application_sessions',
-            data=json.dumps({'application_id': self.known_application_id_empty}),
+            data=json.dumps({'application_id': self.known_application_public}),
             headers=headers)
         self.assert_401(response)
 
@@ -823,13 +837,13 @@ class FlaskApiTestCase(BaseTestCase):
                 ),
             1)
         self.assertEqual(len([member for member in response.json if member['is_manager']]), 2)
-        self.assertEqual(len([member for member in response.json if not (member['is_manager'] or member['is_owner'])]), 1)
+        self.assertEqual(len([member for member in response.json if not (member['is_manager'] or member['is_owner'])]), 2)
         self.assertEqual(len([member for member in response.json if member['is_banned']]), 0)
 
         response = self.make_authenticated_workspace_owner_request(
             method='GET',
             path='/api/v1/workspaces/%s/members?member_count=true' % self.known_workspace_id)
-        self.assertEqual(response.json, 3)
+        self.assertEqual(response.json, 4)
 
         # Admins
         response = self.make_authenticated_admin_request(
@@ -838,20 +852,21 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps({})
         )
         self.assertStatus(response, 200)
-        # 1 normal user + 1 manager + 1 workspace owner
+
+        # 2 normal users + 1 manager + 1 workspace owner
         self.assertEqual(
             len([member for member in response.json
                  if member['user_id'] == self.known_workspace_owner_id and member['is_owner']]
                 ),
             1)
         self.assertEqual(len([member for member in response.json if member['is_manager']]), 2)
-        self.assertEqual(len([member for member in response.json if not (member['is_manager'] or member['is_owner'])]), 1)
+        self.assertEqual(len([member for member in response.json if not (member['is_manager'] or member['is_owner'])]), 2)
         self.assertEqual(len([member for member in response.json if member['is_banned']]), 0)
 
         response = self.make_authenticated_admin_request(
             method='GET',
             path='/api/v1/workspaces/%s/members?member_count=true' % self.known_workspace_id)
-        self.assertEqual(response.json, 3)
+        self.assertEqual(response.json, 4)
 
     def test_promote_and_demote_workspace_members(self):
         # Anonymous
@@ -1127,7 +1142,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Authenticated User for Workspace 1
         response = self.make_authenticated_user_request(path='/api/v1/applications')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 3)
+        self.assertEqual(len(response.json), 4)
         response = self.make_authenticated_user_request(path='/api/v1/applications?workspace_id=%s' % self.known_workspace_id)
         self.assert_200(response)
         self.assertEqual(len(response.json), 3)
@@ -1135,10 +1150,10 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
         self.assertEqual(response.json, 3)
 
-        # Authenticated Workspace Owner for Workspace 1(with 4 envs) and Normal User for Workspace 2
+        # Authenticated Workspace Owner for Workspace 1(with 4 apps) and Normal User for Workspace 2
         response = self.make_authenticated_workspace_owner_request(path='/api/v1/applications')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 5)
+        self.assertEqual(len(response.json), 6)
 
         response = self.make_authenticated_workspace_owner_request(path='/api/v1/applications?workspace_id=%s' % self.known_workspace_id)
         self.assert_200(response)
@@ -1150,7 +1165,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/applications')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 6)
+        self.assertEqual(len(response.json), 7)
         response = self.make_authenticated_admin_request(path='/api/v1/applications?workspace_id=%s' % self.known_workspace_id)
         self.assert_200(response)
         self.assertEqual(len(response.json), 4)
@@ -1160,7 +1175,7 @@ class FlaskApiTestCase(BaseTestCase):
 
         response = self.make_authenticated_admin_request(path='/api/v1/applications?show_all=true')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 8)
+        self.assertEqual(len(response.json), 9)
 
     def test_get_application(self):
         # Existing application
@@ -1492,9 +1507,18 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/application_sessions',
             data=json.dumps(data))
         self.assert_404(response)
-        # User is a part of the workspace (Workspace1)
+
+        # User is a part of the workspace (Workspace1), but already has 2 non-deleted sessions
         data = {'application_id': self.known_application_id_empty}
         response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/application_sessions',
+            data=json.dumps(data))
+        self.assertStatus(response, 409)
+
+        # User-2 is a part of the workspace (Workspace1), no sessions previously
+        data = {'application_id': self.known_application_id_empty}
+        response = self.make_authenticated_user_2_request(
             method='POST',
             path='/api/v1/application_sessions',
             data=json.dumps(data))
@@ -1958,7 +1982,7 @@ class FlaskApiTestCase(BaseTestCase):
 
         response = self.make_authenticated_admin_request(path='/api/v1/import_export/applications')
         self.assertStatus(response, 200)
-        self.assertEqual(len(response.json), 8)  # There were total 8 applications initialized during setup
+        self.assertEqual(len(response.json), 9)  # There were total 9 applications initialized during setup
 
     def test_anonymous_import_applications(self):
 

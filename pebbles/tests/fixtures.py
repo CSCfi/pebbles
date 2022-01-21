@@ -26,6 +26,8 @@ def primary_test_setup(namespace):
     namespace.known_admin_password = "admin"
     namespace.known_user_ext_id = "user@example.org"
     namespace.known_user_password = "user"
+    namespace.known_user_2_ext_id = "user-2@example.org"
+    namespace.known_user_2_password = "user-2"
 
     u1 = User(namespace.known_admin_ext_id, namespace.known_admin_password, is_admin=True)
     u2 = User(namespace.known_user_ext_id, namespace.known_user_password, is_admin=False)
@@ -33,6 +35,7 @@ def primary_test_setup(namespace):
     u4 = User("workspace_owner2@example.org", "workspace_owner2")
     u5 = User("deleted_user1@example.org", "deleted_user1")
     u5.is_deleted = True
+    u6 = User(namespace.known_user_2_ext_id, namespace.known_user_2_password, is_admin=False)
 
     # Fix user IDs to be the same for all tests, in order to reuse the same token
     # for multiple tests
@@ -46,6 +49,7 @@ def primary_test_setup(namespace):
     u4.id = 'u4'
     u4.workspace_quota = 2
     u5.id = 'u5'
+    u6.id = 'u6'
 
     namespace.known_admin_id = u1.id
     namespace.known_user_id = u2.id
@@ -58,6 +62,7 @@ def primary_test_setup(namespace):
     db.session.add(u3)
     db.session.add(u4)
     db.session.add(u5)
+    db.session.add(u6)
 
     ws0 = Workspace('System.default')
     ws0.id = 'ws0'
@@ -66,6 +71,7 @@ def primary_test_setup(namespace):
     ws0.user_associations.append(WorkspaceUserAssociation(user=u3))
     ws0.user_associations.append(WorkspaceUserAssociation(user=u4))
     ws0.user_associations.append(WorkspaceUserAssociation(user=u5))
+    ws0.user_associations.append(WorkspaceUserAssociation(user=u6))
     db.session.add(ws0)
 
     ws1 = Workspace('Workspace1')
@@ -75,6 +81,7 @@ def primary_test_setup(namespace):
     ws1.user_associations.append(WorkspaceUserAssociation(user=u2))
     ws1.user_associations.append(WorkspaceUserAssociation(user=u3, is_manager=True, is_owner=True))
     ws1.user_associations.append(WorkspaceUserAssociation(user=u4, is_manager=True))
+    ws1.user_associations.append(WorkspaceUserAssociation(user=u6))
     db.session.add(ws1)
 
     ws2 = Workspace('Workspace2')
@@ -139,76 +146,85 @@ def primary_test_setup(namespace):
     db.session.add(t2)
     namespace.known_template_id = t2.id
 
-    e1 = Application()
-    e1.name = "TestApplication"
-    e1.labels = ['label1', 'label with space', 'label2']
-    e1.template_id = t2.id
-    e1.workspace_id = ws1.id
-    db.session.add(e1)
-    namespace.known_application_id_disabled = e1.id
+    a0 = Application()
+    a0.name = "Public application"
+    a0.labels = ['label1', 'label with space', 'label2']
+    a0.template_id = t2.id
+    a0.workspace_id = ws0.id
+    a0.is_enabled = True
+    db.session.add(a0)
+    namespace.known_application_public = a0.id
 
-    e2 = Application()
-    e2.name = "EnabledTestApplication"
-    e2.labels = ['label1', 'label with space', 'label2']
-    e2.template_id = t2.id
-    e2.workspace_id = ws1.id
-    e2.is_enabled = True
-    db.session.add(e2)
-    namespace.known_application_id = e2.id
+    a1 = Application()
+    a1.name = "TestApplication"
+    a1.labels = ['label1', 'label with space', 'label2']
+    a1.template_id = t2.id
+    a1.workspace_id = ws1.id
+    db.session.add(a1)
+    namespace.known_application_id_disabled = a1.id
 
-    e3 = Application()
-    e3.name = "EnabledTestApplicationClientIp"
-    e3.labels = ['label1', 'label with space', 'label2']
-    e3.template_id = t2.id
-    e3.workspace_id = ws1.id
-    e3.is_enabled = True
-    e3.config = {'allow_update_client_connectivity': True}
-    db.session.add(e3)
-    namespace.known_application_id_2 = e3.id
+    a2 = Application()
+    a2.name = "EnabledTestApplication"
+    a2.labels = ['label1', 'label with space', 'label2']
+    a2.template_id = t2.id
+    a2.workspace_id = ws1.id
+    a2.is_enabled = True
+    db.session.add(a2)
+    namespace.known_application_id = a2.id
 
-    e4 = Application()
-    e4.name = "EnabledTestApplicationOtherWorkspace"
-    e2.labels = ['label1', 'label with space', 'label2']
-    e4.template_id = t2.id
-    e4.workspace_id = ws2.id
-    e4.is_enabled = True
-    db.session.add(e4)
-    namespace.known_application_id_g2 = e4.id
+    a3 = Application()
+    a3.name = "EnabledTestApplicationClientIp"
+    a3.labels = ['label1', 'label with space', 'label2']
+    a3.template_id = t2.id
+    a3.workspace_id = ws1.id
+    a3.is_enabled = True
+    a3.config = {'allow_update_client_connectivity': True}
+    db.session.add(a3)
+    namespace.known_application_id_2 = a3.id
 
-    e5 = Application()
-    e5.name = "DisabledTestApplicationOtherWorkspace"
-    e5.labels = ['label1', 'label with space', 'label2']
-    e5.template_id = t2.id
-    e5.workspace_id = ws2.id
-    db.session.add(e5)
-    namespace.known_application_id_disabled_2 = e5.id
+    a4 = Application()
+    a4.name = "EnabledTestApplicationOtherWorkspace"
+    a2.labels = ['label1', 'label with space', 'label2']
+    a4.template_id = t2.id
+    a4.workspace_id = ws2.id
+    a4.is_enabled = True
+    db.session.add(a4)
+    namespace.known_application_id_g2 = a4.id
 
-    e6 = Application()
-    e6.name = "TestArchivedApplication"
-    e6.labels = ['label1', 'label with space', 'label2']
-    e6.template_id = t2.id
-    e6.workspace_id = ws2.id
-    e6.status = Application.STATUS_ARCHIVED
-    db.session.add(e6)
-    namespace.known_application_id_archived = e6.id
+    a5 = Application()
+    a5.name = "DisabledTestApplicationOtherWorkspace"
+    a5.labels = ['label1', 'label with space', 'label2']
+    a5.template_id = t2.id
+    a5.workspace_id = ws2.id
+    db.session.add(a5)
+    namespace.known_application_id_disabled_2 = a5.id
 
-    e7 = Application()
-    e7.name = "TestDeletedApplication"
-    e7.labels = ['label1', 'label with space', 'label2']
-    e7.template_id = t2.id
-    e7.workspace_id = ws2.id
-    e7.status = Application.STATUS_DELETED
-    db.session.add(e7)
-    namespace.known_application_id_deleted = e7.id
+    a6 = Application()
+    a6.name = "TestArchivedApplication"
+    a6.labels = ['label1', 'label with space', 'label2']
+    a6.template_id = t2.id
+    a6.workspace_id = ws2.id
+    a6.status = Application.STATUS_ARCHIVED
+    db.session.add(a6)
+    namespace.known_application_id_archived = a6.id
 
-    e8 = Application()
-    e8.name = "EnabledTestApplication"
-    e8.labels = ['label1', 'label with space', 'label2']
-    e8.template_id = t2.id
-    e8.workspace_id = ws1.id
-    e8.is_enabled = True
-    db.session.add(e8)
-    namespace.known_application_id_empty = e8.id
+    a7 = Application()
+    a7.name = "TestDeletedApplication"
+    a7.labels = ['label1', 'label with space', 'label2']
+    a7.template_id = t2.id
+    a7.workspace_id = ws2.id
+    a7.status = Application.STATUS_DELETED
+    db.session.add(a7)
+    namespace.known_application_id_deleted = a7.id
+
+    a8 = Application()
+    a8.name = "EnabledTestApplication"
+    a8.labels = ['label1', 'label with space', 'label2']
+    a8.template_id = t2.id
+    a8.workspace_id = ws1.id
+    a8.is_enabled = True
+    db.session.add(a8)
+    namespace.known_application_id_empty = a8.id
 
     m1 = Message("First message", "First message message")
     namespace.known_message_id = m1.id
@@ -219,7 +235,7 @@ def primary_test_setup(namespace):
     db.session.add(m2)
 
     i1 = ApplicationSession(
-        Application.query.filter_by(id=e2.id).first(),
+        Application.query.filter_by(id=a2.id).first(),
         User.query.filter_by(ext_id="user@example.org").first())
     i1.name = 'pb-i1'
     i1.state = ApplicationSession.STATE_RUNNING
@@ -227,7 +243,7 @@ def primary_test_setup(namespace):
     namespace.known_application_session_id = i1.id
 
     i2 = ApplicationSession(
-        Application.query.filter_by(id=e3.id).first(),
+        Application.query.filter_by(id=a3.id).first(),
         User.query.filter_by(ext_id="user@example.org").first())
     i2.name = 'pb-i2'
     i2.state = ApplicationSession.STATE_RUNNING
@@ -236,7 +252,7 @@ def primary_test_setup(namespace):
     namespace.known_application_session_id_2 = i2.id
 
     i3 = ApplicationSession(
-        Application.query.filter_by(id=e3.id).first(),
+        Application.query.filter_by(id=a3.id).first(),
         User.query.filter_by(ext_id="user@example.org").first())
     i3.name = 'pb-i3'
     i3.to_be_deleted = True
@@ -244,7 +260,7 @@ def primary_test_setup(namespace):
     db.session.add(i3)
 
     i4 = ApplicationSession(
-        Application.query.filter_by(id=e3.id).first(),
+        Application.query.filter_by(id=a3.id).first(),
         User.query.filter_by(ext_id="workspace_owner@example.org").first())
     i4.name = 'pb-i4'
     i4.state = ApplicationSession.STATE_FAILED
@@ -252,7 +268,7 @@ def primary_test_setup(namespace):
     namespace.known_application_session_id_4 = i4.id
 
     i5 = ApplicationSession(
-        Application.query.filter_by(id=e4.id).first(),
+        Application.query.filter_by(id=a4.id).first(),
         User.query.filter_by(ext_id="admin@example.org").first())
     i5.name = 'pb-i5'
     i5.state = ApplicationSession.STATE_RUNNING
