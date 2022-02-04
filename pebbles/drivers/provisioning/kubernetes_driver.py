@@ -329,6 +329,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         deployment_yaml = parse_template('deployment.yaml.j2', dict(
             name=application_session['name'],
             image=provisioning_config['image'],
+            image_pull_policy=provisioning_config.get('image_pull_policy', 'IfNotPresent'),
             volume_mount_path=provisioning_config['volume_mount_path'],
             port=int(provisioning_config['port']),
             cpu_limit=provisioning_config.get('cpu_limit', '1800m'),

@@ -148,8 +148,13 @@ def get_provisioning_config(application):
             logging.warning("setting up default 1Gi for my-work volume")
             custom_config['user_work_folder_size'] = '1Gi'
 
+    # customize image url
     if app_config.get('image_url'):
         provisioning_config['image'] = app_config.get('image_url')
+
+    # customize image pull policy
+    if app_config.get('always_pull_image'):
+        provisioning_config['image_pull_policy'] = 'Always'
 
     # enable shared folder for non-public workspaces - this should be refined later
     if application.workspace.name.startswith('System.'):

@@ -21,7 +21,7 @@ spec:
       initContainers:
         - name: autodownload
           image: "{{image}}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "{{image_pull_policy}}"
           env: [ ]
           command:
             - sh
@@ -55,7 +55,7 @@ spec:
 
         - name: pebbles-session
           image: "{{image}}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "{{image_pull_policy}}"
           args: [ ]
           env: [ ]
           volumeMounts:
