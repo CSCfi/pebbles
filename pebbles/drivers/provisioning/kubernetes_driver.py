@@ -216,6 +216,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                     return ts, 'waiting for volumes'
                 if 'eadiness probe' in x.message:
                     return ts, 'starting'
+                if 'reated container pebbles-session' in x.message:
+                    return ts, 'starting'
                 return None
 
             log_entries = map(extract_log_entries, event_resp.items)
