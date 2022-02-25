@@ -14,7 +14,8 @@ Flask-SSO==0.4.0
 Flask-Testing==0.7.1
 Flask-WTF==0.14.2
 itsdangerous==1.1.0
-Jinja2~=2.11.2
+Jinja2==3.0.3
+MarkupSafe==2.1.0
 names==0.3.0
 pycrypto==2.6.1
 python-dateutil==2.8.1
