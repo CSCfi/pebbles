@@ -907,6 +907,72 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_403(response)
 
+    def test_transfer_ownership_workspace(self):
+
+        g = Workspace('TestWorkspaceTransferOwnership')
+        g.id = 'TestWorkspaceId'
+        g.cluster = 'dummy_cluster_1'
+
+        u1 = User.query.filter_by(id=self.known_user_id).first()
+        gu1_obj = WorkspaceUserAssociation(user=u1, workspace=g)
+        u2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
+        gu2_obj = WorkspaceUserAssociation(user=u2, workspace=g)
+        u3 = User.query.filter_by(id=self.known_workspace_owner_id).first()
+        gu3_obj = WorkspaceUserAssociation(user=u3, workspace=g, is_manager=True, is_owner=True)
+        g.user_associations.append(gu1_obj)
+        g.user_associations.append(gu2_obj)
+        g.user_associations.append(gu3_obj)
+        db.session.add(g)
+        db.session.commit()
+
+        # Anonymous
+        response = self.make_request(
+            method='PATCH',
+            data=json.dumps(dict(new_owner_id=self.known_user_id)),
+            path='/api/v1/workspaces/%s/transfer_ownership' % g.id
+        )
+        self.assert_401(response)
+
+        # Authenticated user request
+        response = self.make_authenticated_user_request(
+            method='PATCH',
+            data=json.dumps(dict(new_owner_id=u1.id)),
+            path='/api/v1/workspaces/%s/transfer_ownership' % g.id
+        )
+        self.assert_403(response)
+
+        # new_owner_to_be is a member of workspace but not owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='PATCH',
+            data=json.dumps(dict(new_owner_id=u1.id)),
+            path='/api/v1/workspaces/%s/transfer_ownership' % g.id
+        )
+        self.assert_403(response)
+
+        # new_owner_to_be not a member of workspace
+        response = self.make_authenticated_workspace_owner_request(
+            method='PATCH',
+            data=json.dumps(dict(new_owner_id=self.known_user_2_ext_id)),
+            path='/api/v1/workspaces/%s/transfer_ownership' % g.id
+        )
+        self.assert_403(response)
+
+        # new_owner_to_be member of workspace and owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='PATCH',
+            data=json.dumps(dict(new_owner_id=u2.id)),
+            path='/api/v1/workspaces/%s/transfer_ownership' % g.id
+        )
+        self.assert_200(response)
+
+        # old owner tries to add new_owner again
+        response = self.make_authenticated_workspace_owner_request(
+            method='PATCH',
+            data=json.dumps(dict(new_owner_id=u2.id)),
+            path='/api/v1/workspaces/%s/transfer_ownership' % g.id
+        )
+        self.assert_403(response)
+
     def test_clear_members_from_workspace(self):
         name = 'WorkspaceToBeCleared'
         g = Workspace(name)

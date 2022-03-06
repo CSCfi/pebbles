@@ -463,6 +463,67 @@ class WorkspaceMemberList(restful.Resource):
         db.session.commit()
 
 
+class WorkspaceTransferOwnership(restful.Resource):
+
+    @auth.login_required
+    @requires_workspace_owner_or_admin
+    def patch(self, workspace_id):
+        parser = reqparse.RequestParser()
+        parser.add_argument('new_owner_id', type=str)
+
+        args = parser.parse_args()
+
+        user = g.user
+
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+
+        wua_old_owner = WorkspaceUserAssociation.query.filter_by(
+            workspace_id=workspace_id,
+            user_id=user.id,
+            is_owner=True
+        ).first()
+        wua_new_owner = WorkspaceUserAssociation.query \
+            .filter_by(workspace_id=workspace_id) \
+            .filter_by(user_id=args.new_owner_id) \
+            .options(subqueryload(WorkspaceUserAssociation.user)) \
+            .first()
+
+        if not wua_old_owner:
+            logging.warning('workspace %s not owned, cannot transfer member', workspace_id)
+            return {'error': 'Only the workspace owner can transfer ownership'}, 403
+
+        if not workspace:
+            logging.warning('workspace %s does not exist', workspace_id)
+            return {'error': 'The workspace does not exist'}, 404
+
+        if workspace.name.startswith('System.'):
+            logging.warning('cannot transfer a System workspace')
+            return {'error': 'Cannot transfer a System workspace'}, 422
+
+        # check if new-owner-to-be is a part of the workspace
+        if not wua_new_owner:
+            logging.warning('user %s is not a member of the workspace', args.new_owner_id)
+            return {'error': 'User is not a member of workspace'}, 403
+
+        # block operations if new-owner-to-be is already owner in that workspace
+        if wua_new_owner.is_owner:
+            logging.warning('user is already owner of workspace %s', workspace_id)
+            return {'error': 'User is already owner of the workspace'}, 403
+
+        if not wua_new_owner.user.is_workspace_owner:
+            logging.warning('user %s needs owner privileges in workspace %s', (args.new_owner_id, workspace_id))
+            return {'error': 'User %s needs owner privileges, please contact administrator' % args.new_owner_id}, 403
+
+        try:
+            wua_new_owner.is_manager = True
+            wua_new_owner.is_owner = True
+            wua_old_owner.is_manager = True
+            wua_old_owner.is_owner = False
+            db.session.commit()
+        except Exception as e:
+            logging.warning(e)
+
+
 class WorkspaceClearMembers(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('workspace_id', type=str)

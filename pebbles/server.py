@@ -17,7 +17,7 @@ from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.users import users, UserList, UserView, UserWorkspaceAssociationList
 from pebbles.views.public_config import variables, PublicConfigList
-from pebbles.views.workspaces import WorkspaceClearMembers, join_workspace
+from pebbles.views.workspaces import WorkspaceClearMembers, WorkspaceTransferOwnership, join_workspace
 from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceMemberList
 from pebbles.views.workspaces import workspaces
 
@@ -32,6 +32,9 @@ api.add_resource(
     WorkspaceMemberList,
     api_root + '/workspaces/<string:workspace_id>/members',
     methods=['GET', 'PATCH'])
+api.add_resource(
+    WorkspaceTransferOwnership, api_root + '/workspaces/<string:workspace_id>/transfer_ownership',
+    methods=['PATCH'])
 api.add_resource(WorkspaceClearMembers, api_root + '/workspaces/<string:workspace_id>/clear_members')
 api.add_resource(WorkspaceExit, api_root + '/workspaces/<string:workspace_id>/exit')
 api.add_resource(JoinWorkspace, api_root + '/join_workspace/<string:join_code>')
