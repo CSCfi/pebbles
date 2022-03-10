@@ -29,7 +29,7 @@ def oauth2_login():
     #   - openidConfigurationUrl for fetching the public configuration
     #   - authMethods, a list of allowed authentication methods, each with
     #     - acr       matched to acr in the claim
-    #     - idClaim   attribute name for obtaining identity
+    #     - idClaim   attribute name for obtaining identity. separate multiple attributes with whitespace
     #     - prefix    prepend this + EXT_ID_PREFIX_DELIMITER to identity to generate ext_id
     auth_config = load_auth_config(app.config['API_AUTH_CONFIG_FILE'])
     oauth2_config = auth_config.get('oauth2') if auth_config else None
@@ -84,11 +84,19 @@ def oauth2_login():
         abort(422)
 
     # find the claim that is mapped to ext_id
-    user_id = claims.get(selected_method['idClaim'])
+    user_id = None
+    for id_attribute in selected_method['idClaim'].split():
+        id_attribute = id_attribute.strip()
+        user_id = claims.get(id_attribute)
+        # take the first that matches
+        if user_id:
+            break
+
     if not user_id:
-        logging.warning('Login aborted: No attribute "%s" for user_id received, email "%s, method "%s"',
+        logging.warning('Login aborted: No attribute(s) "%s" for user_id received, email "%s, method "%s"',
                         selected_method['idClaim'], email_id, selected_method['acr'])
-        abort(422)
+        return "ERROR: We did not receive user identity from the login provider. " \
+               "If this happens again, please contact support.", 422
 
     # construct ext_id from prefix, delimiter and user_id
     prefix = selected_method.get('prefix')
