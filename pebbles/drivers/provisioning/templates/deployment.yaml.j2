@@ -27,6 +27,11 @@ spec:
             - sh
             - -c
             - |
+              # Mirror contents from the image to session-data volume. 
+              # Session-data will be mounted over volume_mount_path in pebbles-session container.
+              cp -aT {{volume_mount_path}} /data
+              
+              # Autodownload
               if [ -z $AUTODOWNLOAD_URL ]; then exit 0; fi
               cd /data
               if [ $AUTODOWNLOAD_METHOD = "http-get" ]; then
