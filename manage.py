@@ -4,7 +4,6 @@ import getpass
 import random
 import string
 
-from flask import url_for
 from flask_migrate import MigrateCommand, Migrate
 from flask_script import Manager, Server, Shell
 from sqlalchemy.exc import IntegrityError
@@ -25,7 +24,7 @@ def _make_context():
     return dict(app=app, db=db, models=models)
 
 
-manager.add_command("shell", Shell(make_context=_make_context, use_bpython=True))
+manager.add_command("shell", Shell(make_context=_make_context))
 manager.add_command("runserver", Server())
 manager.add_command("db", MigrateCommand)
 
@@ -149,34 +148,12 @@ def createworker():
 
 
 @manager.command
-def list_routes():
-    # noinspection PyCompatibility
-    from urllib.parse import unquote
-
-    route_data = [
-        ['endpoint', 'methods', 'url']
-    ]
-    for rule in app.url_map.iter_rules():
-
-        options = {}
-        for arg in rule.arguments:
-            options[arg] = "[{0}]".format(arg)
-
-        methods = ','.join(rule.methods)
-        url = url_for(rule.endpoint, **options)
-        line = [unquote(x) for x in (rule.endpoint, methods, url)]
-        route_data.append(line)
-
-    for line in route_data:
-        print('%-40s %-40s %-100s' % (line[0], line[1], line[2]))
-
-
-@manager.command
 def load_test_data(file):
     print()
     print('deprecated, use load_data instead')
     print()
     load_data(file)
+
 
 @manager.command
 def load_data(file, update=False):
@@ -186,27 +163,28 @@ def load_data(file, update=False):
     with open(file, 'r') as f:
         data = pebbles.tests.fixtures.load_yaml(f)
         for obj in data['data']:
-                try:
-                    db.session.add(obj)
+            try:
+                db.session.add(obj)
+                db.session.commit()
+                logging.info('inserted %s %s' % (
+                    type(obj).__name__,
+                    getattr(obj, 'id', '')
+                ))
+            except IntegrityError:
+                db.session.rollback()
+                if update:
+                    db.session.merge(obj)
                     db.session.commit()
-                    logging.info('inserted %s %s' % (
+                    logging.info('updated %s %s' % (
                         type(obj).__name__,
                         getattr(obj, 'id', '')
                     ))
-                except IntegrityError as e:
-                    db.session.rollback()
-                    if update:
-                        db.session.merge(obj)
-                        db.session.commit()
-                        logging.info('updated %s %s' % (
-                            type(obj).__name__,
-                            getattr(obj, 'id', '')
-                        ))
-                    else:
-                        logging.info('skipping %s %s, it already exists' % (
-                            type(obj).__name__,
-                            getattr(obj, 'id', '')
-                        ))
+                else:
+                    logging.info('skipping %s %s, it already exists' % (
+                        type(obj).__name__,
+                        getattr(obj, 'id', '')
+                    ))
+
 
 @manager.command
 def reset_worker_password():
