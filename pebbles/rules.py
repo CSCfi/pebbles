@@ -4,7 +4,8 @@ from sqlalchemy import or_, and_
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
 
-from pebbles.models import Application, ApplicationTemplate, ApplicationSession, User, WorkspaceUserAssociation
+from pebbles.models import Application, ApplicationTemplate, ApplicationSession, User, WorkspaceUserAssociation, \
+    Workspace
 from pebbles.views.commons import is_workspace_manager
 
 
@@ -94,11 +95,25 @@ def apply_rules_application_sessions(user, args=None):
     return q
 
 
+def apply_rules_workspace_user_associations(user, user_id):
+    # only admins can query someone else
+    if not user.is_admin:
+        user_id = user.id
+
+    q = WorkspaceUserAssociation.query \
+        .filter_by(user_id=user_id) \
+        .join(Workspace) \
+        .filter_by(status='active')
+
+    return q
+
+
 # This should be refactored to return only list the user can access
 def apply_filter_users():
     q = User.query
     q = q.filter_by(is_deleted=False)
     return q
+
 
 ###############################################
 # all the helper functions for the rules go here

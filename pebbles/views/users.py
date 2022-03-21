@@ -6,8 +6,8 @@ from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
 from flask_restful import marshal_with, reqparse, inputs
 
-from pebbles.models import db, User, WorkspaceUserAssociation, Workspace
-from pebbles.rules import apply_filter_users
+from pebbles.models import db, User
+from pebbles.rules import apply_filter_users, apply_rules_workspace_user_associations
 from pebbles.utils import requires_admin
 from pebbles.views.commons import user_fields, auth, workspace_user_association_fields
 
@@ -85,10 +85,8 @@ class UserWorkspaceAssociationList(restful.Resource):
     @auth.login_required
     @marshal_with(workspace_user_association_fields)
     def get(self, user_id):
-        if not g.user.is_admin and user_id != g.user.id:
+        # only admins are allowed to query someone else
+        if user_id != g.user.id and not g.user.is_admin:
             abort(403)
-        return WorkspaceUserAssociation.query \
-            .filter_by(user_id=user_id) \
-            .join(Workspace) \
-            .filter_by(status='active') \
-            .all()
+
+        return apply_rules_workspace_user_associations(g.user, user_id).all()
