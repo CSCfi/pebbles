@@ -55,6 +55,20 @@ NAME_ADJECTIVES = (
     'clever',
     'witty',
     'smiley',
+    'orange',
+    'purple',
+    'warm',
+    'spirited',
+    'shiny',
+    'swish',
+    'elegant',
+    'glittery',
+    'wild',
+    'cool',
+    'patient',
+    'luminous',
+    'kind',
+    'flaring',
 )
 
 
