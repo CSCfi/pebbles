@@ -455,10 +455,11 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         )
 
     def create_ingress(self, namespace, application_session):
-        ingress_yaml = parse_template('ingress.yaml', dict(
+        ingress_yaml = parse_template('ingress.yaml.j2', dict(
             name=application_session['name'],
             path=self.get_application_session_path(application_session),
             host=self.get_application_session_hostname(application_session),
+            ingress_class=self.cluster_config.get('ingressClass')
         ))
         self.logger.debug('creating ingress\n%s' % ingress_yaml)
 
