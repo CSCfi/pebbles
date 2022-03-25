@@ -288,9 +288,7 @@ class ApplicationSessionLogs(restful.Resource):
             if log_record['log_type'] == 'provisioning':
                 existing_logs = get_logs_from_db(application_session_id, log_record['log_type'])
                 for log_line in existing_logs:
-                    if log_line.timestamp == log_record['timestamp'] and \
-                            log_line.application_session_id == log_record['application_session_id'] and \
-                            log_line.log_type == log_record['log_type']:
+                    if log_line.timestamp == log_record['timestamp'] and log_line.log_type == log_record['log_type']:
                         return 'no change'
 
             # running logs: patch the existing entry with new timestamp and message
