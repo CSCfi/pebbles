@@ -100,11 +100,9 @@ def get_provisioning_config(application):
     """Render provisioning config for application"""
 
     # old style override of template base_config with application config
-    template = application.template
-    allowed_attrs = template.allowed_attrs
-    provisioning_config = template.base_config
     app_config = application.config if application.config else {}
-    for attr in allowed_attrs:
+    provisioning_config = application.base_config.copy()
+    for attr in application.allowed_attrs:
         if attr in app_config:
             provisioning_config[attr] = app_config[attr]
 
@@ -120,17 +118,17 @@ def get_provisioning_config(application):
             logging.warning('unknown download_method %s', method)
 
     # application type specific configs
-    if template.application_type == 'jupyter':
+    if application.application_type == 'jupyter':
         if app_config.get('jupyter_interface') in ('notebook', 'lab'):
             custom_config['jupyter_interface'] = app_config.get('jupyter_interface')
         else:
             custom_config['jupyter_interface'] = 'lab'
 
-    elif template.application_type == 'rstudio':
+    elif application.application_type == 'rstudio':
         # nothing special required for rstudio yet
         pass
     else:
-        logging.warning('unknown application_type %s', template.application_type)
+        logging.warning('unknown application_type %s', application.application_type)
 
     # pick the persistent work folder option
     if app_config.get('enable_user_work_folder'):

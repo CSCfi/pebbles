@@ -26,6 +26,7 @@ application_fields_admin = {
     'labels': fields.List(fields.String),
     'template_id': fields.String,
     'template_name': fields.String,
+    'application_type': fields.String,
     'is_enabled': fields.Boolean,
     'config': fields.Raw,
     'full_config': fields.Raw,
@@ -47,6 +48,7 @@ application_fields_manager = {
     'labels': fields.List(fields.String),
     'template_id': fields.String,
     'template_name': fields.String,
+    'application_type': fields.String,
     'is_enabled': fields.Boolean,
     'config': fields.Raw,
     'full_config': fields.Raw,
@@ -65,6 +67,7 @@ application_fields_user = {
     'status': fields.String,
     'maximum_lifetime': fields.Integer,
     'labels': fields.List(fields.String),
+    'application_type': fields.String,
     'is_enabled': fields.Boolean,
     'workspace_id': fields.String,
     'workspace_name': fields.String,
@@ -136,11 +139,17 @@ class ApplicationList(restful.Resource):
                 message="You have reached the maximum number of applications for this workspace."
                         "Contact support if you need more."
             ), 422
-
+        # basic data
         application.name = form.name.data
         application.description = form.description.data
         application.workspace_id = workspace_id
         application.maximum_lifetime = form.maximum_lifetime.data
+
+        # base configuration from template
+        application.base_config = template.base_config
+        application.allowed_attrs = template.allowed_attrs
+        application.application_type = template.application_type
+
         try:
             validate_max_lifetime_application(application)  # Validate the maximum lifetime from config
         except ValueError:
@@ -290,7 +299,8 @@ def process_application(application):
     user = g.user
 
     # shortcut properties for UI
-    application.template_name = application.template.name
+    template = ApplicationTemplate.query.filter_by(id=application.template_id).first()
+    application.template_name = template.name
     application.workspace_name = application.workspace.name
     application.workspace_pseudonym = application.workspace.pseudonym
 
@@ -302,7 +312,7 @@ def process_application(application):
         application.work_folder_enabled = True
     else:
         application.work_folder_enabled = False
-    application.memory = application.template.base_config['memory_limit']
+    application.memory = application.base_config['memory_limit']
 
     return application
 
@@ -311,18 +321,13 @@ def validate_max_lifetime_application(application):
     """Checks if the maximum lifetime for application:
       - lower than the one defined in the template
       - higher than zero"""
-    if not getattr(application, 'template', None):
-        template = ApplicationTemplate.query.filter_by(id=application.template_id).first()
+    if 'maximum_lifetime' in application.base_config:
+        max_lifetime_limit = int(application.base_config['maximum_lifetime'])
     else:
-        template = application.template
-
-    if 'maximum_lifetime' in template.base_config:
-        template_max_lifetime = int(template.base_config['maximum_lifetime'])
-    else:
-        template_max_lifetime = 3600
+        max_lifetime_limit = 3600
 
     # valid case
-    if 0 < application.maximum_lifetime <= template_max_lifetime:
+    if 0 < application.maximum_lifetime <= max_lifetime_limit:
         return
 
     raise ValueError('Invalid maximum_lifetime %d for application %s' % (

@@ -57,7 +57,7 @@ data:
   # second template, Jupyter machine learning
   - !ApplicationTemplate
     id: et-jupyter-2
-    name: Example
+    name: Example ML
     description: Jupyter ML in local k8s using notebook-images autodownload feature
     application_type: jupyter
     is_enabled: True
@@ -112,6 +112,21 @@ data:
       - jupyter
     maximum_lifetime: 3600
     is_enabled: True
+    application_type: jupyter
+    allowed_attrs:
+      - maximum_lifetime
+    base_config:
+      args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{session_id}}' --NotebookApp.allow_origin='*'
+      environment_vars: ''
+      image: jupyter/minimal-notebook
+      labels:
+        - analytics
+        - python
+        - jupyter
+      maximum_lifetime: 3600
+      memory_limit: 256M
+      port: 8888
+      volume_mount_path: /home/jovyan
     config:
       jupyter_interface: lab
       download_method: http-get
@@ -127,6 +142,19 @@ data:
       - data analytics
     maximum_lifetime: 3600
     is_enabled: True
+    application_type: rstudio
+    allowed_attrs:
+      - maximum_lifetime
+    base_config:
+      environment_vars: 'DISABLE_AUTH=true'
+      image: rocker/rstudio:latest
+      labels:
+        - data analytics
+      maximum_lifetime: 3600
+      memory_limit: 256M
+      port: 8787
+      volume_mount_path: /home/rstudio
+      proxy_rewrite: nginx
     config:
       download_method: none
 

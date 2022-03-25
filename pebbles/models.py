@@ -390,7 +390,6 @@ class ApplicationTemplate(db.Model):
     application_type = db.Column(db.String(MAX_NAME_LENGTH))
     _base_config = db.Column('base_config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
-    applications = db.relationship('Application', backref='template', lazy='dynamic')
     _allowed_attrs = db.Column('allowed_attrs', db.Text)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
@@ -441,8 +440,11 @@ class Application(db.Model):
     template_id = db.Column(db.String(32), db.ForeignKey('application_templates.id'))
     workspace_id = db.Column(db.String(32), db.ForeignKey('workspaces.id'))
     _labels = db.Column('labels', db.Text)
+    application_type = db.Column(db.String(MAX_NAME_LENGTH))
     maximum_lifetime = db.Column(db.Integer)
+    _base_config = db.Column('base_config', db.Text)
     _config = db.Column('config', db.Text)
+    _allowed_attrs = db.Column('allowed_attrs', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     expiry_time = db.Column(db.DateTime)
     application_sessions = db.relationship('ApplicationSession', backref='application', lazy='dynamic')
@@ -451,7 +453,8 @@ class Application(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     def __init__(self, name=None, description=None, template_id=None, workspace_id=None, labels=None,
-                 maximum_lifetime=3600, is_enabled=False, config=None):
+                 maximum_lifetime=3600, is_enabled=False, config=None,
+                 base_config=None, allowed_attrs=None, application_type=None):
         self.id = uuid.uuid4().hex
         self.name = name
         self.description = description
@@ -464,6 +467,21 @@ class Application(db.Model):
             config = dict()
         self._config = json.dumps(config)
         self._status = Application.STATUS_ACTIVE
+        if not base_config:
+            base_config = dict()
+        self._base_config = json.dumps(base_config)
+        if not allowed_attrs:
+            allowed_attrs = []
+        self._allowed_attrs = json.dumps(allowed_attrs)
+        self.application_type = application_type
+
+    @hybrid_property
+    def base_config(self):
+        return load_column(self._base_config)
+
+    @base_config.setter
+    def base_config(self, value):
+        self._base_config = json.dumps(value)
 
     @hybrid_property
     def config(self):
@@ -472,6 +490,14 @@ class Application(db.Model):
     @config.setter
     def config(self, value):
         self._config = json.dumps(value)
+
+    @hybrid_property
+    def allowed_attrs(self):
+        return load_column(self._allowed_attrs)
+
+    @allowed_attrs.setter
+    def allowed_attrs(self, value):
+        self._allowed_attrs = json.dumps(value)
 
     @hybrid_property
     def labels(self):
@@ -582,7 +608,8 @@ class ApplicationSession(db.Model):
 class ApplicationSessionLog(db.Model):
     __tablename__ = 'application_session_logs'
     id = db.Column(db.String(32), primary_key=True)
-    application_session_id = db.Column(db.String(32), db.ForeignKey('application_sessions.id'), index=True, unique=False)
+    application_session_id = db.Column(db.String(32), db.ForeignKey('application_sessions.id'), index=True,
+                                       unique=False)
     log_level = db.Column(db.String(8))
     log_type = db.Column(db.String(64))
     timestamp = db.Column(db.Float)

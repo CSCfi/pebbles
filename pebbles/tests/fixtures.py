@@ -11,6 +11,12 @@ from pebbles.models import (
 from pebbles.tests.base import db
 
 
+def fill_application_from_template(application, template):
+    application.base_config = template.base_config
+    application.allowed_attrs = template.allowed_attrs
+    application.application_type = template.application_type
+
+
 def primary_test_setup(namespace):
     """ Setup taken from FlaskApiTestCase to re-use it elsewhere as well.
 
@@ -152,6 +158,7 @@ def primary_test_setup(namespace):
     a0.template_id = t2.id
     a0.workspace_id = ws0.id
     a0.is_enabled = True
+    fill_application_from_template(a0, t2)
     db.session.add(a0)
     namespace.known_application_public = a0.id
 
@@ -160,6 +167,7 @@ def primary_test_setup(namespace):
     a1.labels = ['label1', 'label with space', 'label2']
     a1.template_id = t2.id
     a1.workspace_id = ws1.id
+    fill_application_from_template(a1, t2)
     db.session.add(a1)
     namespace.known_application_id_disabled = a1.id
 
@@ -169,6 +177,7 @@ def primary_test_setup(namespace):
     a2.template_id = t2.id
     a2.workspace_id = ws1.id
     a2.is_enabled = True
+    fill_application_from_template(a2, t2)
     db.session.add(a2)
     namespace.known_application_id = a2.id
 
@@ -179,6 +188,7 @@ def primary_test_setup(namespace):
     a3.workspace_id = ws1.id
     a3.is_enabled = True
     a3.config = {'allow_update_client_connectivity': True}
+    fill_application_from_template(a3, t2)
     db.session.add(a3)
     namespace.known_application_id_2 = a3.id
 
@@ -188,6 +198,7 @@ def primary_test_setup(namespace):
     a4.template_id = t2.id
     a4.workspace_id = ws2.id
     a4.is_enabled = True
+    fill_application_from_template(a4, t2)
     db.session.add(a4)
     namespace.known_application_id_g2 = a4.id
 
@@ -196,6 +207,7 @@ def primary_test_setup(namespace):
     a5.labels = ['label1', 'label with space', 'label2']
     a5.template_id = t2.id
     a5.workspace_id = ws2.id
+    fill_application_from_template(a5, t2)
     db.session.add(a5)
     namespace.known_application_id_disabled_2 = a5.id
 
@@ -205,6 +217,7 @@ def primary_test_setup(namespace):
     a6.template_id = t2.id
     a6.workspace_id = ws2.id
     a6.status = Application.STATUS_ARCHIVED
+    fill_application_from_template(a6, t2)
     db.session.add(a6)
     namespace.known_application_id_archived = a6.id
 
@@ -214,6 +227,7 @@ def primary_test_setup(namespace):
     a7.template_id = t2.id
     a7.workspace_id = ws2.id
     a7.status = Application.STATUS_DELETED
+    fill_application_from_template(a7, t2)
     db.session.add(a7)
     namespace.known_application_id_deleted = a7.id
 
@@ -223,6 +237,7 @@ def primary_test_setup(namespace):
     a8.template_id = t2.id
     a8.workspace_id = ws1.id
     a8.is_enabled = True
+    fill_application_from_template(a8, t2)
     db.session.add(a8)
     namespace.known_application_id_empty = a8.id
 
