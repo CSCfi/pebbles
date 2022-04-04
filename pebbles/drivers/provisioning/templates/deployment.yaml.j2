@@ -31,6 +31,10 @@ spec:
               # Session-data will be mounted over volume_mount_path in pebbles-session container.
               cp -aT {{volume_mount_path}} /data
               
+              # We don't want the default empty 'work' folder from upstream jupyter as it can be confused 
+              # with the persistent 'my-work' folder. Only remove directory if it is empty.
+              rmdir -v /data/work
+              
               # Autodownload
               if [ -z $AUTODOWNLOAD_URL ]; then exit 0; fi
               cd /data
