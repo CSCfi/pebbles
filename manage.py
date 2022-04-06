@@ -3,7 +3,9 @@ import logging
 import getpass
 import random
 import string
+from typing import List
 
+import yaml
 from flask_migrate import MigrateCommand, Migrate
 from flask_script import Manager, Server, Shell
 from sqlalchemy.exc import IntegrityError
@@ -12,7 +14,7 @@ from werkzeug.middleware.profiler import ProfilerMiddleware
 import pebbles.tests.fixtures
 from pebbles import models
 from pebbles.config import BaseConfig
-from pebbles.models import db, User
+from pebbles.models import db, User, Application, ApplicationTemplate
 from pebbles.server import app
 from pebbles.views.commons import create_user, create_worker, create_system_workspaces
 
@@ -193,6 +195,55 @@ def reset_worker_password():
     worker.set_password(app.config['SECRET_KEY'])
     db.session.add(worker)
     db.session.commit()
+
+
+@manager.command
+def check_data(datadir):
+    """
+    Checks given applications and templates YAML data files in given directory for consistency.
+    """
+    applications_file = datadir + '/applications.yaml'
+    templates_file = datadir + '/application_templates.yaml'
+    application_data: List[Application] = pebbles.tests.fixtures.load_yaml(open(applications_file, 'r')).get('data')
+    template_data: List[ApplicationTemplate] = pebbles.tests.fixtures.load_yaml(open(templates_file, 'r')).get('data')
+
+    # check for duplicate ids
+    ids: List[string] = []
+    for application in application_data:
+        if application.id in ids:
+            logging.error('ERROR: duplicate application id "%s"' % application.id)
+            exit(1)
+        ids.append(application.id)
+    ids = []
+    for template in template_data:
+        if template.id in ids:
+            logging.error('ERROR: duplicate template id "%s"' % template.id)
+            exit(1)
+        ids.append(template.id)
+
+    # check application consistency with template data
+    for application in application_data:
+        # find the template this application refers to
+        template = next((t for t in template_data if t.id == application.template_id), None)
+
+        # template has to exist
+        if not template:
+            logging.error('ERROR: application "%s" refers to unknown template' % application.name)
+            exit(1)
+
+        # check that we have copied the attributes from the template correctly
+        if yaml.safe_dump(application.base_config) != yaml.safe_dump(template.base_config):
+            logging.error('ERROR: application "%s" base_config differs from template' % application.name)
+            exit(1)
+        if application.application_type != template.application_type:
+            logging.error('ERROR: application "%s" application_type differs from template' % application.name)
+            exit(1)
+        if yaml.safe_dump(application.allowed_attrs) != yaml.safe_dump(template.allowed_attrs):
+            logging.error('ERROR: application "%s" allowed_attrs differs from template' % application.name)
+            exit(1)
+
+    logging.info('checked %d applications against %d templates, no errors found', len(application_data),
+                 len(template_data))
 
 
 if __name__ == '__main__':
