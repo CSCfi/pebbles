@@ -342,7 +342,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/workspaces')
         self.assert_200(response)
-        self.assertEqual(5, len(response.json))
+        self.assertEqual(6, len(response.json))
         # Get One
         response = self.make_authenticated_admin_request(path='/api/v1/workspaces/%s' % self.known_workspace_id)
         self.assert_200(response)
@@ -1231,7 +1231,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/applications')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 7)
+        self.assertEqual(len(response.json), 10)
         response = self.make_authenticated_admin_request(path='/api/v1/applications?workspace_id=%s' % self.known_workspace_id)
         self.assert_200(response)
         self.assertEqual(len(response.json), 4)
@@ -1241,7 +1241,7 @@ class FlaskApiTestCase(BaseTestCase):
 
         response = self.make_authenticated_admin_request(path='/api/v1/applications?show_all=true')
         self.assert_200(response)
-        self.assertEqual(len(response.json), 9)
+        self.assertEqual(len(response.json), 12)
 
     def test_get_application(self):
         # Existing application
@@ -1613,6 +1613,39 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps({'application_id': self.known_application_id_archived}),
         )
         self.assert_404(response)
+
+    def test_create_application_session_memory_limit(self):
+        # first launch by user-2 should work
+        data = {'application_id': self.known_application_id_mem_limit_test_1}
+        response = self.make_authenticated_user_2_request(
+            method='POST',
+            path='/api/v1/application_sessions',
+            data=json.dumps(data))
+        self.assert_200(response)
+
+        # next launch by user-2 should fail, because we would be over memory limit
+        data = {'application_id': self.known_application_id_mem_limit_test_2}
+        response = self.make_authenticated_user_2_request(
+            method='POST',
+            path='/api/v1/application_sessions',
+            data=json.dumps(data))
+        self.assertEqual(response.status_code, 409, 'session launch should be rejected')
+
+        # but we should be able to launch a smaller application
+        data = {'application_id': self.known_application_id_mem_limit_test_3}
+        response = self.make_authenticated_user_2_request(
+            method='POST',
+            path='/api/v1/application_sessions',
+            data=json.dumps(data))
+        self.assert_200(response)
+
+        # even admin cannot launch a session
+        data = {'application_id': self.known_application_id_mem_limit_test_2}
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/application_sessions',
+            data=json.dumps(data))
+        self.assertEqual(response.status_code, 409, 'session launch should be rejected')
 
     def test_owner_create_application_session_application_disabled(self):
         # Use Application in ws2 that is owned by owner2 and has owner1 as user
@@ -2048,7 +2081,7 @@ class FlaskApiTestCase(BaseTestCase):
 
         response = self.make_authenticated_admin_request(path='/api/v1/import_export/applications')
         self.assertStatus(response, 200)
-        self.assertEqual(len(response.json), 9)  # There were total 9 applications initialized during setup
+        self.assertEqual(len(response.json), 12)  # There were total 12 applications initialized during setup
 
     def test_anonymous_import_applications(self):
 

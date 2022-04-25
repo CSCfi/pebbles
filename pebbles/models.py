@@ -305,9 +305,10 @@ class Workspace(db.Model):
     user_associations = db.relationship("WorkspaceUserAssociation", back_populates="workspace", lazy='dynamic',
                                         cascade="all, delete-orphan")
     application_quota = db.Column(db.Integer, default=10)
+    memory_limit_gib = db.Column(db.Integer, default=50)
     applications = db.relationship('Application', backref='workspace', lazy='dynamic')
 
-    def __init__(self, name, description='', cluster=None):
+    def __init__(self, name, description='', cluster=None, memory_limit_gib=50):
         self.id = uuid.uuid4().hex
         # Here we opportunistically create a pseudonym without actually checking the existing workspaces,
         # the probability of collision is low enough. There are 400 pseudonyms for all inhabitants on earth
@@ -317,6 +318,7 @@ class Workspace(db.Model):
         self.description = description
         self.join_code = name
         self.cluster = cluster
+        self.memory_limit_gib = memory_limit_gib
         self._status = Workspace.STATUS_ACTIVE
 
     @hybrid_property

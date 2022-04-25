@@ -142,6 +142,20 @@ class ApplicationSessionList(restful.Resource):
             if session.application_id == application_id:
                 return 'There is already an existing session for this application', 409
 
+        # then check that workspace is not out of resources
+        application_sessions_in_ws = ApplicationSession.query \
+            .filter(ApplicationSession.state != 'deleted') \
+            .join(Application) \
+            .filter_by(workspace_id=application.workspace_id).all()
+        # sum up existing resources + the new session on top
+        ws_consumed_mem = application.base_config.get('memory_gib', 1.0)
+        for sess in application_sessions_in_ws:
+            ws_consumed_mem += sess.provisioning_config.get('memory_gib', 1.0)
+
+        if ws_consumed_mem > application.workspace.memory_limit_gib:
+            logging.info('workspace %s is over memory limit', application.workspace_id)
+            return 'Concurrent session memory limit for workspace exceeded', 409
+
         # create the application_session and assign provisioning config from current application + template
         application_session = ApplicationSession(application, user)
         application_session.provisioning_config = utils.get_provisioning_config(application)

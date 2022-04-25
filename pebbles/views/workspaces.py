@@ -29,6 +29,7 @@ workspace_fields_admin = {
     'expiry_ts': fields.Integer,
     'owner_ext_id': fields.String,
     'application_quota': fields.Integer,
+    'memory_limit_gib': fields.Integer,
     'user_association_type': fields.String(default='admin'),
 }
 
@@ -41,6 +42,7 @@ workspace_fields_owner = {
     'expiry_ts': fields.Integer,
     'owner_ext_id': fields.String,
     'application_quota': fields.Integer,
+    'memory_limit_gib': fields.Integer,
     'user_association_type': fields.String(default='owner'),
 }
 
@@ -52,6 +54,7 @@ workspace_fields_manager = {
     'create_ts': fields.Integer,
     'expiry_ts': fields.Integer,
     'application_quota': fields.Integer,
+    'memory_limit_gib': fields.Integer,
     'user_association_type': fields.String(default='manager'),
 }
 
@@ -59,6 +62,7 @@ workspace_fields_user = {
     'id': fields.String,
     'name': fields.String,
     'description': fields.Raw,
+    'memory_limit_gib': fields.Integer,
     'user_association_type': fields.String(default='member'),
 }
 
@@ -511,7 +515,7 @@ class WorkspaceTransferOwnership(restful.Resource):
             return {'error': 'User is already owner of the workspace'}, 403
 
         if not wua_new_owner.user.is_workspace_owner:
-            logging.warning('user %s needs owner privileges in workspace %s', (args.new_owner_id, workspace_id))
+            logging.warning('user %s needs owner privileges in workspace %s', args.new_owner_id, workspace_id)
             return {'error': 'User %s needs owner privileges, please contact administrator' % args.new_owner_id}, 403
 
         try:

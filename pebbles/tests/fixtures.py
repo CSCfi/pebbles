@@ -12,8 +12,8 @@ from pebbles.tests.base import db
 
 
 def fill_application_from_template(application, template):
-    application.base_config = template.base_config
-    application.allowed_attrs = template.allowed_attrs
+    application.base_config = template.base_config.copy()
+    application.allowed_attrs = template.allowed_attrs.copy()
     application.application_type = template.application_type
 
 
@@ -119,6 +119,15 @@ def primary_test_setup(namespace):
     ws5.user_associations.append(WorkspaceUserAssociation(user=u2, is_manager=True, is_owner=True))
     db.session.add(ws5)
 
+    ws6 = Workspace('Workspace1')
+    ws6.id = 'ws6'
+    ws6.description = 'workspace for memory limit testing'
+    ws6.cluster = 'dummy_cluster_1'
+    ws6.application_quota = 6
+    ws6.memory_limit_gib = 10
+    ws6.user_associations.append(WorkspaceUserAssociation(user=u6))
+    db.session.add(ws6)
+
     namespace.known_workspace_id = ws1.id
     namespace.known_workspace_id_2 = ws2.id
     namespace.known_workspace_id_3 = ws3.id
@@ -140,7 +149,7 @@ def primary_test_setup(namespace):
         'labels': '["label1", "label with space", "label2"]',
         'cost_multiplier': '1.0',
         'maximum_lifetime': 3600,
-        'memory_gib': 0.5,
+        'memory_gib': 8,
         'allow_update_client_connectivity': False
     }
     t2.allowed_attrs = [
@@ -240,6 +249,40 @@ def primary_test_setup(namespace):
     fill_application_from_template(a8, t2)
     db.session.add(a8)
     namespace.known_application_id_empty = a8.id
+
+    a9 = Application()
+    a9.name = "MemLimitTest 1"
+    a9.labels = ['label1', 'label with space', 'label2']
+    a9.template_id = t2.id
+    a9.workspace_id = ws6.id
+    a9.is_enabled = True
+    fill_application_from_template(a9, t2)
+    db.session.add(a9)
+    namespace.known_application_id_mem_limit_test_1 = a9.id
+
+    a10 = Application()
+    a10.name = "MemLimitTest 2"
+    a10.labels = ['label1', 'label with space', 'label2']
+    a10.template_id = t2.id
+    a10.workspace_id = ws6.id
+    a10.is_enabled = True
+    fill_application_from_template(a10, t2)
+    db.session.add(a10)
+    namespace.known_application_id_mem_limit_test_2 = a10.id
+
+    a11 = Application()
+    a11.name = "MemLimitTest 3"
+    a11.labels = ['label1', 'label with space', 'label2']
+    a11.template_id = t2.id
+    a11.workspace_id = ws6.id
+    a11.is_enabled = True
+    fill_application_from_template(a11, t2)
+    # we need to modify and assign the full base_config here due to how hybrid properties behave
+    base_config = a11.base_config
+    base_config['memory_gib'] = 1.0
+    a11.base_config = base_config
+    db.session.add(a11)
+    namespace.known_application_id_mem_limit_test_3 = a11.id
 
     m1 = Message("First message", "First message message")
     namespace.known_message_id = m1.id
