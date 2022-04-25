@@ -5,11 +5,13 @@ stages:
   - build image
   - analysis and tests
   - ci-pipeline
+  - mirroring
 
 variables:
   PRIVATE_IMAGE: $CI_DOCKER_REPOSITORY_PRIVATE/pebbles
   PUBLIC_IMAGE: $CI_DOCKER_REPOSITORY_PUBLIC/pebbles
   PUBLISH_IMAGE: $CI_DOCKER_REPOSITORY_PUBLISH/pebbles
+  GITHUB_MIRROR: git@github.com:CSCfi/pebbles.git
 
 flake8:
   stage: analysis and tests
@@ -110,3 +112,20 @@ ci-pipeline:
     project: pebbles/cicd-pipeline
     branch: master
     strategy: depend
+
+mirroring:
+  stage: mirroring
+  script:
+    - mkdir mirror_dir
+    - cd mirror_dir
+    - echo "cloning the gitlab.ci repo"
+    - git clone $CI_REPOSITORY_URL pebbles
+    - cd pebbles
+    - echo "pushing to github repo"
+    - git checkout master
+    - mkdir ~/.ssh
+    - echo -e "Host github.com\n    StrictHostKeyChecking no\n" >> ~/.ssh/config
+    - eval `ssh-agent -s`
+    - ssh-agent bash -c 'ssh-add /root/ssh/pebbles-key/id_rsa; git push $GITHUB_MIRROR master'
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "master"'
