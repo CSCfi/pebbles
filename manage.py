@@ -246,5 +246,27 @@ def check_data(datadir):
                  len(template_data))
 
 
+@manager.command
+def list_application_images():
+    """
+    Lists images used by non-deleted applications
+    """
+    applications = Application.query.filter(Application.status != 'deleted').all()
+    images = []
+    # collect the images per application
+    for a in applications:
+        image = a.config.get('image_url', '')
+        if image:
+            if image not in images:
+                images.append(image)
+        else:
+            image = a.base_config.get('image', '')
+            if image not in images:
+                images.append(image)
+
+    # filter out strings that are obviously wrong (image_url in config can basically have anything)
+    print(' '.join([image for image in sorted(images) if '/' in image and ' ' not in image]))
+
+
 if __name__ == '__main__':
     manager.run()
