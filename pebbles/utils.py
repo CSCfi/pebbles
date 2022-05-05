@@ -99,9 +99,13 @@ def parse_port_range(port_range):
 def get_provisioning_config(application):
     """Render provisioning config for application"""
 
-    # old style override of template base_config with application config
     app_config = application.config if application.config else {}
     provisioning_config = application.base_config.copy()
+
+    # set memory_limit from memory_gib
+    provisioning_config['memory_limit'] = '%dMi' % round(float(provisioning_config['memory_gib']) * 1024)
+
+    # old style override of template base_config with application config
     for attr in application.allowed_attrs:
         if attr in app_config:
             provisioning_config[attr] = app_config[attr]

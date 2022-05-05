@@ -140,7 +140,7 @@ def primary_test_setup(namespace):
         'labels': '["label1", "label with space", "label2"]',
         'cost_multiplier': '1.0',
         'maximum_lifetime': 3600,
-        'memory_limit': '512m',
+        'memory_gib': 0.5,
         'allow_update_client_connectivity': False
     }
     t2.allowed_attrs = [

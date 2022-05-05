@@ -50,7 +50,7 @@ data:
         - python
         - jupyter
       maximum_lifetime: 3600
-      memory_limit: 256M
+      memory_gib: 0.25
       port: 8888
       volume_mount_path: /home/jovyan
 
@@ -72,7 +72,7 @@ data:
         - python
         - jupyter
       maximum_lifetime: 3600
-      memory_limit: 256M
+      memory_gib: 0.25
       port: 8888
       show_password: true
       volume_mount_path: /home/jovyan
@@ -80,8 +80,8 @@ data:
   # Template for local RStudio
   - !ApplicationTemplate
     id: et-rstudio-1
-    name: R-Studio
-    description: R-Studio in local k8s
+    name: RStudio
+    description: RStudio in local k8s
     application_type: rstudio
     is_enabled: True
     allowed_attrs:
@@ -92,7 +92,7 @@ data:
       labels:
         - data analytics
       maximum_lifetime: 3600
-      memory_limit: 256M
+      memory_gib: 0.25
       port: 8787
       volume_mount_path: /home/rstudio
       proxy_rewrite: nginx
@@ -124,7 +124,7 @@ data:
         - python
         - jupyter
       maximum_lifetime: 3600
-      memory_limit: 256M
+      memory_gib: 0.25
       port: 8888
       volume_mount_path: /home/jovyan
     config:
@@ -151,7 +151,7 @@ data:
       labels:
         - data analytics
       maximum_lifetime: 3600
-      memory_limit: 256M
+      memory_gib: 0.25
       port: 8787
       volume_mount_path: /home/rstudio
       proxy_rewrite: nginx

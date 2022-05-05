@@ -303,6 +303,12 @@ def process_application(application):
     application.template_name = template.name
     application.workspace_name = application.workspace.name
     application.workspace_pseudonym = application.workspace.pseudonym
+    # generate human readable memory information
+    memory_gib = float(application.base_config['memory_gib'])
+    if memory_gib % 1:
+        application.memory = '%dMiB' % round(memory_gib * 1024)
+    else:
+        application.memory = '%dGiB' % memory_gib
 
     # rest of the code taken for refactoring from single application GET query
     application.cluster = application.workspace.cluster
@@ -312,7 +318,6 @@ def process_application(application):
         application.work_folder_enabled = True
     else:
         application.work_folder_enabled = False
-    application.memory = application.base_config['memory_limit']
 
     return application
 
