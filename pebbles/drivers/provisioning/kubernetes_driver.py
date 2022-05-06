@@ -212,6 +212,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                     return ts, 'scheduled to a node'
                 if 'ulling image' in x.message:
                     return ts, 'pulling container image'
+                if 'rrImagePull' in x.message:
+                    return ts, 'image could not be pulled'
                 if 'olume' in x.message:
                     return ts, 'waiting for volumes'
                 if 'eadiness probe' in x.message:
