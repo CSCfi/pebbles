@@ -144,6 +144,40 @@ def createuser_bulk(user_prefix=None, domain_name=None, admin=False):
 
 
 @manager.command
+def createuser_list_samepwd(ext_id_string=None, password=None, admin=False):
+    """Creates new users"""
+    if not ext_id_string:
+        ext_id_string = input("TO CREATE USER\n Enter comma separated list of ext_ids without space: \
+                             \neg: qua00@hui,qua01@hui,qua02@hui \n")
+    if not password:
+        password = getpass.getpass("password: ")
+
+    ext_id_list = [x for x in ext_id_string.split(',')]
+    print("List of users to create %s " % (ext_id_list))
+    for ext_id in ext_id_list:
+        create_user(ext_id, password, is_admin=admin)
+
+
+@manager.command
+def deleteuser_bulk(ext_id_string=None):
+    """Deletes a list of users"""
+    from pebbles.models import User
+    if not ext_id_string:
+        ext_id_string = input("TO DELETE USER\n Enter comma separated list of ext_ids without space: \
+                             \neg: qua00@hui,qua01@hui,qua02@hui \n")
+
+    ext_id_list = [x for x in ext_id_string.split(',')]
+    print("List of users to delete %s " % (ext_id_list))
+    for ext_id in ext_id_list:
+        user = User.query.filter_by(ext_id=ext_id).first()
+        if user:
+            user.delete()
+        else:
+            print("User %s not found " % (ext_id))
+    db.session.commit()
+
+
+@manager.command
 def createworker():
     """Creates an admin account for worker"""
     create_worker()
