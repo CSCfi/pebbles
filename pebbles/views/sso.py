@@ -100,7 +100,7 @@ def oauth2_login():
 
     # construct ext_id from prefix, delimiter and user_id
     prefix = selected_method.get('prefix')
-    ext_id = prefix + EXT_ID_PREFIX_DELIMITER + claims.get(selected_method['idClaim']).lower()
+    ext_id = prefix + EXT_ID_PREFIX_DELIMITER + user_id.lower()
 
     # fetch matching user object from the database
     user = User.query.filter_by(ext_id=ext_id).first()
