@@ -126,6 +126,7 @@ class BaseConfig(object):
     ACCESSIBILITY_STATEMENT_URL = 'http://link-to-accessibility-statement'
     CONTACT_EMAIL = 'support@example.org'
     SERVICE_DOCUMENTATION_URL = 'http://link-to-service-documentation'
+    SERVICE_ANNOUNCEMENT = ''
 
     # Mail settings
     MAIL_SERVER = 'smtp.example.org'
