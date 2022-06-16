@@ -322,7 +322,16 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             env_var_dict['AUTODOWNLOAD_METHOD'] = custom_config.get('download_method', '')
             env_var_dict['AUTODOWNLOAD_URL'] = custom_config.get('download_url', '')
 
+        # set memory in bytes as an env variable, consumed by jupyter-resource-usage
+        memory_bytes = round(float(provisioning_config['memory_gib']) * 1024 * 1024 * 1024)
+        env_var_dict['MEM_LIMIT'] = str(memory_bytes)
+
+        # set cpu_limit as an env variable, consumed by jupyter-resource-usage
+        env_var_dict['CPU_LIMIT'] = provisioning_config.get('cpu_limit', '8')
+
+        # turn environment variable dict to list
         env_var_list = [dict(name=x, value=env_var_dict[x]) for x in env_var_dict.keys()]
+
         # admins do not have this defined, so first check if we have WUA
         if application_session['workspace_user_association']:
             # read_write only for managers
