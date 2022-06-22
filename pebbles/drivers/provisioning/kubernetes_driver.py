@@ -212,14 +212,16 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                     return ts, 'scheduled to a node'
                 if 'ulling image' in x.message:
                     return ts, 'pulling container image'
-                if 'rrImagePull' in x.message:
-                    return ts, 'image could not be pulled'
                 if 'olume' in x.message:
                     return ts, 'waiting for volumes'
                 if 'eadiness probe' in x.message:
                     return ts, 'starting'
                 if 'reated container pebbles-session' in x.message:
                     return ts, 'starting'
+                for msg in ('ErrImagePull', 'ImagePullBackOff', 'Failed to pull image', 'Back-off pulling image'):
+                    if msg in x.message:
+                        return ts, 'image could not be pulled'
+
                 return None
 
             log_entries = map(extract_log_entries, event_resp.items)
