@@ -399,9 +399,9 @@ class WorkspaceMemberList(restful.Resource):
             logging.warning('workspace %s not managed by %s, cannot see users', workspace_id, user.ext_id)
             abort(403)
 
-        user_associations = WorkspaceUserAssociation.query\
-            .filter_by(workspace_id=workspace_id)\
-            .options(subqueryload(WorkspaceUserAssociation.user))\
+        user_associations = WorkspaceUserAssociation.query \
+            .filter_by(workspace_id=workspace_id) \
+            .options(subqueryload(WorkspaceUserAssociation.user)) \
             .all()
 
         members = []
@@ -554,3 +554,32 @@ class WorkspaceClearMembers(restful.Resource):
         else:
             logging.warning('workspace %s not owned, cannot clear users', workspace_id)
             return {"error": "Only the workspace owner can clear users"}, 403
+
+
+class WorkspaceAccounting(restful.Resource):
+
+    @auth.login_required
+    @requires_admin
+    def get(self, workspace_id):
+        applications = Application.query.filter_by(workspace_id=workspace_id).all()
+
+        session_accounting = {}
+        total_gib_hours = 0
+        for application in applications:
+            for session in application.application_sessions:
+                if not (session.deprovisioned_at and session.provisioned_at):
+                    continue
+
+                duration = session.deprovisioned_at - session.provisioned_at
+
+                if not session.provisioning_config['memory_gib']:
+                    continue
+
+                gib_hours = session.provisioning_config['memory_gib'] * duration.total_seconds() / 3600
+
+                total_gib_hours = total_gib_hours + gib_hours
+
+        session_accounting['workspace_id'] = workspace_id
+        session_accounting['gib_hours'] = total_gib_hours
+
+        return session_accounting

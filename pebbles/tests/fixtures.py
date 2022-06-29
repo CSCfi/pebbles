@@ -11,6 +11,9 @@ from pebbles.models import (
 from pebbles.tests.base import db
 
 
+from datetime import datetime
+
+
 def fill_application_from_template(application, template):
     application.base_config = template.base_config.copy()
     application.allowed_attrs = template.allowed_attrs.copy()
@@ -314,6 +317,9 @@ def primary_test_setup(namespace):
         User.query.filter_by(ext_id="user@example.org").first())
     i3.name = 'pb-i3'
     i3.to_be_deleted = True
+    i3.provisioned_at = datetime.strptime("2022-06-28T13:00:00", "%Y-%m-%dT%H:%M:%S")
+    i3.deprovisioned_at = datetime.strptime("2022-06-28T14:00:00", "%Y-%m-%dT%H:%M:%S")
+    i3.provisioning_config = dict(memory_gib=4)
     i3.state = ApplicationSession.STATE_DELETED
     db.session.add(i3)
 
@@ -331,6 +337,17 @@ def primary_test_setup(namespace):
     i5.name = 'pb-i5'
     i5.state = ApplicationSession.STATE_RUNNING
     db.session.add(i5)
+
+    i6 = ApplicationSession(
+        Application.query.filter_by(id=a3.id).first(),
+        User.query.filter_by(ext_id="user@example.org").first())
+    i6.name = 'pb-i6'
+    i6.to_be_deleted = True
+    i6.provisioned_at = datetime.strptime("2022-06-28T13:00:00", "%Y-%m-%dT%H:%M:%S")
+    i6.deprovisioned_at = datetime.strptime("2022-06-28T16:00:00", "%Y-%m-%dT%H:%M:%S")
+    i6.provisioning_config = dict(memory_gib=8)
+    i6.state = ApplicationSession.STATE_DELETED
+    db.session.add(i6)
 
     db.session.commit()
 

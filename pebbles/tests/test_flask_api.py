@@ -2466,6 +2466,45 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assertStatus(response, 422)
 
+    def test_workspace_accounting(self):
+        # Anonymous
+        response = self.make_request(
+            method='GET',
+            path='/api/v1/workspaces/%s/accounting' % self.known_workspace_id
+        )
+        self.assert_401(response)
+
+        # Authenticated User, not a manager
+        response = self.make_authenticated_user_request(
+            method='GET',
+            path='/api/v1/workspaces/%s/accounting' % self.known_workspace_id)
+        self.assertStatus(response, 403)
+
+        # Authenticated Workspace Owner , who does not own the workspace
+        response = self.make_authenticated_workspace_owner_request(
+            method='GET',
+            path='/api/v1/workspaces/%s/accounting' % self.known_workspace_id_2,
+            data=json.dumps({})
+        )
+        self.assertStatus(response, 403)
+
+        # Admins
+        response = self.make_authenticated_admin_request(
+            method='GET',
+            path='/api/v1/workspaces/%s/accounting' % self.known_workspace_id,
+            data=json.dumps({})
+        )
+        self.assertStatus(response, 200)
+
+        # Test total gibs are returned right
+        response = self.make_authenticated_admin_request(
+            method='GET',
+            path='/api/v1/workspaces/%s/accounting' % self.known_workspace_id,
+            data=json.dumps({})
+        )
+        self.assertStatus(response, 200)
+        self.assertEqual(response.json['gib_hours'], 28)
+
 
 if __name__ == '__main__':
     unittest.main()
