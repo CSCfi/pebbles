@@ -572,7 +572,7 @@ class WorkspaceAccounting(restful.Resource):
 
                 duration = session.deprovisioned_at - session.provisioned_at
 
-                if not session.provisioning_config['memory_gib']:
+                if not session.provisioning_config.get('memory_gib'):
                     continue
 
                 gib_hours = session.provisioning_config['memory_gib'] * duration.total_seconds() / 3600
