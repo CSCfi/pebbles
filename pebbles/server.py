@@ -1,7 +1,7 @@
 import flask_restful as restful
 
 from pebbles.app import app
-from pebbles.views.alerts import alerts, AlertList, AlertView, SystemStatus
+from pebbles.views.alerts import alerts, AlertList, AlertView, SystemStatus, AlertReset
 from pebbles.views.clusters import clusters, ClusterList
 from pebbles.views.application_categories import ApplicationCategoryList
 from pebbles.views.application_sessions import application_sessions, ApplicationSessionList, ApplicationSessionView, \
@@ -68,7 +68,8 @@ api.add_resource(ImportExportApplications, api_root + '/import_export/applicatio
 api.add_resource(ApplicationCategoryList, api_root + '/application_categories')
 api.add_resource(HelpsList, api_root + '/help')
 api.add_resource(AlertList, api_root + '/alerts')
-api.add_resource(AlertView, api_root + '/alerts/<string:target>/<string:source>')
+api.add_resource(AlertView, api_root + '/alerts/<string:id>')
+api.add_resource(AlertReset, api_root + '/alert_reset/<string:target>/<string:source>')
 api.add_resource(SystemStatus, api_root + '/status')
 api.add_resource(TaskList, api_root + '/tasks')
 api.add_resource(

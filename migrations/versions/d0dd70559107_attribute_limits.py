@@ -1,4 +1,4 @@
-"""Refactor allowed_attributes to attribute_limits
+"""refactor allowed_attributes to attribute_limits
 
 Revision ID: d0dd70559107
 Revises: d6163d3432c1

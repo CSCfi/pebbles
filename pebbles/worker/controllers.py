@@ -195,15 +195,38 @@ class ClusterController(ControllerBase):
                 ))
 
             if len(real_alerts) > 0:
+                json_data = []
                 logging.info('found %d alerts for cluster %s' % (len(real_alerts), cluster_name))
 
-            res = self.client.do_post(
-                object_url='alerts',
-                json_data=dict(
-                    target=cluster_name,
-                    source='prometheus',
-                    status='firing' if len(real_alerts) else 'ok',
-                    data=real_alerts
-                ))
+                # add real alerts to post data
+                for alert in real_alerts:
+                    json_data.append(
+                        dict(
+                            target=cluster_name,
+                            source='prometheus',
+                            status='firing',
+                            data=alert
+                        )
+                    )
+
+                # add notification that the cluster has been polled successfully
+                json_data.append(
+                    dict(
+                        target=cluster_name,
+                        source='prometheus',
+                        status='ok',
+                        data=dict()
+                    )
+                )
+                res = self.client.do_post(
+                    object_url='alerts',
+                    json_data=json_data
+                )
+            else:
+                # inform API that cluster is ok and archive any firing alerts
+                res = self.client.do_post(
+                    object_url='alert_reset/%s/%s' % (cluster_name, 'prometheus'),
+                    json_data=None)
+
             if not res.ok:
                 logging.warning('unable to update alerts in api, code/reason: %s/%s' % (res.status_code, res.reason))

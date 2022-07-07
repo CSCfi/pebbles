@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import json
 import logging
 import random
@@ -642,25 +643,41 @@ class Lock(db.Model):
 class Alert(db.Model):
     __tablename__ = 'alerts'
 
-    target = db.Column(db.String(64), primary_key=True)
-    source = db.Column(db.String(64), primary_key=True)
-    status = db.Column(db.String(64), nullable=False)
+    id = db.Column(db.String(64), primary_key=True)
+    target = db.Column(db.String(64), nullable=False)
+    source = db.Column(db.String(64), nullable=False)
+    status = db.Column(db.String(64), nullable=False, index=True)
     _data = db.Column('data', db.Text)
-    _update_ts = db.Column('update_ts', db.DateTime, default=datetime.datetime.utcnow)
+    _first_seen_ts = db.Column('first_seen_ts', db.DateTime, default=datetime.datetime.utcnow)
+    _last_seen_ts = db.Column('last_seen_ts', db.DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, target, source, status, data):
+    def __init__(self, id, target, source, status, data):
+        self.id = id if id else Alert.generate_alert_id(target, source, data)
         self.target = target
         self.source = source
         self.status = status
         self.data = data
 
-    @hybrid_property
-    def update_ts(self):
-        return self._update_ts.timestamp()
+    @staticmethod
+    def generate_alert_id(target, source, data):
+        id_bytes = target.encode() + source.encode() + json.dumps(data).encode()
+        return hashlib.sha3_224(id_bytes).hexdigest()
 
-    @update_ts.setter
-    def update_ts(self, value):
-        self._update_ts = datetime.datetime.fromtimestamp(value)
+    @hybrid_property
+    def last_seen_ts(self):
+        return self._last_seen_ts.timestamp()
+
+    @last_seen_ts.setter
+    def last_seen_ts(self, value):
+        self._last_seen_ts = datetime.datetime.fromtimestamp(value)
+
+    @hybrid_property
+    def first_seen_ts(self):
+        return self._first_seen_ts.timestamp()
+
+    @first_seen_ts.setter
+    def first_seen_ts(self, value):
+        self._first_seen_ts = datetime.datetime.fromtimestamp(value)
 
     @hybrid_property
     def data(self):

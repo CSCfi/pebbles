@@ -2377,56 +2377,56 @@ class FlaskApiTestCase(BaseTestCase):
             target='cluster-1',
             source='prometheus',
             status='firing',
-            data=[dict(some_key='value')]
+            data=dict()
         )
         alert2 = dict(
             target='cluster-2',
             source='prometheus',
             status='ok',
-            data=[dict(some_key='different value')]
+            data=dict(name='alert2')
         )
-
+        alert3 = dict(
+            target='cluster-1',
+            source='prometheus',
+            status='firing',
+            data=dict(name='alert3')
+        )
         # add alerts
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/alerts',
-            data=json.dumps(alert1)
+            data=json.dumps([alert1, alert2, alert3])
         )
         self.assertStatus(response, 200)
-        response = self.make_authenticated_admin_request(
-            method='POST',
-            path='/api/v1/alerts',
-            data=json.dumps(alert2)
-        )
-        self.assertStatus(response, 200)
+        alert1['id'] = response.json[0].get('id')
+        alert2['id'] = response.json[1].get('id')
+        alert3['id'] = response.json[2].get('id')
 
         # query a single alert
         response = self.make_authenticated_admin_request(
-            path='/api/v1/alerts/%s/%s' % (alert1['target'], alert1['source']),
+            path='/api/v1/alerts/%s' % (alert1['id']),
         )
         self.assertStatus(response, 200)
         self.assertEqual(response.json['target'], 'cluster-1')
         self.assertEqual(response.json['source'], 'prometheus')
-        self.assertEqual(response.json['data'][0]['some_key'], 'value')
 
         # query list
         response = self.make_authenticated_admin_request(
             path='/api/v1/alerts',
         )
         self.assertStatus(response, 200)
-        self.assertEqual(len(response.json), 2)
+        self.assertEqual(len(response.json), 3)
 
         # modify alert
         alert1['status'] = 'ok'
-        alert1['data'] = []
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/alerts',
-            data=json.dumps(alert1)
+            data=json.dumps([alert1])
         )
         self.assertStatus(response, 200)
         response = self.make_authenticated_admin_request(
-            path='/api/v1/alerts/%s/%s' % (alert1['target'], alert1['source']),
+            path='/api/v1/alerts/%s' % (alert1['id']),
         )
         self.assertStatus(response, 200)
         self.assertEqual(response.json['target'], 'cluster-1')
@@ -2438,9 +2438,30 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/alerts',
-            data=json.dumps(alert1)
+            data=json.dumps([alert1])
         )
         self.assertStatus(response, 422)
+
+        # post alert_reset for cluster-1, archiving alert-3
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/alert_reset/cluster-1/prometheus',
+        )
+        self.assertStatus(response, 200)
+
+        # query non-archived alerts
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/alerts',
+        )
+        self.assertStatus(response, 200)
+        self.assertEqual(len(response.json), 2)
+
+        # include archived alerts
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/alerts?include_archived=1',
+        )
+        self.assertStatus(response, 200)
+        self.assertEqual(len(response.json), 3)
 
     def test_workspace_accounting(self):
         # Anonymous
