@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 import traceback
 from random import randrange
@@ -184,6 +185,13 @@ class ClusterController(ControllerBase):
                 lambda x: x['labels']['severity'] not in ('none', 'info') and x['state'] == 'firing',
                 alerts
             ))
+
+            if 'ALERTNAMES_TO_IGNORE' in os.environ:
+                alertnames_to_ignore = os.environ.get('ALERTNAMES_TO_IGNORE').split(',')
+                real_alerts = list(filter(
+                    lambda x: x['labels']['alertname'] not in alertnames_to_ignore,
+                    real_alerts
+                ))
 
             if len(real_alerts) > 0:
                 logging.info('found %d alerts for cluster %s' % (len(real_alerts), cluster_name))
