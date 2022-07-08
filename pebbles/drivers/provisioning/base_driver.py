@@ -6,6 +6,7 @@ resources like Docker containers or OpenStack virtual machines.
 
 import abc
 import json
+import time
 
 from pebbles.client import PBClient
 from pebbles.models import ApplicationSession
@@ -16,15 +17,18 @@ class ProvisioningDriverBase(object):
     """
     config = {}
 
-    def __init__(self, logger, config, cluster_config):
+    def __init__(self, logger, config, cluster_config, token):
         self.logger = logger
         self.config = config
         self.cluster_config = cluster_config
+
+        self.create_ts = time.time()
+
+        self.pb_client = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
         self.logger.info('driver for cluster "%s" created' % cluster_config.get('name'))
 
-    def get_pb_client(self, token):
-        pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
-        return pbclient
+    def get_pb_client(self):
+        return self.pb_client
 
     def update(self, token, application_session_id):
         """ an update call  updates the status of an application_session.
@@ -36,7 +40,7 @@ class ProvisioningDriverBase(object):
         """
         self.logger.debug("update('%s')" % application_session_id)
 
-        pbclient = self.get_pb_client(token)
+        pbclient = self.get_pb_client()
         application_session = pbclient.get_application_session(application_session_id)
 
         if not application_session['to_be_deleted']:
@@ -60,9 +64,17 @@ class ProvisioningDriverBase(object):
             pbclient.clear_running_application_session_logs(application_session_id)
             self.logger.info('deprovisioning done for %s' % application_session.get('name'))
 
+    def create_workspace_backup_jobs(self, token, workspace_id):
+        """ Subclasses implement and override these """
+        raise RuntimeWarning('create_workspace_backup_jobs() not implemented')
+
+    def check_workspace_backup_jobs(self, token, workspace_id):
+        """ Subclasses implement and override these """
+        raise RuntimeWarning('check_workspace_backup_jobs() not implemented')
+
     def provision(self, token, application_session_id):
         self.logger.debug('starting provisioning')
-        pbclient = self.get_pb_client(token)
+        pbclient = self.get_pb_client()
         pbclient.add_provisioning_log(application_session_id, 'created')
 
         try:
@@ -85,7 +97,7 @@ class ProvisioningDriverBase(object):
 
     def check_readiness(self, token, application_session_id):
         self.logger.debug('checking provisioning readiness')
-        pbclient = self.get_pb_client(token)
+        pbclient = self.get_pb_client()
 
         try:
             self.logger.debug('calling subclass do_check_readiness')
@@ -110,7 +122,7 @@ class ProvisioningDriverBase(object):
 
     def deprovision(self, token, application_session_id):
         self.logger.debug('starting deprovisioning')
-        pbclient = self.get_pb_client(token)
+        pbclient = self.get_pb_client()
 
         try:
             pbclient.do_application_session_patch(
@@ -143,7 +155,7 @@ class ProvisioningDriverBase(object):
     def fetch_running_application_session_logs(self, token, application_session_id):
         """ get and uploads the logs of an application_session which is in running state """
         logs = self.do_get_running_logs(token, application_session_id)
-        pbclient = self.get_pb_client(token)
+        pbclient = self.get_pb_client()
         if logs:
             # take only last 32k characters at maximum (64k char limit in the database, take half of that to
             # make sure we don't overflow it even in the theoretical case of all characters two bytes)
@@ -153,7 +165,7 @@ class ProvisioningDriverBase(object):
 
     @abc.abstractmethod
     def is_expired(self):
-        """ called by worker to check if a new application_session of this driver needs to be created
+        """ called by worker to check if a new instance of this driver needs to be created
         """
         pass
 

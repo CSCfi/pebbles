@@ -6,8 +6,10 @@ from random import randrange
 
 import requests
 
-from pebbles.models import ApplicationSession
+from pebbles.models import ApplicationSession, Task
 from pebbles.utils import find_driver_class
+
+DRIVER_CACHE_LIFETIME = 900
 
 
 class ControllerBase:
@@ -24,7 +26,8 @@ class ControllerBase:
         self.client = client
 
     def get_driver(self, cluster_name):
-        """create driver instance for given cluster"""
+        """Create driver instance for given cluster.
+        We cache the driver instances to avoid login for every new request"""
         cluster = None
         for c in self.cluster_config['clusters']:
             if c.get('name') == cluster_name:
@@ -37,7 +40,7 @@ class ControllerBase:
         if 'driver_instance' in cluster.keys():
             # we found an existing instance, use that if it is still valid
             driver_instance = cluster.get('driver_instance')
-            if not driver_instance.is_expired():
+            if driver_instance.create_ts + DRIVER_CACHE_LIFETIME > time.time() and not driver_instance.is_expired():
                 return driver_instance
 
         # create the driver by finding out the class and creating an instance
@@ -46,7 +49,7 @@ class ControllerBase:
             raise RuntimeWarning('No matching driver %s found for %s' % (cluster.get('driver'), cluster_name))
 
         # create an instance, test the connection and populate the cache
-        driver_instance = driver_class(logging.getLogger(), self.config, cluster)
+        driver_instance = driver_class(logging.getLogger(), self.config, cluster, self.client.token)
         driver_instance.connect()
         cluster['driver_instance'] = driver_instance
 
@@ -151,6 +154,7 @@ class ClusterController(ControllerBase):
         self.next_check_ts = 0
 
     def process(self):
+        # process clusters in increased intervals
         if time.time() < self.next_check_ts:
             return
         self.next_check_ts = time.time() + randrange(30, 90)
@@ -193,7 +197,7 @@ class ClusterController(ControllerBase):
 
             # filter out low severity ('none', 'info') and speculative alerts (state not 'firing')
             real_alerts = list(filter(
-                lambda x: x['labels']['severity'] not in ('none', 'info') and x['state'] == 'firing',
+                lambda x: x['labels'].get('severity', 'none') not in ('none', 'info') and x['state'] == 'firing',
                 alerts
             ))
 
@@ -240,3 +244,60 @@ class ClusterController(ControllerBase):
 
             if not res.ok:
                 logging.warning('unable to update alerts in api, code/reason: %s/%s', res.status_code, res.reason)
+
+
+class WorkspaceController(ControllerBase):
+    """
+    Controller that takes care of Workspace tasks
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.next_check_ts = 0
+
+    def process(self):
+        # process workspace management in increased intervals
+        if time.time() < self.next_check_ts:
+            return
+        self.next_check_ts = time.time() + randrange(30, 90)
+
+        logging.debug('checking workspace backup tasks')
+        tasks = self.client.get_tasks('workspace_backup', unfinished=1)
+        logging.debug('got tasks: %s', tasks)
+
+        for task in tasks:
+
+            # try to obtain a lock. Should we lose the race, the winner takes it and we move on
+            lock = self.client.obtain_lock(task.get('id'), self.worker_id)
+            if lock is None:
+                continue
+
+            # process tasks and release the lock
+            try:
+                if task.get('kind') == Task.KIND_WORKSPACE_BACKUP:
+                    self.process_backup_task(task)
+                else:
+                    logging.warning('unknown task kind: %s' % task.kind)
+            except Exception as e:
+                logging.debug(traceback.format_exc().splitlines()[-5:])
+                logging.warning('Marking task %s FAILED due to "%s"', task.get('id'), e)
+                self.client.update_task(task.get('id'), state=Task.STATE_FAILED)
+            finally:
+                self.client.release_lock(task.get('id'), self.worker_id)
+
+    def process_backup_task(self, task):
+        driver = self.get_driver(task.get('data').get('cluster'))
+        if not driver:
+            raise RuntimeError(
+                'No driver for cluster %s in task %s' % (task.get('data').get('cluster'), task.get('id')))
+        if task.get('state') == Task.STATE_NEW:
+            logging.info('Starting processing of task %s', task.get('id'))
+            self.client.update_task(task.get('id'), state=Task.STATE_PROCESSING)
+            driver.create_workspace_backup_jobs(self.client.token, task.get('data').get('workspace_id'))
+        elif task.get('state') == Task.STATE_PROCESSING:
+            if driver.check_workspace_backup_jobs(self.client.token, task.get('data').get('workspace_id')):
+                logging.info('Task %s FINISHED', task.get('id'))
+                self.client.update_task(task.get('id'), state=Task.STATE_FINISHED)
+        else:
+            logging.warning(
+                'task %s in state %s should not end up in processing', task.get('id'), task.get('state'))

@@ -7,7 +7,7 @@ from time import sleep
 from pebbles.client import PBClient
 from pebbles.config import BaseConfig
 from pebbles.utils import init_logging, load_cluster_config
-from pebbles.worker.controllers import ApplicationSessionController, ClusterController
+from pebbles.worker.controllers import ApplicationSessionController, ClusterController, WorkspaceController
 
 
 class Worker:
@@ -35,6 +35,8 @@ class Worker:
         self.application_session_controller.initialize(self.id, self.config, self.cluster_config, self.client)
         self.cluster_controller = ClusterController()
         self.cluster_controller.initialize(self.id, self.config, self.cluster_config, self.client)
+        self.workspace_controller = WorkspaceController()
+        self.workspace_controller.initialize(self.id, self.config, self.cluster_config, self.client)
 
     def handle_signals(self, signum, frame):
         """
@@ -72,6 +74,9 @@ class Worker:
 
             # process clusters
             self.cluster_controller.process()
+
+            # process workspaces
+            self.workspace_controller.process()
 
             # stop the watchdog
             signal.alarm(0)

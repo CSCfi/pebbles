@@ -1,0 +1,95 @@
+# This is a Job template for backing up PVC content in a given namespace. It does not have any tolerations by default,
+# which means it will be scheduled to the nodes for system workloads (=master) in k3s clusters.
+#
+# The job will
+#   * create a compressed tarball out of the PVC contents on an emptyDir volume
+#   * encrypt it with GPG
+#   * upload it to object storage with s3cmd
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backup-pvc-{{ pvc_name }}
+  labels:
+    application: pebbles-backup-pvc
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        application: pebbles-backup-pvc
+    spec:
+      restartPolicy: Never
+      # only allow one back job running per eligible node (most cases: just master)
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: application
+                  operator: In
+                  values:
+                  - pebbles-backup-pvc
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: pvc-backup
+          image: docker-registry.rahti.csc.fi/pebbles-public-images/pebbles-deployer:master
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # bail out on any error
+              set -e
+              
+              start_ts=$(date +%s)
+              echo "$(date -Is) backup starting"
+              
+              BACKUP_FILE_BASE="/tarball-tmp/{{ cluster_name }}__{{ workspace_pseudonym }}__{{ pvc_name }}"
+
+              echo "import public key and set trust"
+              echo "$ENCRYPT_PUBLIC_KEY"  | gpg --batch --no-tty --import
+              echo -e 'trust\n5\ny\n'  | gpg --batch --no-tty --command-fd 0 --edit-key backup
+              
+              echo "create backup tarball"
+              tar cvfz ${BACKUP_FILE_BASE}.tar.gz -C /source-pvc {{ pvc_name }}
+
+              echo "encrypt backup tarball"
+              gpg --encrypt --batch --no-tty --recipient backup ${BACKUP_FILE_BASE}.tar.gz
+
+              echo "upload backup tarball"
+              s3cmd -c /run/secrets/pebbles/pvc-backup-secret/s3cfg put \
+                ${BACKUP_FILE_BASE}.tar.gz.gpg \
+                s3://workspace-backup/{{ cluster_name }}/
+              
+              # the end
+              echo "$(date -Is) backup successful"
+
+          env:
+            - name: ENCRYPT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pvc-backup-secret
+                  key: encrypt-public-key
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+          volumeMounts:
+            - name: source-pvc
+              mountPath: /source-pvc/{{ pvc_name }}
+            - name: tarball-tmp
+              mountPath: /tarball-tmp
+            - name: pvc-backup-secret
+              mountPath: /run/secrets/pebbles/pvc-backup-secret
+      volumes:
+        - name: source-pvc
+          persistentVolumeClaim:
+            claimName: {{ pvc_name }}
+        - name: pvc-backup-secret
+          secret:
+            secretName: pvc-backup-secret
+        - name: tarball-tmp
+          emptyDir: {}

@@ -69,8 +69,8 @@ def get_workspace_user_volume_size(application_session):
 
 
 class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
-    def __init__(self, logger, config, cluster_config):
-        super().__init__(logger, config, cluster_config)
+    def __init__(self, logger, config, cluster_config, token):
+        super().__init__(logger, config, cluster_config, token)
 
         self.ingress_app_domain = cluster_config.get('appDomain', 'localhost')
         self.endpoint_protocol = cluster_config.get('endpointProtocol', 'http')
@@ -84,10 +84,29 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def get_application_session_path(self, application_session):
         return '/notebooks/%s' % application_session['id']
 
+    def get_namespace(self, workspace_id):
+        if 'namespace' in self.cluster_config.keys():
+            # if we have a single namespace configured, use that
+            namespace = self.cluster_config['namespace']
+            self.logger.debug('using fixed namespace %s')
+        else:
+            # generate namespace name based on prefix and workspace pseudonym
+            namespace_prefix = self.cluster_config.get('namespacePrefix', 'pb-')
+            ws = self.pb_client.get_workspace(workspace_id)
+            namespace = '%s%s' % (namespace_prefix, ws.get('pseudonym'))
+
+        return namespace
+
     def get_application_session_namespace(self, application_session):
-        # implement this in subclass if you need to override simple default behaviour
-        self.logger.debug('returning static namespace for application_session %s' % application_session.get('name'))
-        return self._namespace
+        if 'session_data' in application_session and 'namespace' in application_session['session_data']:
+            # application_session already has namespace assigned in session_data
+            namespace = application_session['session_data']['namespace']
+            self.logger.debug('found namespace %s for session %s' % (namespace, application_session.get('name')))
+        else:
+            namespace = self.get_namespace(application_session['application']['workspace_id'])
+            self.logger.debug('assigned namespace %s to session %s' % (namespace, application_session.get('name')))
+
+        return namespace
 
     def connect(self):
         # create_kube_client() is implemented by subclasses
@@ -115,8 +134,21 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         self.create_namespace(namespace)
 
     def create_namespace(self, namespace):
-        # implement this in subclass
-        raise RuntimeWarning('create_namespace() not implemented')
+        self.logger.info('creating namespace %s' % namespace)
+        namespace_yaml = parse_template('namespace.yaml', dict(
+            name=namespace,
+        ))
+        api = self.dynamic_client.resources.get(api_version='v1', kind='Namespace')
+        namespace_res = api.create(body=yaml.safe_load(namespace_yaml))
+
+        # create a network policy for isolating the pods in the namespace
+        # the template blocks traffic to all private ipv4 networks
+        self.logger.info('creating default network policy in namespace %s' % namespace)
+        networkpolicy_yaml = parse_template('networkpolicy.yaml', {})
+        api = self.dynamic_client.resources.get(api_version='networking.k8s.io/v1', kind='NetworkPolicy')
+        api.create(body=yaml.safe_load(networkpolicy_yaml), namespace=namespace)
+
+        return namespace_res
 
     def create_kube_client(self):
         # implement this in subclass
@@ -154,10 +186,14 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         self.ensure_volume(namespace, application_session,
                            session_volume_name, session_volume_size, session_storage_class_name)
         self.ensure_volume(namespace, application_session,
-                           shared_volume_name, shared_volume_size, shared_storage_class_name, 'ReadWriteMany')
+                           shared_volume_name, shared_volume_size, shared_storage_class_name,
+                           access_mode='ReadWriteMany',
+                           annotations={'pebbles.csc.fi/backup': 'yes'})
         if user_volume_name:
             self.ensure_volume(namespace, application_session,
-                               user_volume_name, user_volume_size, user_storage_class_name, 'ReadWriteMany')
+                               user_volume_name, user_volume_size, user_storage_class_name,
+                               access_mode='ReadWriteMany',
+                               annotations={'pebbles.csc.fi/backup': 'yes'})
 
         # create actual session/application_session objects
         self.create_deployment(namespace, application_session)
@@ -241,7 +277,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             log_entries = [x for x in log_entries if x]
             if log_entries:
                 ts, message = log_entries[-1]
-                self.get_pb_client(token).add_provisioning_log(
+                self.get_pb_client().add_provisioning_log(
                     application_session_id=application_session_id,
                     timestamp=ts,
                     message=message
@@ -504,7 +540,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         api.delete(namespace=namespace, name=application_session.get('name'))
 
     def ensure_volume(self, namespace, application_session, volume_name, volume_size, storage_class_name,
-                      access_mode='ReadWriteOnce'):
+                      access_mode='ReadWriteOnce', annotations=None):
         api = self.dynamic_client.resources.get(api_version='v1', kind='PersistentVolumeClaim')
         try:
             api.get(namespace=namespace, name=volume_name)
@@ -520,7 +556,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         pvc_dict = yaml.safe_load(pvc_yaml)
         if storage_class_name is not None:
             pvc_dict['spec']['storageClassName'] = storage_class_name
-
+        if annotations:
+            pvc_dict['metadata']['annotations'] = annotations
         self.logger.debug('creating pvc\n%s' % yaml.safe_dump(pvc_dict))
         api = self.dynamic_client.resources.get(api_version='v1', kind='PersistentVolumeClaim')
         return api.create(body=pvc_dict, namespace=namespace)
@@ -534,7 +571,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         )
 
     def fetch_and_populate_application_session(self, token, application_session_id):
-        pbclient = self.get_pb_client(token)
+        pbclient = self.get_pb_client()
         application_session = pbclient.get_application_session(application_session_id)
         application_session['application'] = pbclient.get_application_session_application(application_session_id)
         application_session['user'] = pbclient.get_user(application_session['user_id'])
@@ -545,6 +582,74 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         ), None)
 
         return application_session
+
+    def create_workspace_backup_jobs(self, token, workspace_id):
+        ws = self.pb_client.get_workspace(workspace_id)
+        namespace = self.get_namespace(workspace_id)
+
+        pvc_api = self.dynamic_client.resources.get(api_version='v1', kind='PersistentVolumeClaim')
+
+        # find out pvcs that have been annotated for backup
+        pvcs = [x for x in pvc_api.get(namespace=namespace).items
+                if x.get('metadata', {}).get('annotations', {}).get('pebbles.csc.fi/backup') == 'yes']
+
+        # create jobs for discovered pvcs
+        for pvc in pvcs:
+            backup_job_yaml = parse_template('pvc_backup_job.yaml.j2', dict(
+                cluster_name=self.cluster_config['name'],
+                workspace_pseudonym=ws['pseudonym'],
+                pvc_name=pvc['metadata']['name'],
+            ))
+            self.logger.debug('creating backup_job\n%s' % backup_job_yaml)
+
+            job_api = self.dynamic_client.resources.get(api_version='batch/v1', kind='Job')
+            job_api.create(namespace=namespace, body=yaml.safe_load(backup_job_yaml))
+
+        # create a secret for encrypting and uploading to object storage
+        secret_api = self.dynamic_client.resources.get(api_version='v1', kind='Secret')
+
+        pvc_backup_secret_dict = yaml.safe_load(parse_template('pvc_backup_secret.yaml.j2', dict()))
+        pvc_backup_secret_dict['stringData']['s3cfg'] = open(
+            '/run/secrets/pebbles/backup-secret/s3cfg', 'r').read()
+        pvc_backup_secret_dict['stringData']['encrypt-public-key'] = open(
+            '/run/secrets/pebbles/backup-secret/encrypt-public-key', 'r').read()
+
+        secret_api.create(namespace=namespace, body=pvc_backup_secret_dict)
+
+    def check_workspace_backup_jobs(self, token, workspace_id):
+        ws = self.pb_client.get_workspace(workspace_id)
+        namespace = self.get_namespace(workspace_id)
+
+        job_api = self.dynamic_client.resources.get(api_version='batch/v1', kind='Job')
+        pod_api = self.dynamic_client.resources.get(api_version='v1', kind='Pod')
+        secret_api = self.dynamic_client.resources.get(api_version='v1', kind='Secret')
+
+        jobs = job_api.get(namespace=namespace, label_selector='application=pebbles-backup-pvc').items
+
+        completed_jobs = []
+        failed_jobs = []
+        for job in jobs:
+            if job['status'].get('active') == 1:
+                continue
+            if job['status'].get('failed'):
+                failed_jobs.append(job)
+                continue
+            completed_jobs.append(job)
+            job_api.delete(namespace=namespace, name=job['metadata']['name'])
+            pod_api.delete(
+                namespace=namespace,
+                label_selector='job-name=%s' % job['metadata']['name']
+            )
+
+        if len(completed_jobs) == len(jobs):
+            secret_api.delete(namespace=namespace, label_selector='application=pebbles-backup-pvc')
+            return True
+
+        if len(failed_jobs) == len(jobs):
+            secret_api.delete(namespace=namespace, label_selector='application=pebbles-backup-pvc')
+            raise RuntimeWarning('Backup job failed in workspace %s' % ws['id'])
+
+        return False
 
 
 class KubernetesLocalDriver(KubernetesDriverBase):
@@ -558,6 +663,12 @@ class KubernetesLocalDriver(KubernetesDriverBase):
         kubernetes.config.load_incluster_config()
         return kubernetes.client.ApiClient()
 
+    def get_namespace(self, workspace_id):
+        return self._namespace
+
+    def get_application_session_namespace(self, application_session):
+        return self._namespace
+
 
 class KubernetesRemoteDriver(KubernetesDriverBase):
     def create_kube_client(self):
@@ -569,39 +680,6 @@ class KubernetesRemoteDriver(KubernetesDriverBase):
             config_file=config_file,
             context=self.cluster_config['name']
         )
-
-    def get_application_session_namespace(self, application_session):
-        if 'session_data' in application_session and 'namespace' in application_session['session_data']:
-            # application_session already has namespace assigned in session_data
-            namespace = application_session['session_data']['namespace']
-            self.logger.debug('found namespace %s for session %s' % (namespace, application_session.get('name')))
-        elif 'namespace' in self.cluster_config.keys():
-            # if we have a single namespace configured, use that
-            namespace = self.cluster_config['namespace']
-            self.logger.debug('using fixed namespace %s for session %s' % (namespace, application_session.get('name')))
-        else:
-            # generate namespace name based on prefix and workspace pseudonym
-            namespace_prefix = self.cluster_config.get('namespacePrefix', 'pb-')
-            namespace = '%s%s' % (namespace_prefix, application_session['application']['workspace_pseudonym'])
-            self.logger.debug('assigned namespace %s to session %s' % (namespace, application_session.get('name')))
-        return namespace
-
-    def create_namespace(self, namespace):
-        self.logger.info('creating namespace %s' % namespace)
-        namespace_yaml = parse_template('namespace.yaml', dict(
-            name=namespace,
-        ))
-        api = self.dynamic_client.resources.get(api_version='v1', kind='Namespace')
-        namespace_res = api.create(body=yaml.safe_load(namespace_yaml))
-
-        # create a network policy for isolating the pods in the namespace
-        # the template blocks traffic to all private ipv4 networks
-        self.logger.info('creating default network policy in namespace %s' % namespace)
-        networkpolicy_yaml = parse_template('networkpolicy.yaml', {})
-        api = self.dynamic_client.resources.get(api_version='networking.k8s.io/v1', kind='NetworkPolicy')
-        api.create(body=yaml.safe_load(networkpolicy_yaml), namespace=namespace)
-
-        return namespace_res
 
 
 class OpenShiftLocalDriver(KubernetesLocalDriver):
