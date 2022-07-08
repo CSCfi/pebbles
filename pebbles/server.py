@@ -15,6 +15,7 @@ from pebbles.views.import_export import import_export, ImportExportApplicationTe
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.sessions import sessions, SessionView
+from pebbles.views.tasks import TaskList, TaskView
 from pebbles.views.users import users, UserList, UserView, UserWorkspaceAssociationList
 from pebbles.views.public_config import variables, PublicConfigList
 from pebbles.views.workspaces import WorkspaceClearMembers, WorkspaceTransferOwnership, join_workspace, \
@@ -69,6 +70,12 @@ api.add_resource(HelpsList, api_root + '/help')
 api.add_resource(AlertList, api_root + '/alerts')
 api.add_resource(AlertView, api_root + '/alerts/<string:target>/<string:source>')
 api.add_resource(SystemStatus, api_root + '/status')
+api.add_resource(TaskList, api_root + '/tasks')
+api.add_resource(
+    TaskView,
+    api_root + '/tasks/<string:task_id>',
+    methods=['GET', 'POST', 'PATCH']
+)
 
 app.register_blueprint(application_templates)
 app.register_blueprint(applications)

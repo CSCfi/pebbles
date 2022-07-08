@@ -363,7 +363,7 @@ class Workspace(db.Model):
         if value in Workspace.VALID_STATUSES:
             self._status = value
         else:
-            raise ValueError("'%s' is not a valid state for Workspaces" % value)
+            raise ValueError("'%s' is not a valid status for Workspace" % value)
 
 
 class Message(db.Model):
@@ -669,3 +669,93 @@ class Alert(db.Model):
     @data.setter
     def data(self, value):
         self._data = json.dumps(value)
+
+
+class Task(db.Model):
+    STATE_NEW = 'new'
+    STATE_PROCESSING = 'processing'
+    STATE_FINISHED = 'finished'
+    STATE_FAILED = 'failed'
+
+    VALID_STATES = (
+        STATE_NEW,
+        STATE_PROCESSING,
+        STATE_FINISHED,
+        STATE_FAILED,
+    )
+
+    KIND_WORKSPACE_BACKUP = 'workspace_backup'
+
+    VALID_KINDS = (
+        KIND_WORKSPACE_BACKUP,
+    )
+
+    __tablename__ = 'tasks'
+
+    id = db.Column(db.String(64), primary_key=True)
+    _kind = db.Column('kind', db.String(32), primary_key=True)
+    _state = db.Column('state', db.String(32))
+    _data = db.Column('data', db.Text)
+    _create_ts = db.Column('create_ts', db.DateTime, default=datetime.datetime.utcnow)
+    _complete_ts = db.Column('complete_ts', db.DateTime)
+    _update_ts = db.Column('update_ts', db.DateTime, default=datetime.datetime.utcnow)
+
+    def __init__(self, kind, state, data):
+        self.id = uuid.uuid4().hex
+        self.kind = kind
+        self.state = state
+        self.data = data
+
+    @hybrid_property
+    def kind(self):
+        return self._kind
+
+    @kind.setter
+    def kind(self, value):
+        if value in Task.VALID_KINDS:
+            self._kind = value
+        else:
+            raise ValueError("'%s' is not a valid kind for Task" % value)
+
+    @hybrid_property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        if value in Task.VALID_STATES:
+            self._state = value
+        else:
+            raise ValueError("'%s' is not a valid state for Task" % value)
+
+    @hybrid_property
+    def data(self):
+        return load_column(self._data)
+
+    @data.setter
+    def data(self, value):
+        self._data = json.dumps(value)
+
+    @hybrid_property
+    def create_ts(self):
+        return self._create_ts.timestamp()
+
+    @create_ts.setter
+    def create_ts(self, value):
+        self._create_ts = datetime.datetime.fromtimestamp(value)
+
+    @hybrid_property
+    def complete_ts(self):
+        return self._complete_ts.timestamp()
+
+    @complete_ts.setter
+    def complete_ts(self, value):
+        self._complete_ts = datetime.datetime.fromtimestamp(value)
+
+    @hybrid_property
+    def update_ts(self):
+        return self._update_ts.timestamp()
+
+    @update_ts.setter
+    def update_ts(self, value):
+        self._update_ts = datetime.datetime.fromtimestamp(value)

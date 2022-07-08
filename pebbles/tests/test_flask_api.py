@@ -2507,6 +2507,125 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertStatus(response, 200)
         self.assertEqual(response.json['gib_hours'], 28)
 
+    def test_get_tasks_access(self):
+        response = self.make_request(
+            path='/api/v1/tasks'
+        )
+        self.assert_401(response)
+
+        response = self.make_authenticated_user_request(
+            path='/api/v1/tasks'
+        )
+        self.assert_403(response)
+
+        response = self.make_authenticated_workspace_owner_request(
+            path='/api/v1/tasks'
+        )
+        self.assert_403(response)
+
+    def test_tasks_admin(self):
+        task1 = dict(
+            kind='workspace_backup',
+            data=[dict(some_key='value1')]
+        )
+        task2 = dict(
+            kind='workspace_backup',
+            data=[dict(some_key='value2')]
+        )
+
+        # add tasks
+        t1_response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/tasks',
+            data=json.dumps(task1)
+        )
+        self.assertStatus(t1_response, 200)
+
+        t2_response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/tasks',
+            data=json.dumps(task2)
+        )
+        self.assertStatus(t2_response, 200)
+
+        # query a single task
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/tasks/%s' % t1_response.json.get('id'),
+        )
+        self.assertStatus(response, 200)
+        self.assertEqual(response.json['kind'], 'workspace_backup')
+        self.assertEqual(response.json['data'][0]['some_key'], 'value1')
+
+        # query list
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/tasks',
+        )
+        self.assertStatus(response, 200)
+        self.assertEqual(len(response.json), 2)
+
+        # update task 1 state to processing
+        response = self.make_authenticated_admin_request(
+            method='PATCH',
+            path='/api/v1/tasks/%s' % t1_response.json.get('id'),
+            data=json.dumps(dict(state='processing'))
+        )
+        self.assertStatus(response, 200)
+
+        # query list of all unfinished tasks
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/tasks?unfinished=1',
+        )
+        self.assertStatus(response, 200)
+        self.assertEqual(len(response.json), 2)
+
+        # update task 1 state to finished
+        response = self.make_authenticated_admin_request(
+            method='PATCH',
+            path='/api/v1/tasks/%s' % t1_response.json.get('id'),
+            data=json.dumps(dict(state='finished'))
+        )
+        self.assertStatus(response, 200)
+
+        # query list of all unfinished tasks
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/tasks?unfinished=1',
+        )
+        self.assertStatus(response, 200)
+        self.assertEqual(len(response.json), 1)
+
+        # query list of all finished tasks
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/tasks?state=finished',
+        )
+        self.assertStatus(response, 200)
+        self.assertEqual(len(response.json), 1)
+
+        # invalid data
+        task1['kind'] = 'foo'
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/tasks',
+            data=json.dumps(task1)
+        )
+        self.assertStatus(response, 422)
+
+        # missing data
+        task1['kind'] = None
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/tasks',
+            data=json.dumps(task1)
+        )
+        self.assertStatus(response, 422)
+
+        # try patching with invalid state
+        response = self.make_authenticated_admin_request(
+            method='PATCH',
+            path='/api/v1/tasks/%s' % t1_response.json.get('id'),
+            data=json.dumps(dict(state='asdfasdf'))
+        )
+        self.assertStatus(response, 422)
+
 
 if __name__ == '__main__':
     unittest.main()

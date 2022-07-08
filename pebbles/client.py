@@ -182,3 +182,22 @@ class PBClient:
             return lock_id
 
         raise RuntimeError('Error deleting lock: %s, %s' % (lock_id, resp.reason))
+
+    def get_tasks(self, kind=None, state=None, unfinished=None):
+        query_opts = []
+        if kind:
+            query_opts.append('kind=%s' % kind)
+        if state:
+            query_opts.append('state=%s' % state)
+        if unfinished:
+            query_opts.append('unfinished=%s' % unfinished)
+
+        if query_opts:
+            return self.do_get('tasks?%s' % '&'.join(query_opts)).json()
+        else:
+            return self.do_get('tasks').json()
+
+    def update_task(self, task_id, state):
+        url = 'tasks/%s' % task_id
+        json_data = dict(state=state)
+        return self.do_patch(url, json_data=json_data)
