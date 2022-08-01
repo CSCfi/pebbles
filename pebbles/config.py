@@ -123,6 +123,8 @@ class BaseConfig(object):
     BRAND_IMAGE_URL = 'img/Notebooks_neg300px.png'
     COURSE_REQUEST_FORM_URL = 'http://link-to-form'
     TERMS_OF_USE_URL = 'http://link-to-tou'
+    COOKIES_POLICY_URL = 'http://link-to-cookiespolicy'
+    PRIVACY_POLICY_URL = 'http://link-to-privacypolicy'
     ACCESSIBILITY_STATEMENT_URL = 'http://link-to-accessibility-statement'
     CONTACT_EMAIL = 'support@example.org'
     SERVICE_DOCUMENTATION_URL = 'http://link-to-service-documentation'

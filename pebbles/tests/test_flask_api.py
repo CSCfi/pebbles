@@ -76,7 +76,7 @@ class FlaskApiTestCase(BaseTestCase):
     def make_authenticated_admin_request(self, method='GET', path='/', headers=None, data=None):
         global ADMIN_TOKEN
         if not ADMIN_TOKEN:
-            ADMIN_TOKEN = self.get_auth_token({'ext_id': 'admin@example.org', 'password': 'admin'})
+            ADMIN_TOKEN = self.get_auth_token({'ext_id': 'admin@example.org', 'password': 'admin', 'agreement_sign': 'signed'})
 
         self.admin_token = ADMIN_TOKEN
 
@@ -88,7 +88,8 @@ class FlaskApiTestCase(BaseTestCase):
         if not USER_TOKEN:
             USER_TOKEN = self.get_auth_token(creds={
                 'ext_id': self.known_user_ext_id,
-                'password': self.known_user_password}
+                'password': self.known_user_password,
+                'agreement_sign': 'signed'}
             )
         self.user_token = USER_TOKEN
         return self.make_authenticated_request(method, path, headers, data,
@@ -99,7 +100,8 @@ class FlaskApiTestCase(BaseTestCase):
         if not USER_2_TOKEN:
             USER_2_TOKEN = self.get_auth_token(creds={
                 'ext_id': self.known_user_2_ext_id,
-                'password': self.known_user_2_password}
+                'password': self.known_user_2_password,
+                'agreement_sign': 'signed'}
             )
         self.user_token = USER_2_TOKEN
         return self.make_authenticated_request(method, path, headers, data,
@@ -108,7 +110,7 @@ class FlaskApiTestCase(BaseTestCase):
     def make_authenticated_workspace_owner_request(self, method='GET', path='/', headers=None, data=None):
         global COURSE_OWNER_TOKEN
         if not COURSE_OWNER_TOKEN:
-            COURSE_OWNER_TOKEN = self.get_auth_token(creds={'ext_id': 'workspace_owner@example.org', 'password': 'workspace_owner'})
+            COURSE_OWNER_TOKEN = self.get_auth_token(creds={'ext_id': 'workspace_owner@example.org', 'password': 'workspace_owner', 'agreement_sign': 'signed'})
         self.workspace_owner_token = COURSE_OWNER_TOKEN
         return self.make_authenticated_request(method, path, headers, data,
                                                auth_token=self.workspace_owner_token)
@@ -116,7 +118,7 @@ class FlaskApiTestCase(BaseTestCase):
     def make_authenticated_workspace_owner2_request(self, method='GET', path='/', headers=None, data=None):
         global COURSE_OWNER_TOKEN2
         if not COURSE_OWNER_TOKEN2:
-            COURSE_OWNER_TOKEN2 = self.get_auth_token(creds={'ext_id': 'workspace_owner2@example.org', 'password': 'workspace_owner2'})
+            COURSE_OWNER_TOKEN2 = self.get_auth_token(creds={'ext_id': 'workspace_owner2@example.org', 'password': 'workspace_owner2', 'agreement_sign': 'signed'})
         self.workspace_owner_token2 = COURSE_OWNER_TOKEN2
         return self.make_authenticated_request(method, path, headers, data,
                                                auth_token=self.workspace_owner_token2)
@@ -128,7 +130,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'ext_id': 'user@example.org', 'password': 'user', 'email_id': None}))
+            data=json.dumps({'ext_id': 'user@example.org', 'password': 'user', 'email_id': None, 'agreement_sign': 'signed'}))
         self.assert_200(response)
         response = self.make_authenticated_admin_request(
             method='DELETE',
@@ -138,14 +140,14 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'ext_id': 'user@example.org', 'password': 'user', 'email_id': None}))
+            data=json.dumps({'ext_id': 'user@example.org', 'password': 'user', 'email_id': None, 'agreement_sign': 'signed'}))
         self.assert_401(response)
 
     def test_deleted_user_cannot_use_token(self):
         response = self.make_request(
             method='POST',
             path='/api/v1/sessions',
-            data=json.dumps({'ext_id': 'user-2@example.org', 'password': 'user-2'})
+            data=json.dumps({'ext_id': 'user-2@example.org', 'password': 'user-2', 'agreement_sign': 'signed'})
         )
         self.assert_200(response)
 
