@@ -43,6 +43,7 @@ tests:
   # cache pip downloads and installed packages
   variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+    FLASK_APP: pebbles.server:app
   cache:
     key: "${CI_COMMIT_REF_SLUG}"
     paths:

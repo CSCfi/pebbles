@@ -76,6 +76,8 @@ class PBClient:
     def do_application_session_patch(self, application_session_id, form_data=None, json_data=None):
         url = 'application_sessions/%s' % application_session_id
         resp = self.do_patch(url, form_data=form_data, json_data=json_data)
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot patch application session %s, %s' % (application_session_id, resp.reason))
         return resp
 
     def get_user(self, user_id):
@@ -106,7 +108,8 @@ class PBClient:
     def get_application_session(self, application_session_id):
         resp = self.do_get('application_sessions/%s' % application_session_id)
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for application_sessions %s, %s' % (application_session_id, resp.reason))
+            raise RuntimeError(
+                'Cannot fetch data for application_sessions %s, %s' % (application_session_id, resp.reason))
         return resp.json()
 
     def get_application_session_application(self, application_session_id):
@@ -119,7 +122,8 @@ class PBClient:
 
         return resp.json()
 
-    def add_provisioning_log(self, application_session_id, message, timestamp=None, log_type='provisioning', log_level='info'):
+    def add_provisioning_log(self, application_session_id, message, timestamp=None, log_type='provisioning',
+                             log_level='info'):
         payload = dict(
             log_record=dict(
                 timestamp=timestamp if timestamp else time(),
@@ -148,7 +152,8 @@ class PBClient:
         params = {'log_type': 'running'}
         resp = requests.delete(url, params=params, headers=headers, verify=self.ssl_verify)
         if resp.status_code != 200:
-            raise RuntimeError('Unable to delete running logs for application_session %s, %s' % (application_session_id, resp.reason))
+            raise RuntimeError(
+                'Unable to delete running logs for application_session %s, %s' % (application_session_id, resp.reason))
         return resp
 
     def query_locks(self, lock_id=None):

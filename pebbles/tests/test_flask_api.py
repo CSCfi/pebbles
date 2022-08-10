@@ -1013,10 +1013,10 @@ class FlaskApiTestCase(BaseTestCase):
         # Authenticated workspace owner, invalid workspace id
         invalid_response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_members' % '',
+            path='/api/v1/workspaces/%s/clear_members' % 'does-not-exist',
             data=json.dumps({})
         )
-        self.assertStatus(invalid_response, 405)
+        self.assertStatus(invalid_response, 404)
         # Authenticated workspace manager
         response = self.make_authenticated_workspace_owner2_request(
             method='POST',

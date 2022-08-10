@@ -1,37 +1,26 @@
 #!/usr/bin/env python
-import logging
 import getpass
+import logging
 import random
 import string
 from typing import List
 
+import click
 import yaml
-from flask_migrate import MigrateCommand, Migrate
-from flask_script import Manager, Server, Shell
+from flask.cli import FlaskGroup
 from sqlalchemy.exc import IntegrityError
 from werkzeug.middleware.profiler import ProfilerMiddleware
 
 import pebbles.tests.fixtures
-from pebbles import models
 from pebbles.config import BaseConfig
 from pebbles.models import db, User, Application, ApplicationTemplate
 from pebbles.server import app
 from pebbles.views.commons import create_user, create_worker, create_system_workspaces
 
-manager = Manager(app)
-migrate = Migrate(app, models.db)
+cli = FlaskGroup()
 
 
-def _make_context():
-    return dict(app=app, db=db, models=models)
-
-
-manager.add_command("shell", Shell(make_context=_make_context))
-manager.add_command("runserver", Server())
-manager.add_command("db", MigrateCommand)
-
-
-@manager.command
+@cli.command('configvars')
 def configvars():
     """ Displays the currently used config vars in the system """
     config_vars = vars(BaseConfig)
@@ -41,7 +30,10 @@ def configvars():
             print("%s : %s" % (var, dynamic_config[var]))
 
 
-@manager.command
+@cli.command('test')
+@click.option('-f', 'failfast', is_flag=True)
+@click.option('-p', 'pattern', default='test*.py')
+@click.option('-v', 'verbosity', default=1)
 def test(failfast=False, pattern='test*.py', verbosity=1):
     """Runs the unit tests without coverage."""
     import unittest
@@ -54,7 +46,10 @@ def test(failfast=False, pattern='test*.py', verbosity=1):
         return 1
 
 
-@manager.command
+@cli.command('selenium')
+@click.option('-f', 'failfast', is_flag=True)
+@click.option('-p', 'pattern', default='selenium_test*.py')
+@click.option('-v', 'verbosity', default=1)
 def selenium(failfast=False, pattern='selenium_test*.py', verbosity=1):
     """Runs the selenium tests."""
     import unittest
@@ -67,7 +62,7 @@ def selenium(failfast=False, pattern='selenium_test*.py', verbosity=1):
         return 1
 
 
-@manager.command
+@cli.command('coverage')
 def coverage():
     """Runs the unit tests with coverage."""
     import coverage
@@ -85,14 +80,17 @@ def coverage():
     cov.report()
 
 
-@manager.command
+@cli.command('profile')
 def profile():
     app.config['PROFILE'] = True
     app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[50])
     app.run(debug=True)
 
 
-@manager.command
+@cli.command('createuser')
+@click.option('-e', 'ext_id')
+@click.option('-p', 'password')
+@click.option('-p', 'admin', default=False)
 def createuser(ext_id=None, password=None, admin=False):
     """Creates new user"""
     if not ext_id:
@@ -102,13 +100,15 @@ def createuser(ext_id=None, password=None, admin=False):
     return create_user(ext_id=ext_id, password=password, is_admin=admin, email_id=ext_id)
 
 
-@manager.command
+@cli.command('create_database')
 def create_database():
     """Creates database"""
     db.create_all()
 
 
-@manager.command
+@cli.command('initialize_system')
+@click.option('-e', 'ext_id')
+@click.option('-p', 'password')
 def initialize_system(ext_id=None, password=None):
     """Initializes the system using provided admin credentials"""
     create_database()
@@ -117,35 +117,41 @@ def initialize_system(ext_id=None, password=None):
     create_system_workspaces(admin_user)
 
 
-@manager.command
-def createuser_bulk(user_prefix=None, domain_name=None, admin=False):
+@cli.command('createuser_bulk')
+@click.option('-u', 'user_prefix')
+@click.option('-d', 'domain_name')
+@click.option('-c', 'count', default=0)
+def createuser_bulk(user_prefix=None, domain_name=None, count=0):
     """Creates new demo users"""
-    no_of_accounts = int(input("Enter the number of demo user accounts needed: "))
+    if not count:
+        count = int(input("Enter the number of demo user accounts needed: "))
     print("\nFind the demo user accounts and their respective passwords.\
              \nPLEASE COPY THESE BEFORE CLOSING THE WINDOW \n")
     if not domain_name:
         domain_name = "example.org"
     if not user_prefix:
         user_prefix = "demouser"
-    for i in range(no_of_accounts):
+    for i in range(count):
         retry = 1
         # eg: demo_user_Rgv4@example.com
         user = user_prefix + "_" + ''.join(random.choice(string.ascii_lowercase +
                                                          string.digits) for _ in range(3)) + "@" + domain_name
         password = ''.join(random.choice(string.ascii_uppercase +
                                          string.ascii_lowercase + string.digits) for _ in range(8))
-        a = create_user(user, password, is_admin=admin)
-        if not a and retry < 5:
-            retry += 1
-            no_of_accounts += 1
-        else:
-            print("User name: %s\t Password: %s" % (user, password))
+        for retry in range(5):
+            a = create_user(user, password)
+            if a:
+                print("User name: %s\t Password: %s" % (user, password))
+                break
+
     print("\n")
 
 
-@manager.command
-def createuser_list_samepwd(ext_id_string=None, password=None, admin=False):
-    """Creates new users"""
+@cli.command('createuser_list_samepwd')
+@click.argument('ext_id_string')
+@click.option('-p', 'password', help='shared password')
+def createuser_list_samepwd(ext_id_string=None, password=None):
+    """Creates new users with shared password"""
     if not ext_id_string:
         ext_id_string = input("TO CREATE USER\n Enter comma separated list of ext_ids without space: \
                              \neg: qua00@hui,qua01@hui,qua02@hui \n")
@@ -153,21 +159,22 @@ def createuser_list_samepwd(ext_id_string=None, password=None, admin=False):
         password = getpass.getpass("password: ")
 
     ext_id_list = [x for x in ext_id_string.split(',')]
-    print("List of users to create %s " % (ext_id_list))
+    print("List of users to create %s " % ext_id_list)
     for ext_id in ext_id_list:
-        create_user(ext_id, password, is_admin=admin)
+        create_user(ext_id, password)
 
 
-@manager.command
+@cli.command('deleteuser_bulk')
+@click.argument('ext_id_string')
 def deleteuser_bulk(ext_id_string=None):
-    """Deletes a list of users"""
+    """Deletes a list of users, takes comma separated list of ext_ids as an argument"""
     from pebbles.models import User
     if not ext_id_string:
         ext_id_string = input("TO DELETE USER\n Enter comma separated list of ext_ids without space: \
                              \neg: qua00@hui,qua01@hui,qua02@hui \n")
 
     ext_id_list = [x for x in ext_id_string.split(',')]
-    print("List of users to delete %s " % (ext_id_list))
+    print("List of users to delete %s " % ext_id_list)
     for ext_id in ext_id_list:
         user = User.query.filter_by(ext_id=ext_id).first()
         if user:
@@ -177,21 +184,15 @@ def deleteuser_bulk(ext_id_string=None):
     db.session.commit()
 
 
-@manager.command
+@cli.command('createworker')
 def createworker():
     """Creates an admin account for worker"""
     create_worker()
 
 
-@manager.command
-def load_test_data(file):
-    print()
-    print('deprecated, use load_data instead')
-    print()
-    load_data(file)
-
-
-@manager.command
+@cli.command('load_data')
+@click.argument('file')
+@click.option('-u', 'update', is_flag=True, help='update existing entries')
 def load_data(file, update=False):
     """
     Loads an annotated YAML file into database. Use -u/--update to update existing entries instead of skipping.
@@ -222,7 +223,7 @@ def load_data(file, update=False):
                     ))
 
 
-@manager.command
+@cli.command('reset_worker_password')
 def reset_worker_password():
     """Resets worker password to application secret key"""
     worker = User.query.filter_by(ext_id='worker@pebbles').first()
@@ -231,7 +232,8 @@ def reset_worker_password():
     db.session.commit()
 
 
-@manager.command
+@cli.command('check_data')
+@click.argument('datadir')
 def check_data(datadir):
     """
     Checks given applications and templates YAML data files in given directory for consistency.
@@ -280,7 +282,7 @@ def check_data(datadir):
                  len(template_data))
 
 
-@manager.command
+@cli.command('list_application_images')
 def list_application_images():
     """
     Lists images used by non-deleted applications
@@ -303,4 +305,4 @@ def list_application_images():
 
 
 if __name__ == '__main__':
-    manager.run()
+    cli()

@@ -47,7 +47,8 @@ class ProvisioningDriverBase(object):
             if application_session['state'] in [ApplicationSession.STATE_STARTING]:
                 self.logger.debug('checking readiness of %s' % application_session.get('name'))
                 self.check_readiness(token, application_session_id)
-            if application_session['state'] in [ApplicationSession.STATE_RUNNING] and application_session['log_fetch_pending']:
+            if application_session['state'] in [ApplicationSession.STATE_RUNNING] \
+                    and application_session['log_fetch_pending']:
                 self.logger.info('fetching application_session logs for %s' % application_session.get('name'))
                 self.fetch_running_application_session_logs(token, application_session_id)
                 pass
@@ -65,7 +66,8 @@ class ProvisioningDriverBase(object):
         pbclient.add_provisioning_log(application_session_id, 'created')
 
         try:
-            pbclient.do_application_session_patch(application_session_id, {'state': ApplicationSession.STATE_PROVISIONING})
+            pbclient.do_application_session_patch(
+                application_session_id, json_data={'state': ApplicationSession.STATE_PROVISIONING})
             self.logger.debug('calling subclass do_provision')
 
             new_state = self.do_provision(token, application_session_id)
@@ -73,11 +75,12 @@ class ProvisioningDriverBase(object):
             if not new_state:
                 new_state = ApplicationSession.STATE_RUNNING
 
-            pbclient.do_application_session_patch(application_session_id, {'state': new_state})
+            pbclient.do_application_session_patch(application_session_id, json_data={'state': new_state})
         except Exception as e:
             self.logger.exception('do_provision raised %s' % e)
             self.logger.warn('application_session provisioning failed for %s' % application_session_id)
-            pbclient.do_application_session_patch(application_session_id, {'state': ApplicationSession.STATE_FAILED})
+            pbclient.do_application_session_patch(
+                application_session_id, json_data={'state': ApplicationSession.STATE_FAILED})
             raise e
 
     def check_readiness(self, token, application_session_id):
@@ -96,12 +99,13 @@ class ProvisioningDriverBase(object):
                     state=ApplicationSession.STATE_RUNNING,
                     session_data=json.dumps(session_data)
                 )
-                pbclient.do_application_session_patch(application_session_id, patch_data)
+                pbclient.do_application_session_patch(application_session_id, json_data=patch_data)
                 pbclient.add_provisioning_log(application_session_id, 'ready')
 
         except Exception as e:
             self.logger.exception('do_check_readiness raised %s' % e)
-            pbclient.do_application_session_patch(application_session_id, {'state': ApplicationSession.STATE_FAILED})
+            pbclient.do_application_session_patch(
+                application_session_id, json_data={'state': ApplicationSession.STATE_FAILED})
             raise e
 
     def deprovision(self, token, application_session_id):
@@ -109,7 +113,8 @@ class ProvisioningDriverBase(object):
         pbclient = self.get_pb_client(token)
 
         try:
-            pbclient.do_application_session_patch(application_session_id, {'state': ApplicationSession.STATE_DELETING})
+            pbclient.do_application_session_patch(
+                application_session_id, json_data={'state': ApplicationSession.STATE_DELETING})
             self.logger.debug('calling subclass do_deprovision')
             state = self.do_deprovision(token, application_session_id)
 
@@ -119,12 +124,14 @@ class ProvisioningDriverBase(object):
                 pbclient.add_provisioning_log(application_session_id, 'deprovisioning - retrying')
             elif state is None:
                 self.logger.debug('finishing deprovisioning')
-                pbclient.do_application_session_patch(application_session_id, {'state': ApplicationSession.STATE_DELETED})
+                pbclient.do_application_session_patch(
+                    application_session_id, json_data={'state': ApplicationSession.STATE_DELETED})
             else:
                 raise RuntimeError('Received invalid state %s from do_deprovision()' % state)
         except Exception as e:
             self.logger.exception('do_deprovision raised %s' % e)
-            pbclient.do_application_session_patch(application_session_id, {'state': ApplicationSession.STATE_FAILED})
+            pbclient.do_application_session_patch(
+                application_session_id, json_data={'state': ApplicationSession.STATE_FAILED})
             raise e
 
     def housekeep(self, token):

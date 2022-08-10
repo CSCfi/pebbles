@@ -78,7 +78,8 @@ class ApplicationSessionController(ControllerBase):
                     'deprovisioning triggered for %s (reason: maximum lifetime exceeded)',
                     application_session.get('id')
                 )
-                self.client.do_application_session_patch(application_session['id'], {'to_be_deleted': True})
+                self.client.do_application_session_patch(
+                    application_session['id'], json_data={'to_be_deleted': True})
 
         self.update_application_session(application_session)
 
