@@ -289,8 +289,8 @@ def check_data(datadir):
         if application.application_type != template.application_type:
             logging.error('ERROR: application "%s" application_type differs from template' % application.name)
             exit(1)
-        if yaml.safe_dump(application.allowed_attrs) != yaml.safe_dump(template.allowed_attrs):
-            logging.error('ERROR: application "%s" allowed_attrs differs from template' % application.name)
+        if yaml.safe_dump(application.attribute_limits) != yaml.safe_dump(template.attribute_limits):
+            logging.error('ERROR: application "%s" attribute_limits differs from template' % application.name)
             exit(1)
 
     logging.info('checked %d applications against %d templates, no errors found', len(application_data),

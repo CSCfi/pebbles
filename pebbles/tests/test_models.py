@@ -24,7 +24,7 @@ class ModelsTestCase(BaseTestCase):
         t1 = ApplicationTemplate()
         t1.name = 'EnabledTestTemplate'
         t1.is_enabled = True
-        t1.allowed_attrs = ['cost_multiplier']
+        t1.attribute_limits = [dict(name='maximum_lifetime', min=0, max=14400)]
         db.session.add(t1)
         self.known_template_id = t1.id
 

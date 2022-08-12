@@ -17,7 +17,7 @@ template_export_fields = {
     'is_enabled': fields.Boolean,
     'cluster_name': fields.String,
     'config': fields.Raw,
-    'allowed_attrs': fields.Raw
+    'attribute_limits': fields.Raw
 }
 
 application_export_fields = {
@@ -45,7 +45,7 @@ class ImportExportApplicationTemplates(restful.Resource):
                 'name': template.name,
                 'is_enabled': template.is_enabled,
                 'base_config': template.base_config,
-                'allowed_attrs': template.allowed_attrs,
+                'attribute_limits': template.attribute_limits,
             }
             results.append(obj)
 
@@ -66,8 +66,8 @@ class ImportExportApplicationTemplates(restful.Resource):
         selected_cluster = match_cluster(form.cluster_name.data)
         template.cluster = selected_cluster["name"]
 
-        if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
-            template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']
+        if isinstance(form.attribute_limits.data, dict):  # WTForms can only fetch a dict
+            template.attribute_limits = form.attribute_limits.data['attribute_limits']
         db.session.add(template)
         db.session.commit()
 
@@ -124,6 +124,8 @@ class ImportExportApplications(restful.Resource):
         application.template_id = template.id
         application.workspace_id = workspace.id
         application.config = form.config.data
+        application.base_config = template.base_config
+        application.attribute_limits = template.attribute_limits
 
         db.session.add(application)
         db.session.commit()

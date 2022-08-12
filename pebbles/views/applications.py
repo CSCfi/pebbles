@@ -12,7 +12,7 @@ from pebbles import rules
 from pebbles.forms import ApplicationForm
 from pebbles.models import db, Application, ApplicationTemplate, Workspace, ApplicationSession
 from pebbles.rules import apply_rules_applications
-from pebbles.utils import requires_workspace_owner_or_admin, requires_admin
+from pebbles.utils import requires_workspace_owner_or_admin, requires_admin, check_attribute_limits
 from pebbles.views.commons import auth, requires_workspace_manager_or_admin, is_workspace_manager
 
 applications = FlaskBlueprint('applications', __name__)
@@ -143,27 +143,30 @@ class ApplicationList(restful.Resource):
         application.name = form.name.data
         application.description = form.description.data
         application.workspace_id = workspace_id
-        application.maximum_lifetime = form.maximum_lifetime.data
 
         # base configuration from template
         application.base_config = template.base_config
-        application.allowed_attrs = template.allowed_attrs
+        application.attribute_limits = template.attribute_limits
         application.application_type = template.application_type
-
-        try:
-            validate_max_lifetime_application(application)  # Validate the maximum lifetime from config
-        except ValueError:
-            return 'Invalid lifetime for application', 422
 
         # for json lists, we need to use raw_data
         application.labels = form.labels.raw_data
         application.config = form.config.data
         application.is_enabled = form.is_enabled.data
 
+        error = check_attribute_limits(application.attribute_limits, application.config)
+        if error:
+            return 'Application config failed attribute limit check: %s' % error, 422
+        application.maximum_lifetime = application.config.get(
+            'maximum_lifetime',
+            application.base_config.get('maximum_lifetime', 3600)
+        )
+
         db.session.add(application)
         db.session.commit()
 
         application.workspace = workspace
+        application = process_application(application)
         return marshal_based_on_role(user, application)
 
 
@@ -211,29 +214,30 @@ class ApplicationView(restful.Resource):
         # for json lists, we need to use raw_data
         application.labels = form.labels.raw_data
         application.config = form.config.data
-        logging.debug('got %s %s %s', application.name, application.description, application.labels)
 
         if form.is_enabled.raw_data:
             application.is_enabled = form.is_enabled.raw_data[0]
         else:
             application.is_enabled = False
 
-        try:
-            validate_max_lifetime_application(application)  # Validate the maximum lifetime from config
-        except ValueError:
-            max_lifetime_error = {
-                "invalid maximum lifetime": "invalid maximum lifetime %s" % application.maximum_lifetime
-            }
-            return max_lifetime_error, 422
-        db.session.add(application)
+        error = check_attribute_limits(application.attribute_limits, application.config)
+        if error:
+            return 'Application config failed attribute limit check: %s' % error, 422
+        application.maximum_lifetime = application.config.get(
+            'maximum_lifetime',
+            application.maximum_lifetime
+        )
+
         db.session.commit()
+        application = process_application(application)
+        return marshal_based_on_role(user, application)
 
     @auth.login_required
     @requires_admin
     def patch(self, application_id):
         parser = reqparse.RequestParser()
         parser.add_argument('status', type=str)
-        args = self.parser.parse_args()
+        args = parser.parse_args()
         application = Application.query.filter_by(id=application_id).first()
         if not application:
             abort(404)
@@ -303,8 +307,8 @@ def process_application(application):
     application.template_name = template.name
     application.workspace_name = application.workspace.name
     application.workspace_pseudonym = application.workspace.pseudonym
-    # generate human readable memory information
-    memory_gib = float(application.base_config['memory_gib'])
+    # generate human-readable memory information
+    memory_gib = float(application.config.get('memory_gib', application.base_config.get('memory_gib')))
     if memory_gib % 1:
         application.memory = '%dMiB' % round(memory_gib * 1024)
     else:
@@ -320,20 +324,3 @@ def process_application(application):
         application.work_folder_enabled = False
 
     return application
-
-
-def validate_max_lifetime_application(application):
-    """Checks if the maximum lifetime for application:
-      - lower than the one defined in the template
-      - higher than zero"""
-    if 'maximum_lifetime' in application.base_config:
-        max_lifetime_limit = int(application.base_config['maximum_lifetime'])
-    else:
-        max_lifetime_limit = 3600
-
-    # valid case
-    if 0 < application.maximum_lifetime <= max_lifetime_limit:
-        return
-
-    raise ValueError('Invalid maximum_lifetime %d for application %s' % (
-        application.maximum_lifetime, application.name))

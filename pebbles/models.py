@@ -392,10 +392,10 @@ class ApplicationTemplate(db.Model):
     application_type = db.Column(db.String(MAX_NAME_LENGTH))
     _base_config = db.Column('base_config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
-    _allowed_attrs = db.Column('allowed_attrs', db.Text)
+    _attribute_limits = db.Column('attribute_limits', db.Text)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, name=None, description=None, application_type='generic', allowed_attrs=None,
+    def __init__(self, name=None, description=None, application_type='generic', attribute_limits=None,
                  base_config=None, is_enabled=False):
         self.id = uuid.uuid4().hex
         self.name = name
@@ -403,7 +403,7 @@ class ApplicationTemplate(db.Model):
         if application_type not in ApplicationTemplate.ENVIRONMENT_TYPES:
             raise ValueError('Illegal application type: "%s"' % application_type)
         self.application_type = application_type
-        self._allowed_attrs = json.dumps(allowed_attrs)
+        self._attribute_limits = json.dumps(attribute_limits)
         self._base_config = json.dumps(base_config)
         self.is_enabled = is_enabled
 
@@ -416,12 +416,12 @@ class ApplicationTemplate(db.Model):
         self._base_config = json.dumps(value)
 
     @hybrid_property
-    def allowed_attrs(self):
-        return load_column(self._allowed_attrs)
+    def attribute_limits(self):
+        return load_column(self._attribute_limits)
 
-    @allowed_attrs.setter
-    def allowed_attrs(self, value):
-        self._allowed_attrs = json.dumps(value)
+    @attribute_limits.setter
+    def attribute_limits(self, value):
+        self._attribute_limits = json.dumps(value)
 
 
 class Application(db.Model):
@@ -446,7 +446,7 @@ class Application(db.Model):
     maximum_lifetime = db.Column(db.Integer)
     _base_config = db.Column('base_config', db.Text)
     _config = db.Column('config', db.Text)
-    _allowed_attrs = db.Column('allowed_attrs', db.Text)
+    _attribute_limits = db.Column('attribute_limits', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     expiry_time = db.Column(db.DateTime)
     application_sessions = db.relationship('ApplicationSession', backref='application', lazy='dynamic')
@@ -456,7 +456,7 @@ class Application(db.Model):
 
     def __init__(self, name=None, description=None, template_id=None, workspace_id=None, labels=None,
                  maximum_lifetime=3600, is_enabled=False, config=None,
-                 base_config=None, allowed_attrs=None, application_type=None):
+                 base_config=None, attribute_limits=None, application_type=None):
         self.id = uuid.uuid4().hex
         self.name = name
         self.description = description
@@ -472,9 +472,9 @@ class Application(db.Model):
         if not base_config:
             base_config = dict()
         self._base_config = json.dumps(base_config)
-        if not allowed_attrs:
-            allowed_attrs = []
-        self._allowed_attrs = json.dumps(allowed_attrs)
+        if not attribute_limits:
+            attribute_limits = []
+        self._attribute_limits = json.dumps(attribute_limits)
         self.application_type = application_type
 
     @hybrid_property
@@ -494,12 +494,12 @@ class Application(db.Model):
         self._config = json.dumps(value)
 
     @hybrid_property
-    def allowed_attrs(self):
-        return load_column(self._allowed_attrs)
+    def attribute_limits(self):
+        return load_column(self._attribute_limits)
 
-    @allowed_attrs.setter
-    def allowed_attrs(self, value):
-        self._allowed_attrs = json.dumps(value)
+    @attribute_limits.setter
+    def attribute_limits(self, value):
+        self._attribute_limits = json.dumps(value)
 
     @hybrid_property
     def labels(self):

@@ -1127,8 +1127,8 @@ class FlaskApiTestCase(BaseTestCase):
         # Admin
         data = {
             'name': 'test_application_template_2',
-            'base_config': {'foo': 'bar', 'maximum_lifetime': '1h'},
-            'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']},
+            'base_config': {'foo': 'bar', 'maximum_lifetime': 3600},
+            'attribute_limits': dict(attribute_limits=[dict(name='maximum_lifetime', min=0, max=43200)])
         }
         response = self.make_authenticated_admin_request(
             method='POST',
@@ -1139,8 +1139,8 @@ class FlaskApiTestCase(BaseTestCase):
     def test_modify_application_template(self):
         t = ApplicationTemplate()
         t.name = 'TestTemplate'
-        t.base_config = {'memory_limit': '512m', 'maximum_lifetime': '1h'}
-        t.allowed_attrs = ['maximum_lifetime']
+        t.base_config = {'memory_limit': '512m', 'maximum_lifetime': 3600}
+        t.attribute_limits = [dict(name='maximum_lifetime', min=0, max=43200)]
         t.is_enabled = True
         db.session.add(t)
         db.session.commit()
@@ -1176,8 +1176,8 @@ class FlaskApiTestCase(BaseTestCase):
         # Admin
         data = {
             'name': 'test_application_template_2',
-            'base_config': {'foo': 'bar', 'maximum_lifetime': '1h'},
-            'allowed_attrs': {'allowed_attrs': ['maximum_lifetime']},
+            'base_config': {'foo': 'bar', 'maximum_lifetime': 3600},
+            'attribute_limits': dict(attribute_limits=[dict(name='maximum_lifetime', min=0, max=43200)]),
         }
         response = self.make_authenticated_admin_request(
             method='PUT',
@@ -1388,7 +1388,7 @@ class FlaskApiTestCase(BaseTestCase):
             'name': 'test_application_activate',
             'maximum_lifetime': 3600,
             'config': {
-                "maximum_lifetime": "0h"
+                "maximum_lifetime": 0
             },
             'template_id': self.known_template_id,
             'workspace_id': self.known_workspace_id
@@ -1434,65 +1434,39 @@ class FlaskApiTestCase(BaseTestCase):
         application = Application.query.filter_by(id=self.known_application_id_disabled).first()
         self.assertEqual(application.is_enabled, False)
 
-    def test_create_application_admin_invalid_data(self):
-        invalid_form_data = [
-            {'name': '', 'config': 'foo: bar', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': 'foo: bar', 'template_id': self.known_template_id},
-            {'name': 'test_application_2', 'config': 'foo: bar', 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": ' '}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '10 100'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '1hh'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '-1m'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '-10h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '2d -10h'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '30s'}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'workspace_id': 'unknown'},
-            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': 'unknown', 'workspace_id': self.known_workspace_id},
-        ]
-        for data in invalid_form_data:
-            response = self.make_authenticated_admin_request(
-                method='POST',
-                path='/api/v1/applications',
-                data=json.dumps(data))
-            self.assertStatus(response, 422)
-
-    def test_create_application_template_admin_invalid_data(self):
-        invalid_form_data = [
-            {'name': '', 'config': 'foo: bar'},
-            {'name': 'test_template_2', 'config': ''},
-            {'name': 'test_template_2', 'config': 'foo: bar'},
-            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": ' '}},
-            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '10 100'}},
-            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '1hh'}},
-            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '-1m'}},
-            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '-10h'}},
-            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '2d -10h'}},
-            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '30s'}},
-            {'name': 'test_template_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}}
-        ]
-        for data in invalid_form_data:
-            response = self.make_authenticated_admin_request(
-                method='POST',
-                path='/api/v1/application_templates',
-                data=json.dumps(data))
-            self.assertStatus(response, 422)
-
     def test_create_application_workspace_owner_invalid_data(self):
         invalid_form_data = [
-            {'name': '', 'config': 'foo: bar', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': '', 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': 'foo: bar', 'template_id': self.known_template_id},
-            {'name': 'test_application_2', 'config': 'foo: bar', 'workspace_id': self.known_workspace_id},
-            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': self.known_template_id, 'workspace_id': 'unknown'},
-            {'name': 'test_application_2', 'config': {"name": "foo", "maximum_lifetime": '10h'}, 'template_id': 'unknown', 'workspace_id': self.known_workspace_id},
+            dict(
+                name='lifetime too long',
+                config=dict(maximum_lifetime=3600 * 14),
+                template_id=self.known_template_id,
+                workspace_id=self.known_workspace_id
+            ),
+            dict(
+                name='lifetime negative',
+                config=dict(maximum_lifetime=-1),
+                template_id=self.known_template_id,
+                workspace_id=self.known_workspace_id
+            ),
+            dict(
+                name='memory negative',
+                config=dict(maximum_lifetime=3600, memory_gib=-1),
+                template_id=self.known_template_id,
+                workspace_id=self.known_workspace_id
+            ),
+            dict(
+                name='memory too big',
+                config=dict(maximum_lifetime=3600, memory_gib=17),
+                template_id=self.known_template_id,
+                workspace_id=self.known_workspace_id
+            ),
         ]
         for data in invalid_form_data:
             response = self.make_authenticated_workspace_owner_request(
                 method='POST',
                 path='/api/v1/applications',
                 data=json.dumps(data))
-            self.assertStatus(response, 422)
+            self.assertStatus(response, 422, data['name'])
 
         # Workspace owner is a user but not the owner of the workspace with id : known_workspace_id_2
         invalid_workspace_data = {'name': 'test_application_2', 'maximum_lifetime': 3600, 'config': {"name": "foo"}, 'template_id': self.known_template_id, 'workspace_id': self.known_workspace_id_2}
@@ -2012,17 +1986,17 @@ class FlaskApiTestCase(BaseTestCase):
         applications_data = [
             {'name': 'foo',
              'config': {
-                 'maximum_lifetime': '1h'
+                 'maximum_lifetime': 3600
              },
              'cluster_name': 'dummy',
-             'allowed_attrs': ['maximum_lifetime']
+             'attribute_limits': [dict(name='maximum_lifetime', min=0, max=43200)]
              },
             {'name': 'foobar',
              'config': {
                  'maximum_lifetime': '1d 10m', 'description': 'dummy application'
              },
              'cluster_name': 'dummy',
-             'allowed_attrs': []
+             'attribute_limits': []
              }
         ]
         # Authenticated User
@@ -2045,17 +2019,17 @@ class FlaskApiTestCase(BaseTestCase):
         applications_data = [
             {'name': 'foo',
              'config': {
-                 'maximum_lifetime': '1h'
+                 'maximum_lifetime': 3600
              },
              'cluster_name': 'dummy_cluster_1',
-             'allowed_attrs': ['maximum_lifetime']
+             'attribute_limits': dict(attribute_limits=[dict(name='maximum_lifetime', min=0, max=43200)])
              },
             {'name': 'foobar',
              'config': {
                  'maximum_lifetime': '1d 10m', 'description': 'dummy application'
              },
              'cluster_name': 'dummy_cluster_1',
-             'allowed_attrs': []
+             'attribute_limits': []
              }
         ]
         # Admin
@@ -2090,7 +2064,7 @@ class FlaskApiTestCase(BaseTestCase):
         applications_data = [
             {'name': 'foo',
              'config': {
-                 'maximum_lifetime': '1h'
+                 'maximum_lifetime': 3600
              },
              'template_name': 'TestTemplate',
              'workspace_name': 'Workspace1'
@@ -2116,7 +2090,7 @@ class FlaskApiTestCase(BaseTestCase):
         applications_data = [
             {'name': 'foo',
              'config': {
-                 'maximum_lifetime': '1h'
+                 'maximum_lifetime': 3600
              },
              'template_name': 'TestTemplate',
              'workspace_name': 'Workspace1'
@@ -2142,7 +2116,7 @@ class FlaskApiTestCase(BaseTestCase):
         applications_data = [
             {'name': 'foo',
              'config': {
-                 'maximum_lifetime': '1h'
+                 'maximum_lifetime': 3600
              },
              'template_name': 'EnabledTestTemplate',
              'workspace_name': 'Workspace1'
@@ -2177,14 +2151,14 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps(application_invalid2))
         self.assertEqual(response2.status_code, 422)
 
-        application_invalid3 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': '', 'workspace_name': 'Workspace1'}
+        application_invalid3 = {'name': 'foo', 'config': {'maximum_lifetime': 3600}, 'template_name': '', 'workspace_name': 'Workspace1'}
         response3 = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/import_export/applications',
             data=json.dumps(application_invalid3))
         self.assertEqual(response3.status_code, 422)
 
-        application_invalid4 = {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': 'EnabledTestTemplate', 'workspace_name': ''}
+        application_invalid4 = {'name': 'foo', 'config': {'maximum_lifetime': 3600}, 'template_name': 'EnabledTestTemplate', 'workspace_name': ''}
         response3 = self.make_authenticated_admin_request(
             method='POST',
             path='/api/v1/import_export/applications',
@@ -2196,7 +2170,7 @@ class FlaskApiTestCase(BaseTestCase):
         applications_data = [
             {'name': 'foo',
              'config': {
-                 'maximum_lifetime': '1h'
+                 'maximum_lifetime': 3600
              },
              'template_name': 'EnabledTestTemplate',
              'workspace_name': 'Workspace1'
@@ -2220,7 +2194,7 @@ class FlaskApiTestCase(BaseTestCase):
         application_invalid = {
             'name': 'bar5',
             'config': {
-                'maximum_lifetime': '1h'
+                'maximum_lifetime': 3600
             },
             'template_name': 'EnabledTestTemplate',
             'workspace_name': 'Workspace2'
@@ -2235,8 +2209,8 @@ class FlaskApiTestCase(BaseTestCase):
         application_invalid_data = [
             {'name': 'foo', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'},
             {'name': '', 'template_name': 'EnabledTestTemplate', 'workspace_name': 'Workspace1'},
-            {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': '', 'workspace_name': 'Workspace1'},
-            {'name': 'foo', 'config': {'maximum_lifetime': '1h'}, 'template_name': 'EnabledTestTemplate',
+            {'name': 'foo', 'config': {'maximum_lifetime': 3600}, 'template_name': '', 'workspace_name': 'Workspace1'},
+            {'name': 'foo', 'config': {'maximum_lifetime': 3600}, 'template_name': 'EnabledTestTemplate',
              'workspace_name': ''}
         ]
 
@@ -2258,7 +2232,7 @@ class FlaskApiTestCase(BaseTestCase):
         applications_data = [
             {'name': 'foo',
              'config': {
-                 'maximum_lifetime': '1h'
+                 'maximum_lifetime': 3600
              },
              'template_name': 'EnabledTestTemplate',
              'workspace_name': 'Workspace1'

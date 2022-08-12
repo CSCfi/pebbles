@@ -1,7 +1,6 @@
 import base64
 import importlib
 import logging
-import re
 from functools import wraps
 from logging.handlers import RotatingFileHandler
 
@@ -46,54 +45,18 @@ def memoize(func):
     return inner
 
 
-def parse_maximum_lifetime(max_life_str):
-    m = re.match(r'^(\d+d\s?)?(\d{1,2}h\s?)?(\d{1,2}m\s?)??$', max_life_str)
-    if m:
-        days = hours = mins = 0
-        if m.group(1):
-            days = int(m.group(1).strip()[:-1])
-        if m.group(2):
-            hours = int(m.group(2).strip()[:-1])
-        if m.group(3):
-            mins = int(m.group(3).strip()[:-1])
+def check_attribute_limits(limits, config):
+    """Check application config against attribute limits. Return None if AOK, error string otherwise"""
+    for limit in limits:
+        if limit['name'] in config:
+            name = limit['name']
+            value = config[name]
+            if type(value) not in (int, float):
+                return 'value for attribute %s is a number' % name
+            if value < limit['min'] or value > limit['max']:
+                return 'value %s for attribute %s does not fall within allowed range' % (value, name)
 
-        maximum_lifetime = days * 86400 + hours * 3600 + mins * 60
-        return maximum_lifetime
-    else:
-        raise ValueError
-
-
-def parse_ports_string(ports_str):
-    ports_list = []
-    ports_str = ports_str.replace(',', ' ')
-    ports = ports_str.split(' ')
-    ports = filter(None, ports)
-    for port in ports:
-        if ':' in port:
-            (from_port, to_port) = parse_port_range(port)
-        else:
-            try:
-                from_port = int(port)
-                to_port = int(port)
-            except ValueError:
-                raise ValueError('Port is not an integer')
-
-        if 0 < from_port < 65536 and 0 < to_port < 65536:
-            ports_list.append((from_port, to_port))
-        else:
-            raise ValueError('Error parsing the input port string')
-    return ports_list
-
-
-def parse_port_range(port_range):
-    m = re.match(r'(\d+):(\d+)', port_range)
-    if m:
-        if int(m.group(1)) < int(m.group(2)):
-            return int(m.group(1)), int(m.group(2))
-        else:
-            raise ValueError('Port range invalid')
-    else:
-        raise ValueError('No port range found')
+    return None
 
 
 def get_provisioning_config(application):
@@ -102,13 +65,18 @@ def get_provisioning_config(application):
     app_config = application.config if application.config else {}
     provisioning_config = application.base_config.copy()
 
+    # pick attribute values with a limited range (for lifetime and memory)
+    error = check_attribute_limits(application.attribute_limits, app_config)
+    if error:
+        raise ValueError('application %s config check failed: %s ' % (application.id, error))
+    for limit in application.attribute_limits:
+        if limit['name'] in app_config:
+            name = limit['name']
+            value = app_config[name]
+            provisioning_config[name] = value
+
     # set memory_limit from memory_gib
     provisioning_config['memory_limit'] = '%dMi' % round(float(provisioning_config['memory_gib']) * 1024)
-
-    # old style override of template base_config with application config
-    for attr in application.allowed_attrs:
-        if attr in app_config:
-            provisioning_config[attr] = app_config[attr]
 
     # here we pick configuration options from application to full_config that is used in provisioning
     custom_config = {}

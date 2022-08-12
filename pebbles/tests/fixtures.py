@@ -10,13 +10,12 @@ from pebbles.models import (
     Message, ApplicationSession, ApplicationSessionLog)
 from pebbles.tests.base import db
 
-
 from datetime import datetime
 
 
 def fill_application_from_template(application, template):
     application.base_config = template.base_config.copy()
-    application.allowed_attrs = template.allowed_attrs.copy()
+    application.attribute_limits = template.attribute_limits.copy()
     application.application_type = template.application_type
 
 
@@ -155,10 +154,9 @@ def primary_test_setup(namespace):
         'memory_gib': 8,
         'allow_update_client_connectivity': False
     }
-    t2.allowed_attrs = [
-        'maximum_lifetime',
-        'cost_multiplier',
-        'allow_update_client_connectivity'
+    t2.attribute_limits = [
+        dict(name='maximum_lifetime', min=0, max=3600 * 12),
+        dict(name='memory_gib', min=0, max=8),
     ]
     t2.is_enabled = True
     db.session.add(t2)

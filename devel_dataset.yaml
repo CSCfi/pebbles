@@ -39,8 +39,13 @@ data:
     description: Jupyter in local k8s
     application_type: jupyter
     is_enabled: True
-    allowed_attrs:
-      - maximum_lifetime
+    attribute_limits:
+      - name: maximum_lifetime
+        min: 0
+        max: 43200
+      - name: memory_gib
+        min: 0
+        max: 3600
     base_config:
       args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{session_id}}' --NotebookApp.allow_origin='*'
       environment_vars: ''
@@ -61,8 +66,13 @@ data:
     description: Jupyter ML in local k8s using notebook-images autodownload feature
     application_type: jupyter
     is_enabled: True
-    allowed_attrs:
-      - maximum_lifetime
+    attribute_limits:
+      - name: maximum_lifetime
+        min: 0
+        max: 43200
+      - name: memory_gib
+        min: 0
+        max: 8
     base_config:
       args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{session_id}}' --NotebookApp.allow_origin='*'
       environment_vars: ''
@@ -84,8 +94,13 @@ data:
     description: RStudio in local k8s
     application_type: rstudio
     is_enabled: True
-    allowed_attrs:
-      - maximum_lifetime
+    attribute_limits:
+      - name: maximum_lifetime
+        min: 0
+        max: 43200
+      - name: memory_gib
+        min: 0
+        max: 8
     base_config:
       environment_vars: 'DISABLE_AUTH=true'
       image: rocker/rstudio:latest
@@ -113,8 +128,13 @@ data:
     maximum_lifetime: 3600
     is_enabled: True
     application_type: jupyter
-    allowed_attrs:
-      - maximum_lifetime
+    attribute_limits:
+      - name: maximum_lifetime
+        min: 0
+        max: 43200
+      - name: memory_gib
+        min: 0
+        max: 8
     base_config:
       args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{session_id}}' --NotebookApp.allow_origin='*'
       environment_vars: ''
@@ -143,8 +163,13 @@ data:
     maximum_lifetime: 3600
     is_enabled: True
     application_type: rstudio
-    allowed_attrs:
-      - maximum_lifetime
+    attribute_limits:
+      - name: maximum_lifetime
+        min: 0
+        max: 43200
+      - name: memory_gib
+        min: 0
+        max: 8
     base_config:
       environment_vars: 'DISABLE_AUTH=true'
       image: rocker/rstudio:latest

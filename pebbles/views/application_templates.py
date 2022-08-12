@@ -23,7 +23,7 @@ application_template_fields = {
     'application_type': fields.String,
     'is_enabled': fields.Boolean,
     'base_config': fields.Raw,
-    'allowed_attrs': fields.Raw,
+    'attribute_limits': fields.Raw,
 }
 
 
@@ -53,8 +53,8 @@ class ApplicationTemplateList(restful.Resource):
 
         application_template.base_config = base_config
 
-        if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
-            application_template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']
+        if isinstance(form.attribute_limits.data, dict):  # WTForms can only fetch a dict
+            application_template.attribute_limits = form.attribute_limits.data['attribute_limits']
 
         db.session.add(application_template)
         db.session.commit()
@@ -91,8 +91,8 @@ class ApplicationTemplateView(restful.Resource):
         base_config = form.base_config.data
         base_config.pop('name', None)
         application_template.base_config = base_config
-        if isinstance(form.allowed_attrs.data, dict):  # WTForms can only fetch a dict
-            application_template.allowed_attrs = form.allowed_attrs.data['allowed_attrs']
+        if isinstance(form.attribute_limits.data, dict):  # WTForms can only fetch a dict
+            application_template.attribute_limits = form.attribute_limits.data['attribute_limits']
 
         args = self.parser.parse_args()
         application_template = toggle_enable_template(form, args, application_template)

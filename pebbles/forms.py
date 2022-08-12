@@ -51,7 +51,7 @@ class MessageForm(ModelForm):
 class ApplicationTemplateForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
     base_config = StringField('base_config', validators=[DataRequired()])
-    allowed_attrs = StringField('allowed_attrs')
+    attribute_limits = StringField('attribute_limits')
     is_enabled = BooleanField('is_enabled', default=False)
 
 
@@ -60,7 +60,7 @@ class ApplicationForm(ModelForm):
     description = StringField('description')
     template_id = StringField('template_id', validators=[DataRequired()])
     labels = StringField('labels', validators=[Length(max=1024)])
-    maximum_lifetime = IntegerField('maximum_lifetime', validators=[DataRequired()])
+    maximum_lifetime = IntegerField('maximum_lifetime')
     config = StringField('config')
     is_enabled = BooleanField('is_enabled', default=False)
     workspace_id = StringField('workspace_id', validators=[DataRequired()])
@@ -70,7 +70,7 @@ class ApplicationTemplateImportForm(ModelForm):
     name = StringField('name', validators=[DataRequired()])
     config = StringField('config', validators=[DataRequired()])
     cluster_name = StringField('cluster_name', validators=[DataRequired()])
-    allowed_attrs = StringField('allowed_attrs')
+    attribute_limits = StringField('attribute_limits')
 
 
 class ApplicationImportForm(ModelForm):
