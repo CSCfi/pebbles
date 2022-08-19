@@ -90,8 +90,13 @@ if __name__ == '__main__':
         print('trying to connect to remote debug server at %s' % os.environ['REMOTE_DEBUG_SERVER'])
         import pydevd_pycharm
 
-        pydevd_pycharm.settrace(os.environ['REMOTE_DEBUG_SERVER'], port=12345, stdoutToServer=True, stderrToServer=True,
-                                suspend=False)
+        pydevd_pycharm.settrace(
+            host=os.environ['REMOTE_DEBUG_SERVER'],
+            port=os.environ.get('REMOTE_DEBUG_PORT', 23456),
+            stdoutToServer=True,
+            stderrToServer=True,
+            suspend=False
+        )
         print('Worker: connected to remote debug server at %s' % os.environ['REMOTE_DEBUG_SERVER'])
 
     config = BaseConfig()

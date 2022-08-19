@@ -16,8 +16,13 @@ if 'REMOTE_DEBUG_SERVER' in os.environ:
     print('trying to connect to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
     import pydevd_pycharm
 
-    pydevd_pycharm.settrace(os.environ['REMOTE_DEBUG_SERVER'], port=12345, stdoutToServer=True, stderrToServer=True,
-                            suspend=False)
+    pydevd_pycharm.settrace(
+        host=os.environ['REMOTE_DEBUG_SERVER'],
+        port=os.environ.get('REMOTE_DEBUG_PORT', 12345),
+        stdoutToServer=True,
+        stderrToServer=True,
+        suspend=False
+    )
     print('API: connected to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
 
 
