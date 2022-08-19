@@ -18,7 +18,7 @@ from pebbles.views.commons import create_user, is_workspace_manager, EXT_ID_PREF
 @app.route('/oauth2')
 def oauth2_login():
     parser = reqparse.RequestParser()
-    parser.add_argument('agreement_sign', type=str, default=False)
+    parser.add_argument('agreement_sign', type=str, default=False, location='args')
     args = parser.parse_args()
     if not app.config['OAUTH2_LOGIN_ENABLED']:
         logging.warning('Login abort: oauth2 not enabled')
