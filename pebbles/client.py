@@ -28,11 +28,8 @@ class PBClient:
 
     def login(self, ext_id, password):
         auth_url = '%s/sessions' % self.api_base_url
-        auth_credentials = {
-            'ext_id': ext_id,
-            'password': password
-        }
-        r = requests.post(auth_url, auth_credentials, verify=self.ssl_verify)
+        auth_credentials = dict(ext_id=ext_id, password=password)
+        r = requests.post(auth_url, json=auth_credentials, verify=self.ssl_verify)
         self.token = json.loads(r.text).get('token')
         self.auth = pebbles.utils.b64encode_string('%s:%s' % (self.token, '')).replace('\n', '')
 
