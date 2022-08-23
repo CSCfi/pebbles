@@ -35,7 +35,8 @@ application_fields_admin = {
     'workspace_pseudonym': fields.String,
     'info': {
         'memory': fields.String,
-        'work_folder_enabled': fields.Boolean,
+        'shared_folder_enabled': fields.Boolean,
+        'work_folder_enabled': fields.Boolean
     },
 }
 
@@ -56,7 +57,8 @@ application_fields_manager = {
     'workspace_name': fields.String,
     'info': {
         'memory': fields.String,
-        'work_folder_enabled': fields.Boolean,
+        'shared_folder_enabled': fields.Boolean,
+        'work_folder_enabled': fields.Boolean
     },
 }
 
@@ -73,7 +75,8 @@ application_fields_user = {
     'workspace_name': fields.String,
     'info': {
         'memory': fields.String,
-        'work_folder_enabled': fields.Boolean,
+        'shared_folder_enabled': fields.Boolean,
+        'work_folder_enabled': fields.Boolean
     },
 }
 
@@ -322,5 +325,15 @@ def process_application(application):
         application.work_folder_enabled = True
     else:
         application.work_folder_enabled = False
+
+    if application.workspace_name.startswith('System.default'):
+        application.shared_folder_enabled = False
+    elif 'enable_shared_folder' in application.config:
+        if application.config['enable_shared_folder']:
+            application.shared_folder_enabled = True
+        else:
+            application.shared_folder_enabled = False
+    else:
+        application.shared_folder_enabled = True
 
     return application

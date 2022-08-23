@@ -129,6 +129,8 @@ def get_provisioning_config(application):
     # enable shared folder for non-public workspaces - this should be refined later
     if application.workspace.name.startswith('System.'):
         custom_config['enable_shared_folder'] = False
+    elif 'enable_shared_folder' in app_config:
+        custom_config['enable_shared_folder'] = app_config.get('enable_shared_folder')
     else:
         custom_config['enable_shared_folder'] = True
 
