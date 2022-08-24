@@ -3,6 +3,7 @@ import getpass
 import logging
 import random
 import string
+import time
 from typing import List
 
 import click
@@ -88,16 +89,19 @@ def profile():
 
 
 @cli.command('createuser')
-@click.option('-e', 'ext_id')
-@click.option('-p', 'password')
-@click.option('-p', 'admin', default=False)
-def createuser(ext_id=None, password=None, admin=False):
+@click.option('-e', 'ext_id', help='ext_id')
+@click.option('-p', 'password', help='password')
+@click.option('-a', 'admin', default=False, help='admin user (default False)')
+@click.option('-l', 'lifetime_in_days', default=0, help='lifetime in days (default no limit)')
+def createuser(ext_id=None, password=None, admin=False, lifetime_in_days=0):
     """Creates new user"""
     if not ext_id:
         ext_id = input("email: ")
     if not password:
         password = getpass.getpass("password: ")
-    return create_user(ext_id=ext_id, password=password, is_admin=admin, email_id=ext_id)
+    expiry_ts = time.time() + 3600 * 24 * lifetime_in_days if lifetime_in_days else None
+
+    return create_user(ext_id=ext_id, password=password, is_admin=admin, email_id=ext_id, expiry_ts=expiry_ts)
 
 
 @cli.command('create_database')
@@ -118,30 +122,38 @@ def initialize_system(ext_id=None, password=None):
 
 
 @cli.command('createuser_bulk')
-@click.option('-u', 'user_prefix')
-@click.option('-d', 'domain_name')
-@click.option('-c', 'count', default=0)
-def createuser_bulk(user_prefix=None, domain_name=None, count=0):
+@click.option('-u', 'user_prefix', help='account prefix (default demouser)')
+@click.option('-d', 'domain_name', help='account domain name (default example.org)')
+@click.option('-c', 'count', default=0, help='count')
+@click.option('-l', 'lifetime_in_days', default=0, help='lifetime in days (default no limit)')
+def createuser_bulk(user_prefix=None, domain_name=None, count=0, lifetime_in_days=0):
     """Creates new demo users"""
     if not count:
-        count = int(input("Enter the number of demo user accounts needed: "))
-    print("\nFind the demo user accounts and their respective passwords.\
-             \nPLEASE COPY THESE BEFORE CLOSING THE WINDOW \n")
+        count = int(input('Enter the number of demo user accounts needed: '))
+    print()
+    print('Find the demo user accounts and their respective passwords below.')
+    if lifetime_in_days:
+        print('The accounts expire after %d day(s).' % lifetime_in_days)
+    print('Remember to copy these before you close the window.')
+    print()
+
     if not domain_name:
-        domain_name = "example.org"
+        domain_name = 'example.org'
     if not user_prefix:
-        user_prefix = "demouser"
+        user_prefix = 'demouser'
+
+    expiry_ts = time.time() + 3600 * 24 * lifetime_in_days if lifetime_in_days else None
+
     for i in range(count):
-        retry = 1
-        # eg: demo_user_Rgv4@example.com
-        user = user_prefix + "_" + ''.join(random.choice(string.ascii_lowercase +
-                                                         string.digits) for _ in range(3)) + "@" + domain_name
-        password = ''.join(random.choice(string.ascii_uppercase +
-                                         string.ascii_lowercase + string.digits) for _ in range(8))
         for retry in range(5):
-            a = create_user(user, password)
+            # eg: demo_user_Rgv4@example.com
+            ext_id = user_prefix + "_" + ''.join(
+                random.choice(string.ascii_lowercase + string.digits) for _ in range(3)) + "@" + domain_name
+            password = ''.join(random.choice(string.ascii_uppercase +
+                                             string.ascii_lowercase + string.digits) for _ in range(8))
+            a = create_user(ext_id, password, expiry_ts=expiry_ts)
             if a:
-                print("User name: %s\t Password: %s" % (user, password))
+                print('Username: %s\t Password: %s' % (ext_id, password))
                 break
 
     print("\n")
@@ -150,18 +162,21 @@ def createuser_bulk(user_prefix=None, domain_name=None, count=0):
 @cli.command('createuser_list_samepwd')
 @click.argument('ext_id_string')
 @click.option('-p', 'password', help='shared password')
-def createuser_list_samepwd(ext_id_string=None, password=None):
-    """Creates new users with shared password"""
+@click.option('-l', 'lifetime_in_days', default=0, help='lifetime in days (default no limit)')
+def createuser_list_samepwd(ext_id_string=None, password=None, lifetime_in_days=0):
+    """Creates new users with shared password. Takes a comma separated string of ext_ids as an argument"""
     if not ext_id_string:
         ext_id_string = input("TO CREATE USER\n Enter comma separated list of ext_ids without space: \
                              \neg: qua00@hui,qua01@hui,qua02@hui \n")
     if not password:
         password = getpass.getpass("password: ")
 
+    expiry_ts = time.time() + 3600 * 24 * lifetime_in_days if lifetime_in_days else None
+
     ext_id_list = [x for x in ext_id_string.split(',')]
     print("List of users to create %s " % ext_id_list)
     for ext_id in ext_id_list:
-        create_user(ext_id, password)
+        create_user(ext_id, password, expiry_ts=expiry_ts)
 
 
 @cli.command('deleteuser_bulk')
