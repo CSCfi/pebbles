@@ -15,7 +15,7 @@ class HelpsList(restful.Resource):
     @auth.login_required
     def get(self):
         try:
-            faq_config = yaml.load(open(app.config['API_FAQ_FILE']))
+            faq_config = yaml.safe_load(open(app.config['API_FAQ_FILE']))
             return faq_config
         except Exception as e:
             logging.warning(e)
