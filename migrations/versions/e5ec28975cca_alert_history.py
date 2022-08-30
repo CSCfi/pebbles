@@ -1,7 +1,7 @@
 """alert history
 
 Revision ID: e5ec28975cca
-Revises: 33431e7c6011
+Revises: d0dd70559107
 Create Date: 2022-07-06 13:35:53.005479
 
 """

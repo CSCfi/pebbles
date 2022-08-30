@@ -1,7 +1,7 @@
 """add workspace memory limits
 
 Revision ID: 33431e7c6011
-Revises: f8484696a67f
+Revises: e96f531e867f
 Create Date: 2022-04-25 09:49:22.889812
 
 """
