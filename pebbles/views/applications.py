@@ -35,6 +35,7 @@ application_fields_admin = {
     'workspace_pseudonym': fields.String,
     'info': {
         'memory': fields.String,
+        'memory_gib': fields.Float,
         'shared_folder_enabled': fields.Boolean,
         'work_folder_enabled': fields.Boolean
     },
@@ -57,6 +58,7 @@ application_fields_manager = {
     'workspace_name': fields.String,
     'info': {
         'memory': fields.String,
+        'memory_gib': fields.Float,
         'shared_folder_enabled': fields.Boolean,
         'work_folder_enabled': fields.Boolean
     },
@@ -75,6 +77,7 @@ application_fields_user = {
     'workspace_name': fields.String,
     'info': {
         'memory': fields.String,
+        'memory_gib': fields.Float,
         'shared_folder_enabled': fields.Boolean,
         'work_folder_enabled': fields.Boolean
     },
@@ -312,6 +315,7 @@ def process_application(application):
     application.workspace_pseudonym = application.workspace.pseudonym
     # generate human-readable memory information
     memory_gib = float(application.config.get('memory_gib', application.base_config.get('memory_gib')))
+    application.memory_gib = memory_gib
     if memory_gib % 1:
         application.memory = '%dMiB' % round(memory_gib * 1024)
     else:
