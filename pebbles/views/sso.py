@@ -67,11 +67,6 @@ def oauth2_login():
         logging.warning('Login aborted: No valid email received')
         abort(422)
 
-    # check that the account has not been locked
-    if 'nsAccountLock' in claims and claims['nsAccountLock'] == 'true':
-        logging.warning('Login aborted: Account is locked, email: "%s"', email_id)
-        abort(422)
-
     # find the matching auth_method
     selected_method = None
     for method in auth_methods:
@@ -81,6 +76,12 @@ def oauth2_login():
 
     if not selected_method:
         logging.warning('Login aborted: Authentication method with acr "%s" is not allowed', claims['acr'])
+        abort(422)
+
+    # check that the account has not been locked
+    if selected_method.get('activateNsAccountLock', False) \
+            and 'nsAccountLock' in claims and claims['nsAccountLock'] == 'true':
+        logging.warning('Login aborted: Account is locked, email: "%s"', email_id)
         abort(422)
 
     # find the claim that is mapped to ext_id
