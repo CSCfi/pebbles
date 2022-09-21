@@ -291,7 +291,7 @@ class Workspace(db.Model):
 
     id = db.Column(db.String(32), primary_key=True)
     pseudonym = db.Column(db.String(MAX_PSEUDONYM_LENGTH), unique=True, nullable=False)
-    name = db.Column(db.String(32))
+    name = db.Column(db.String(64))
     _join_code = db.Column('join_code', db.String(64))
     description = db.Column(db.Text)
     cluster = db.Column(db.String(32))
