@@ -52,6 +52,9 @@ class SessionView(restful.Resource):
             else:
                 logging.warning('Login aborted: User "%s" did not agree to terms, access denied', user.id)
                 abort(403)
+        if user and user.has_expired():
+            logging.warning('Login after expiry not permitted')
+            abort(403)
         if user and not user.email_id and user.check_password(form.password.data):
             # Email and ext_id are same because we invite users through email
             # update_email is in commons.py, as in future we could allow

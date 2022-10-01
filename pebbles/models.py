@@ -187,11 +187,11 @@ class User(db.Model):
 
     @hybrid_property
     def expiry_ts(self):
-        return self._expiry_ts.timestamp()
+        return self._expiry_ts.timestamp() if self._expiry_ts else None
 
     @expiry_ts.setter
     def expiry_ts(self, value):
-        self._expiry_ts = datetime.datetime.fromtimestamp(value)
+        self._expiry_ts = datetime.datetime.fromtimestamp(value) if value else None
 
     @hybrid_property
     def last_login_ts(self):
@@ -234,7 +234,7 @@ class User(db.Model):
         return token
 
     def can_login(self):
-        return not self.is_deleted and self.is_active and not self.is_blocked
+        return not self.is_deleted and self.is_active and not self.is_blocked and not self.has_expired()
 
     def get_owned_workspace_associations(self):
         return [wua for wua in self.workspace_associations if wua.is_owner and wua.workspace.status == 'active']
@@ -257,6 +257,12 @@ class User(db.Model):
         user = User.query.get(data['id'])
         if user and user.can_login():
             return user
+
+    def has_expired(self):
+        # Only compare if expiry_ts has been set (skip zero/None)
+        if self.expiry_ts and self.expiry_ts < time.time():
+            return True
+        return False
 
     def __repr__(self):
         return self.ext_id

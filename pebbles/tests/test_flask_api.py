@@ -182,6 +182,23 @@ class FlaskApiTestCase(BaseTestCase):
             headers=headers)
         self.assert_401(response)
 
+    def test_expired_user_cannot_login(self):
+        # Test user with expired credentials cannot log in
+        response = self.make_request(
+            method='POST',
+            path='api/v1/sessions',
+            data=json.dumps({'ext_id': 'expired_user@example.org',
+                             'password': 'expired_user', 'agreement_sign': 'signed'}))
+        self.assert_403(response)
+
+        # Test user with non-expired credentials can log in
+        response = self.make_request(
+            method='POST',
+            path='api/v1/sessions',
+            data=json.dumps({'ext_id': 'user@example.org',
+                             'password': 'user'}))
+        self.assert_200(response)
+
     def test_delete_user(self):
         ext_id = "test@example.org"
         u = User(ext_id, "testuser", is_admin=False)
