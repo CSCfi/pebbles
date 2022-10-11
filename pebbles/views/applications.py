@@ -290,6 +290,16 @@ class ApplicationCopy(restful.Resource):
         user = g.user
         application = Application.query.get_or_404(application_id)
 
+        # check workspace quota
+        workspace = application.workspace
+        application_count = workspace.applications.filter_by(status='active').count()
+        if not (user.is_admin or application_count < workspace.application_quota):
+            logging.warning("Maximum number of applications in workspace reached, ws '%s'", workspace.id)
+            return dict(
+                message="You have reached the maximum number of applications for this workspace."
+                        "Contact support if you need more."
+            ), 422
+
         if not application.status == Application.STATUS_ACTIVE:
             abort(422)
         if not user.is_admin and not is_workspace_manager(user, application.workspace):

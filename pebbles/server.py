@@ -49,7 +49,7 @@ api.add_resource(ApplicationTemplateView, api_root + '/application_templates/<st
 api.add_resource(ApplicationTemplateCopy, api_root + '/application_templates/template_copy/<string:template_id>')
 api.add_resource(ApplicationList, api_root + '/applications')
 api.add_resource(ApplicationView, api_root + '/applications/<string:application_id>')
-api.add_resource(ApplicationCopy, api_root + '/applications/application_copy/<string:application_id>')
+api.add_resource(ApplicationCopy, api_root + '/applications/<string:application_id>/copy')
 api.add_resource(ApplicationSessionList, api_root + '/application_sessions')
 api.add_resource(
     ApplicationSessionView,

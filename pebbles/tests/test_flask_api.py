@@ -1520,17 +1520,31 @@ class FlaskApiTestCase(BaseTestCase):
         # Authenticated User
         response = self.make_authenticated_user_request(
             method='PUT',
-            path='/api/v1/applications/application_copy/%s' % self.known_application_id)
+            path='/api/v1/applications/%s/copy' % self.known_application_id)
         self.assert_403(response)
+
         # Authenticated Workspace Owner
         response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/applications/application_copy/%s' % self.known_application_id)
+            path='/api/v1/applications/%s/copy' % self.known_application_id)
         self.assert_200(response)
+
         # Admin
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/applications/application_copy/%s' % self.known_application_id)
+            path='/api/v1/applications/%s/copy' % self.known_application_id)
+        self.assert_200(response)
+
+        # Quota is full, owner cannot copy anymore
+        response = self.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/applications/%s/copy' % self.known_application_id)
+        self.assertEqual(response.status_code, 422)
+
+        # Admin can still copy
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/applications/%s/copy' % self.known_application_id)
         self.assert_200(response)
 
     def test_anonymous_create_application_session(self):
