@@ -62,6 +62,7 @@ workspace_fields_user = {
     'id': fields.String,
     'name': fields.String,
     'description': fields.Raw,
+    'expiry_ts': fields.Integer,
     'memory_limit_gib': fields.Integer,
     'user_association_type': fields.String(default='member'),
 }
