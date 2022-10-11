@@ -349,7 +349,7 @@ class Workspace(db.Model):
 
     @hybrid_property
     def expiry_ts(self):
-        return self._expiry_ts.timestamp()
+        return self._expiry_ts.timestamp() if self._expiry_ts else None
 
     @expiry_ts.setter
     def expiry_ts(self, value):
