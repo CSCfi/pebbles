@@ -335,17 +335,23 @@ class JoinWorkspace(restful.Resource):
         user = g.user
         workspace = Workspace.query.filter_by(join_code=join_code).first()
         if not workspace:
-            logging.warning("invalid workspace join code %s", join_code)
-            return {"error": "The code entered is invalid. Please recheck and try again"}, 422
+            logging.warning('invalid workspace join code %s', join_code)
+            return 'The code entered is invalid. Please recheck and try again', 422
+
+        # filter workspaces that have expiry_ts in the past
+        if workspace.has_expired():
+            logging.warning('workspace for join code %s has expired', join_code)
+            return 'The workspace for this join code has expired.', 422
 
         existing_relation = next(filter(lambda wua: wua.user_id == user.id, workspace.user_associations), None)
         if existing_relation and existing_relation.is_banned:
-            logging.warning("banned user %s tried to join workspace %s with code %s",
+            logging.warning('banned user %s tried to join workspace %s with code %s',
                             user.ext_id, workspace.name, join_code)
-            return {"error": "You are banned from this workspace, please contact the concerned person"}, 403
+            return 'You are banned from this workspace, please contact the concerned person', 403
+
         if existing_relation:
-            logging.warning("user %s already exists in workspace", user.id)
-            return {"error": "User already exists in the workspace"}, 422
+            logging.warning('user %s already exists in workspace', user.id)
+            return 'User already exists in the workspace', 422
 
         workspace_user_obj = WorkspaceUserAssociation(user=user, workspace=workspace)
         workspace.user_associations.append(workspace_user_obj)

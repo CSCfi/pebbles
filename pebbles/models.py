@@ -366,6 +366,10 @@ class Workspace(db.Model):
         else:
             raise ValueError("'%s' is not a valid status for Workspace" % value)
 
+    def has_expired(self):
+        # Only compare if expiry_ts has been set (skip zero/None)
+        return self.expiry_ts and self.expiry_ts < time.time()
+
 
 class Message(db.Model):
     __tablename__ = 'messages'

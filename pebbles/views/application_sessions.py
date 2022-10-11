@@ -123,10 +123,15 @@ class ApplicationSessionList(restful.Resource):
             logging.warning('application_session creation failed, no application found for id %s', application_id)
             abort(404)
 
-        # admins and workspace managers are allowed to test disabled applications
+        # check that the application's workspace has not expired
+        if application.workspace and application.workspace.has_expired():
+            logging.warning('application_session creation failed, application %s has expired', application_id)
+            return 'Application has expired', 409
+
+        # only admins and workspace managers are allowed to test disabled applications
         if not application.is_enabled and not (user.is_admin or is_workspace_manager(user, application.workspace)):
             logging.warning('application_session creation failed, application %s is disabled', application_id)
-            abort(403)
+            return 'Application is disabled', 409
 
         # check existing sessions and enforce limits. There is still a potential race here by request flooding, this
         # can be fixed later by obtaining a lock per user
