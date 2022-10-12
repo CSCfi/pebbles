@@ -45,8 +45,9 @@ class ControllerBase:
         if not driver_class:
             raise RuntimeWarning('No matching driver %s found for %s' % (cluster.get('driver'), cluster_name))
 
-        # create an instance and populate the cache
+        # create an instance, test the connection and populate the cache
         driver_instance = driver_class(logging.getLogger(), self.config, cluster)
+        driver_instance.connect()
         cluster['driver_instance'] = driver_instance
 
         return driver_instance
@@ -68,6 +69,7 @@ class ApplicationSessionController(ControllerBase):
             )
 
         driver_application_session = self.get_driver(cluster_name)
+        driver_application_session.test_connection()
         driver_application_session.update(self.client.token, application_session_id)
 
     def process_application_session(self, application_session):
@@ -162,23 +164,31 @@ class ClusterController(ControllerBase):
                 continue
 
             if cluster.get('disableAlerts', False):
-                logging.debug('alerts disabled for cluster %s ' % cluster_name)
+                logging.debug('alerts disabled for cluster %s', cluster_name)
                 continue
 
-            res = requests.get(
-                url="https://" + cluster['appDomain'] + "/prometheus/api/v1/alerts",
-                auth=('token', cluster.get('monitoringToken'))
-            )
-            if not res.ok:
-                logging.warning('unable to get alerts from cluster %s' % cluster_name)
+            try:
+                logging.debug('getting alerts for cluster %s', cluster_name)
+                res = requests.get(
+                    url="https://" + cluster['appDomain'] + "/prometheus/api/v1/alerts",
+                    auth=('token', cluster.get('monitoringToken')),
+                    timeout=5
+                )
+            except requests.exceptions.RequestException:
+                res = None
+
+            if not (res and res.ok):
+                logging.warning('unable to get alerts from cluster %s', cluster_name)
                 continue
 
             alert_data = res.json()
             alerts = alert_data['data']['alerts']
 
+            logging.debug('got %d alert entries for cluster %s', len(alert_data), cluster_name)
+
             # the watchdog alert should be always firing
             if len(alerts) == 0:
-                logging.warning('zero alerts, watchdog is not working for cluster %s' % cluster_name)
+                logging.warning('zero alerts, watchdog is not working for cluster %s', cluster_name)
                 continue
 
             # filter out low severity ('none', 'info') and speculative alerts (state not 'firing')
@@ -196,7 +206,7 @@ class ClusterController(ControllerBase):
 
             if len(real_alerts) > 0:
                 json_data = []
-                logging.info('found %d alerts for cluster %s' % (len(real_alerts), cluster_name))
+                logging.info('found %d alerts for cluster %s', len(real_alerts), cluster_name)
 
                 # add real alerts to post data
                 for alert in real_alerts:
@@ -229,4 +239,4 @@ class ClusterController(ControllerBase):
                     json_data=None)
 
             if not res.ok:
-                logging.warning('unable to update alerts in api, code/reason: %s/%s' % (res.status_code, res.reason))
+                logging.warning('unable to update alerts in api, code/reason: %s/%s', res.status_code, res.reason)

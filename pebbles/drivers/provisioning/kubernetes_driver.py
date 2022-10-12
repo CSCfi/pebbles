@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 import time
 from enum import Enum, unique
@@ -74,10 +75,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         self.ingress_app_domain = cluster_config.get('appDomain', 'localhost')
         self.endpoint_protocol = cluster_config.get('endpointProtocol', 'http')
         self._namespace = None
-
-        # this is implemented in subclass
-        self.kubernetes_api_client = self.create_kube_client()
-        self.dynamic_client = DynamicClient(self.kubernetes_api_client)
+        self.kubernetes_api_client = None
+        self.dynamic_client = None
 
     def get_application_session_hostname(self, application_session):
         return self.ingress_app_domain
@@ -89,6 +88,20 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         # implement this in subclass if you need to override simple default behaviour
         self.logger.debug('returning static namespace for application_session %s' % application_session.get('name'))
         return self._namespace
+
+    def connect(self):
+        # create_kube_client() is implemented by subclasses
+        self.kubernetes_api_client = self.create_kube_client()
+
+        self.test_connection()
+
+        # create dynamic client for actual use - this requires a working connection
+        self.dynamic_client = DynamicClient(self.kubernetes_api_client)
+
+    def test_connection(self):
+        logging.debug('testing connection to Kubernetes API')
+        api = kubernetes.client.CoreV1Api(self.kubernetes_api_client)
+        api.list_component_status(_request_timeout=2)
 
     def ensure_namespace(self, namespace):
         api = self.dynamic_client.resources.get(api_version='v1', kind='Namespace')
@@ -605,6 +618,12 @@ class OpenShiftLocalDriver(KubernetesLocalDriver):
 
     def get_application_session_path(self, application_session):
         return ''
+
+    # override parent check that needs admin privileges
+    def test_connection(self):
+        logging.debug('testing connection to OpenShift API')
+        api = kubernetes.client.CoreV1Api(self.kubernetes_api_client)
+        api.get_api_resources(_request_timeout=2)
 
 
 class OpenShiftRemoteDriver(OpenShiftLocalDriver):

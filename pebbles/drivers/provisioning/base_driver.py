@@ -20,7 +20,7 @@ class ProvisioningDriverBase(object):
         self.logger = logger
         self.config = config
         self.cluster_config = cluster_config
-        self.logger.info('driver for cluster %s created' % cluster_config.get('name'))
+        self.logger.info('driver for cluster "%s" created' % cluster_config.get('name'))
 
     def get_pb_client(self, token):
         pbclient = PBClient(token, self.config['INTERNAL_API_BASE_URL'], ssl_verify=False)
