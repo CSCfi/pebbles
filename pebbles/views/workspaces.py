@@ -31,6 +31,7 @@ workspace_fields_admin = {
     'application_quota': fields.Integer,
     'memory_limit_gib': fields.Integer,
     'user_association_type': fields.String(default='admin'),
+    'config': fields.Raw,
 }
 
 workspace_fields_owner = {
@@ -148,6 +149,9 @@ class WorkspaceList(restful.Resource):
 
         # If users can later select the clusters, then this should be taken from the form and verified
         workspace.cluster = app.config['DEFAULT_CLUSTER']
+
+        # By default, run sessions on nodes for all users
+        workspace.config = dict(scheduler_tolerations=['role=user'])
 
         db.session.add(workspace)
         db.session.commit()

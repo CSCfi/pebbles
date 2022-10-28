@@ -387,6 +387,12 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             )
             application_session_spec['args'] = args.split()
 
+        # add custom tolerations
+        toleration_spec = deployment_dict['spec']['template']['spec']['tolerations']
+        for toleration in provisioning_config.get('scheduler_tolerations', []):
+            k, v = toleration.split('=')
+            toleration_spec.append(dict(key=k, value=v, effect='NoSchedule'))
+
         deployment_dict = self.customize_deployment_dict(deployment_dict)
 
         self.logger.debug('creating deployment\n%s' % yaml.safe_dump(deployment_dict))

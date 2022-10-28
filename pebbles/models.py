@@ -307,6 +307,8 @@ class Workspace(db.Model):
                                         cascade="all, delete-orphan")
     application_quota = db.Column(db.Integer, default=10)
     memory_limit_gib = db.Column(db.Integer, default=50)
+    _config = db.Column('config', db.Text)
+
     applications = db.relationship('Application', backref='workspace', lazy='dynamic')
 
     def __init__(self, name, description='', cluster=None, memory_limit_gib=50):
@@ -369,6 +371,14 @@ class Workspace(db.Model):
     def has_expired(self):
         # Only compare if expiry_ts has been set (skip zero/None)
         return self.expiry_ts and self.expiry_ts < time.time()
+
+    @hybrid_property
+    def config(self):
+        return load_column(self._config)
+
+    @config.setter
+    def config(self, value):
+        self._config = json.dumps(value)
 
 
 class Message(db.Model):

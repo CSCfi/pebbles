@@ -13,11 +13,8 @@ spec:
     spec:
       # no default service account token for the pod
       automountServiceAccountToken: false
-      # tolerate user role node taint
-      tolerations:
-        - key: "role"
-          value: "user"
-          effect: "NoSchedule"
+      # tolerations are set by driver
+      tolerations: [ ]
       initContainers:
         - name: autodownload
           image: "{{image}}"

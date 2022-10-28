@@ -134,6 +134,8 @@ def get_provisioning_config(application):
     else:
         custom_config['enable_shared_folder'] = True
 
+    provisioning_config['scheduler_tolerations'] = application.workspace.config.get('scheduler_tolerations', [])
+
     provisioning_config['custom_config'] = custom_config
 
     # assign cluster from workspace
