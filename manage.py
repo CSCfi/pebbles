@@ -42,9 +42,9 @@ def test(failfast=False, pattern='test*.py', verbosity=1):
     tests = unittest.TestLoader().discover('pebbles.tests', pattern=pattern)
     res = unittest.TextTestRunner(verbosity=verb_level, failfast=failfast).run(tests)
     if res.wasSuccessful():
-        return 0
+        exit(0)
     else:
-        return 1
+        exit(1)
 
 
 @cli.command('selenium')
@@ -58,9 +58,9 @@ def selenium(failfast=False, pattern='selenium_test*.py', verbosity=1):
     tests = unittest.TestLoader().discover('pebbles.tests', pattern=pattern)
     res = unittest.TextTestRunner(verbosity=verb_level, failfast=failfast).run(tests)
     if res.wasSuccessful():
-        return 0
+        exit(0)
     else:
-        return 1
+        exit(1)
 
 
 @cli.command('coverage')
