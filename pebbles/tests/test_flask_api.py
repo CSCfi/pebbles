@@ -2508,7 +2508,7 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/workspaces/%s/accounting' % self.known_workspace_id)
         self.assertStatus(response, 403)
 
-        # Authenticated Workspace Owner , who does not own the workspace
+        # Authenticated Workspace Owner, who does not own the workspace
         response = self.make_authenticated_workspace_owner_request(
             method='GET',
             path='/api/v1/workspaces/%s/accounting' % self.known_workspace_id_2,
@@ -2532,6 +2532,51 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assertStatus(response, 200)
         self.assertEqual(response.json['gib_hours'], 28)
+
+    def test_workspace_memory_limit_gib(self):
+        # Anonymous
+        response = self.make_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/memory_limit_gib' % self.known_workspace_id,
+            data=json.dumps(dict(new_limit=25)),
+        )
+        self.assert_401(response)
+
+        # Authenticated User, not a manager
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/memory_limit_gib' % self.known_workspace_id,
+            data=json.dumps(dict(new_limit=25)),
+        )
+        self.assertStatus(response, 403)
+
+        # Authenticated workspace owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/memory_limit_gib' % self.known_workspace_id,
+            data=json.dumps(dict(new_limit=25)),
+        )
+        self.assertStatus(response, 403)
+
+        # Admin, legal request
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/memory_limit_gib' % self.known_workspace_id,
+            data=json.dumps(dict(new_limit=25)),
+        )
+        self.assertStatus(response, 200)
+
+        # Admin, illegal request. Make sure the limit is not modified
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/memory_limit_gib' % self.known_workspace_id,
+            data=json.dumps(dict(new_limit=-1)),
+        )
+        self.assertStatus(response, 422)
+        res = self.make_authenticated_admin_request(
+            path='/api/v1/workspaces/%s' % self.known_workspace_id,
+        )
+        self.assertEquals(25, res.json.get('memory_limit_gib'))
 
     def test_get_tasks_access(self):
         response = self.make_request(

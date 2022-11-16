@@ -595,3 +595,30 @@ class WorkspaceAccounting(restful.Resource):
         session_accounting['gib_hours'] = total_gib_hours
 
         return session_accounting
+
+
+class WorkspaceMemoryLimitGiB(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('new_limit', type=int)
+
+    @auth.login_required
+    @requires_admin
+    def put(self, workspace_id):
+        args = self.parser.parse_args()
+
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+
+        if not workspace:
+            logging.warning('workspace %s does not exist', workspace_id)
+            return dict(error='The workspace does not exist'), 404
+
+        new_limit = args.new_limit
+        if new_limit < 0:
+            logging.warning('rejecting illegal memory_limit_gib "%s" for workspace %s', new_limit, workspace_id)
+            return dict(error='illegal memory limit %s' % new_limit), 422
+
+        workspace.memory_limit_gib = new_limit
+
+        db.session.commit()
+
+        return new_limit
