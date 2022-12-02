@@ -38,12 +38,31 @@ def oauth2_login():
         logging.warning('Login aborted: no auth-config available')
         abort(500)
 
-    token = request.headers['Authorization'].split(' ')[1]
+    # idtoken (implicit flow)
+    id_token = request.headers['Authorization'].split(' ')[1]
+
+    # access_token (hybrid and authorized flow)
+    access_token = request.headers.get('X-Forwarded-Access-Token')
+    if not access_token:
+        logging.warning('Did not receive header X-Forwarded-Access-Token. Headers: %s', request.headers)
+        abort(500)
+
+    # get provider's well known config
+    well_known_config = None
+    try:
+        well_known_config = requests.get(oauth2_config['openidConfigurationUrl']).json()
+    except requests.exceptions.RequestException as e:
+        logging.warning('Login aborted: cannot download oauth2 configuration: %s', e)
+        abort(500)
+
+    if not well_known_config:
+        logging.warning('Login aborted: provider well-known config could not be fetched')
+        abort(500)
 
     # get jwk from openid-configuration url
     oidc_jwk = None
     try:
-        oidc_key_endpoint = requests.get(oauth2_config['openidConfigurationUrl']).json()['jwks_uri']
+        oidc_key_endpoint = well_known_config['jwks_uri']
         oidc_jwk = requests.get(oidc_key_endpoint).json()['keys'][0]
     except requests.exceptions.RequestException as e:
         logging.warning('Login aborted: cannot download oauth2 configuration: %s', e)
@@ -53,16 +72,34 @@ def oauth2_login():
         logging.warning('Login aborted: JWK could not be fetched')
         abort(500)
 
+    userinfo = None
+    try:
+        oidc_userinfo_endpoint = well_known_config['userinfo_endpoint']
+        userinfo = requests.get(
+            oidc_userinfo_endpoint,
+            headers={'Authorization': 'Bearer %s' % access_token}
+        ).json()
+        logging.debug('got userinfo %s', userinfo)
+    except requests.exceptions.RequestException as e:
+        logging.warning('Login aborted: cannot download userinfo: %s', e)
+        abort(500)
+
+    if not userinfo:
+        logging.warning('Login aborted: could not fetch userinfo')
+        abort(500)
+
+    # verify idToken with the identity server's public key
     try:
         options = {'verify_aud': False, 'verify_at_hash': False}
-        claims = jwt.decode(token, oidc_jwk, algorithms=['RS256'], options=options)
+        claims = jwt.decode(id_token, oidc_jwk, algorithms=['RS256'], options=options)
+        logging.debug('got claims: %s', claims)
     except Exception as e:
-        logging.warning('Login aborted: JWT error: %s', e)
+        logging.error('Login aborted: JWT error: %s', e)
         abort(401)
 
     # check that we have email
-    if 'email' in claims:
-        email_id = claims['email']
+    if 'email' in userinfo:
+        email_id = userinfo['email']
     else:
         logging.warning('Login aborted: No valid email received')
         abort(422)
@@ -80,21 +117,21 @@ def oauth2_login():
 
     # check that the account has not been locked
     if selected_method.get('activateNsAccountLock', False) \
-            and 'nsAccountLock' in claims and claims['nsAccountLock'] == 'true':
+            and 'nsAccountLock' in userinfo and userinfo['nsAccountLock'] == 'true':
         logging.warning('Login aborted: Account is locked, email: "%s"', email_id)
         abort(422)
 
-    # find the claim that is mapped to ext_id
+    # find the attribute that is mapped to ext_id
     user_id = None
     for id_attribute in selected_method['idClaim'].split():
         id_attribute = id_attribute.strip()
-        user_id = claims.get(id_attribute)
+        user_id = userinfo.get(id_attribute)
         # take the first that matches
         if user_id:
             break
 
     if not user_id:
-        logging.warning('Login aborted: No attribute(s) "%s" for user_id received, email "%s, method "%s"',
+        logging.warning('Login aborted: No attribute(s) "%s" for user_id received, email "%s", method "%s"',
                         selected_method['idClaim'], email_id, selected_method['acr'])
         return "ERROR: We did not receive user identity from the login provider. " \
                "If this happens again, please contact support.", 422
@@ -153,11 +190,12 @@ def oauth2_login():
 
     logging.info('new oauth2 session for user "%s"', user.id)
 
-    token = user.generate_auth_token(app.config['SECRET_KEY'])
+    # create a session token
+    session_token = user.generate_auth_token(app.config['SECRET_KEY'])
 
     return render_template(
         'login.html',
-        token=token,
+        token=session_token,
         username=ext_id,
         is_admin=user.is_admin,
         is_workspace_owner=user.is_workspace_owner,
