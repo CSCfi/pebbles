@@ -7,7 +7,7 @@ import yaml
 import pebbles
 from pebbles.models import (
     User, Workspace, WorkspaceUserAssociation, ApplicationTemplate, Application,
-    Message, ApplicationSession, ApplicationSessionLog)
+    Message, ServiceAnnouncement, ApplicationSession, ApplicationSessionLog)
 from pebbles.tests.base import db
 
 from datetime import datetime
@@ -298,6 +298,29 @@ def primary_test_setup(namespace):
     m2 = Message("Second message", "Second message message")
     namespace.known_message2_id = m2.id
     db.session.add(m2)
+
+    an1 = ServiceAnnouncement("1st Service announcement", "1st Service announcement", 1,
+                              "welcome", True, True)
+    namespace.known_announcement_id = an1.id
+    db.session.add(an1)
+
+    an2 = ServiceAnnouncement("2nd Service announcement", "2nd Service announcement Service announcement", 2,
+                              "login", False, True)
+    namespace.known_announcement2_id = an2.id
+    db.session.add(an2)
+
+    an3 = ServiceAnnouncement("3rd Service announcement",
+                              "3rd Service announcement Service announcement Service announcement", 3,
+                              "catalog, my-workspace", True, False)
+    namespace.known_announcement3_id = an3.id
+    db.session.add(an3)
+
+    an4 = ServiceAnnouncement("4th Service announcement",
+                              "4th Service announcement Service announcement Service announcement", 4,
+                              "workspace-owner", False, False)
+
+    namespace.known_announcement4_id = an4.id
+    db.session.add(an4)
 
     i1 = ApplicationSession(
         Application.query.filter_by(id=a2.id).first(),

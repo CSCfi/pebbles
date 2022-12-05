@@ -26,6 +26,7 @@ MAX_NAME_LENGTH = 128
 MAX_VARIABLE_KEY_LENGTH = 512
 MAX_VARIABLE_VALUE_LENGTH = 512
 MAX_MESSAGE_SUBJECT_LENGTH = 255
+MAX_SERVICE_ANNOUNCEMENT_SUBJECT_LENGTH = 255
 
 JWS_SIGNING_ALG = 'HS512'
 
@@ -401,6 +402,28 @@ class Message(db.Model):
         self.broadcasted = datetime.datetime.utcnow()
         self.subject = subject
         self.message = message
+
+
+class ServiceAnnouncement(db.Model):
+    __tablename__ = 'service_announcements'
+
+    id = db.Column(db.String(32), primary_key=True)
+    subject = db.Column(db.String(MAX_SERVICE_ANNOUNCEMENT_SUBJECT_LENGTH))
+    content = db.Column(db.Text)
+    level = db.Column(db.Integer, default=0)
+    targets = db.Column(db.Text)
+    is_enabled = db.Column(db.Boolean, default=False)
+    is_public = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    def __init__(self, subject, content, level, targets, is_enabled, is_public):
+        self.id = uuid.uuid4().hex
+        self.subject = subject
+        self.content = content
+        self.level = level
+        self.targets = targets
+        self.is_enabled = is_enabled
+        self.is_public = is_public
 
 
 class ApplicationTemplate(db.Model):

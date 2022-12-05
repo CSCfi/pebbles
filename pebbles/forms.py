@@ -48,6 +48,15 @@ class MessageForm(ModelForm):
     message = StringField('message', validators=[DataRequired()])
 
 
+class ServiceAnnouncementForm(ModelForm):
+    subject = StringField('subject', validators=[DataRequired()])
+    content = StringField('content', validators=[DataRequired()])
+    level = IntegerField('level', default=1)
+    targets = StringField('targets', validators=[DataRequired()])
+    is_enabled = BooleanField('is_enabled', default=False)
+    is_public = BooleanField('is_public', default=False)
+
+
 class ApplicationTemplateForm(ModelForm):
     name = StringField('name', validators=[DataRequired(), Length(max=MAX_NAME_LENGTH)])
     base_config = StringField('base_config', validators=[DataRequired()])

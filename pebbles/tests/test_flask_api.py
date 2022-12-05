@@ -2081,6 +2081,131 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
         self.assertEqual(response.json['subject'], subject_topic)
 
+    def test_get_service_announcements(self):
+        # anonymous
+        response = self.make_request(
+            path='/api/v1/service_announcements'
+        )
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 1)
+
+        # user
+        response = self.make_authenticated_user_request(
+            path='/api/v1/service_announcements'
+        )
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 1)
+
+        # workspace-owner
+        response = self.make_authenticated_workspace_owner_request(
+            path='/api/v1/service_announcements'
+        )
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 1)
+
+        # admin
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/service_announcements'
+        )
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 1)
+
+    def test_update_service_announcement(self):
+        new_subject = 'Service AnnouncementABC'
+
+        # workspace-owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/service_announcements/%s' % self.known_announcement_id,
+            data=json.dumps({'subject': new_subject, 'content': 'XXX', 'level': 3,
+                             'targets': 'applications-header', 'is_enabled': True, 'is_public': True}))
+        self.assert_403(response)
+
+        # admin
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/service_announcements/%s' % self.known_announcement_id,
+            data=json.dumps({'subject': new_subject, 'content': 'XXX', 'level': 3,
+                             'targets': 'applications-header', 'is_enabled': True, 'is_public': True}))
+        self.assert_200(response)
+        self.assertEqual(response.json['subject'], new_subject)
+
+    def test_delete_service__announcement(self):
+
+        # workspace-owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='DELETE',
+            path='/api/v1/service_announcements/%s' % self.known_announcement_id
+        )
+        self.assert_403(response)
+
+        response = self.make_request(
+            path='/api/v1/service_announcements'
+        )
+        self.assert_200(response)
+        filtered = list(filter(lambda x: x['id'] == self.known_announcement_id, response.json))
+        self.assertEqual(filtered[0]['id'], self.known_announcement_id)
+
+        # admin
+        response = self.make_authenticated_admin_request(
+            method='DELETE',
+            path='/api/v1/service_announcements/%s' % self.known_announcement_id
+        )
+        self.assert_200(response)
+
+        response = self.make_request(
+            path='/api/v1/service_announcements'
+        )
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 0)
+
+    def test_post_service__announcement(self):
+        data = {
+            'subject': 'test subject',
+            'content': 'test announcement',
+            'level': 5,
+            'targets': 'welcome-header',
+            'is_enabled': True,
+            'is_public': True
+        }
+
+        # anonymous
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/service_announcements',
+            data=json.dumps(data)
+        )
+        self.assert_401(response)
+
+        # user
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/service_announcements',
+            data=json.dumps(data)
+        )
+        self.assert_403(response)
+
+        # workspace-owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='POST',
+            path='/api/v1/service_announcements',
+            data=json.dumps(data)
+        )
+        self.assert_403(response)
+
+        # admin
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/service_announcements',
+            data=json.dumps(data)
+        )
+        self.assert_200(response)
+        response = self.make_authenticated_user_request(
+            path='/api/v1/service_announcements'
+        )
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 2)
+
     def test_headers(self):
         """Test that we set headers for content caching and security"""
         response = self.make_request(path='/api/v1/config')
