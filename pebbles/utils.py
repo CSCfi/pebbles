@@ -106,18 +106,6 @@ def get_provisioning_config(application):
     if app_config.get('enable_user_work_folder'):
         custom_config['enable_user_work_folder'] = app_config.get('enable_user_work_folder')
 
-    # if 'user_work_folder_size' not specified k8s driver will default to '1Gi'
-    if app_config.get('user_work_folder_size'):
-        try:
-            if int(app_config.get('user_work_folder_size')) <= 5:
-                custom_config['user_work_folder_size'] = str(app_config.get('user_work_folder_size')) + 'Gi'
-            else:
-                custom_config['user_work_folder_size'] = '1Gi'
-        except Exception as e:
-            logging.warning(e)
-            logging.warning("setting up default 1Gi for my-work volume")
-            custom_config['user_work_folder_size'] = '1Gi'
-
     # customize image url
     if app_config.get('image_url'):
         provisioning_config['image'] = app_config.get('image_url')
@@ -134,12 +122,21 @@ def get_provisioning_config(application):
     else:
         custom_config['enable_shared_folder'] = True
 
+    # global settings from workspace
     provisioning_config['scheduler_tolerations'] = application.workspace.config.get('scheduler_tolerations', [])
-
-    provisioning_config['custom_config'] = custom_config
+    try:
+        provisioning_config['user_work_folder_size_gib'] = int(application.workspace.config.get(
+            'user_work_folder_size_gib',
+            app_config.get('user_work_folder_size', 1)
+        ))
+    except ValueError:
+        logging.warning('invalid user work folder size in application %s', application.id)
+        provisioning_config['user_work_folder_size_gib'] = 1
 
     # assign cluster from workspace
     provisioning_config['cluster'] = application.workspace.cluster
+
+    provisioning_config['custom_config'] = custom_config
 
     return provisioning_config
 
