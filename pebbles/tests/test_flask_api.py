@@ -2533,6 +2533,48 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertStatus(response, 200)
         self.assertEqual(response.json['gib_hours'], 28)
 
+    def test_workspace_user_folder_size(self):
+        # Anonymous
+        response = self.make_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/user_work_folder_size_gib' % self.known_workspace_id,
+            data=json.dumps(dict(new_size=25)),
+        )
+        self.assert_401(response)
+
+        # Authenticated User, not a manager
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/user_work_folder_size_gib' % self.known_workspace_id,
+            data=json.dumps(dict(new_size=25)),
+        )
+        self.assertStatus(response, 403)
+
+        # Authenticated workspace owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/user_work_folder_size_gib' % self.known_workspace_id,
+            data=json.dumps(dict(new_size=25)),
+        )
+        self.assertStatus(response, 403)
+
+        # Admin, legal request
+        response_modify_size = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/user_work_folder_size_gib' % self.known_workspace_id,
+            data=json.dumps(dict(new_size=1276)),
+        )
+        self.assertStatus(response_modify_size, 200)
+
+        # Test user folder size is returned right
+        response = self.make_authenticated_admin_request(
+            method='GET',
+            path='/api/v1/workspaces/%s' % self.known_workspace_id,
+            data=json.dumps({})
+        )
+        self.assertStatus(response, 200)
+        self.assertEqual(response.json['config']['user_work_folder_size_gib'], 1276)
+
     def test_workspace_memory_limit_gib(self):
         # Anonymous
         response = self.make_request(

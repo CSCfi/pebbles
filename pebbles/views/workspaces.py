@@ -622,3 +622,38 @@ class WorkspaceMemoryLimitGiB(restful.Resource):
         db.session.commit()
 
         return new_limit
+
+
+class WorkspaceModifyUserFolderSize(restful.Resource):
+    # Admin can modify user my_work folder size
+    parser = reqparse.RequestParser()
+    parser.add_argument('new_size', type=int)
+
+    @auth.login_required
+    @requires_admin
+    def put(self, workspace_id):
+        args = self.parser.parse_args()
+
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+
+        if not workspace:
+            logging.warning('workspace %s does not exist', workspace_id)
+            return dict(error='The workspace does not exist'), 404
+
+        new_size = args.new_size
+
+        if new_size < 0:
+            logging.warning('rejecting illegal user_work_folder_size "%s" for workspace %s', new_size, workspace_id)
+            return dict(error='illegal work folder size %s' % new_size), 422
+
+        workspace_config = workspace.config
+        # Get the config first out, assign value locally and assign it back.
+        # This is because workspace.config is a hybrid field with a setter and getter
+
+        workspace_config['user_work_folder_size_gib'] = new_size
+
+        workspace.config = workspace_config
+
+        db.session.commit()
+
+        return new_size
