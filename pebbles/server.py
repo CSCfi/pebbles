@@ -11,7 +11,6 @@ from pebbles.views.application_templates import ApplicationTemplateList, Applica
 from pebbles.views.application_templates import application_templates
 from pebbles.views.applications import applications, ApplicationList, ApplicationView, ApplicationCopy
 from pebbles.views.helps import helps, HelpsList
-from pebbles.views.import_export import import_export, ImportExportApplicationTemplates, ImportExportApplications
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.messages import MessageList, MessageView
 from pebbles.views.sessions import sessions, SessionView
@@ -65,8 +64,6 @@ api.add_resource(ClusterList, api_root + '/clusters')
 api.add_resource(PublicConfigList, api_root + '/config')
 api.add_resource(LockList, api_root + '/locks')
 api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
-api.add_resource(ImportExportApplicationTemplates, api_root + '/import_export/application_templates')
-api.add_resource(ImportExportApplications, api_root + '/import_export/applications')
 api.add_resource(ApplicationCategoryList, api_root + '/application_categories')
 api.add_resource(HelpsList, api_root + '/help')
 api.add_resource(AlertList, api_root + '/alerts')
@@ -90,7 +87,6 @@ app.register_blueprint(application_sessions)
 app.register_blueprint(sessions)
 app.register_blueprint(variables)
 app.register_blueprint(locks)
-app.register_blueprint(import_export)
 app.register_blueprint(helps)
 app.register_blueprint(alerts)
 
