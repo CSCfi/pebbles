@@ -155,7 +155,7 @@ class OpenShiftTemplateDriver(OpenShiftRemoteDriver):
     def render_template_objects(self, namespace, application_session):
         """ Render the template for the application session. This is done on OpenShift server.
         """
-        application_config = application_session['application']['full_config']
+        application_config = application_session['provisioning_config']
 
         template_url = application_config['os_template']
         if not template_url:

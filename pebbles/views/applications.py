@@ -29,7 +29,6 @@ application_fields_admin = {
     'application_type': fields.String,
     'is_enabled': fields.Boolean,
     'config': fields.Raw,
-    'full_config': fields.Raw,
     'workspace_id': fields.String,
     'workspace_name': fields.String,
     'workspace_pseudonym': fields.String,
@@ -54,7 +53,6 @@ application_fields_manager = {
     'application_type': fields.String,
     'is_enabled': fields.Boolean,
     'config': fields.Raw,
-    'full_config': fields.Raw,
     'workspace_id': fields.String,
     'workspace_name': fields.String,
     'info': {

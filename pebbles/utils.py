@@ -78,7 +78,7 @@ def get_provisioning_config(application):
     # set memory_limit from memory_gib
     provisioning_config['memory_limit'] = '%dMi' % round(float(provisioning_config['memory_gib']) * 1024)
 
-    # here we pick configuration options from application to full_config that is used in provisioning
+    # here we pick configuration options from app config to custom_config that is used in provisioning
     custom_config = {}
     # common autodownload options
     if app_config.get('download_method'):
@@ -143,13 +143,13 @@ def get_provisioning_config(application):
 
 def get_application_fields_from_config(application, field_name):
     """Hybrid fields for Application model which need processing"""
-    full_config = get_provisioning_config(application)
+    provisioning_config = get_provisioning_config(application)
 
     if field_name == 'cost_multiplier':
         cost_multiplier = 1.0  # Default value
-        if 'cost_multiplier' in full_config:
+        if 'cost_multiplier' in provisioning_config:
             try:
-                cost_multiplier = float(full_config['cost_multiplier'])
+                cost_multiplier = float(provisioning_config['cost_multiplier'])
             except ValueError:
                 pass
         return cost_multiplier
