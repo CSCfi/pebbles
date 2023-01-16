@@ -285,33 +285,51 @@ class ApplicationView(restful.Resource):
 
 
 class ApplicationCopy(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('workspace_id', type=str, default=None, required=False, location='args')
+
     @auth.login_required
     @requires_workspace_manager_or_admin
     def put(self, application_id):
         user = g.user
         application = Application.query.get_or_404(application_id)
+        args = self.parser.parse_args()
 
-        # check workspace quota
-        workspace = application.workspace
-        application_count = workspace.applications.filter_by(status='active').count()
-        if not (user.is_admin or application_count < workspace.application_quota):
-            logging.warning("Maximum number of applications in workspace reached, ws '%s'", workspace.id)
-            return dict(
-                message="You have reached the maximum number of applications for this workspace."
-                        "Contact support if you need more."
-            ), 422
+        # Specific target workspace or just cloning in current one?
+        if args.get('workspace_id', None):
+            target_workspace = Workspace.query.get(args.get('workspace_id'))
+            # check that user has manager rights in the target workspace
+            if not (user.is_admin or is_workspace_manager(user, target_workspace)):
+                logging.warning(
+                    'ApplicationCopy: user {} is not manager in workspace {}'.format(user.id, target_workspace.id))
+                abort(403)
+        else:
+            target_workspace = application.workspace
 
+        # check rights to the source workspace
+        if not (user.is_admin or is_workspace_manager(user, application.workspace)):
+            logging.warning(
+                'ApplicationCopy: user {} is not manager in workspace {}'.format(user.id, target_workspace.id))
+            abort(403)
+
+        # check status
         if not application.status == Application.STATUS_ACTIVE:
             abort(422)
-        if not user.is_admin and not is_workspace_manager(user, application.workspace):
-            logging.warning(
-                "user is {} not workspace manager for application {}".format(user.id, application.workspace.id))
-            abort(403)
+
+        # check workspace quota
+        application_count = target_workspace.applications.filter_by(status='active').count()
+        if not (user.is_admin or application_count < target_workspace.application_quota):
+            logging.warning('Maximum number of applications in workspace reached, ws "%s"', target_workspace.id)
+
+            return dict(message='You have reached the maximum number of applications for this workspace.'
+                                'Contact support if you need more.'), 422
 
         db.session.expunge(application)
         make_transient(application)
         application.id = uuid.uuid4().hex
-        application.name = format("%s - %s" % (application.name, 'Copy'))
+        application.workspace_id = target_workspace.id
+        application.name = format('%s - %s' % (application.name, 'Copy'))
+        application.is_enabled = False
         db.session.add(application)
         db.session.commit()
 

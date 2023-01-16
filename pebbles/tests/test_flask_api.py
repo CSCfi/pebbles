@@ -1564,6 +1564,49 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/applications/%s/copy' % self.known_application_id)
         self.assert_200(response)
 
+    def test_copy_applications_to_another_workspace(self):
+
+        # Authenticated User
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/applications/%s/copy?workspace_id=%s' %
+                 (self.known_application_id, self.known_workspace_id))
+        self.assert_403(response)
+
+        # Authenticated Workspace Owner to same workspace
+        response = self.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/applications/%s/copy?workspace_id=%s' %
+                 (self.known_application_id, self.known_workspace_id))
+        self.assert_200(response)
+
+        # Authenticated Workspace Owner to non-managed workspace
+        response = self.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/applications/%s/copy?workspace_id=%s' %
+                 (self.known_application_id, self.known_workspace_id_2))
+        self.assert_403(response)
+
+        # Authenticated Workspace Manager to another managed workspace
+        response = self.make_authenticated_workspace_owner2_request(
+            method='PUT',
+            path='/api/v1/applications/%s/copy?workspace_id=%s' %
+                 (self.known_application_id, self.known_workspace_id_2))
+        self.assert_200(response)
+
+        # Authenticated user to another workspace with manager role (should fail)
+        response = self.make_authenticated_workspace_owner2_request(
+            method='PUT',
+            path='/api/v1/applications/%s/copy?workspace_id=%s' %
+                 (self.known_application_public, self.known_workspace_id_2))
+        self.assert_403(response)
+
+        # Admin
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/applications/%s/copy?workspace_id=%s' % (self.known_application_id, self.known_workspace_id))
+        self.assert_200(response)
+
     def test_anonymous_create_application_session(self):
         data = {'application_id': self.known_application_id}
         response = self.make_request(
