@@ -455,6 +455,9 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                     rewrite ^{{path}}/(.*)$ /$1 break;
                     proxy_redirect http://localhost:{{port}}/ {{proto}}://{{host}}{{path}}/;
                     proxy_redirect https://localhost:{{port}}/ {{proto}}://{{host}}{{path}}/;
+
+                    # raise size limit for uploads
+                    client_max_body_size 5G;
                   }
                 }
             """
