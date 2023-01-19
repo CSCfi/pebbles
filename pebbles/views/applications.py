@@ -4,7 +4,7 @@ import uuid
 
 import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
-from flask import abort, g
+from flask import abort, g, request
 from flask_restful import fields, reqparse
 from sqlalchemy.orm.session import make_transient
 
@@ -12,7 +12,8 @@ from pebbles import rules
 from pebbles.forms import ApplicationForm
 from pebbles.models import db, Application, ApplicationTemplate, Workspace, ApplicationSession
 from pebbles.rules import apply_rules_applications
-from pebbles.utils import requires_workspace_owner_or_admin, requires_admin, check_attribute_limits
+from pebbles.utils import requires_workspace_owner_or_admin, requires_admin, check_config_against_attribute_limits, \
+    check_attribute_limit_format
 from pebbles.views.commons import auth, requires_workspace_manager_or_admin, is_workspace_manager
 
 applications = FlaskBlueprint('applications', __name__)
@@ -29,6 +30,7 @@ application_fields_admin = {
     'application_type': fields.String,
     'is_enabled': fields.Boolean,
     'config': fields.Raw,
+    'attribute_limits': fields.Raw,
     'workspace_id': fields.String,
     'workspace_name': fields.String,
     'workspace_pseudonym': fields.String,
@@ -161,7 +163,7 @@ class ApplicationList(restful.Resource):
         application.config = form.config.data
         application.is_enabled = form.is_enabled.data
 
-        error = check_attribute_limits(application.attribute_limits, application.config)
+        error = check_config_against_attribute_limits(application.config, application.attribute_limits)
         if error:
             return 'Application config failed attribute limit check: %s' % error, 422
         application.maximum_lifetime = application.config.get(
@@ -227,7 +229,7 @@ class ApplicationView(restful.Resource):
         else:
             application.is_enabled = False
 
-        error = check_attribute_limits(application.attribute_limits, application.config)
+        error = check_config_against_attribute_limits(application.config, application.attribute_limits)
         if error:
             return 'Application config failed attribute limit check: %s' % error, 422
         application.maximum_lifetime = application.config.get(
@@ -282,6 +284,38 @@ class ApplicationView(restful.Resource):
             db.session.commit()
         else:
             abort(422)
+
+
+class ApplicationAttributeLimits(restful.Resource):
+    @auth.login_required
+    @requires_admin
+    def put(self, application_id):
+        user = g.user
+        application = apply_rules_applications(user, dict(application_id=application_id)).first()
+
+        if not application:
+            logging.warning('application %s does not exist', application_id)
+            return 'The application does not exist', 404
+
+        attribute_limits = request.get_json().get('attribute_limits', None)
+        if not attribute_limits:
+            return 'request is missing attribute_limits', 422
+        if not type(attribute_limits) == list:
+            return 'attribute_limits needs to be a list', 422
+
+        # check that attribute limits are well-formed
+        error = check_attribute_limit_format(attribute_limits)
+        if error:
+            return 'Invalid attribute limit format, error: %s' % error, 422
+
+        # check that current config is valid with the new limits
+        error = check_config_against_attribute_limits(application.config, attribute_limits)
+        if error:
+            return 'Invalid attribute limits, error: %s' % error, 422
+
+        application.attribute_limits = attribute_limits
+        db.session.commit()
+        return application.attribute_limits
 
 
 class ApplicationCopy(restful.Resource):

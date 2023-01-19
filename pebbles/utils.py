@@ -45,16 +45,35 @@ def memoize(func):
     return inner
 
 
-def check_attribute_limits(limits, config):
+def check_attribute_limit_format(limits):
+    """Check attribute limit format. Return None if AOK, error string otherwise"""
+    for limit in limits:
+        name = limit.get('name', None)
+        min = limit.get('min', None)
+        max = limit.get('max', None)
+        if name is None or min is None or max is None:
+            return 'each limit needs to have name, min and max defined'
+        if type(min) not in (int, float):
+            return 'min value for %s is not a number' % name
+        if type(max) not in (int, float):
+            return 'max value for %s is not a number' % name
+        if min > max:
+            return 'min > max for %s' % name
+
+    return None
+
+
+def check_config_against_attribute_limits(config, limits):
     """Check application config against attribute limits. Return None if AOK, error string otherwise"""
     for limit in limits:
         if limit['name'] in config:
             name = limit['name']
             value = config[name]
             if type(value) not in (int, float):
-                return 'value for attribute %s is a number' % name
+                return 'value for attribute %s is not a number' % name
             if value < limit['min'] or value > limit['max']:
-                return 'value %s for attribute %s does not fall within allowed range' % (value, name)
+                return 'value %s for attribute %s does not fall within allowed range %s to %s' % \
+                    (value, name, limit['min'], limit['max'])
 
     return None
 
@@ -66,7 +85,7 @@ def get_provisioning_config(application):
     provisioning_config = application.base_config.copy()
 
     # pick attribute values with a limited range (for lifetime and memory)
-    error = check_attribute_limits(application.attribute_limits, app_config)
+    error = check_config_against_attribute_limits(app_config, application.attribute_limits)
     if error:
         raise ValueError('application %s config check failed: %s ' % (application.id, error))
     for limit in application.attribute_limits:

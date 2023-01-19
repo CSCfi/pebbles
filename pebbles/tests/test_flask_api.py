@@ -1607,6 +1607,67 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/applications/%s/copy?workspace_id=%s' % (self.known_application_id, self.known_workspace_id))
         self.assert_200(response)
 
+    def test_application_attribute_limits(self):
+
+        data = dict(
+            attribute_limits=[
+                dict(name="maximum_lifetime", min=0, max=43200),
+                dict(name="memory_gib", min=0, max=8)
+            ])
+
+        # Authenticated User
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/applications/%s/attribute_limits' % self.known_application_id,
+            data=json.dumps(data)
+        )
+        self.assert_403(response)
+
+        # Authenticated Workspace Owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/applications/%s/attribute_limits' % self.known_application_id,
+            data=json.dumps(data)
+        )
+        self.assert_403(response)
+
+        # Admin, valid request
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/applications/%s/attribute_limits' % self.known_application_id,
+            data=json.dumps(data)
+        )
+        self.assert_200(response)
+
+        # Admin, conflict with existing application config. The application has to be modified first,
+        # otherwise we'd end up with illegal value in application config.
+        data = dict(
+            attribute_limits=[
+                dict(name="maximum_lifetime", min=0, max=1),
+            ])
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/applications/%s/attribute_limits' % self.known_application_id,
+            data=json.dumps(data)
+        )
+        self.assertEqual(422, response.status_code)
+
+        # Admin, invalid format for new attribute limits
+        invalid_data = [
+            dict(attribute_limits=[dict(name="maximum_lifetime", max=43200)]),
+            dict(limits=[dict(name="maximum_lifetime", min=0, max=43200)]),
+            dict(attribute_limits="maximum_lifetime=43200"),
+            dict(attribute_limits=[dict(name="maximum_lifetime", min=10, max=9)]),
+            dict(attribute_limits=[dict(name="maximum_lifetime", min="0", max="10")]),
+        ]
+        for data in invalid_data:
+            response = self.make_authenticated_admin_request(
+                method='PUT',
+                path='/api/v1/applications/%s/attribute_limits' % self.known_application_id,
+                data=json.dumps(data)
+            )
+            self.assertEqual(422, response.status_code)
+
     def test_anonymous_create_application_session(self):
         data = {'application_id': self.known_application_id}
         response = self.make_request(
@@ -2501,7 +2562,7 @@ class FlaskApiTestCase(BaseTestCase):
         res = self.make_authenticated_admin_request(
             path='/api/v1/workspaces/%s' % self.known_workspace_id,
         )
-        self.assertEquals(25, res.json.get('memory_limit_gib'))
+        self.assertEqual(25, res.json.get('memory_limit_gib'))
 
     def test_get_tasks_access(self):
         response = self.make_request(

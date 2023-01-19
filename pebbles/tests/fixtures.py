@@ -194,6 +194,7 @@ def primary_test_setup(namespace):
     a2.workspace_id = ws1.id
     a2.is_enabled = True
     fill_application_from_template(a2, t2)
+    a2.config = dict(maximum_lifetime=3600)
     db.session.add(a2)
     namespace.known_application_id = a2.id
 

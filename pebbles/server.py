@@ -9,7 +9,8 @@ from pebbles.views.application_sessions import application_sessions, Application
 from pebbles.views.application_templates import ApplicationTemplateList, ApplicationTemplateView, \
     ApplicationTemplateCopy
 from pebbles.views.application_templates import application_templates
-from pebbles.views.applications import applications, ApplicationList, ApplicationView, ApplicationCopy
+from pebbles.views.applications import applications, ApplicationList, ApplicationView, ApplicationCopy, \
+    ApplicationAttributeLimits
 from pebbles.views.helps import helps, HelpsList
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.messages import MessageList, MessageView
@@ -54,6 +55,7 @@ api.add_resource(ApplicationTemplateCopy, api_root + '/application_templates/tem
 api.add_resource(ApplicationList, api_root + '/applications')
 api.add_resource(ApplicationView, api_root + '/applications/<string:application_id>')
 api.add_resource(ApplicationCopy, api_root + '/applications/<string:application_id>/copy')
+api.add_resource(ApplicationAttributeLimits, api_root + '/applications/<string:application_id>/attribute_limits')
 api.add_resource(ApplicationSessionList, api_root + '/application_sessions')
 api.add_resource(
     ApplicationSessionView,
