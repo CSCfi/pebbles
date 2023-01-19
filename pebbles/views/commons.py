@@ -6,7 +6,6 @@ from flask_httpauth import HTTPBasicAuth
 from flask_restful import fields
 
 from pebbles.models import db, User, Workspace, WorkspaceUserAssociation
-from pebbles.utils import load_cluster_config, find_driver_class
 
 user_fields = {
     'id': fields.String,
@@ -69,28 +68,6 @@ def create_user(ext_id, password, is_admin=False, email_id=None, expiry_ts=None)
     return user
 
 
-def get_clusters():
-    if 'TEST_MODE' not in current_app.config:
-        cluster_config = load_cluster_config(load_passwords=False)
-    else:
-        # rig unit tests to use dummy data
-        cluster_config = dict(clusters=[
-            dict(name='dummy_cluster_1', driver='KubernetesLocalDriver'),
-            dict(name='dummy_cluster_2', driver='KubernetesLocalDriver'),
-        ])
-
-    cluster_data = []
-    for cluster in cluster_config['clusters']:
-        driver_class = find_driver_class(cluster.get('driver'))
-        if not driver_class:
-            logging.warning('No class for driver %s found', cluster.get('driver'))
-            continue
-        logging.debug('adding cluster %s to cluster_data', cluster['name'])
-        cluster_data.append(dict(name=cluster['name']))
-
-    return cluster_data
-
-
 def update_email(ext_id, email_id=None):
     user = User.query.filter_by(ext_id=ext_id).first()
     if email_id:
@@ -141,12 +118,3 @@ def is_workspace_manager(user, workspace=None):
     if match:
         return True
     return False
-
-
-def match_cluster(cluster_name):
-    clusters = get_clusters()
-    if not clusters:
-        logging.warning('No clusters found')
-    for cluster in clusters:
-        if cluster["name"] == cluster_name:
-            return cluster
