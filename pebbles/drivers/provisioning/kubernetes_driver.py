@@ -116,16 +116,23 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         api = kubernetes.client.CoreV1Api(self.kubernetes_api_client)
         api.list_component_status(_request_timeout=2)
 
-    def ensure_namespace(self, namespace):
+    def namespace_exists(self, namespace):
+        logging.debug('checking if namespace %s exists', namespace)
         api = self.dynamic_client.resources.get(api_version='v1', kind='Namespace')
         try:
             api.get(name=namespace)
-            return
         except ApiException as e:
             # RBAC enabled cluster will give us 403 for a namespace that does not exist as well
-            if e.status not in (403, 404):
-                raise e
-        self.create_namespace(namespace)
+            if e.status in (403, 404):
+                return False
+            else:
+                raise
+
+        return True
+
+    def ensure_namespace(self, namespace):
+        if not self.namespace_exists(namespace):
+            self.create_namespace(namespace)
 
     def create_namespace(self, namespace):
         self.logger.info('creating namespace %s' % namespace)
@@ -584,6 +591,11 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         ws = self.pb_client.get_workspace(workspace_id)
         namespace = self.get_namespace(workspace_id)
 
+        # check if the namespace exists
+        if not self.namespace_exists(namespace):
+            logging.info('Workspace backup: Namespace for workspace %s does not exist, skipping', workspace_id)
+            return
+
         pvc_api = self.dynamic_client.resources.get(api_version='v1', kind='PersistentVolumeClaim')
 
         # find out pvcs that have been annotated for backup
@@ -616,6 +628,11 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def check_workspace_backup_jobs(self, token, workspace_id):
         ws = self.pb_client.get_workspace(workspace_id)
         namespace = self.get_namespace(workspace_id)
+
+        # check if the namespace exists
+        if not self.namespace_exists(namespace):
+            logging.debug('Backup: Namespace for workspace %s does not exist, marking task finished', workspace_id)
+            return True
 
         job_api = self.dynamic_client.resources.get(api_version='batch/v1', kind='Job')
         pod_api = self.dynamic_client.resources.get(api_version='v1', kind='Pod')

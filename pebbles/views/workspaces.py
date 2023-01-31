@@ -31,6 +31,7 @@ workspace_fields_admin = {
     'application_quota': fields.Integer,
     'memory_limit_gib': fields.Integer,
     'user_association_type': fields.String(default='admin'),
+    'cluster': fields.String,
     'config': fields.Raw,
 }
 

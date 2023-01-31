@@ -1,4 +1,5 @@
 import logging
+import time
 
 import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
@@ -48,6 +49,7 @@ class TaskList(restful.Resource):
         if state:
             q = q.filter_by(state=state)
 
+        q = q.order_by(Task._create_ts)
         results = q.all()
         return results
 
@@ -92,6 +94,9 @@ class TaskView(restful.Resource):
             abort(404)
         try:
             task.state = request.json.get('state')
+            task.update_ts = time.time()
+            if task.state == Task.STATE_FINISHED:
+                task.complete_ts = time.time()
             db.session.commit()
             return task
         except ValueError as ve:
