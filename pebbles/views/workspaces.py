@@ -46,6 +46,7 @@ workspace_fields_owner = {
     'application_quota': fields.Integer,
     'memory_limit_gib': fields.Integer,
     'user_association_type': fields.String(default='owner'),
+    'cluster': fields.String,
 }
 
 workspace_fields_manager = {
@@ -58,6 +59,7 @@ workspace_fields_manager = {
     'application_quota': fields.Integer,
     'memory_limit_gib': fields.Integer,
     'user_association_type': fields.String(default='manager'),
+    'cluster': fields.String,
 }
 
 workspace_fields_user = {
