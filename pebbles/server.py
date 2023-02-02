@@ -14,7 +14,8 @@ from pebbles.views.applications import applications, ApplicationList, Applicatio
 from pebbles.views.helps import helps, HelpsList
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.messages import MessageList, MessageView
-from pebbles.views.service_announcements import ServiceAnnouncementList, ServiceAnnouncementView
+from pebbles.views.service_announcements import ServiceAnnouncementList, ServiceAnnouncementListPublic, \
+    ServiceAnnouncementListAdmin, ServiceAnnouncementViewAdmin
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.tasks import TaskList, TaskView
 from pebbles.views.users import users, UserList, UserView, UserWorkspaceAssociationList
@@ -47,7 +48,10 @@ api.add_resource(JoinWorkspace, api_root + '/join_workspace/<string:join_code>')
 api.add_resource(MessageList, api_root + '/messages')
 api.add_resource(MessageView, api_root + '/messages/<string:message_id>')
 api.add_resource(ServiceAnnouncementList, api_root + '/service_announcements')
-api.add_resource(ServiceAnnouncementView, api_root + '/service_announcements/<string:service_announcement_id>')
+api.add_resource(ServiceAnnouncementListPublic, api_root + '/service_announcements_public')
+api.add_resource(ServiceAnnouncementListAdmin, api_root + '/service_announcements_admin')
+api.add_resource(ServiceAnnouncementViewAdmin,
+                 api_root + '/service_announcements_admin/<string:service_announcement_id>')
 api.add_resource(SessionView, api_root + '/sessions')
 api.add_resource(ApplicationTemplateList, api_root + '/application_templates')
 api.add_resource(ApplicationTemplateView, api_root + '/application_templates/<string:template_id>')

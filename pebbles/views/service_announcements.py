@@ -27,10 +27,34 @@ SERVICE_ANNOUNCEMENT_FIELDS = {
 class ServiceAnnouncementList(restful.Resource):
     parser = reqparse.RequestParser()
 
+    @auth.login_required
+    @marshal_with(SERVICE_ANNOUNCEMENT_FIELDS)
+    def get(self):
+        query = ServiceAnnouncement.query
+        query = query.filter(ServiceAnnouncement.is_enabled)
+        announcements = query.all()
+        return announcements
+
+
+class ServiceAnnouncementListPublic(restful.Resource):
+    parser = reqparse.RequestParser()
+
     @marshal_with(SERVICE_ANNOUNCEMENT_FIELDS)
     def get(self):
         query = ServiceAnnouncement.query
         query = query.filter(ServiceAnnouncement.is_enabled, ServiceAnnouncement.is_public)
+        announcements = query.all()
+        return announcements
+
+
+class ServiceAnnouncementListAdmin(restful.Resource):
+    parser = reqparse.RequestParser()
+
+    @auth.login_required
+    @requires_admin
+    @marshal_with(SERVICE_ANNOUNCEMENT_FIELDS)
+    def get(self):
+        query = ServiceAnnouncement.query
         announcements = query.all()
         return announcements
 
@@ -52,7 +76,7 @@ class ServiceAnnouncementList(restful.Resource):
         return announcement
 
 
-class ServiceAnnouncementView(restful.Resource):
+class ServiceAnnouncementViewAdmin(restful.Resource):
 
     @auth.login_required
     @requires_admin

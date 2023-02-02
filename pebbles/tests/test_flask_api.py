@@ -2185,42 +2185,70 @@ class FlaskApiTestCase(BaseTestCase):
         self.assert_200(response)
         self.assertEqual(response.json['subject'], subject_topic)
 
-    def test_get_service_announcements(self):
+    def test_get_service_announcements_public(self):
         # anonymous
         response = self.make_request(
-            path='/api/v1/service_announcements'
+            path='/api/v1/service_announcements_public'
         )
         self.assert_200(response)
         self.assertEqual(len(response.json), 1)
 
         # user
         response = self.make_authenticated_user_request(
-            path='/api/v1/service_announcements'
+            path='/api/v1/service_announcements_public'
         )
         self.assert_200(response)
         self.assertEqual(len(response.json), 1)
+
+    def test_get_service_announcements(self):
+        # anonymous
+        response = self.make_request(
+            path='/api/v1/service_announcements'
+        )
+        self.assert_401(response)
+
+        # user
+        response = self.make_authenticated_user_request(
+            path='/api/v1/service_announcements'
+        )
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 2)
 
         # workspace-owner
         response = self.make_authenticated_workspace_owner_request(
             path='/api/v1/service_announcements'
         )
         self.assert_200(response)
-        self.assertEqual(len(response.json), 1)
+        self.assertEqual(len(response.json), 2)
 
         # admin
         response = self.make_authenticated_admin_request(
             path='/api/v1/service_announcements'
         )
         self.assert_200(response)
-        self.assertEqual(len(response.json), 1)
+        self.assertEqual(len(response.json), 2)
 
-    def test_update_service_announcement(self):
+    def test_get_service_announcements_admin(self):
+        # workspace-owner
+        response = self.make_authenticated_workspace_owner_request(
+            path='/api/v1/service_announcements_admin'
+        )
+        self.assert_403(response)
+
+        # admin
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/service_announcements_admin'
+        )
+        self.assert_200(response)
+        self.assertEqual(len(response.json), 4)
+
+    def test_update_service_announcement_admin(self):
         new_subject = 'Service AnnouncementABC'
 
         # workspace-owner
         response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/service_announcements/%s' % self.known_announcement_id,
+            path='/api/v1/service_announcements_admin/%s' % self.known_announcement_id,
             data=json.dumps({'subject': new_subject, 'content': 'XXX', 'level': 3,
                              'targets': 'applications-header', 'is_enabled': True, 'is_public': True}))
         self.assert_403(response)
@@ -2228,23 +2256,23 @@ class FlaskApiTestCase(BaseTestCase):
         # admin
         response = self.make_authenticated_admin_request(
             method='PUT',
-            path='/api/v1/service_announcements/%s' % self.known_announcement_id,
+            path='/api/v1/service_announcements_admin/%s' % self.known_announcement_id,
             data=json.dumps({'subject': new_subject, 'content': 'XXX', 'level': 3,
                              'targets': 'applications-header', 'is_enabled': True, 'is_public': True}))
         self.assert_200(response)
         self.assertEqual(response.json['subject'], new_subject)
 
-    def test_delete_service__announcement(self):
+    def test_delete_service_announcement_admin(self):
 
         # workspace-owner
         response = self.make_authenticated_workspace_owner_request(
             method='DELETE',
-            path='/api/v1/service_announcements/%s' % self.known_announcement_id
+            path='/api/v1/service_announcements_admin/%s' % self.known_announcement_id
         )
         self.assert_403(response)
 
         response = self.make_request(
-            path='/api/v1/service_announcements'
+            path='/api/v1/service_announcements_public'
         )
         self.assert_200(response)
         filtered = list(filter(lambda x: x['id'] == self.known_announcement_id, response.json))
@@ -2253,17 +2281,17 @@ class FlaskApiTestCase(BaseTestCase):
         # admin
         response = self.make_authenticated_admin_request(
             method='DELETE',
-            path='/api/v1/service_announcements/%s' % self.known_announcement_id
+            path='/api/v1/service_announcements_admin/%s' % self.known_announcement_id
         )
         self.assert_200(response)
 
         response = self.make_request(
-            path='/api/v1/service_announcements'
+            path='/api/v1/service_announcements_public'
         )
         self.assert_200(response)
         self.assertEqual(len(response.json), 0)
 
-    def test_post_service__announcement(self):
+    def test_post_service_announcement_admin(self):
         data = {
             'subject': 'test subject',
             'content': 'test announcement',
@@ -2276,7 +2304,7 @@ class FlaskApiTestCase(BaseTestCase):
         # anonymous
         response = self.make_request(
             method='POST',
-            path='/api/v1/service_announcements',
+            path='/api/v1/service_announcements_admin',
             data=json.dumps(data)
         )
         self.assert_401(response)
@@ -2284,7 +2312,7 @@ class FlaskApiTestCase(BaseTestCase):
         # user
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/service_announcements',
+            path='/api/v1/service_announcements_admin',
             data=json.dumps(data)
         )
         self.assert_403(response)
@@ -2292,7 +2320,7 @@ class FlaskApiTestCase(BaseTestCase):
         # workspace-owner
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/service_announcements',
+            path='/api/v1/service_announcements_admin',
             data=json.dumps(data)
         )
         self.assert_403(response)
@@ -2300,12 +2328,13 @@ class FlaskApiTestCase(BaseTestCase):
         # admin
         response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/service_announcements',
+            path='/api/v1/service_announcements_admin',
             data=json.dumps(data)
         )
         self.assert_200(response)
+
         response = self.make_authenticated_user_request(
-            path='/api/v1/service_announcements'
+            path='/api/v1/service_announcements_public'
         )
         self.assert_200(response)
         self.assertEqual(len(response.json), 2)
