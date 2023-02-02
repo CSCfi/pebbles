@@ -72,6 +72,14 @@ class ProvisioningDriverBase(object):
         """ Subclasses implement and override these """
         raise RuntimeWarning('check_workspace_backup_jobs() not implemented')
 
+    def create_workspace_restore_jobs(self, token, workspace_id, pseudonyms, user_work_volume_size):
+        """ Subclasses implement and override these """
+        raise RuntimeWarning('create_workspace_restore_jobs() not implemented')
+
+    def check_workspace_restore_jobs(self, token, workspace_id):
+        """ Subclasses implement and override these """
+        raise RuntimeWarning('check_workspace_restore_jobs() not implemented')
+
     def provision(self, token, application_session_id):
         self.logger.debug('starting provisioning')
         pbclient = self.get_pb_client()

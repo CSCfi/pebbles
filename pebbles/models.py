@@ -745,9 +745,11 @@ class Task(db.Model):
     )
 
     KIND_WORKSPACE_BACKUP = 'workspace_backup'
+    KIND_WORKSPACE_RESTORE = 'workspace_restore'
 
     VALID_KINDS = (
         KIND_WORKSPACE_BACKUP,
+        KIND_WORKSPACE_RESTORE,
     )
 
     __tablename__ = 'tasks'

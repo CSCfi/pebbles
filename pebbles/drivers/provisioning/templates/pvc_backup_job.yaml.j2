@@ -5,6 +5,7 @@
 #   * create a compressed tarball out of the PVC contents on an emptyDir volume
 #   * encrypt it with GPG
 #   * upload it to object storage with s3cmd
+#
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -19,7 +20,7 @@ spec:
         application: pebbles-backup-pvc
     spec:
       restartPolicy: Never
-      # only allow one back job running per eligible node (most cases: just master)
+      # affinity: only allow one backup job running per eligible node (most cases: just master)
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

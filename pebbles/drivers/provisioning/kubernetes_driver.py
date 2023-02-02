@@ -552,6 +552,10 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         except ApiException as e:
             if e.status != 404:
                 raise e
+        return self.create_volume(namespace, volume_name, volume_size, storage_class_name, access_mode, annotations)
+
+    def create_volume(self, namespace, volume_name, volume_size, storage_class_name,
+                      access_mode='ReadWriteOnce', annotations=None):
         pvc_yaml = parse_template('pvc.yaml', dict(
             name=volume_name,
             volume_size=volume_size,
@@ -662,6 +666,98 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         if len(failed_jobs) == len(jobs):
             secret_api.delete(namespace=namespace, label_selector='application=pebbles-backup-pvc')
             raise RuntimeWarning('Backup job failed in workspace %s' % ws['id'])
+
+        return False
+
+    def create_workspace_restore_jobs(self, token, workspace_id, pseudonyms, user_work_volume_size_gib):
+        ws = self.pb_client.get_workspace(workspace_id)
+        namespace = self.get_namespace(workspace_id)
+
+        # make sure the namespace exists
+        self.ensure_namespace(namespace)
+
+        # restore job for shared volume
+        shared_volume_size = self.cluster_config.get('volumeSizeShared', '20Gi')
+        shared_volume_name = 'pvc-ws-vol-1'
+        shared_storage_class_name = self.cluster_config.get('storageClassNameShared')
+        self.create_volume(
+            namespace,
+            shared_volume_name, shared_volume_size, shared_storage_class_name,
+            access_mode='ReadWriteMany',
+            annotations={'pebbles.csc.fi/backup': 'yes'}
+        )
+
+        restore_job_yaml = parse_template('pvc_restore_job.yaml.j2', dict(
+            cluster_name=self.cluster_config['name'],
+            workspace_pseudonym=ws['pseudonym'],
+            pvc_name=shared_volume_name,
+        ))
+        self.logger.debug('creating restore_job\n%s' % restore_job_yaml)
+
+        job_api = self.dynamic_client.resources.get(api_version='batch/v1', kind='Job')
+        job_api.create(namespace=namespace, body=yaml.safe_load(restore_job_yaml))
+
+        # restore jobs for user work volumes
+        user_work_storage_class_name = self.cluster_config.get('storageClassNameUser')
+        user_work_volume_size = '%dGi' % user_work_volume_size_gib
+        for pseudonym in pseudonyms:
+            user_work_volume_name = 'pvc-%s-work' % pseudonym
+            self.create_volume(
+                namespace,
+                user_work_volume_name, user_work_volume_size, user_work_storage_class_name,
+                access_mode='ReadWriteMany',
+                annotations={'pebbles.csc.fi/backup': 'yes'}
+            )
+
+            restore_job_yaml = parse_template('pvc_restore_job.yaml.j2', dict(
+                cluster_name=self.cluster_config['name'],
+                workspace_pseudonym=ws['pseudonym'],
+                pvc_name=user_work_volume_name,
+            ))
+            self.logger.debug('creating restore_job\n%s' % restore_job_yaml)
+            job_api.create(namespace=namespace, body=yaml.safe_load(restore_job_yaml))
+
+        # finally create a secret for downloading from object storage
+        secret_api = self.dynamic_client.resources.get(api_version='v1', kind='Secret')
+        pvc_restore_secret_dict = yaml.safe_load(parse_template('pvc_restore_secret.yaml.j2', dict()))
+        for name in ('s3cfg', 'encrypt-private-key', 'encrypt-private-key-password'):
+            pvc_restore_secret_dict['stringData'][name] = open(
+                '/run/secrets/pebbles/backup-secret/%s' % name, 'r').read()
+
+        secret_api.create(namespace=namespace, body=pvc_restore_secret_dict)
+
+    def check_workspace_restore_jobs(self, token, workspace_id):
+        ws = self.pb_client.get_workspace(workspace_id)
+        namespace = self.get_namespace(workspace_id)
+
+        job_api = self.dynamic_client.resources.get(api_version='batch/v1', kind='Job')
+        pod_api = self.dynamic_client.resources.get(api_version='v1', kind='Pod')
+        secret_api = self.dynamic_client.resources.get(api_version='v1', kind='Secret')
+
+        jobs = job_api.get(namespace=namespace, label_selector='application=pebbles-restore-pvc').items
+
+        completed_jobs = []
+        failed_jobs = []
+        for job in jobs:
+            if job['status'].get('active') == 1:
+                continue
+            if job['status'].get('failed'):
+                failed_jobs.append(job)
+                continue
+            completed_jobs.append(job)
+            job_api.delete(namespace=namespace, name=job['metadata']['name'])
+            pod_api.delete(
+                namespace=namespace,
+                label_selector='job-name=%s' % job['metadata']['name']
+            )
+
+        if len(completed_jobs) == len(jobs):
+            secret_api.delete(namespace=namespace, label_selector='application=pebbles-restore-pvc')
+            return True
+
+        if len(failed_jobs) == len(jobs):
+            secret_api.delete(namespace=namespace, label_selector='application=pebbles-restore-pvc')
+            raise RuntimeWarning('Restore job failed in workspace %s' % ws['id'])
 
         return False
 

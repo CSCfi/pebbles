@@ -261,13 +261,13 @@ class WorkspaceController(ControllerBase):
             return
         self.next_check_ts = time.time() + randrange(30, 90)
 
-        logging.debug('checking workspace backup tasks')
-        tasks = self.client.get_tasks('workspace_backup', unfinished=1)
+        logging.debug('WorkspaceController: checking tasks')
+        tasks = self.client.get_tasks(unfinished=1)
         logging.debug('got tasks: %s', tasks)
 
         for task in tasks:
 
-            # try to obtain a lock. Should we lose the race, the winner takes it and we move on
+            # try to obtain a lock. Should we lose the race, the winner takes it, and we move on
             lock = self.client.obtain_lock(task.get('id'), self.worker_id)
             if lock is None:
                 continue
@@ -276,6 +276,8 @@ class WorkspaceController(ControllerBase):
             try:
                 if task.get('kind') == Task.KIND_WORKSPACE_BACKUP:
                     self.process_backup_task(task)
+                elif task.get('kind') == Task.KIND_WORKSPACE_RESTORE:
+                    self.process_restore_task(task)
                 else:
                     logging.warning('unknown task kind: %s' % task.kind)
             except Exception as e:
@@ -296,6 +298,36 @@ class WorkspaceController(ControllerBase):
             driver.create_workspace_backup_jobs(self.client.token, task.get('data').get('workspace_id'))
         elif task.get('state') == Task.STATE_PROCESSING:
             if driver.check_workspace_backup_jobs(self.client.token, task.get('data').get('workspace_id')):
+                logging.info('Task %s FINISHED', task.get('id'))
+                self.client.update_task(task.get('id'), state=Task.STATE_FINISHED)
+        else:
+            logging.warning(
+                'task %s in state %s should not end up in processing', task.get('id'), task.get('state'))
+
+    def process_restore_task(self, task):
+        driver = self.get_driver(task.get('data').get('cluster'))
+        ws_id = task.get('data').get('workspace_id')
+        if not driver:
+            raise RuntimeError(
+                'No driver for cluster %s in task %s' % (task.get('data').get('cluster'), task.get('id')))
+        if task.get('state') == Task.STATE_NEW:
+            logging.info('Starting processing of task %s', task.get('id'))
+            self.client.update_task(task.get('id'), state=Task.STATE_PROCESSING)
+
+            # list current users of the workspace to create a list of restorable volumes
+            wuas = self.client.get_workspace_user_associations(ws_id)
+            pseudonyms = []
+            for wua in wuas:
+                user = self.client.get_user(wua['user_id'])
+                pseudonyms.append(user['pseudonym'])
+
+            # figure out right size for user work volume
+            ws = self.client.get_workspace(ws_id)
+            user_work_volume_size_gib = ws.get('config', {}).get('user_work_folder_size_gib', 1)
+
+            driver.create_workspace_restore_jobs(self.client.token, ws_id, pseudonyms, user_work_volume_size_gib)
+        elif task.get('state') == Task.STATE_PROCESSING:
+            if driver.check_workspace_restore_jobs(self.client.token, ws_id):
                 logging.info('Task %s FINISHED', task.get('id'))
                 self.client.update_task(task.get('id'), state=Task.STATE_FINISHED)
         else:

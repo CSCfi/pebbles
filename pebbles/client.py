@@ -93,7 +93,7 @@ class PBClient:
         if user_id:
             resp = self.do_get('users/%s/workspace_associations' % user_id)
         elif workspace_id:
-            raise NotImplementedError('Fetching with workspace_id not implemented yet')
+            resp = self.do_get('workspaces/%s/members' % workspace_id)
         else:
             raise RuntimeError('get_workspace_user_associations() needs either workspace_id or user_id')
 
