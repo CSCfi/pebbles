@@ -37,4 +37,8 @@ pebbles-4.0.0.dev1-py2.7.egg-info/
 # bash history from an interactive development session
 .bash_history
 
-local_data
+# local configuration files
+/local_data/
+
+# virtual environment installation
+/venv/
