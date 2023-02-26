@@ -27,7 +27,7 @@ from pebbles.views.workspaces import workspaces
 
 api = restful.Api(app)
 api_root = '/api/v1'
-api.add_resource(UserList, api_root + '/users')
+api.add_resource(UserList, api_root + '/users', methods=['GET', 'POST'])
 api.add_resource(UserView, api_root + '/users/<string:user_id>', methods=['GET', 'DELETE', 'PATCH'])
 api.add_resource(UserWorkspaceAssociationList, api_root + '/users/<string:user_id>/workspace_associations')
 api.add_resource(WorkspaceList, api_root + '/workspaces')

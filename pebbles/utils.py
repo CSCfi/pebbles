@@ -1,6 +1,8 @@
 import base64
 import importlib
 import logging
+import random
+
 from functools import wraps
 from logging.handlers import RotatingFileHandler
 
@@ -9,6 +11,15 @@ from flask import abort, g
 from yaml import YAMLError
 
 from pebbles.config import LOG_FORMAT
+
+# PASSWORD_CHARACTERS created with:
+# re.sub(r'[Ol10]', '', string.ascii_uppercase + string.ascii_lowercase)
+PASSWORD_CHARACTERS = "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+
+def create_password(length=8):
+    password = ''.join(random.choice(PASSWORD_CHARACTERS) for _ in range(length))
+    return password
 
 
 def requires_admin(f):

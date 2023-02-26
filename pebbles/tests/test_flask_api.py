@@ -697,6 +697,87 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/join_workspace/%s' % self.known_workspace_join_id)
         self.assertStatus(response, 200)
 
+    def test_post_user_access(self):
+        userdata = dict(ext_id='user3@example.org', email_id='u3@example.org', lifetime_in_days=5, is_admin=False)
+        # Anonymous
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(userdata)
+        )
+        self.assertStatus(response, 401)
+        # Authenticated User
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(userdata)
+        )
+        self.assertStatus(response, 403)
+        # Owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(userdata)
+        )
+        self.assertStatus(response, 403)
+        # Admin
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(userdata)
+        )
+        self.assertStatus(response, 200)
+
+    def test_post_user_admin(self):
+        def check_user_matches_post_data(post_data):
+            user = self.make_authenticated_admin_request(path='/api/v1/users/%s' % response.json['id']).json
+            for key in [x for x in userdata.keys() if x != 'lifetime_in_days']:
+                self.assertEquals(user[key], post_data[key], key)
+            if 'lifetime_in_days' in post_data:
+                self.assertEquals(user['expiry_ts'] - user['joining_ts'], post_data['lifetime_in_days'] * 86400)
+        # Post a user, fetch user from API and check that data matches
+        userdata = dict(ext_id='user3@example.org', email_id='u3@example.org', is_admin=False, lifetime_in_days=7)
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(userdata)
+        )
+        self.assertStatus(response, 200)
+        check_user_matches_post_data(userdata)
+        # Test for existing ext_id, should fail
+        userdata = dict(ext_id='user3@example.org', email_id='u3@example.org', is_admin=False, lifetime_in_days=7)
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(userdata)
+        )
+        self.assertStatus(response, 409)
+        # Setting lifetime to invalid value
+        userdata = dict(ext_id='user4@example.org', lifetime_in_days=0.2)
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(userdata)
+        )
+        self.assertStatus(response, 400)
+        #  No lifetime limit
+        userdata = dict(ext_id='admin5@example.org', is_admin=True)
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(userdata)
+        )
+        self.assertStatus(response, 200)
+        check_user_matches_post_data(userdata)
+        # Not setting ext_id should fail
+        userdata = dict(email_id='u6@example.org', is_admin=False, lifetime_in_days=7)
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/users',
+            data=json.dumps(userdata)
+        )
+        self.assertStatus(response, 400)
+
     def test_join_workspace_invalid(self):
         g = Workspace('InvalidTestWorkspace')
         g.owner_id = self.known_workspace_owner_id

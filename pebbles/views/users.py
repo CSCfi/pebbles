@@ -1,4 +1,5 @@
 import logging
+import time
 import re
 
 import flask_restful as restful
@@ -8,8 +9,8 @@ from flask_restful import marshal_with, reqparse, inputs
 
 from pebbles.models import db, User
 from pebbles.rules import apply_filter_users, apply_rules_workspace_user_associations
-from pebbles.utils import requires_admin
-from pebbles.views.commons import user_fields, auth, workspace_user_association_fields
+from pebbles.utils import requires_admin, create_password
+from pebbles.views.commons import user_fields, auth, workspace_user_association_fields, create_user
 
 users = FlaskBlueprint('users', __name__)
 
@@ -25,6 +26,32 @@ class UserList(restful.Resource):
     @marshal_with(user_fields)
     def get(self):
         return apply_filter_users().order_by(User._joining_ts).all()
+
+    parser = reqparse.RequestParser()
+    parser.add_argument('ext_id', type=str, required=True)
+    parser.add_argument('lifetime_in_days', type=int)
+    parser.add_argument('email_id', type=str)
+    parser.add_argument('is_admin', type=bool)
+
+    @auth.login_required
+    @requires_admin
+    def post(self):
+        """Creates new user"""
+        args = self.parser.parse_args()
+        lifetime_in_days = args.get('lifetime_in_days')
+        if lifetime_in_days is not None and not lifetime_in_days >= 1:
+            abort(400, "lifetime_in_days should be >= 1")
+
+        password = create_password(8)
+
+        expiry_ts = time.time() + 3600 * 24 * lifetime_in_days if lifetime_in_days else None
+
+        user = create_user(ext_id=args.get('ext_id'), password=password, is_admin=args.get('is_admin'),
+                           email_id=args.get('email_id'), expiry_ts=expiry_ts)
+        if user is None:
+            abort(409, "user %s already exists" % args.get('ext_id'))
+
+        return {'id': user.id, 'ext_id': user.ext_id, 'password': password, 'expiry_ts': expiry_ts}
 
 
 class UserView(restful.Resource):

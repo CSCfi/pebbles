@@ -2,7 +2,6 @@
 import getpass
 import logging
 import random
-import re
 import string
 import time
 from typing import List
@@ -17,6 +16,7 @@ import pebbles.tests.fixtures
 from pebbles.config import BaseConfig
 from pebbles.models import db, User, Application, ApplicationTemplate
 from pebbles.server import app
+from pebbles.utils import create_password
 from pebbles.views.commons import create_user, create_worker, create_system_workspaces
 
 cli = FlaskGroup()
@@ -145,15 +145,13 @@ def createuser_bulk(user_prefix=None, domain_name=None, count=0, lifetime_in_day
 
     expiry_ts = time.time() + 3600 * 24 * lifetime_in_days if lifetime_in_days else None
 
-    character_set = re.sub(r'[Ol10]', '', string.ascii_uppercase + string.ascii_lowercase + string.digits)
-
     for i in range(count):
         for retry in range(5):
             # eg: demo_user_Rgv4@example.com
             ext_id = user_prefix + "_" + ''.join(
                 random.choice(string.ascii_lowercase + string.digits) for _ in range(3)) + "@" + domain_name
 
-            password = ''.join(random.choice(character_set) for _ in range(8))
+            password = create_password(8)
 
             a = create_user(ext_id, password, expiry_ts=expiry_ts)
             if a:
