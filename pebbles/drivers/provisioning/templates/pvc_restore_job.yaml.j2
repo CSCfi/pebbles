@@ -50,7 +50,7 @@ spec:
               echo "$(date -Is) restore starting"
 
               BACKUP_FILE="{{ cluster_name }}__{{ workspace_pseudonym }}__{{ pvc_name }}.tar.gz.gpg"
-              S3_URL="s3://workspace-backup/{{ cluster_name }}/${BACKUP_FILE}"
+              S3_URL="s3://{{ workspace_backup_bucket_name }}/{{ cluster_name }}/${BACKUP_FILE}"
 
               echo "checking backup existence"
               if ! s3cmd -c /run/secrets/pebbles/pvc-restore-secret/s3cfg info ${S3_URL}; then 

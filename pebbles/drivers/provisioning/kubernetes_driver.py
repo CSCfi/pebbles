@@ -3,6 +3,7 @@ import logging
 import os
 import time
 from enum import Enum, unique
+from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
 import jinja2
@@ -606,12 +607,16 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         pvcs = [x for x in pvc_api.get(namespace=namespace).items
                 if x.get('metadata', {}).get('annotations', {}).get('pebbles.csc.fi/backup') == 'yes']
 
+        workspace_backup_bucket_name = Path(
+            '/run/secrets/pebbles/backup-secret/workspace-backup-bucket-name').read_text()
+
         # create jobs for discovered pvcs
         for pvc in pvcs:
             backup_job_yaml = parse_template('pvc_backup_job.yaml.j2', dict(
                 cluster_name=self.cluster_config['name'],
                 workspace_pseudonym=ws['pseudonym'],
                 pvc_name=pvc['metadata']['name'],
+                workspace_backup_bucket_name=workspace_backup_bucket_name,
             ))
             self.logger.debug('creating backup_job\n%s' % backup_job_yaml)
 
@@ -622,10 +627,10 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         secret_api = self.dynamic_client.resources.get(api_version='v1', kind='Secret')
 
         pvc_backup_secret_dict = yaml.safe_load(parse_template('pvc_backup_secret.yaml.j2', dict()))
-        pvc_backup_secret_dict['stringData']['s3cfg'] = open(
-            '/run/secrets/pebbles/backup-secret/s3cfg', 'r').read()
-        pvc_backup_secret_dict['stringData']['encrypt-public-key'] = open(
-            '/run/secrets/pebbles/backup-secret/encrypt-public-key', 'r').read()
+        pvc_backup_secret_dict['stringData']['s3cfg'] = Path(
+            '/run/secrets/pebbles/backup-secret/s3cfg').read_text()
+        pvc_backup_secret_dict['stringData']['encrypt-public-key'] = Path(
+            '/run/secrets/pebbles/backup-secret/encrypt-public-key').read_text()
 
         secret_api.create(namespace=namespace, body=pvc_backup_secret_dict)
 
@@ -672,6 +677,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def create_workspace_restore_jobs(self, token, workspace_id, pseudonyms, user_work_volume_size_gib):
         ws = self.pb_client.get_workspace(workspace_id)
         namespace = self.get_namespace(workspace_id)
+        workspace_backup_bucket_name = Path(
+            '/run/secrets/pebbles/backup-secret/workspace-backup-bucket-name').read_text()
 
         # make sure the namespace exists
         self.ensure_namespace(namespace)
@@ -691,6 +698,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             cluster_name=self.cluster_config['name'],
             workspace_pseudonym=ws['pseudonym'],
             pvc_name=shared_volume_name,
+            workspace_backup_bucket_name=workspace_backup_bucket_name,
         ))
         self.logger.debug('creating restore_job\n%s' % restore_job_yaml)
 
@@ -713,6 +721,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                 cluster_name=self.cluster_config['name'],
                 workspace_pseudonym=ws['pseudonym'],
                 pvc_name=user_work_volume_name,
+                workspace_backup_bucket_name=workspace_backup_bucket_name,
             ))
             self.logger.debug('creating restore_job\n%s' % restore_job_yaml)
             job_api.create(namespace=namespace, body=yaml.safe_load(restore_job_yaml))
@@ -721,8 +730,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         secret_api = self.dynamic_client.resources.get(api_version='v1', kind='Secret')
         pvc_restore_secret_dict = yaml.safe_load(parse_template('pvc_restore_secret.yaml.j2', dict()))
         for name in ('s3cfg', 'encrypt-private-key', 'encrypt-private-key-password'):
-            pvc_restore_secret_dict['stringData'][name] = open(
-                '/run/secrets/pebbles/backup-secret/%s' % name, 'r').read()
+            pvc_restore_secret_dict['stringData'][name] = Path(
+                '/run/secrets/pebbles/backup-secret/%s' % name).read_text()
 
         secret_api.create(namespace=namespace, body=pvc_restore_secret_dict)
 

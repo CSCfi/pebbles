@@ -60,7 +60,7 @@ spec:
               echo "upload backup tarball"
               s3cmd -c /run/secrets/pebbles/pvc-backup-secret/s3cfg put \
                 ${BACKUP_FILE_BASE}.tar.gz.gpg \
-                s3://workspace-backup/{{ cluster_name }}/
+                s3://{{ workspace_backup_bucket_name }}/{{ cluster_name }}/
               
               # the end
               echo "$(date -Is) backup successful"
