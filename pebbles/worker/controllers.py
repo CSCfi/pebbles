@@ -253,6 +253,7 @@ class WorkspaceController(ControllerBase):
 
     def __init__(self):
         super().__init__()
+        self.max_concurrent_tasks = 1
         self.next_check_ts = 0
 
     def process(self):
@@ -265,8 +266,16 @@ class WorkspaceController(ControllerBase):
         tasks = self.client.get_tasks(unfinished=1)
         logging.debug('got tasks: %s', tasks)
 
-        for task in tasks:
+        # Wait until all tasks currently in PROCESSING have completed before taking new tasks
+        tasks_in_processing = [t for t in tasks if t.get('state') == Task.STATE_PROCESSING]
+        if tasks_in_processing:
+            tasks = tasks_in_processing
+            logging.debug('processing existing %d tasks, no new tasks taken this time', len(tasks))
+        else:
+            # Taking new tasks, limit concurrency
+            tasks = tasks[:self.max_concurrent_tasks]
 
+        for task in tasks:
             # try to obtain a lock. Should we lose the race, the winner takes it, and we move on
             lock = self.client.obtain_lock(task.get('id'), self.worker_id)
             if lock is None:
