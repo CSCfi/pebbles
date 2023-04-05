@@ -4,7 +4,7 @@ import re
 
 import flask_restful as restful
 from dateutil.relativedelta import relativedelta
-from flask import Blueprint as FlaskBlueprint
+from flask import Blueprint as FlaskBlueprint, current_app
 from flask import abort, g
 from flask_restful import marshal, marshal_with, reqparse, fields, inputs
 from sqlalchemy.orm import subqueryload
@@ -13,7 +13,7 @@ from pebbles import rules
 from pebbles.app import app
 from pebbles.forms import WorkspaceForm
 from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Application, ApplicationSession
-from pebbles.utils import requires_admin, requires_workspace_owner_or_admin
+from pebbles.utils import requires_admin, requires_workspace_owner_or_admin, load_cluster_config
 from pebbles.views.commons import auth
 
 workspaces = FlaskBlueprint('workspaces', __name__)
@@ -660,3 +660,40 @@ class WorkspaceModifyUserFolderSize(restful.Resource):
         db.session.commit()
 
         return new_size
+
+
+class WorkspaceModifyCluster(restful.Resource):
+    # Admin can modify workspace cluster
+    parser = reqparse.RequestParser()
+    parser.add_argument('new_cluster', type=str, required=True)
+
+    @auth.login_required
+    @requires_admin
+    def put(self, workspace_id):
+        args = self.parser.parse_args()
+
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+
+        if not workspace:
+            logging.warning('workspace %s does not exist', workspace_id)
+            return dict(error='The workspace does not exist'), 404
+
+        new_cluster = args.new_cluster
+        if 'TEST_MODE' not in current_app.config:
+            cluster_config = load_cluster_config(load_passwords=False)
+        else:
+            # rig unit tests to use dummy data
+            cluster_config = dict(clusters=[
+                dict(name='dummy_cluster_1', driver='KubernetesLocalDriver'),
+                dict(name='dummy_cluster_2', driver='KubernetesLocalDriver'),
+            ])
+
+        if new_cluster not in [c['name'] for c in cluster_config.get('clusters', [])]:
+            logging.warning('rejecting unknown cluster "%s" for workspace %s', new_cluster, workspace_id)
+            return dict(error='unknown cluster %s' % new_cluster), 422
+
+        workspace.cluster = new_cluster
+
+        db.session.commit()
+
+        return new_cluster

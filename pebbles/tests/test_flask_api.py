@@ -2674,6 +2674,51 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assertEqual(25, res.json.get('memory_limit_gib'))
 
+    def test_update_workspace_cluster(self):
+        # Anonymous
+        response = self.make_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/cluster' % self.known_workspace_id,
+            data=json.dumps(dict(new_cluster='dummy_cluster_1')),
+        )
+        self.assert_401(response)
+
+        # Authenticated User, not a manager
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/cluster' % self.known_workspace_id,
+            data=json.dumps(dict(new_cluster='dummy_cluster_1')),
+        )
+        self.assertStatus(response, 403)
+
+        # Authenticated workspace owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/cluster' % self.known_workspace_id,
+            data=json.dumps(dict(new_cluster='dummy_cluster_1')),
+        )
+        self.assertStatus(response, 403)
+
+        # Admin, legal request
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/cluster' % self.known_workspace_id,
+            data=json.dumps(dict(new_cluster='dummy_cluster_1')),
+        )
+        self.assertStatus(response, 200)
+
+        # Admin, illegal request. No such cluster. Make sure the cluster is not modified
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/cluster' % self.known_workspace_id,
+            data=json.dumps(dict(new_cluster='dummy_cluster_3')),
+        )
+        self.assertStatus(response, 422)
+        res = self.make_authenticated_admin_request(
+            path='/api/v1/workspaces/%s' % self.known_workspace_id,
+        )
+        self.assertEqual('dummy_cluster_1', res.json.get('cluster'))
+
     def test_get_tasks_access(self):
         response = self.make_request(
             path='/api/v1/tasks'
