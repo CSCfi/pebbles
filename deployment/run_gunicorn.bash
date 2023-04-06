@@ -5,4 +5,4 @@
 # This is required for central logging.
 
 # Become the gunicorn process for executing as pid 1 for cleaner processes and better signal handling
-exec /opt/app-root/bin/python3 /opt/app-root/bin/gunicorn --bind=0.0.0.0:8080 ${APP_MODULE}
+exec gunicorn --bind=0.0.0.0:8080 ${APP_MODULE}

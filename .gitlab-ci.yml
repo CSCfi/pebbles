@@ -59,7 +59,7 @@ build-image:
   image: docker:git
   script:
     - echo "Going to build and push ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME}"
-    - docker build --tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} . --file=deployment/pebbles-s2i.Dockerfile
+    - docker build --tag ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME} . --file=deployment/pebbles.Dockerfile
     - docker push ${PRIVATE_IMAGE}:${CI_COMMIT_REF_NAME}
 
     # push to public registry
