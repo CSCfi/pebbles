@@ -115,7 +115,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def test_connection(self):
         logging.debug('testing connection to Kubernetes API')
         api = kubernetes.client.CoreV1Api(self.kubernetes_api_client)
-        api.list_component_status(_request_timeout=2)
+        api.get_api_resources(_request_timeout=2)
 
     def namespace_exists(self, namespace):
         logging.debug('checking if namespace %s exists', namespace)
@@ -821,12 +821,6 @@ class OpenShiftLocalDriver(KubernetesLocalDriver):
 
     def get_application_session_path(self, application_session):
         return ''
-
-    # override parent check that needs admin privileges
-    def test_connection(self):
-        logging.debug('testing connection to OpenShift API')
-        api = kubernetes.client.CoreV1Api(self.kubernetes_api_client)
-        api.get_api_resources(_request_timeout=2)
 
 
 class OpenShiftRemoteDriver(OpenShiftLocalDriver):
