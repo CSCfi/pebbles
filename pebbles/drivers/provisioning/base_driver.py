@@ -72,7 +72,7 @@ class ProvisioningDriverBase(object):
         """ Subclasses implement and override these """
         raise RuntimeWarning('check_workspace_backup_jobs() not implemented')
 
-    def create_workspace_restore_jobs(self, token, workspace_id, pseudonyms, user_work_volume_size):
+    def create_workspace_restore_jobs(self, token, workspace_id, pseudonyms, user_work_volume_size, src_cluster):
         """ Subclasses implement and override these """
         raise RuntimeWarning('create_workspace_restore_jobs() not implemented')
 

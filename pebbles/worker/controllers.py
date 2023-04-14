@@ -314,11 +314,17 @@ class WorkspaceController(ControllerBase):
                 'task %s in state %s should not end up in processing', task.get('id'), task.get('state'))
 
     def process_restore_task(self, task):
-        driver = self.get_driver(task.get('data').get('cluster'))
-        ws_id = task.get('data').get('workspace_id')
+        driver = self.get_driver(task.get('data').get('tgt_cluster'))
         if not driver:
             raise RuntimeError(
-                'No driver for cluster %s in task %s' % (task.get('data').get('cluster'), task.get('id')))
+                'No driver for tgt_cluster %s in task %s' % (task.get('data').get('tgt_cluster'), task.get('id')))
+        ws_id = task.get('data').get('workspace_id')
+        if not ws_id:
+            raise RuntimeError('No data.workspace_id in task %s' % task.get('id'))
+        src_cluster = task.get('data').get('src_cluster')
+        if not src_cluster:
+            raise RuntimeError('No data.src_cluster in task %s' % task.get('id'))
+
         if task.get('state') == Task.STATE_NEW:
             logging.info('Starting processing of task %s', task.get('id'))
             self.client.update_task(task.get('id'), state=Task.STATE_PROCESSING)
@@ -334,7 +340,13 @@ class WorkspaceController(ControllerBase):
             ws = self.client.get_workspace(ws_id)
             user_work_volume_size_gib = ws.get('config', {}).get('user_work_folder_size_gib', 1)
 
-            driver.create_workspace_restore_jobs(self.client.token, ws_id, pseudonyms, user_work_volume_size_gib)
+            driver.create_workspace_restore_jobs(
+                self.client.token,
+                ws_id,
+                pseudonyms,
+                user_work_volume_size_gib,
+                src_cluster,
+            )
         elif task.get('state') == Task.STATE_PROCESSING:
             if driver.check_workspace_restore_jobs(self.client.token, ws_id):
                 logging.info('Task %s FINISHED', task.get('id'))

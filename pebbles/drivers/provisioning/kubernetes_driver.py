@@ -674,7 +674,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         return False
 
-    def create_workspace_restore_jobs(self, token, workspace_id, pseudonyms, user_work_volume_size_gib):
+    def create_workspace_restore_jobs(self, token, workspace_id, pseudonyms, user_work_volume_size_gib, src_cluster):
         ws = self.pb_client.get_workspace(workspace_id)
         namespace = self.get_namespace(workspace_id)
         workspace_backup_bucket_name = Path(
@@ -695,7 +695,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         )
 
         restore_job_yaml = parse_template('pvc_restore_job.yaml.j2', dict(
-            cluster_name=self.cluster_config['name'],
+            src_cluster=src_cluster,
             workspace_pseudonym=ws['pseudonym'],
             pvc_name=shared_volume_name,
             workspace_backup_bucket_name=workspace_backup_bucket_name,
@@ -718,7 +718,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             )
 
             restore_job_yaml = parse_template('pvc_restore_job.yaml.j2', dict(
-                cluster_name=self.cluster_config['name'],
+                src_cluster=src_cluster,
                 workspace_pseudonym=ws['pseudonym'],
                 pvc_name=user_work_volume_name,
                 workspace_backup_bucket_name=workspace_backup_bucket_name,
