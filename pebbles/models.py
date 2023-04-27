@@ -761,6 +761,7 @@ class Task(db.Model):
     _create_ts = db.Column('create_ts', db.DateTime, default=datetime.datetime.utcnow)
     _complete_ts = db.Column('complete_ts', db.DateTime)
     _update_ts = db.Column('update_ts', db.DateTime, default=datetime.datetime.utcnow)
+    _results = db.Column('results', db.Text)
 
     def __init__(self, kind, state, data):
         self.id = uuid.uuid4().hex
