@@ -108,7 +108,7 @@ class User(db.Model):
     workspace_quota = db.Column(db.Integer, default=0)
     tc_acceptance_date = db.Column(db.DateTime)
     application_sessions = db.relationship('ApplicationSession', backref='user', lazy='dynamic')
-    workspace_associations = db.relationship("WorkspaceUserAssociation", back_populates="user", lazy='dynamic')
+    workspace_memberships = db.relationship("WorkspaceMembership", back_populates="user", lazy='dynamic')
 
     def __init__(self, ext_id, password=None, is_admin=False, email_id=None, expiry_ts=None, pseudonym=None,
                  workspace_quota=None):
@@ -167,12 +167,12 @@ class User(db.Model):
     @hybrid_property
     def is_workspace_owner(self):
         # we are a workspace owner if we have existing workspaces or have quota to create one
-        return self.workspace_quota > 0 or len(self.get_owned_workspace_associations()) > 0
+        return self.workspace_quota > 0 or len(self.get_owned_workspace_memberships()) > 0
 
     @hybrid_property
     def is_workspace_manager(self):
         # we are a workspace managerif we are mapped to be one
-        return len(self.get_managed_workspace_associations()) > 0
+        return len(self.get_managed_workspace_memberships()) > 0
 
     @is_workspace_owner.setter
     def is_workspace_owner(self, value):
@@ -237,11 +237,11 @@ class User(db.Model):
     def can_login(self):
         return not self.is_deleted and self.is_active and not self.is_blocked and not self.has_expired()
 
-    def get_owned_workspace_associations(self):
-        return [wua for wua in self.workspace_associations if wua.is_owner and wua.workspace.status == 'active']
+    def get_owned_workspace_memberships(self):
+        return [wm for wm in self.workspace_memberships if wm.is_owner and wm.workspace.status == 'active']
 
-    def get_managed_workspace_associations(self):
-        return [wua for wua in self.workspace_associations if wua.is_manager and wua.workspace.status == 'active']
+    def get_managed_workspace_memberships(self):
+        return [wm for wm in self.workspace_memberships if wm.is_manager and wm.workspace.status == 'active']
 
     @staticmethod
     def verify_auth_token(token, app_secret):
@@ -272,15 +272,16 @@ class User(db.Model):
         return hash(self.ext_id)
 
 
-class WorkspaceUserAssociation(db.Model):  # Association Object for many-to-many mapping
-    __tablename__ = 'workspace_user_associations'
+# Membership Object for many-to-many mapping
+class WorkspaceMembership(db.Model):
+    __tablename__ = 'workspace_memberships'
     workspace_id = db.Column(db.String(32), db.ForeignKey('workspaces.id'), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'), primary_key=True)
     is_manager = db.Column(db.Boolean, default=False)
     is_owner = db.Column(db.Boolean, default=False)
     is_banned = db.Column(db.Boolean, default=False)
-    user = db.relationship("User", back_populates="workspace_associations")
-    workspace = db.relationship("Workspace", back_populates="user_associations")
+    user = db.relationship("User", back_populates="workspace_memberships")
+    workspace = db.relationship("Workspace", back_populates="memberships")
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 
@@ -310,8 +311,8 @@ class Workspace(db.Model):
         db.DateTime,
         default=lambda: datetime.datetime.fromtimestamp(time.time() + 6 * 30 * 24 * 3600)
     )
-    user_associations = db.relationship("WorkspaceUserAssociation", back_populates="workspace", lazy='dynamic',
-                                        cascade="all, delete-orphan")
+    memberships = db.relationship("WorkspaceMembership", back_populates="workspace", lazy='dynamic',
+                                  cascade="all, delete-orphan")
     application_quota = db.Column(db.Integer, default=10)
     memory_limit_gib = db.Column(db.Integer, default=50)
     _config = db.Column('config', db.Text)

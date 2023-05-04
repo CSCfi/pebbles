@@ -385,10 +385,10 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         # turn environment variable dict to list
         env_var_list = [dict(name=x, value=env_var_dict[x]) for x in env_var_dict.keys()]
 
-        # admins do not have this defined, so first check if we have WUA
-        if application_session['workspace_user_association']:
+        # admins do not have this defined, so first check if we have membership
+        if application_session['workspace_membership']:
             # read_write only for managers
-            shared_data_read_only_mode = not application_session['workspace_user_association']['is_manager']
+            shared_data_read_only_mode = not application_session['workspace_membership']['is_manager']
         else:
             shared_data_read_only_mode = True
 
@@ -584,10 +584,10 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         application_session = pbclient.get_application_session(application_session_id)
         application_session['application'] = pbclient.get_application_session_application(application_session_id)
         application_session['user'] = pbclient.get_user(application_session['user_id'])
-        # get workspace associations for the user and find the relevant one
-        application_session['workspace_user_association'] = next(filter(
+        # get workspace memberships for the user and find the relevant one
+        application_session['workspace_membership'] = next(filter(
             lambda x: x['workspace_id'] == application_session['application']['workspace_id'],
-            pbclient.get_workspace_user_associations(user_id=application_session['user_id'])
+            pbclient.get_workspace_memberships(user_id=application_session['user_id'])
         ), None)
 
         return application_session

@@ -330,10 +330,10 @@ class WorkspaceController(ControllerBase):
             self.client.update_task(task.get('id'), state=Task.STATE_PROCESSING)
 
             # list current users of the workspace to create a list of restorable volumes
-            wuas = self.client.get_workspace_user_associations(ws_id)
+            wms = self.client.get_workspace_memberships(ws_id)
             pseudonyms = []
-            for wua in wuas:
-                user = self.client.get_user(wua['user_id'])
+            for wm in wms:
+                user = self.client.get_user(wm['user_id'])
                 pseudonyms.append(user['pseudonym'])
 
             # figure out right size for user work volume

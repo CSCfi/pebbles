@@ -89,16 +89,16 @@ class PBClient:
             raise RuntimeError('Cannot fetch data for workspace %s, %s' % (workspace_id, resp.reason))
         return resp.json()
 
-    def get_workspace_user_associations(self, workspace_id=None, user_id=None):
+    def get_workspace_memberships(self, workspace_id=None, user_id=None):
         if user_id:
-            resp = self.do_get('users/%s/workspace_associations' % user_id)
+            resp = self.do_get('users/%s/workspace_memberships' % user_id)
         elif workspace_id:
             resp = self.do_get('workspaces/%s/members' % workspace_id)
         else:
-            raise RuntimeError('get_workspace_user_associations() needs either workspace_id or user_id')
+            raise RuntimeError('get_workspace_memberships() needs either workspace_id or user_id')
 
         if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for workspace_user_associations %s, %s' % (user_id, resp.reason))
+            raise RuntimeError('Cannot fetch data for workspace_memberships %s, %s' % (user_id, resp.reason))
 
         return resp.json()
 

@@ -4,8 +4,7 @@ from sqlalchemy import or_, and_
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
 
-from pebbles.models import Application, ApplicationTemplate, ApplicationSession, User, WorkspaceUserAssociation, \
-    Workspace
+from pebbles.models import Application, ApplicationTemplate, ApplicationSession, User, WorkspaceMembership, Workspace
 from pebbles.views.commons import is_workspace_manager
 
 
@@ -23,7 +22,7 @@ def apply_rules_application_templates(user, args=None):
 def apply_rules_applications(user, args=None):
     q = Application.query
     if not user.is_admin:
-        workspace_user_objs = WorkspaceUserAssociation.query.filter_by(
+        workspace_user_objs = WorkspaceMembership.query.filter_by(
             user_id=user.id, is_manager=False, is_banned=False).all()
         allowed_workspace_ids = [workspace_user_obj.workspace.id for workspace_user_obj in workspace_user_objs]
 
@@ -95,12 +94,12 @@ def apply_rules_application_sessions(user, args=None):
     return q
 
 
-def apply_rules_workspace_user_associations(user, user_id):
+def apply_rules_workspace_memberships(user, user_id):
     # only admins can query someone else
     if not user.is_admin:
         user_id = user.id
 
-    q = WorkspaceUserAssociation.query \
+    q = WorkspaceMembership.query \
         .filter_by(user_id=user_id) \
         .join(Workspace) \
         .filter_by(status='active')
@@ -123,14 +122,14 @@ def apply_filter_users():
 def get_manager_workspace_ids(user):
     """Return the workspace ids for the user's managed workspaces"""
     # the result shall contain the owners of the workspaces too as they are managers by default
-    workspace_manager_objs = WorkspaceUserAssociation.query.filter_by(user_id=user.id, is_manager=True).all()
+    workspace_manager_objs = WorkspaceMembership.query.filter_by(user_id=user.id, is_manager=True).all()
     manager_workspace_ids = [workspace_manager_obj.workspace.id for workspace_manager_obj in workspace_manager_objs]
     return manager_workspace_ids
 
 
 def get_workspace_application_ids_for_application_sessions(user, only_managed=False):
     """Return the valid application ids based on user's workspaces to be used in application_sessions view"""
-    workspace_user_query = WorkspaceUserAssociation.query
+    workspace_user_query = WorkspaceMembership.query
     if only_managed:  # if we require only managed workspaces
         workspace_user_objs = workspace_user_query.filter_by(user_id=user.id, is_manager=True).all()
     else:  # get the normal user workspaces
@@ -146,8 +145,8 @@ def get_workspace_application_ids_for_application_sessions(user, only_managed=Fa
 
 
 def is_user_owner_of_workspace(user, workspace):
-    return user.id in (wua.user_id for wua in workspace.user_associations if wua.is_owner)
+    return user.id in (wm.user_id for wm in workspace.memberships if wm.is_owner)
 
 
 def is_user_manager_in_workspace(user, workspace):
-    return user.id in (wua.user_id for wua in workspace.user_associations if wua.is_manager)
+    return user.id in (wm.user_id for wm in workspace.memberships if wm.is_manager)

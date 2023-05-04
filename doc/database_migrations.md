@@ -7,7 +7,7 @@ and Flask-Migrate.
 
 It's always possible to just use the db.create_all() to create all database
 tables based on code at that point. This is what unit tests do to save time.
-Because production databases have a state in the form of the data in them we
+Because production databases have a state in the form of the data in them, we
 have to have migrations.
 
 Database migration-related code is in migrations/. Migrations/env.py contains
@@ -24,14 +24,14 @@ deployment.
 
 ## Process
 
-After you change the models (add fields, constraints etc), first make sure you
-have the correct packages installed etc, either by using a virtualenv or running
+After you change the models (add fields, constraints etc.), first make sure you
+have the correct packages installed etc., either by using a virtualenv or running
 the command in the api container. Set "FLASK_APP" environment variable to "pebbles.server:app"
 in your shell before running the commands.
 
         (env) pebbles/ $ export FLASK_APP=pebbles.server:app
 
-Then to make sure db is up to date with latest version file, run
+Then to make sure db is up-to-date with latest version file, run
 
         (env) pebbles/ $ flask db upgrade
 
@@ -56,7 +56,7 @@ To apply the migration you have created, run
 And the system picks up the new migration, sees that it hasn't been run yet
 and applies it.
 
-To downgrade e.g. after something appears broken and you don't want to start
+To downgrade e.g. after something appears broken, and you don't want to start
 generating the db from scratch you can run
 
         (env) pebbles/ $ flask db downgrade [revision identifier]
@@ -74,5 +74,5 @@ features.
 
 For initial deployment of a persistent system, you should apply the migrations
 instead of letting SQLAlchemy create the database. It is also possible to stamp
-an existing database with the latest migration revision identifier with "flask db stamp".
+an existing database with the latest migration revision identifier with `flask db stamp`.
 

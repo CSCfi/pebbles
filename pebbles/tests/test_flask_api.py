@@ -8,7 +8,7 @@ import uuid
 from dateutil.relativedelta import relativedelta
 
 from pebbles.models import (
-    User, Workspace, WorkspaceUserAssociation, ApplicationTemplate, Application,
+    User, Workspace, WorkspaceMembership, ApplicationTemplate, Application,
     ApplicationSession, ApplicationSessionLog)
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.tests.fixtures import primary_test_setup
@@ -313,22 +313,22 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(path='/api/v1/users')
         self.assert_200(response)
 
-    def test_get_user_workspace_associations(self):
+    def test_get_user_workspace_memberships(self):
         # Anonymous
         response = self.make_request(
-            path='/api/v1/users/%s/workspace_associations' % self.known_user_id
+            path='/api/v1/users/%s/workspace_memberships' % self.known_user_id
         )
         self.assert_401(response)
 
         # Authenticated but different user
         response = self.make_authenticated_user_request(
-            path='/api/v1/users/%s/workspace_associations' % self.known_workspace_owner_id
+            path='/api/v1/users/%s/workspace_memberships' % self.known_workspace_owner_id
         )
         self.assert_403(response)
 
         # Authenticated
         response = self.make_authenticated_user_request(
-            path='/api/v1/users/%s/workspace_associations' % self.known_user_id
+            path='/api/v1/users/%s/workspace_memberships' % self.known_user_id
         )
         self.assert_200(response)
         # System.default, one WS membership, one ban
@@ -336,13 +336,13 @@ class FlaskApiTestCase(BaseTestCase):
 
         # Owner should not be able to query user
         response = self.make_authenticated_workspace_owner_request(
-            path='/api/v1/users/%s/workspace_associations' % self.known_user_id
+            path='/api/v1/users/%s/workspace_memberships' % self.known_user_id
         )
         self.assert_403(response)
 
         # Admin
         response = self.make_authenticated_admin_request(
-            path='/api/v1/users/%s/workspace_associations' % self.known_user_id
+            path='/api/v1/users/%s/workspace_memberships' % self.known_user_id
         )
         self.assert_200(response)
 
@@ -499,18 +499,18 @@ class FlaskApiTestCase(BaseTestCase):
 
     def test_modify_workspace(self):
 
-        g = Workspace('TestWorkspaceModify')
+        ws = Workspace('TestWorkspaceModify')
         # g.owner_id = self.known_workspace_owner_id
         u1 = User.query.filter_by(id=self.known_user_id).first()
-        gu1_obj = WorkspaceUserAssociation(user=u1, workspace=g)
+        wsu1_obj = WorkspaceMembership(user=u1, workspace=ws)
         u2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
-        gu2_obj = WorkspaceUserAssociation(user=u2, workspace=g)
+        wsu2_obj = WorkspaceMembership(user=u2, workspace=ws)
         u3 = User.query.filter_by(id=self.known_workspace_owner_id).first()
-        gu3_obj = WorkspaceUserAssociation(user=u3, workspace=g, is_manager=True, is_owner=True)
-        g.user_associations.append(gu1_obj)
-        g.user_associations.append(gu2_obj)
-        g.user_associations.append(gu3_obj)
-        db.session.add(g)
+        wsu3_obj = WorkspaceMembership(user=u3, workspace=ws, is_manager=True, is_owner=True)
+        ws.memberships.append(wsu1_obj)
+        ws.memberships.append(wsu2_obj)
+        ws.memberships.append(wsu3_obj)
+        db.session.add(ws)
         db.session.commit()
 
         data_ban = {
@@ -529,13 +529,13 @@ class FlaskApiTestCase(BaseTestCase):
         }
         response_ban = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/workspaces/%s' % g.id,
+            path='/api/v1/workspaces/%s' % ws.id,
             data=json.dumps(data_ban))
         self.assertStatus(response_ban, 200)
 
         response_manager = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/workspaces/%s' % g.id,
+            path='/api/v1/workspaces/%s' % ws.id,
             data=json.dumps(data_manager))
         self.assertStatus(response_manager, 200)
 
@@ -631,7 +631,7 @@ class FlaskApiTestCase(BaseTestCase):
         name = 'WorkspaceToBeDeleted'
         ws = Workspace(name)
         ws.owner_id = owner_1.id
-        ws.user_associations.append(WorkspaceUserAssociation(user=owner_1, is_manager=True, is_owner=True))
+        ws.memberships.append(WorkspaceMembership(user=owner_1, is_manager=True, is_owner=True))
         db.session.add(ws)
         db.session.commit()
 
@@ -779,15 +779,15 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertStatus(response, 400)
 
     def test_join_workspace_invalid(self):
-        g = Workspace('InvalidTestWorkspace')
-        g.owner_id = self.known_workspace_owner_id
+        ws = Workspace('InvalidTestWorkspace')
+        ws.owner_id = self.known_workspace_owner_id
         u = User.query.filter_by(id=self.known_user_id).first()
-        gu_obj = WorkspaceUserAssociation()
-        gu_obj.user = u
-        gu_obj.workspace = g
+        wsu_obj = WorkspaceMembership()
+        wsu_obj.user = u
+        wsu_obj.workspace = ws
 
-        g.user_associations.append(gu_obj)
-        db.session.add(g)
+        ws.memberships.append(wsu_obj)
+        db.session.add(ws)
         db.session.commit()
         # Authenticated User
         invalid_response = self.make_authenticated_user_request(
@@ -807,7 +807,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Authenticated User - Trying to Join the same workspace again
         response = self.make_authenticated_user_request(
             method='PUT',
-            path='/api/v1/join_workspace/%s' % g.join_code)
+            path='/api/v1/join_workspace/%s' % ws.join_code)
         self.assertStatus(response, 422)
 
     def test_join_workspace_banned_user(self):
@@ -825,43 +825,43 @@ class FlaskApiTestCase(BaseTestCase):
         self.assertStatus(banned_response, 403)
 
     def test_exit_workspace(self):
-        g = Workspace('TestWorkspaceExit')
-        g.owner_id = self.known_workspace_owner_id_2
+        ws = Workspace('TestWorkspaceExit')
+        ws.owner_id = self.known_workspace_owner_id_2
         u = User.query.filter_by(id=self.known_user_id).first()
-        gu_obj = WorkspaceUserAssociation(workspace=g, user=u)
+        wsu_obj = WorkspaceMembership(workspace=ws, user=u)
 
         u_extra = User.query.filter_by(id=self.known_workspace_owner_id).first()  # extra user
-        gu_extra_obj = WorkspaceUserAssociation(workspace=g, user=u_extra)
+        wsu_extra_obj = WorkspaceMembership(workspace=ws, user=u_extra)
 
-        g.user_associations.append(gu_obj)
-        g.user_associations.append(gu_extra_obj)
+        ws.memberships.append(wsu_obj)
+        ws.memberships.append(wsu_extra_obj)
 
-        db.session.add(g)
+        db.session.add(ws)
         db.session.commit()
         # Anonymous
         response = self.make_request(
             method='PUT',
-            path='/api/v1/workspaces/%s/exit' % g.id)
+            path='/api/v1/workspaces/%s/exit' % ws.id)
         self.assertStatus(response, 401)
         # Authenticated User of the workspace
         response = self.make_authenticated_user_request(
             method='PUT',
-            path='/api/v1/workspaces/%s/exit' % g.id)
+            path='/api/v1/workspaces/%s/exit' % ws.id)
         self.assertStatus(response, 200)
         # self.assertEqual(len(g.users.all()), 1)
         # Workspace Owner who is just a user of the workspace
         response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/workspaces/%s/exit' % g.id)
+            path='/api/v1/workspaces/%s/exit' % ws.id)
         self.assertStatus(response, 200)
         # self.assertEqual(len(g.users.all()), 0)
 
     def test_exit_workspace_invalid(self):
-        g = Workspace('InvalidTestWorkspaceExit')
+        ws = Workspace('InvalidTestWorkspaceExit')
         u = User.query.filter_by(id=self.known_workspace_owner_id).first()
-        gu_obj = WorkspaceUserAssociation(workspace=g, user=u, is_manager=True, is_owner=True)
-        g.user_associations.append(gu_obj)
-        db.session.add(g)
+        wsu_obj = WorkspaceMembership(workspace=ws, user=u, is_manager=True, is_owner=True)
+        ws.memberships.append(wsu_obj)
+        db.session.add(ws)
         db.session.commit()
         # Authenticated User
         invalid_response = self.make_authenticated_user_request(
@@ -881,12 +881,12 @@ class FlaskApiTestCase(BaseTestCase):
         # Authenticated User - Trying to exit a workspace without
         response = self.make_authenticated_user_request(
             method='PUT',
-            path='/api/v1/workspaces/%s/exit' % g.id)
+            path='/api/v1/workspaces/%s/exit' % ws.id)
         self.assertStatus(response, 403)
         # Workspace Owner of the workspace
         response = self.make_authenticated_workspace_owner_request(
             method='PUT',
-            path='/api/v1/workspaces/%s/exit' % g.id)
+            path='/api/v1/workspaces/%s/exit' % ws.id)
         self.assertStatus(response, 422)  # owner of the workspace cannot exit the workspace
 
     def test_get_workspace_members(self):
@@ -1009,27 +1009,27 @@ class FlaskApiTestCase(BaseTestCase):
 
     def test_transfer_ownership_workspace(self):
 
-        g = Workspace('TestWorkspaceTransferOwnership')
-        g.id = 'TestWorkspaceId'
-        g.cluster = 'dummy_cluster_1'
+        ws = Workspace('TestWorkspaceTransferOwnership')
+        ws.id = 'TestWorkspaceId'
+        ws.cluster = 'dummy_cluster_1'
 
         u1 = User.query.filter_by(id=self.known_user_id).first()
-        gu1_obj = WorkspaceUserAssociation(user=u1, workspace=g)
+        wsu1_obj = WorkspaceMembership(user=u1, workspace=ws)
         u2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
-        gu2_obj = WorkspaceUserAssociation(user=u2, workspace=g)
+        wsu2_obj = WorkspaceMembership(user=u2, workspace=ws)
         u3 = User.query.filter_by(id=self.known_workspace_owner_id).first()
-        gu3_obj = WorkspaceUserAssociation(user=u3, workspace=g, is_manager=True, is_owner=True)
-        g.user_associations.append(gu1_obj)
-        g.user_associations.append(gu2_obj)
-        g.user_associations.append(gu3_obj)
-        db.session.add(g)
+        wsu3_obj = WorkspaceMembership(user=u3, workspace=ws, is_manager=True, is_owner=True)
+        ws.memberships.append(wsu1_obj)
+        ws.memberships.append(wsu2_obj)
+        ws.memberships.append(wsu3_obj)
+        db.session.add(ws)
         db.session.commit()
 
         # Anonymous
         response = self.make_request(
             method='PATCH',
             data=json.dumps(dict(new_owner_id=self.known_user_id)),
-            path='/api/v1/workspaces/%s/transfer_ownership' % g.id
+            path='/api/v1/workspaces/%s/transfer_ownership' % ws.id
         )
         self.assert_401(response)
 
@@ -1037,7 +1037,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_user_request(
             method='PATCH',
             data=json.dumps(dict(new_owner_id=u1.id)),
-            path='/api/v1/workspaces/%s/transfer_ownership' % g.id
+            path='/api/v1/workspaces/%s/transfer_ownership' % ws.id
         )
         self.assert_403(response)
 
@@ -1045,7 +1045,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_workspace_owner_request(
             method='PATCH',
             data=json.dumps(dict(new_owner_id=u1.id)),
-            path='/api/v1/workspaces/%s/transfer_ownership' % g.id
+            path='/api/v1/workspaces/%s/transfer_ownership' % ws.id
         )
         self.assert_403(response)
 
@@ -1053,7 +1053,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_workspace_owner_request(
             method='PATCH',
             data=json.dumps(dict(new_owner_id=self.known_user_2_ext_id)),
-            path='/api/v1/workspaces/%s/transfer_ownership' % g.id
+            path='/api/v1/workspaces/%s/transfer_ownership' % ws.id
         )
         self.assert_403(response)
 
@@ -1061,7 +1061,7 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_workspace_owner_request(
             method='PATCH',
             data=json.dumps(dict(new_owner_id=u2.id)),
-            path='/api/v1/workspaces/%s/transfer_ownership' % g.id
+            path='/api/v1/workspaces/%s/transfer_ownership' % ws.id
         )
         self.assert_200(response)
 
@@ -1069,42 +1069,42 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_workspace_owner_request(
             method='PATCH',
             data=json.dumps(dict(new_owner_id=u2.id)),
-            path='/api/v1/workspaces/%s/transfer_ownership' % g.id
+            path='/api/v1/workspaces/%s/transfer_ownership' % ws.id
         )
         self.assert_403(response)
 
     def test_clear_members_from_workspace(self):
         name = 'WorkspaceToBeCleared'
-        g = Workspace(name)
+        ws = Workspace(name)
         u1 = User.query.filter_by(id=self.known_user_id).first()
-        gu1_obj = WorkspaceUserAssociation(user=u1, workspace=g)
+        wsu1_obj = WorkspaceMembership(user=u1, workspace=ws)
         u2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
-        gu2_obj = WorkspaceUserAssociation(user=u2, workspace=g, is_manager=True, is_owner=False)
+        wsu2_obj = WorkspaceMembership(user=u2, workspace=ws, is_manager=True, is_owner=False)
         u3 = User.query.filter_by(id=self.known_workspace_owner_id).first()
-        gu3_obj = WorkspaceUserAssociation(user=u3, workspace=g, is_manager=True, is_owner=True)
-        g.user_associations.append(gu1_obj)
-        g.user_associations.append(gu2_obj)
-        g.user_associations.append(gu3_obj)
-        db.session.add(g)
+        wsu3_obj = WorkspaceMembership(user=u3, workspace=ws, is_manager=True, is_owner=True)
+        ws.memberships.append(wsu1_obj)
+        ws.memberships.append(wsu2_obj)
+        ws.memberships.append(wsu3_obj)
+        db.session.add(ws)
         db.session.commit()
         # Anonymous
         response = self.make_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_members' % g.id,
+            path='/api/v1/workspaces/%s/clear_members' % ws.id,
             data=json.dumps({})
         )
         self.assert_401(response)
         # Authenticated user
         response = self.make_authenticated_user_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_members' % g.id,
+            path='/api/v1/workspaces/%s/clear_members' % ws.id,
             data=json.dumps({})
         )
         self.assert_403(response)
         # Authenticated workspace owner
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_members' % g.id,
+            path='/api/v1/workspaces/%s/clear_members' % ws.id,
             data=json.dumps({})
         )
         self.assert_200(response)
@@ -1118,7 +1118,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Authenticated workspace manager
         response = self.make_authenticated_workspace_owner2_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_members' % g.id,
+            path='/api/v1/workspaces/%s/clear_members' % ws.id,
             data=json.dumps({})
         )
         self.assert_403(response)
@@ -1132,7 +1132,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Admin
         response = self.make_authenticated_admin_request(
             method='POST',
-            path='/api/v1/workspaces/%s/clear_members' % g.id,
+            path='/api/v1/workspaces/%s/clear_members' % ws.id,
             data=json.dumps({})
         )
         self.assert_200(response)

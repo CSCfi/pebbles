@@ -6,7 +6,7 @@ import yaml
 
 import pebbles
 from pebbles.models import (
-    User, Workspace, WorkspaceUserAssociation, ApplicationTemplate, Application,
+    User, Workspace, WorkspaceMembership, ApplicationTemplate, Application,
     Message, ServiceAnnouncement, ApplicationSession, ApplicationSessionLog)
 from pebbles.tests.base import db
 
@@ -79,44 +79,44 @@ def primary_test_setup(namespace):
 
     ws0 = Workspace('System.default')
     ws0.id = 'ws0'
-    ws0.user_associations.append(WorkspaceUserAssociation(user=u1, is_owner=True))
-    ws0.user_associations.append(WorkspaceUserAssociation(user=u2))
-    ws0.user_associations.append(WorkspaceUserAssociation(user=u3))
-    ws0.user_associations.append(WorkspaceUserAssociation(user=u4))
-    ws0.user_associations.append(WorkspaceUserAssociation(user=u5))
-    ws0.user_associations.append(WorkspaceUserAssociation(user=u6))
-    ws0.user_associations.append(WorkspaceUserAssociation(user=u7))
+    ws0.memberships.append(WorkspaceMembership(user=u1, is_owner=True))
+    ws0.memberships.append(WorkspaceMembership(user=u2))
+    ws0.memberships.append(WorkspaceMembership(user=u3))
+    ws0.memberships.append(WorkspaceMembership(user=u4))
+    ws0.memberships.append(WorkspaceMembership(user=u5))
+    ws0.memberships.append(WorkspaceMembership(user=u6))
+    ws0.memberships.append(WorkspaceMembership(user=u7))
     db.session.add(ws0)
 
     ws1 = Workspace('Workspace1')
     ws1.id = 'ws1'
     ws1.cluster = 'dummy_cluster_1'
     ws1.application_quota = 6
-    ws1.user_associations.append(WorkspaceUserAssociation(user=u2))
-    ws1.user_associations.append(WorkspaceUserAssociation(user=u3, is_manager=True, is_owner=True))
-    ws1.user_associations.append(WorkspaceUserAssociation(user=u4, is_manager=True))
-    ws1.user_associations.append(WorkspaceUserAssociation(user=u6))
+    ws1.memberships.append(WorkspaceMembership(user=u2))
+    ws1.memberships.append(WorkspaceMembership(user=u3, is_manager=True, is_owner=True))
+    ws1.memberships.append(WorkspaceMembership(user=u4, is_manager=True))
+    ws1.memberships.append(WorkspaceMembership(user=u6))
     db.session.add(ws1)
 
     ws2 = Workspace('Workspace2')
     ws2.id = 'ws2'
     ws2.cluster = 'dummy_cluster_1'
-    ws2.user_associations.append(WorkspaceUserAssociation(user=u3))
-    ws2.user_associations.append(WorkspaceUserAssociation(user=u4, is_manager=True, is_owner=True))
+    ws2.memberships.append(WorkspaceMembership(user=u3))
+    ws2.memberships.append(WorkspaceMembership(user=u4, is_manager=True, is_owner=True))
     db.session.add(ws2)
 
     ws3 = Workspace('Workspace3')
     ws3.id = 'ws3'
     ws3.cluster = 'dummy_cluster_2'
-    ws3.user_associations.append(WorkspaceUserAssociation(user=u4, is_manager=True, is_owner=True))
-    ws3.user_associations.append(WorkspaceUserAssociation(user=u2, is_banned=True))
-    ws3.user_associations.append(WorkspaceUserAssociation(user=u3, is_banned=True))
+    ws3.memberships.append(WorkspaceMembership(user=u4, is_manager=True, is_owner=True))
+    ws3.memberships.append(WorkspaceMembership(user=u2, is_banned=True))
+    ws3.memberships.append(WorkspaceMembership(user=u3, is_banned=True))
     db.session.add(ws3)
 
     ws4 = Workspace('Workspace4')
     ws4.id = 'ws4'
     ws4.cluster = 'dummy_cluster_2'
-    ws4.user_associations.append(WorkspaceUserAssociation(user=u1, is_manager=True, is_owner=True))
+    ws4.memberships.append(WorkspaceMembership(user=u1, is_manager=True, is_owner=True))
     db.session.add(ws4)
 
     # deleted workspace
@@ -124,7 +124,7 @@ def primary_test_setup(namespace):
     ws5.id = 'ws5'
     ws5.cluster = 'dummy_cluster_1'
     ws5.status = 'deleted'
-    ws5.user_associations.append(WorkspaceUserAssociation(user=u2, is_manager=True, is_owner=True))
+    ws5.memberships.append(WorkspaceMembership(user=u2, is_manager=True, is_owner=True))
     db.session.add(ws5)
 
     ws6 = Workspace('Workspace1')
@@ -133,7 +133,7 @@ def primary_test_setup(namespace):
     ws6.cluster = 'dummy_cluster_1'
     ws6.application_quota = 6
     ws6.memory_limit_gib = 10
-    ws6.user_associations.append(WorkspaceUserAssociation(user=u6))
+    ws6.memberships.append(WorkspaceMembership(user=u6))
     db.session.add(ws6)
 
     namespace.known_workspace_id = ws1.id

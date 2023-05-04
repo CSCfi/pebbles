@@ -12,7 +12,7 @@ from sqlalchemy.orm import subqueryload
 from pebbles import rules
 from pebbles.app import app
 from pebbles.forms import WorkspaceForm
-from pebbles.models import db, Workspace, User, WorkspaceUserAssociation, Application, ApplicationSession
+from pebbles.models import db, Workspace, User, WorkspaceMembership, Application, ApplicationSession
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin, load_cluster_config
 from pebbles.views.commons import auth
 
@@ -30,7 +30,7 @@ workspace_fields_admin = {
     'owner_ext_id': fields.String,
     'application_quota': fields.Integer,
     'memory_limit_gib': fields.Integer,
-    'user_association_type': fields.String(default='admin'),
+    'membership_type': fields.String(default='admin'),
     'cluster': fields.String,
     'config': fields.Raw,
 }
@@ -45,7 +45,7 @@ workspace_fields_owner = {
     'owner_ext_id': fields.String,
     'application_quota': fields.Integer,
     'memory_limit_gib': fields.Integer,
-    'user_association_type': fields.String(default='owner'),
+    'membership_type': fields.String(default='owner'),
     'cluster': fields.String,
 }
 
@@ -58,7 +58,7 @@ workspace_fields_manager = {
     'expiry_ts': fields.Integer,
     'application_quota': fields.Integer,
     'memory_limit_gib': fields.Integer,
-    'user_association_type': fields.String(default='manager'),
+    'membership_type': fields.String(default='manager'),
     'cluster': fields.String,
 }
 
@@ -69,7 +69,7 @@ workspace_fields_user = {
     'create_ts': fields.Integer,
     'expiry_ts': fields.Integer,
     'memory_limit_gib': fields.Integer,
-    'user_association_type': fields.String(default='member'),
+    'membership_type': fields.String(default='member'),
 }
 
 member_fields = dict(
@@ -86,6 +86,7 @@ def marshal_based_on_role(user, workspace):
     if user.is_admin:
         if workspace.name.startswith('System.'):
             workspace.user_association_type = 'public'
+            workspace.membership_type = 'public'
         return restful.marshal(workspace, workspace_fields_admin)
     elif rules.is_user_owner_of_workspace(user, workspace):
         return restful.marshal(workspace, workspace_fields_owner)
@@ -99,7 +100,7 @@ class WorkspaceList(restful.Resource):
     @auth.login_required
     def get(self):
         user = g.user
-        workspace_user_query = WorkspaceUserAssociation.query
+        workspace_user_query = WorkspaceMembership.query
         results = []
         if not user.is_admin:
             workspace_mappings = workspace_user_query.filter_by(user_id=user.id, is_banned=False).all()
@@ -116,7 +117,7 @@ class WorkspaceList(restful.Resource):
             if not workspace.status == Workspace.STATUS_ACTIVE:
                 continue
 
-            owner = next((woa.user for woa in workspace.user_associations if woa.is_owner), None)
+            owner = next((wm.user for wm in workspace.memberships if wm.is_owner), None)
             workspace.owner_ext_id = owner.ext_id if owner else None
 
             # marshal results based on role
@@ -128,7 +129,7 @@ class WorkspaceList(restful.Resource):
     @requires_workspace_owner_or_admin
     def post(self):
         user = g.user
-        user_owned_workspaces = WorkspaceUserAssociation.query.filter_by(user_id=user.id, is_owner=True)
+        user_owned_workspaces = WorkspaceMembership.query.filter_by(user_id=user.id, is_owner=True)
         num_user_owned_workspaces = [
             w.workspace.status == Workspace.STATUS_ACTIVE for w in user_owned_workspaces].count(True)
         if not user.is_admin and num_user_owned_workspaces >= user.workspace_quota:
@@ -144,8 +145,8 @@ class WorkspaceList(restful.Resource):
         workspace = Workspace(form.name.data)
         workspace.description = form.description.data
 
-        workspace_owner_obj = WorkspaceUserAssociation(user=user, workspace=workspace, is_manager=True, is_owner=True)
-        workspace.user_associations.append(workspace_owner_obj)
+        workspace_owner_obj = WorkspaceMembership(user=user, workspace=workspace, is_manager=True, is_owner=True)
+        workspace.memberships.append(workspace_owner_obj)
 
         workspace.create_ts = datetime.datetime.utcnow().timestamp()
         workspace.expiry_ts = (datetime.datetime.utcnow() + relativedelta(months=+6)).timestamp()
@@ -192,7 +193,7 @@ class WorkspaceView(restful.Resource):
             abort(404)
         if not workspace.status == Workspace.STATUS_ACTIVE:
             abort(422)
-        workspace_owner_obj = WorkspaceUserAssociation.query.filter_by(workspace_id=workspace.id, is_owner=True).first()
+        workspace_owner_obj = WorkspaceMembership.query.filter_by(workspace_id=workspace.id, is_owner=True).first()
         owner = workspace_owner_obj.user
         if not (user.is_admin or user.id == owner.id):
             abort(403)
@@ -296,7 +297,7 @@ def workspace_users_add(workspace, user_config, owner, workspace_owner_obj):
             new_owner = User.query.filter_by(id=new_owner_id).first()
             if new_owner != owner:
                 workspace_owner_obj.user = new_owner
-                workspace.user_associations.append(workspace_owner_obj)
+                workspace.memberships.append(workspace_owner_obj)
                 managers_list.append(new_owner)
 
     if 'managers' in user_config:
@@ -322,17 +323,17 @@ def workspace_users_add(workspace, user_config, owner, workspace_owner_obj):
     workspace.banned_users = banned_users_final  # setting a new list adds and also removes relationships
     # add the users
     users_final = []
-    if workspace.user_associations:
-        for workspace_user_obj in workspace.user_associations:  # Association object
-            if workspace_user_obj.user in banned_users_final:
-                logging.warning("user %s is banned, cannot add", workspace_user_obj.user.id)
+    if workspace.memberships:
+        for membership in workspace.memberships:
+            if membership.user in banned_users_final:
+                logging.warning("user %s is banned, cannot add", membership.user.id)
                 continue
-            if workspace_user_obj.user.id in managers_set:  # if user is a manager
-                workspace_user_obj.is_manager = True
-            elif not workspace_user_obj.is_owner:  # if the user is not an owner then keep all users to non manager status
-                workspace_user_obj.manager = False
-            users_final.append(workspace_user_obj)
-    workspace.user_associations = users_final
+            if membership.user.id in managers_set:  # if user is a manager
+                membership.is_manager = True
+            elif not membership.is_owner:  # if the user is not an owner then keep all users to non manager status
+                membership.manager = False
+            users_final.append(membership)
+    workspace.memberships = users_final
 
     return workspace
 
@@ -351,7 +352,7 @@ class JoinWorkspace(restful.Resource):
             logging.warning('workspace for join code %s has expired', join_code)
             return 'The workspace for this join code has expired.', 422
 
-        existing_relation = next(filter(lambda wua: wua.user_id == user.id, workspace.user_associations), None)
+        existing_relation = next(filter(lambda wm: wm.user_id == user.id, workspace.memberships), None)
         if existing_relation and existing_relation.is_banned:
             logging.warning('banned user %s tried to join workspace %s with code %s',
                             user.ext_id, workspace.name, join_code)
@@ -361,8 +362,8 @@ class JoinWorkspace(restful.Resource):
             logging.warning('user %s already exists in workspace', user.id)
             return 'User already exists in the workspace', 422
 
-        workspace_user_obj = WorkspaceUserAssociation(user=user, workspace=workspace)
-        workspace.user_associations.append(workspace_user_obj)
+        workspace_user_obj = WorkspaceMembership(user=user, workspace=workspace)
+        workspace.memberships.append(workspace_user_obj)
         db.session.add(workspace)
         db.session.commit()
 
@@ -381,7 +382,7 @@ class WorkspaceExit(restful.Resource):
         if re.match('^System.+', workspace.name):  # Do not allow exiting system level workspaces
             abort(403)
 
-        workspace_user_filtered_query = WorkspaceUserAssociation.query.filter_by(
+        workspace_user_filtered_query = WorkspaceMembership.query.filter_by(
             workspace_id=workspace.id,
             user_id=user.id
         )
@@ -392,7 +393,7 @@ class WorkspaceExit(restful.Resource):
         if not user_in_workspace:
             logging.warning("user %s is not a part of the workspace", user.id)
             abort(403)
-        workspace.user_associations.remove(user_in_workspace)
+        workspace.memberships.remove(user_in_workspace)
         db.session.add(workspace)
         db.session.commit()
 
@@ -414,22 +415,22 @@ class WorkspaceMemberList(restful.Resource):
             logging.warning('workspace %s not managed by %s, cannot see users', workspace_id, user.ext_id)
             abort(403)
 
-        user_associations = WorkspaceUserAssociation.query \
+        memberships = WorkspaceMembership.query \
             .filter_by(workspace_id=workspace_id) \
-            .options(subqueryload(WorkspaceUserAssociation.user)) \
+            .options(subqueryload(WorkspaceMembership.user)) \
             .all()
 
         members = []
-        for wua in user_associations:
-            if wua.user.is_deleted:
+        for wm in memberships:
+            if wm.user.is_deleted:
                 continue
             members.append(dict(
-                user_id=wua.user_id,
-                ext_id=wua.user.ext_id,
-                email_id=wua.user.email_id,
-                is_owner=wua.is_owner,
-                is_manager=wua.is_manager,
-                is_banned=wua.is_banned
+                user_id=wm.user_id,
+                ext_id=wm.user.ext_id,
+                email_id=wm.user.email_id,
+                is_owner=wm.is_owner,
+                is_manager=wm.is_manager,
+                is_banned=wm.is_banned
             ))
         if args is not None and 'member_count' in args and args.get('member_count'):
             return len(members)
@@ -452,33 +453,33 @@ class WorkspaceMemberList(restful.Resource):
             logging.warning('workspace %s not managed by %s, cannot see users', workspace_id, user.ext_id)
             abort(403)
 
-        wua = WorkspaceUserAssociation.query \
+        wm = WorkspaceMembership.query \
             .filter_by(workspace_id=workspace_id) \
             .filter_by(user_id=args.user_id) \
-            .options(subqueryload(WorkspaceUserAssociation.user)) \
+            .options(subqueryload(WorkspaceMembership.user)) \
             .first()
-        if not wua:
+        if not wm:
             logging.warning('member %s not found', args.user_id)
             abort(404)
 
         # block operations on owners
-        if wua.is_owner:
+        if wm.is_owner:
             logging.warning('cannot operate on owners, workspace %s', workspace_id)
             abort(403)
 
         if args.operation == 'promote':
-            wua.is_manager = True
+            wm.is_manager = True
         elif args.operation == 'demote':
-            wua.is_manager = False
+            wm.is_manager = False
         elif args.operation == 'ban':
-            wua.is_banned = True
+            wm.is_banned = True
         elif args.operation == 'unban':
-            wua.is_banned = False
+            wm.is_banned = False
         else:
             logging.info('unknown operation %s', args.operation)
             abort(422)
 
-        logging.info('%s member %s in workspace %s', args.operation, wua.user_id, wua.workspace_id)
+        logging.info('%s member %s in workspace %s', args.operation, wm.user_id, wm.workspace_id)
         db.session.commit()
 
 
@@ -496,18 +497,18 @@ class WorkspaceTransferOwnership(restful.Resource):
 
         workspace = Workspace.query.filter_by(id=workspace_id).first()
 
-        wua_old_owner = WorkspaceUserAssociation.query.filter_by(
+        wm_old_owner = WorkspaceMembership.query.filter_by(
             workspace_id=workspace_id,
             user_id=user.id,
             is_owner=True
         ).first()
-        wua_new_owner = WorkspaceUserAssociation.query \
+        wm_new_owner = WorkspaceMembership.query \
             .filter_by(workspace_id=workspace_id) \
             .filter_by(user_id=args.new_owner_id) \
-            .options(subqueryload(WorkspaceUserAssociation.user)) \
+            .options(subqueryload(WorkspaceMembership.user)) \
             .first()
 
-        if not wua_old_owner:
+        if not wm_old_owner:
             logging.warning('workspace %s not owned, cannot transfer member', workspace_id)
             return {'error': 'Only the workspace owner can transfer ownership'}, 403
 
@@ -520,24 +521,24 @@ class WorkspaceTransferOwnership(restful.Resource):
             return {'error': 'Cannot transfer a System workspace'}, 422
 
         # check if new-owner-to-be is a part of the workspace
-        if not wua_new_owner:
+        if not wm_new_owner:
             logging.warning('user %s is not a member of the workspace', args.new_owner_id)
             return {'error': 'User is not a member of workspace'}, 403
 
         # block operations if new-owner-to-be is already owner in that workspace
-        if wua_new_owner.is_owner:
+        if wm_new_owner.is_owner:
             logging.warning('user is already owner of workspace %s', workspace_id)
             return {'error': 'User is already owner of the workspace'}, 403
 
-        if not wua_new_owner.user.is_workspace_owner:
+        if not wm_new_owner.user.is_workspace_owner:
             logging.warning('user %s needs owner privileges in workspace %s', args.new_owner_id, workspace_id)
             return {'error': 'User %s needs owner privileges, please contact administrator' % args.new_owner_id}, 403
 
         try:
-            wua_new_owner.is_manager = True
-            wua_new_owner.is_owner = True
-            wua_old_owner.is_manager = True
-            wua_old_owner.is_owner = False
+            wm_new_owner.is_manager = True
+            wm_new_owner.is_owner = True
+            wm_old_owner.is_manager = True
+            wm_old_owner.is_owner = False
             db.session.commit()
         except Exception as e:
             logging.warning(e)
@@ -553,7 +554,7 @@ class WorkspaceClearMembers(restful.Resource):
 
         user = g.user
         workspace = Workspace.query.filter_by(id=workspace_id).first()
-        workspace_user_query = WorkspaceUserAssociation.query
+        workspace_user_query = WorkspaceMembership.query
 
         if not workspace:
             logging.warning('workspace %s does not exist', workspace_id)

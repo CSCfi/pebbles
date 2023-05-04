@@ -23,7 +23,7 @@ data:
     cluster: local_kubernetes
 
   # associate admin with default workspace
-  - !WorkspaceUserAssociation
+  - !WorkspaceMembership
     workspace_id: ws-0
     user_id: u-1
     is_owner: True
@@ -185,13 +185,13 @@ data:
 
 
   #############################################################################
-  ### Normal user with no extra workspace associations
+  ### Normal user with no extra workspace memberships
   - !User
     id: u-user-1
     ext_id: user-1@example.org
     password: user-1
 
-  - !WorkspaceUserAssociation
+  - !WorkspaceMembership
     workspace_id: ws-0
     user_id: u-user-1
 
@@ -204,7 +204,7 @@ data:
     password: owner-1
     workspace_quota: 2
 
-  - !WorkspaceUserAssociation
+  - !WorkspaceMembership
     workspace_id: ws-0
     user_id: u-owner-1
 
@@ -213,7 +213,7 @@ data:
     name: Workspace 1
     cluster: local_kubernetes
 
-  - !WorkspaceUserAssociation
+  - !WorkspaceMembership
     workspace_id: ws-1
     user_id: u-owner-1
     is_owner: True
@@ -224,7 +224,7 @@ data:
     ext_id: manager-1@example.org
     password: manager-1
 
-  - !WorkspaceUserAssociation
+  - !WorkspaceMembership
     workspace_id: ws-1
     user_id: u-manager-1
     is_owner: False
@@ -240,6 +240,6 @@ data:
     password: owner-2
     workspace_quota: 2
 
-  - !WorkspaceUserAssociation
+  - !WorkspaceMembership
     workspace_id: ws-0
     user_id: u-owner-2

@@ -5,7 +5,7 @@ from flask import g, abort, current_app
 from flask_httpauth import HTTPBasicAuth
 from flask_restful import fields
 
-from pebbles.models import db, User, Workspace, WorkspaceUserAssociation
+from pebbles.models import db, User, Workspace, WorkspaceMembership
 
 user_fields = {
     'id': fields.String,
@@ -22,7 +22,7 @@ user_fields = {
     'last_login_ts': fields.Integer,
 }
 
-workspace_user_association_fields = {
+workspace_membership_fields = {
     'workspace_id': fields.String,
     'user_id': fields.String,
     'is_owner': fields.Boolean,
@@ -79,17 +79,17 @@ def update_email(ext_id, email_id=None):
 
 def create_system_workspaces(admin):
     system_default_workspace = Workspace('System.default')
-    workspace_admin_obj = WorkspaceUserAssociation(
+    workspace_admin_obj = WorkspaceMembership(
         workspace=system_default_workspace, user=admin, is_owner=True, is_manager=True)
-    system_default_workspace.user_associations.append(workspace_admin_obj)
+    system_default_workspace.memberships.append(workspace_admin_obj)
     db.session.add(system_default_workspace)
     db.session.commit()
 
 
 def add_user_to_default_workspace(user):
     system_default_workspace = Workspace.query.filter_by(name='System.default').first()
-    workspace_user_obj = WorkspaceUserAssociation(workspace=system_default_workspace, user=user)
-    system_default_workspace.user_associations.append(workspace_user_obj)
+    workspace_user_obj = WorkspaceMembership(workspace=system_default_workspace, user=user)
+    system_default_workspace.memberships.append(workspace_user_obj)
     db.session.add(system_default_workspace)
     db.session.commit()
 
@@ -107,7 +107,7 @@ def requires_workspace_manager_or_admin(f):
 def is_workspace_manager(user, workspace=None):
     if workspace:
         # query specific active workspace
-        match = WorkspaceUserAssociation.query \
+        match = WorkspaceMembership.query \
             .filter_by(user_id=user.id, workspace_id=workspace.id, is_manager=True) \
             .join(Workspace) \
             .filter_by(status='active') \

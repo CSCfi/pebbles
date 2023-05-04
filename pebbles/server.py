@@ -18,7 +18,7 @@ from pebbles.views.service_announcements import ServiceAnnouncementList, Service
     ServiceAnnouncementListAdmin, ServiceAnnouncementViewAdmin
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.tasks import TaskList, TaskView
-from pebbles.views.users import users, UserList, UserView, UserWorkspaceAssociationList
+from pebbles.views.users import users, UserList, UserView, UserWorkspaceMembershipList
 from pebbles.views.public_config import variables, PublicConfigList
 from pebbles.views.workspaces import WorkspaceClearMembers, WorkspaceTransferOwnership, join_workspace, \
     WorkspaceAccounting, WorkspaceMemoryLimitGiB, WorkspaceModifyUserFolderSize, WorkspaceModifyCluster
@@ -29,7 +29,7 @@ api = restful.Api(app)
 api_root = '/api/v1'
 api.add_resource(UserList, api_root + '/users', methods=['GET', 'POST'])
 api.add_resource(UserView, api_root + '/users/<string:user_id>', methods=['GET', 'DELETE', 'PATCH'])
-api.add_resource(UserWorkspaceAssociationList, api_root + '/users/<string:user_id>/workspace_associations')
+api.add_resource(UserWorkspaceMembershipList, api_root + '/users/<string:user_id>/workspace_memberships')
 api.add_resource(WorkspaceList, api_root + '/workspaces')
 api.add_resource(WorkspaceView, api_root + '/workspaces/<string:workspace_id>')
 api.add_resource(
