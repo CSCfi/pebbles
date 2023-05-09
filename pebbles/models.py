@@ -295,6 +295,15 @@ class Workspace(db.Model):
         STATUS_ARCHIVED,
         STATUS_DELETED
     )
+
+    # Membership Expiry Policies
+    MEP_PERSISTENT = 'persistent'
+    MEP_ACTIVITY_TIMEOUT = 'activity_timeout'
+
+    VALID_MEMBERSHIP_EXPIRY_POLICIES = (
+        MEP_PERSISTENT,
+        MEP_ACTIVITY_TIMEOUT,
+    )
     __tablename__ = 'workspaces'
 
     id = db.Column(db.String(32), primary_key=True)
@@ -313,6 +322,7 @@ class Workspace(db.Model):
     )
     memberships = db.relationship("WorkspaceMembership", back_populates="workspace", lazy='dynamic',
                                   cascade="all, delete-orphan")
+    _membership_expiry_policy = db.Column('membership_expiry_policy', db.Text)
     application_quota = db.Column(db.Integer, default=10)
     memory_limit_gib = db.Column(db.Integer, default=50)
     _config = db.Column('config', db.Text)
@@ -331,6 +341,7 @@ class Workspace(db.Model):
         self.cluster = cluster
         self.memory_limit_gib = memory_limit_gib
         self._status = Workspace.STATUS_ACTIVE
+        self.membership_expiry_policy = dict(kind=Workspace.MEP_PERSISTENT)
 
     @hybrid_property
     def join_code(self):
@@ -387,6 +398,36 @@ class Workspace(db.Model):
     @config.setter
     def config(self, value):
         self._config = json.dumps(value)
+
+    @hybrid_property
+    def membership_expiry_policy(self):
+        return load_column(self._membership_expiry_policy)
+
+    @membership_expiry_policy.setter
+    def membership_expiry_policy(self, value):
+        error = Workspace.check_membership_expiry_policy(value)
+        if error:
+            raise RuntimeWarning('Invalid membership_expiry_policy: "%s"' % error)
+        else:
+            self._membership_expiry_policy = json.dumps(value)
+
+    @staticmethod
+    def check_membership_expiry_policy(mep):
+        """ Return validation errors for given membership expiry policy or None if successful """
+        if not type(mep) is dict:
+            return 'membership expiry policy must be a dict'
+        kind = mep.get('kind')
+        if kind not in Workspace.VALID_MEMBERSHIP_EXPIRY_POLICIES:
+            return 'Invalid membership expiry policy kind: %s' % kind
+
+        if kind == Workspace.MEP_ACTIVITY_TIMEOUT:
+            timeout_days = mep.get('timeout_days')
+            if type(timeout_days) not in (int, float):
+                return 'Invalid type for "timeout_days": %s, %s' % (timeout_days, type(timeout_days))
+            if timeout_days <= 0:
+                return 'Invalid "timeout_days": %s' % timeout_days
+
+        return None
 
 
 class Message(db.Model):

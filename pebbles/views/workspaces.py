@@ -1,13 +1,16 @@
 import datetime
+import json
 import logging
 import re
+import time
 
 import flask_restful as restful
+import sqlalchemy as sa
+import sqlalchemy.orm
 from dateutil.relativedelta import relativedelta
 from flask import Blueprint as FlaskBlueprint, current_app
-from flask import abort, g
+from flask import abort, g, request
 from flask_restful import marshal, marshal_with, reqparse, fields, inputs
-from sqlalchemy.orm import subqueryload
 
 from pebbles import rules
 from pebbles.app import app
@@ -31,6 +34,7 @@ workspace_fields_admin = {
     'application_quota': fields.Integer,
     'memory_limit_gib': fields.Integer,
     'membership_type': fields.String(default='admin'),
+    'membership_expiry_policy': fields.Raw,
     'cluster': fields.String,
     'config': fields.Raw,
 }
@@ -46,6 +50,7 @@ workspace_fields_owner = {
     'application_quota': fields.Integer,
     'memory_limit_gib': fields.Integer,
     'membership_type': fields.String(default='owner'),
+    'membership_expiry_policy': fields.Raw,
     'cluster': fields.String,
 }
 
@@ -59,6 +64,7 @@ workspace_fields_manager = {
     'application_quota': fields.Integer,
     'memory_limit_gib': fields.Integer,
     'membership_type': fields.String(default='manager'),
+    'membership_expiry_policy': fields.Raw,
     'cluster': fields.String,
 }
 
@@ -70,6 +76,7 @@ workspace_fields_user = {
     'expiry_ts': fields.Integer,
     'memory_limit_gib': fields.Integer,
     'membership_type': fields.String(default='member'),
+    'membership_expiry_policy': fields.Raw,
 }
 
 member_fields = dict(
@@ -97,9 +104,14 @@ def marshal_based_on_role(user, workspace):
 
 
 class WorkspaceList(restful.Resource):
+    get_parser = reqparse.RequestParser()
+    get_parser.add_argument('membership_expiry_policy_kind', type=str, location='args')
+
     @auth.login_required
     def get(self):
         user = g.user
+        args = self.get_parser.parse_args()
+
         workspace_user_query = WorkspaceMembership.query
         results = []
         if not user.is_admin:
@@ -115,6 +127,11 @@ class WorkspaceList(restful.Resource):
                 continue
 
             if not workspace.status == Workspace.STATUS_ACTIVE:
+                continue
+
+            # filter based on membership expiry policy
+            mep_kind = args.get('membership_expiry_policy_kind', None)
+            if mep_kind and workspace.membership_expiry_policy.get('kind') != mep_kind:
                 continue
 
             owner = next((wm.user for wm in workspace.memberships if wm.is_owner), None)
@@ -417,7 +434,7 @@ class WorkspaceMemberList(restful.Resource):
 
         memberships = WorkspaceMembership.query \
             .filter_by(workspace_id=workspace_id) \
-            .options(subqueryload(WorkspaceMembership.user)) \
+            .options(sa.orm.subqueryload(WorkspaceMembership.user)) \
             .all()
 
         members = []
@@ -456,7 +473,7 @@ class WorkspaceMemberList(restful.Resource):
         wm = WorkspaceMembership.query \
             .filter_by(workspace_id=workspace_id) \
             .filter_by(user_id=args.user_id) \
-            .options(subqueryload(WorkspaceMembership.user)) \
+            .options(sa.orm.subqueryload(WorkspaceMembership.user)) \
             .first()
         if not wm:
             logging.warning('member %s not found', args.user_id)
@@ -505,7 +522,7 @@ class WorkspaceTransferOwnership(restful.Resource):
         wm_new_owner = WorkspaceMembership.query \
             .filter_by(workspace_id=workspace_id) \
             .filter_by(user_id=args.new_owner_id) \
-            .options(subqueryload(WorkspaceMembership.user)) \
+            .options(sa.orm.subqueryload(WorkspaceMembership.user)) \
             .first()
 
         if not wm_old_owner:
@@ -554,7 +571,7 @@ class WorkspaceClearMembers(restful.Resource):
 
         user = g.user
         workspace = Workspace.query.filter_by(id=workspace_id).first()
-        workspace_user_query = WorkspaceMembership.query
+        workspace_member_query = WorkspaceMembership.query
 
         if not workspace:
             logging.warning('workspace %s does not exist', workspace_id)
@@ -565,11 +582,58 @@ class WorkspaceClearMembers(restful.Resource):
             return {"error": "Cannot clear a System workspace"}, 422
 
         if user.is_admin or rules.is_user_owner_of_workspace(user, workspace):
-            workspace_user_query.filter_by(workspace_id=workspace_id, is_owner=False, is_manager=False).delete()
+            workspace_member_query.filter_by(workspace_id=workspace_id, is_owner=False, is_manager=False).delete()
             db.session.commit()
         else:
-            logging.warning('workspace %s not owned, cannot clear users', workspace_id)
-            return {"error": "Only the workspace owner can clear users"}, 403
+            logging.warning('workspace %s not owned, cannot clear members', workspace_id)
+            return {"error": "Only the workspace owner can clear members"}, 403
+
+
+class WorkspaceClearExpiredMembers(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('workspace_id', type=str)
+
+    @auth.login_required
+    @requires_admin
+    def post(self, workspace_id):
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+
+        if not workspace:
+            logging.warning('workspace "%s" does not exist', workspace_id)
+            return {"error": "The workspace does not exist"}, 404
+
+        if workspace.membership_expiry_policy.get('kind') != Workspace.MEP_ACTIVITY_TIMEOUT:
+            msg = 'membership expiry policy for workspace "%s" is not "%s"' % (
+                workspace_id, Workspace.MEP_ACTIVITY_TIMEOUT
+            )
+            logging.warning(msg)
+            return {"error": msg}, 422
+
+        # list members that have either
+        # - last login older than the policy limit
+        # - have never logged in but have been created earlier than the policy limit (guest users)
+        timeout_days = workspace.membership_expiry_policy.get('timeout_days')
+        expiry_limit = datetime.datetime.fromtimestamp(time.time() - timeout_days * 24 * 3600)
+        membership_query = WorkspaceMembership.query \
+            .filter_by(workspace_id=workspace_id, is_owner=False, is_manager=False) \
+            .join(WorkspaceMembership.user) \
+            .filter(sa.or_(User._last_login_ts < expiry_limit,
+                           sa.and_(User._last_login_ts == sa.null(),
+                                   User._joining_ts < expiry_limit
+                                   )
+                           )
+                    )
+
+        num_deleted = 0
+        for membership in membership_query.all():
+            logging.info('removing expired membership in workspace %s for user %s', workspace_id, membership.user.id)
+            db.session.delete(membership)
+            num_deleted += 1
+
+        if num_deleted:
+            db.session.commit()
+
+        return dict(num_deleted=num_deleted)
 
 
 class WorkspaceAccounting(restful.Resource):
@@ -698,3 +762,27 @@ class WorkspaceModifyCluster(restful.Resource):
         db.session.commit()
 
         return new_cluster
+
+
+class WorkspaceModifyMembershipExpiryPolicy(restful.Resource):
+
+    @auth.login_required
+    @requires_admin
+    def put(self, workspace_id):
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+
+        if not workspace:
+            logging.warning('workspace %s does not exist', workspace_id)
+            return dict(error='The workspace does not exist'), 404
+
+        new_mep = request.json
+        error = Workspace.check_membership_expiry_policy(new_mep)
+        if error:
+            msg = 'membership expiry policy %s failed validation: %s' % (json.dumps(new_mep), error)
+            logging.warning(msg)
+            return dict(error=msg), 422
+
+        workspace.membership_expiry_policy = new_mep
+        db.session.commit()
+
+        return workspace.membership_expiry_policy

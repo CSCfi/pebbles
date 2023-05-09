@@ -350,21 +350,39 @@ class FlaskApiTestCase(BaseTestCase):
         # Anonymous
         response = self.make_request(path='/api/v1/workspaces')
         self.assert_401(response)
+
         # Authenticated User
         response = self.make_authenticated_user_request(path='/api/v1/workspaces')
         self.assert_200(response)
         self.assertEqual(1, len(response.json))
+
         # Authenticated Workspace Owner
         response = self.make_authenticated_workspace_owner_request(path='/api/v1/workspaces')
         self.assert_200(response)
         self.assertEqual(2, len(response.json))
+
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/workspaces')
         self.assert_200(response)
-        self.assertEqual(6, len(response.json))
-        # Get One
+        self.assertEqual(7, len(response.json))
+
+        # Admin: get one
         response = self.make_authenticated_admin_request(path='/api/v1/workspaces/%s' % self.known_workspace_id)
         self.assert_200(response)
+
+        # Admin: filter based on workspace membership expiry policy
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/workspaces?membership_expiry_policy_kind=%s' % Workspace.MEP_ACTIVITY_TIMEOUT)
+        self.assert_200(response)
+        self.assertEquals(1, len(response.json))
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/workspaces?membership_expiry_policy_kind=%s' % Workspace.MEP_PERSISTENT)
+        self.assert_200(response)
+        self.assertEquals(6, len(response.json))
+        response = self.make_authenticated_admin_request(
+            path='/api/v1/workspaces?membership_expiry_policy_kind=%s' % 'does_not_exist')
+        self.assert_200(response)
+        self.assertEquals(0, len(response.json))
 
     def test_create_workspace(self):
 
@@ -429,6 +447,8 @@ class FlaskApiTestCase(BaseTestCase):
             int(response.json['expiry_ts']),
             int((datetime.datetime.fromtimestamp(response.json['create_ts']) + relativedelta(months=+6)).timestamp())
         )
+        # and membership expiry policy kind
+        self.assertEqual(response.json['membership_expiry_policy']['kind'], Workspace.MEP_PERSISTENT)
 
         response = self.make_authenticated_workspace_owner_request(
             method='POST',
@@ -1136,6 +1156,122 @@ class FlaskApiTestCase(BaseTestCase):
             data=json.dumps({})
         )
         self.assert_200(response)
+
+    def test_clear_expired_members_from_workspace(self):
+        ws = Workspace(name='WorkspaceToBeCleared')
+        ws.membership_expiry_policy = dict(kind=Workspace.MEP_PERSISTENT)
+        u1 = User.query.filter_by(id=self.known_user_id).first()
+        wsu1_obj = WorkspaceMembership(user=u1, workspace=ws, is_manager=False, is_owner=False)
+        uo2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
+        wsu2_obj = WorkspaceMembership(user=uo2, workspace=ws, is_manager=True, is_owner=False)
+        uo1 = User.query.filter_by(id=self.known_workspace_owner_id).first()
+        wsu3_obj = WorkspaceMembership(user=uo1, workspace=ws, is_manager=True, is_owner=True)
+        ws.memberships.append(wsu1_obj)
+        ws.memberships.append(wsu2_obj)
+        ws.memberships.append(wsu3_obj)
+        db.session.add(ws)
+        db.session.commit()
+        # Anonymous
+        response = self.make_request(
+            method='POST',
+            path='/api/v1/workspaces/%s/clear_expired_members' % ws.id,
+            data=json.dumps({})
+        )
+        self.assert_401(response)
+        # Authenticated user
+        response = self.make_authenticated_user_request(
+            method='POST',
+            path='/api/v1/workspaces/%s/clear_expired_members' % ws.id,
+            data=json.dumps({})
+        )
+        self.assert_403(response)
+        # Authenticated workspace owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='POST',
+            path='/api/v1/workspaces/%s/clear_expired_members' % ws.id,
+            data=json.dumps({})
+        )
+        self.assert_403(response)
+        # Authenticated workspace owner, invalid workspace id
+        invalid_response = self.make_authenticated_workspace_owner_request(
+            method='POST',
+            path='/api/v1/workspaces/%s/clear_expired_members' % 'does-not-exist',
+            data=json.dumps({})
+        )
+        self.assert_403(invalid_response)
+        # Authenticated workspace manager
+        response = self.make_authenticated_workspace_owner2_request(
+            method='POST',
+            path='/api/v1/workspaces/%s/clear_expired_members' % ws.id,
+            data=json.dumps({})
+        )
+        self.assert_403(response)
+        # Admin, wrong policy
+        invalid_response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/workspaces/%s/clear_expired_members' % ws.id,
+            data=json.dumps({})
+        )
+        self.assertStatus(invalid_response, 422)
+
+        # Assign suitable policy and set last login times
+        ws.membership_expiry_policy = dict(kind=Workspace.MEP_ACTIVITY_TIMEOUT, timeout_days=45)
+        u1.last_login_ts = time.time() - 44 * 24 * 3600
+        uo2.last_login_ts = time.time() - 100 * 24 * 3600
+        uo1.last_login_ts = time.time() - 100 * 24 * 3600
+        db.session.commit()
+
+        # u1 has not expired yet, owners and managers should not be removed
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/workspaces/%s/clear_expired_members' % ws.id,
+            data=json.dumps({})
+        )
+        self.assert_200(response)
+        self.assertEqual(response.json.get('num_deleted'), 0)
+
+        # u1 has expired, owners and managers should not be removed
+        u1.last_login_ts = time.time() - 46 * 24 * 3600
+        db.session.commit()
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/workspaces/%s/clear_expired_members' % ws.id,
+            data=json.dumps({})
+        )
+        self.assert_200(response)
+        self.assertEqual(response.json.get('num_deleted'), 1)
+
+    def test_clear_expired_members_from_workspace_no_login(self):
+        ws = Workspace(name='WorkspaceToBeCleared')
+        ws.membership_expiry_policy = dict(kind=Workspace.MEP_ACTIVITY_TIMEOUT, timeout_days=60)
+
+        # add a user mimicking a guest user that has never logged in
+        ug = User("guest@local", "guest")
+        ug.joining_ts = time.time() - 59 * 24 * 3600
+        wsm = WorkspaceMembership(user=ug, workspace=ws, is_manager=False, is_owner=False)
+        ws.memberships.append(wsm)
+        db.session.add(ws)
+        db.session.commit()
+
+        # The user is not old enough to be deleted
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/workspaces/%s/clear_expired_members' % ws.id,
+            data=json.dumps({})
+        )
+        self.assert_200(response)
+        self.assertEqual(response.json.get('num_deleted'), 0)
+
+        # change the policy so that the user is older than the limit
+        ws.membership_expiry_policy = dict(kind=Workspace.MEP_ACTIVITY_TIMEOUT, timeout_days=45)
+        db.session.commit()
+        response = self.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/workspaces/%s/clear_expired_members' % ws.id,
+            data=json.dumps({})
+        )
+        self.assert_200(response)
+        self.assertEqual(response.json.get('num_deleted'), 1)
 
     def test_get_clusters(self):
         # Anonymous

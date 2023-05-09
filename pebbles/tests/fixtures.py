@@ -127,7 +127,7 @@ def primary_test_setup(namespace):
     ws5.memberships.append(WorkspaceMembership(user=u2, is_manager=True, is_owner=True))
     db.session.add(ws5)
 
-    ws6 = Workspace('Workspace1')
+    ws6 = Workspace('Workspace6')
     ws6.id = 'ws6'
     ws6.description = 'workspace for memory limit testing'
     ws6.cluster = 'dummy_cluster_1'
@@ -135,6 +135,14 @@ def primary_test_setup(namespace):
     ws6.memory_limit_gib = 10
     ws6.memberships.append(WorkspaceMembership(user=u6))
     db.session.add(ws6)
+
+    ws7 = Workspace('Workspace7')
+    ws7.id = 'ws7'
+    ws7.description = 'workspace with workspace membership expiry policy'
+    ws7.cluster = 'dummy_cluster_1'
+    ws7.membership_expiry_policy = dict(kind=Workspace.MEP_ACTIVITY_TIMEOUT, timeout_days=30)
+    ws7.memberships.append(WorkspaceMembership(user=u6))
+    db.session.add(ws7)
 
     namespace.known_workspace_id = ws1.id
     namespace.known_workspace_id_2 = ws2.id

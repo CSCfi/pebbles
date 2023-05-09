@@ -158,3 +158,34 @@ class ModelsTestCase(BaseTestCase):
         )
         user_res = User.verify_auth_token(token, 'test_secret')
         assert user_res is None
+
+    def test_membership_expiry_policy_validation(self):
+        invalid_meps = [
+            None,
+            '',
+            dict(),
+            [],
+            'kind: persistent',
+            dict(foo='persistent'),
+            dict(kind='persistent_foo'),
+            dict(kind=Workspace.MEP_ACTIVITY_TIMEOUT),
+            dict(kind=Workspace.MEP_ACTIVITY_TIMEOUT, timeout_days=-1),
+            dict(kind=Workspace.MEP_ACTIVITY_TIMEOUT, timeout_days="60"),
+        ]
+
+        for mep in invalid_meps:
+            res = Workspace.check_membership_expiry_policy(mep)
+            if res:
+                print(res)
+            else:
+                self.fail('MEP should be detected as invalid: %s' % json.dumps(mep))
+
+        valid_meps = [
+            dict(kind=Workspace.MEP_PERSISTENT),
+            dict(kind=Workspace.MEP_ACTIVITY_TIMEOUT, timeout_days=60),
+        ]
+
+        for mep in valid_meps:
+            res = Workspace.check_membership_expiry_policy(mep)
+            if res:
+                self.fail('MEP should be valid: %s, got error %s' % (json.dumps(mep), res))

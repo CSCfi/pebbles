@@ -2,7 +2,6 @@ import flask_restful as restful
 
 from pebbles.app import app
 from pebbles.views.alerts import alerts, AlertList, AlertView, SystemStatus, AlertReset
-from pebbles.views.clusters import clusters, ClusterList
 from pebbles.views.application_categories import ApplicationCategoryList
 from pebbles.views.application_sessions import application_sessions, ApplicationSessionList, ApplicationSessionView, \
     ApplicationSessionLogs
@@ -11,17 +10,19 @@ from pebbles.views.application_templates import ApplicationTemplateList, Applica
 from pebbles.views.application_templates import application_templates
 from pebbles.views.applications import applications, ApplicationList, ApplicationView, ApplicationCopy, \
     ApplicationAttributeLimits
+from pebbles.views.clusters import clusters, ClusterList
 from pebbles.views.helps import helps, HelpsList
 from pebbles.views.locks import locks, LockView, LockList
 from pebbles.views.messages import MessageList, MessageView
+from pebbles.views.public_config import variables, PublicConfigList
 from pebbles.views.service_announcements import ServiceAnnouncementList, ServiceAnnouncementListPublic, \
     ServiceAnnouncementListAdmin, ServiceAnnouncementViewAdmin
 from pebbles.views.sessions import sessions, SessionView
 from pebbles.views.tasks import TaskList, TaskView
 from pebbles.views.users import users, UserList, UserView, UserWorkspaceMembershipList
-from pebbles.views.public_config import variables, PublicConfigList
 from pebbles.views.workspaces import WorkspaceClearMembers, WorkspaceTransferOwnership, join_workspace, \
-    WorkspaceAccounting, WorkspaceMemoryLimitGiB, WorkspaceModifyUserFolderSize, WorkspaceModifyCluster
+    WorkspaceAccounting, WorkspaceMemoryLimitGiB, WorkspaceModifyUserFolderSize, WorkspaceModifyCluster, \
+    WorkspaceClearExpiredMembers, WorkspaceModifyMembershipExpiryPolicy
 from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceMemberList
 from pebbles.views.workspaces import workspaces
 
@@ -40,11 +41,15 @@ api.add_resource(
     WorkspaceTransferOwnership, api_root + '/workspaces/<string:workspace_id>/transfer_ownership',
     methods=['PATCH'])
 api.add_resource(WorkspaceClearMembers, api_root + '/workspaces/<string:workspace_id>/clear_members')
+api.add_resource(WorkspaceClearExpiredMembers, api_root + '/workspaces/<string:workspace_id>/clear_expired_members')
 api.add_resource(WorkspaceExit, api_root + '/workspaces/<string:workspace_id>/exit')
 api.add_resource(WorkspaceAccounting, api_root + '/workspaces/<string:workspace_id>/accounting')
 api.add_resource(WorkspaceMemoryLimitGiB, api_root + '/workspaces/<string:workspace_id>/memory_limit_gib')
-api.add_resource(WorkspaceModifyUserFolderSize, api_root + '/workspaces/<string:workspace_id>/user_work_folder_size_gib')
+api.add_resource(WorkspaceModifyUserFolderSize,
+                 api_root + '/workspaces/<string:workspace_id>/user_work_folder_size_gib')
 api.add_resource(WorkspaceModifyCluster, api_root + '/workspaces/<string:workspace_id>/cluster')
+api.add_resource(WorkspaceModifyMembershipExpiryPolicy,
+                 api_root + '/workspaces/<string:workspace_id>/membership_expiry_policy')
 api.add_resource(JoinWorkspace, api_root + '/join_workspace/<string:join_code>')
 api.add_resource(MessageList, api_root + '/messages')
 api.add_resource(MessageView, api_root + '/messages/<string:message_id>')
