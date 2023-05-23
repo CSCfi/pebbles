@@ -30,12 +30,14 @@ class PBClient:
         auth_url = '%s/sessions' % self.api_base_url
         auth_credentials = dict(ext_id=ext_id, password=password)
         r = requests.post(auth_url, json=auth_credentials, verify=self.ssl_verify)
+        if r.status_code != 200:
+            raise RuntimeError('Login failed, status: %d, ext_id "%s", auth_url "%s"' %
+                               (r.status_code, ext_id, auth_url))
         self.token = json.loads(r.text).get('token')
         self.auth = pebbles.utils.b64encode_string('%s:%s' % (self.token, '')).replace('\n', '')
 
     def do_get(self, object_url, payload=None):
-        headers = {'Accept': 'text/plain',
-                   'Authorization': 'Basic %s' % self.auth}
+        headers = {'Accept': 'text/plain', 'Authorization': 'Basic %s' % self.auth}
         url = '%s/%s' % (self.api_base_url, object_url)
         resp = requests.get(url, data=payload, headers=headers, verify=self.ssl_verify)
         return resp
@@ -89,6 +91,13 @@ class PBClient:
             raise RuntimeError('Cannot fetch data for workspace %s, %s' % (workspace_id, resp.reason))
         return resp.json()
 
+    def get_workspaces(self, query=None):
+        url = 'workspaces' if query is None else 'workspaces?%s' % query
+        resp = self.do_get(url)
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot fetch data for workspaces, query %s, status_code %s' % (query, resp.status_code))
+        return resp.json()
+
     def get_workspace_memberships(self, workspace_id=None, user_id=None):
         if user_id:
             resp = self.do_get('users/%s/workspace_memberships' % user_id)
@@ -99,6 +108,13 @@ class PBClient:
 
         if resp.status_code != 200:
             raise RuntimeError('Cannot fetch data for workspace_memberships %s, %s' % (user_id, resp.reason))
+
+        return resp.json()
+
+    def delete_workspace(self, workspace_id):
+        resp = self.do_delete('workspaces/%s' % workspace_id)
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot delete workspace %s, status code %d' % (workspace_id, resp.status_code))
 
         return resp.json()
 
@@ -149,8 +165,7 @@ class PBClient:
         self.do_patch('application_sessions/%s/logs' % application_session_id, json_data=payload)
 
     def clear_running_application_session_logs(self, application_session_id):
-        headers = {'Accept': 'text/plain',
-                   'Authorization': 'Basic %s' % self.auth}
+        headers = {'Accept': 'text/plain', 'Authorization': 'Basic %s' % self.auth}
         url = '%s/application_sessions/%s/logs' % (self.api_base_url, application_session_id)
         params = {'log_type': 'running'}
         resp = requests.delete(url, params=params, headers=headers, verify=self.ssl_verify)

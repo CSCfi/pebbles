@@ -364,7 +364,7 @@ class FlaskApiTestCase(BaseTestCase):
         # Admin
         response = self.make_authenticated_admin_request(path='/api/v1/workspaces')
         self.assert_200(response)
-        self.assertEqual(7, len(response.json))
+        self.assertEqual(8, len(response.json))
 
         # Admin: get one
         response = self.make_authenticated_admin_request(path='/api/v1/workspaces/%s' % self.known_workspace_id)
@@ -374,15 +374,15 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_authenticated_admin_request(
             path='/api/v1/workspaces?membership_expiry_policy_kind=%s' % Workspace.MEP_ACTIVITY_TIMEOUT)
         self.assert_200(response)
-        self.assertEquals(1, len(response.json))
+        self.assertEqual(1, len(response.json))
         response = self.make_authenticated_admin_request(
             path='/api/v1/workspaces?membership_expiry_policy_kind=%s' % Workspace.MEP_PERSISTENT)
         self.assert_200(response)
-        self.assertEquals(6, len(response.json))
+        self.assertEqual(7, len(response.json))
         response = self.make_authenticated_admin_request(
             path='/api/v1/workspaces?membership_expiry_policy_kind=%s' % 'does_not_exist')
         self.assert_200(response)
-        self.assertEquals(0, len(response.json))
+        self.assertEqual(0, len(response.json))
 
     def test_create_workspace(self):
 

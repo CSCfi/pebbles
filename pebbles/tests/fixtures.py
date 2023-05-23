@@ -1,6 +1,7 @@
 # Test fixture methods to be called from app context so we can access the db
 import importlib
 import inspect
+import time
 
 import yaml
 
@@ -142,7 +143,15 @@ def primary_test_setup(namespace):
     ws7.cluster = 'dummy_cluster_1'
     ws7.membership_expiry_policy = dict(kind=Workspace.MEP_ACTIVITY_TIMEOUT, timeout_days=30)
     ws7.memberships.append(WorkspaceMembership(user=u6))
+    ws7.expiry_ts = time.time() - 3600 * 24 * 2
     db.session.add(ws7)
+
+    ws8 = Workspace('Workspace8')
+    ws8.id = 'ws8'
+    ws8.description = 'expired workspace beyond grace'
+    ws8.cluster = 'dummy_cluster_1'
+    ws8.expiry_ts = time.time() - 3600 * 24 * 30 * 7
+    db.session.add(ws8)
 
     namespace.known_workspace_id = ws1.id
     namespace.known_workspace_id_2 = ws2.id

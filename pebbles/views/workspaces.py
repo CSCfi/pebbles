@@ -105,7 +105,7 @@ def marshal_based_on_role(user, workspace):
 
 class WorkspaceList(restful.Resource):
     get_parser = reqparse.RequestParser()
-    get_parser.add_argument('membership_expiry_policy_kind', type=str, location='args')
+    get_parser.add_argument('membership_expiry_policy_kind', type=str, location='args', required=False)
 
     @auth.login_required
     def get(self):
