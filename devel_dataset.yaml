@@ -49,7 +49,7 @@ data:
     base_config:
       args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{session_id}}' --NotebookApp.allow_origin='*'
       environment_vars: ''
-      image: jupyter/minimal-notebook
+      image: docker-registry.rahti.csc.fi/notebooks-public-images/k8s-datascience-notebook:latest
       labels:
         - analytics
         - python
@@ -76,7 +76,7 @@ data:
     base_config:
       args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{session_id}}' --NotebookApp.allow_origin='*'
       environment_vars: ''
-      image: docker-registry.rahti.csc.fi/notebook-images/pb-jupyter-ml:latest
+      image: docker-registry.rahti.csc.fi/notebooks-public-images/k8s-machine-learning-notebook:latest
       labels:
         - machine learning
         - python
@@ -103,7 +103,7 @@ data:
         max: 8
     base_config:
       environment_vars: 'DISABLE_AUTH=true'
-      image: rocker/rstudio:latest
+      image: docker.io/rocker/rstudio:latest
       labels:
         - data analytics
       maximum_lifetime: 3600
@@ -138,7 +138,7 @@ data:
     base_config:
       args: jupyter {{jupyter_interface}} --NotebookApp.token='' --NotebookApp.base_url='/notebooks/{{session_id}}' --NotebookApp.allow_origin='*'
       environment_vars: ''
-      image: jupyter/minimal-notebook
+      image: docker.io/jupyter/minimal-notebook:latest
       labels:
         - analytics
         - python
@@ -172,7 +172,7 @@ data:
         max: 8
     base_config:
       environment_vars: 'DISABLE_AUTH=true'
-      image: rocker/rstudio:latest
+      image: docker.io/rocker/rstudio:latest
       labels:
         - data analytics
       maximum_lifetime: 3600
