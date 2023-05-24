@@ -39,7 +39,8 @@ application_fields_admin = {
         'memory_gib': fields.Float,
         'shared_folder_enabled': fields.Boolean,
         'work_folder_enabled': fields.Boolean,
-        'workspace_expiry_ts': fields.Integer
+        'workspace_expiry_ts': fields.Integer,
+        'base_config_image': fields.String,
     },
 }
 
@@ -62,7 +63,8 @@ application_fields_manager = {
         'memory_gib': fields.Float,
         'shared_folder_enabled': fields.Boolean,
         'work_folder_enabled': fields.Boolean,
-        'workspace_expiry_ts': fields.Integer
+        'workspace_expiry_ts': fields.Integer,
+        'base_config_image': fields.String,
     },
 }
 
@@ -82,7 +84,8 @@ application_fields_user = {
         'memory_gib': fields.Float,
         'shared_folder_enabled': fields.Boolean,
         'work_folder_enabled': fields.Boolean,
-        'workspace_expiry_ts': fields.Integer
+        'workspace_expiry_ts': fields.Integer,
+        'base_config_image': fields.String,
     },
 }
 
@@ -377,6 +380,7 @@ def process_application(application):
     application.workspace_name = application.workspace.name
     application.workspace_pseudonym = application.workspace.pseudonym
     application.workspace_expiry_ts = application.workspace.expiry_ts
+    application.base_config_image = application.base_config.get('image')
 
     # generate human-readable memory information
     memory_gib = float(application.config.get('memory_gib', application.base_config.get('memory_gib')))
