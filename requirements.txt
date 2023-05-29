@@ -39,6 +39,8 @@ selenium==4.8.2
 mock==4.0.3
 coverage==6.5.0
 flake8==5.0.4
+responses==0.23.1
+pyfakefs==5.2.2
 
 # for drivers
 kubernetes==25.3.0

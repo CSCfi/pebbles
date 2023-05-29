@@ -15,6 +15,17 @@ from pebbles.utils import load_auth_config
 from pebbles.views.commons import create_user, is_workspace_manager, EXT_ID_PREFIX_DELIMITER
 
 
+def render_terms_and_conditions():
+    return render_template(
+        'terms.html',
+        title=app.config['AGREEMENT_TITLE'],
+        terms_link=app.config['AGREEMENT_TERMS_PATH'],
+        cookies_link=app.config['AGREEMENT_COOKIES_PATH'],
+        privacy_link=app.config['AGREEMENT_PRIVACY_PATH'],
+        logo_path=app.config['AGREEMENT_LOGO_PATH']
+    )
+
+
 @app.route('/oauth2')
 def oauth2_login():
     parser = reqparse.RequestParser()
@@ -39,37 +50,41 @@ def oauth2_login():
         abort(500)
 
     # idtoken (implicit flow)
+    if not request.headers.get('Authorization'):
+        logging.warning('Did not receive Authorization header. Headers: %s', request.headers.to_wsgi_list())
+        abort(500)
     id_token = request.headers['Authorization'].split(' ')[1]
 
     # access_token (hybrid and authorized flow)
     access_token = request.headers.get('X-Forwarded-Access-Token')
     if not access_token:
-        logging.warning('Did not receive header X-Forwarded-Access-Token. Headers: %s', request.headers)
+        logging.warning('Did not receive header X-Forwarded-Access-Token. Headers: %s', request.headers.to_wsgi_list())
         abort(500)
 
-    # get provider's well known config
+    # get provider's well known config to get JWKS URI and download JWK to verify claims
     well_known_config = None
-    try:
-        well_known_config = requests.get(oauth2_config['openidConfigurationUrl']).json()
-    except requests.exceptions.RequestException as e:
-        logging.warning('Login aborted: cannot download oauth2 configuration: %s', e)
-        abort(500)
-
-    if not well_known_config:
-        logging.warning('Login aborted: provider well-known config could not be fetched')
-        abort(500)
-
-    # get jwk from openid-configuration url
     oidc_jwk = None
     try:
-        oidc_key_endpoint = well_known_config['jwks_uri']
-        oidc_jwk = requests.get(oidc_key_endpoint).json()['keys'][0]
+        resp = requests.get(oauth2_config['openidConfigurationUrl'])
+        if resp.status_code != 200:
+            logging.warning('Login aborted: error downloading oauth2 configuration: %s', resp.status_code)
+            abort(500)
+        well_known_config = resp.json()
+
+        if not (well_known_config and 'jwks_uri' in well_known_config):
+            logging.warning('Login aborted: provider well-known config could not be fetched')
+            abort(500)
+
+        resp = requests.get(well_known_config['jwks_uri'])
+        if resp.status_code != 200:
+            logging.warning('Login aborted: error downloading JWKS: %s', resp.status_code)
+            abort(500)
+        oidc_jwk = resp.json()['keys'][0]
+        if not oidc_jwk:
+            logging.warning('Login aborted: JWK could not be fetched')
+            abort(500)
     except requests.exceptions.RequestException as e:
         logging.warning('Login aborted: cannot download oauth2 configuration: %s', e)
-        abort(500)
-
-    if not oidc_jwk:
-        logging.warning('Login aborted: JWK could not be fetched')
         abort(500)
 
     userinfo = None
@@ -84,10 +99,6 @@ def oauth2_login():
         logging.warning('Login aborted: cannot download userinfo: %s', e)
         abort(500)
 
-    if not userinfo:
-        logging.warning('Login aborted: could not fetch userinfo')
-        abort(500)
-
     # verify idToken with the identity server's public key
     try:
         options = {'verify_aud': False, 'verify_at_hash': False}
@@ -97,7 +108,12 @@ def oauth2_login():
         logging.error('Login aborted: JWT error: %s', e)
         abort(401)
 
-    # check that we have email
+    # check that claims include acr
+    if 'acr' not in claims:
+        logging.warning('Login aborted: No acr in claims')
+        abort(422)
+
+    # check that we have email from userinfo
     if 'email' in userinfo:
         email_id = userinfo['email']
     else:
@@ -116,60 +132,57 @@ def oauth2_login():
         abort(422)
 
     # check that the account has not been locked
-    if selected_method.get('activateNsAccountLock', False) \
-            and 'nsAccountLock' in userinfo and userinfo['nsAccountLock'] == 'true':
-        logging.warning('Login aborted: Account is locked, email: "%s"', email_id)
-        abort(422)
+    if selected_method.get('activateNsAccountLock', False):
+        nal = userinfo.get('nsAccountLock')
+        if isinstance(nal, str):
+            nal = nal.lower() == 'true'
+        if nal:
+            logging.warning('Login aborted: Account is locked, email: "%s"', email_id)
+            abort(422)
 
-    # find the attribute that is mapped to ext_id
-    user_id = None
+    # find the id attributes that can be used
+    id_attribute_values = []
     for id_attribute in selected_method['idClaim'].split():
         id_attribute = id_attribute.strip()
-        user_id = userinfo.get(id_attribute)
-        # take the first that matches
-        if user_id:
-            break
+        id_value = userinfo.get(id_attribute)
+        if id_value:
+            id_attribute_values.append((id_attribute, id_value))
 
-    if not user_id:
-        logging.warning('Login aborted: No attribute(s) "%s" for user_id received, email "%s", method "%s"',
+    if not id_attribute_values:
+        logging.warning('Login aborted: No attribute(s) "%s" for user id received, email "%s", method "%s"',
                         selected_method['idClaim'], email_id, selected_method['acr'])
         return "ERROR: We did not receive user identity from the login provider. " \
                "If this happens again, please contact support.", 422
 
-    # construct ext_id from prefix, delimiter and user_id
+    # Find existing user using id values, in priority order. In practice, we should not end up with multiple accounts
+    # per external identity, but this could happen if the attributes come and go.
+    user = None
     prefix = selected_method.get('prefix')
-    ext_id = prefix + EXT_ID_PREFIX_DELIMITER + user_id.lower()
+    for id_attribute_value in id_attribute_values:
+        # construct ext_id from prefix, delimiter and user_id
+        ext_id = prefix + EXT_ID_PREFIX_DELIMITER + id_attribute_value[1].lower()
+        # fetch matching user object from the database
+        user = User.query.filter_by(ext_id=ext_id).first()
+        if user:
+            logging.debug('Found existing user with id attribute %s, value %s' % id_attribute_value)
+            break
 
-    # fetch matching user object from the database
-    user = User.query.filter_by(ext_id=ext_id).first()
-
-    # New users: Get credentials from aai proxy and then send agreement to user to sign.
+    # New users: Send agreement to user to sign, create User object after signing
     if not user:
         if not args.agreement_sign:
-            return render_template(
-                'terms.html',
-                title=app.config['AGREEMENT_TITLE'],
-                terms_link=app.config['AGREEMENT_TERMS_PATH'],
-                cookies_link=app.config['AGREEMENT_COOKIES_PATH'],
-                privacy_link=app.config['AGREEMENT_PRIVACY_PATH'],
-                logo_path=app.config['AGREEMENT_LOGO_PATH']
-            )
+            return render_terms_and_conditions()
         elif args.agreement_sign == 'signed':
+            # create user using the highest priority id attribute value that was present in userinfo
+            ext_id = prefix + EXT_ID_PREFIX_DELIMITER + id_attribute_values[0][1].lower()
             user = create_user(ext_id=ext_id, password=uuid.uuid4().hex, email_id=email_id)
             user.tc_acceptance_date = datetime.datetime.utcnow()
+            logging.info('Created new user with ext_id %s' % ext_id)
             db.session.commit()
 
     # Existing users: Check if agreement is accepted. If not send the terms to user.
     if user and not user.tc_acceptance_date:
         if not args.agreement_sign:
-            return render_template(
-                'terms.html',
-                title=app.config['AGREEMENT_TITLE'],
-                terms_link=app.config['AGREEMENT_TERMS_PATH'],
-                cookies_link=app.config['AGREEMENT_COOKIES_PATH'],
-                privacy_link=app.config['AGREEMENT_PRIVACY_PATH'],
-                logo_path=app.config['AGREEMENT_LOGO_PATH']
-            )
+            return render_terms_and_conditions()
         elif args.agreement_sign == 'signed':
             user.tc_acceptance_date = datetime.datetime.utcnow()
             db.session.commit()

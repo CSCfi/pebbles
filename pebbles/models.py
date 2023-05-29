@@ -196,11 +196,11 @@ class User(db.Model):
 
     @hybrid_property
     def last_login_ts(self):
-        return self._last_login_ts.timestamp()
+        return self._last_login_ts.timestamp() if self._last_login_ts else None
 
     @last_login_ts.setter
     def last_login_ts(self, value):
-        self._last_login_ts = datetime.datetime.fromtimestamp(value)
+        self._last_login_ts = datetime.datetime.fromtimestamp(value) if value else None
 
     def delete(self):
         if self.is_deleted:
