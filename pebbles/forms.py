@@ -1,11 +1,9 @@
 """ Forms are made with WTForms, which is mostly acceptable but has started to
 cause gray hair.
 """
-import re
-
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, StringField, IntegerField
-from wtforms.validators import DataRequired, Email, Length, Regexp
+from wtforms.validators import DataRequired, Email, Length
 from wtforms_alchemy import model_form_factory
 
 from pebbles.models import (
@@ -32,13 +30,7 @@ class UserForm(ModelForm):
 
 
 class WorkspaceForm(ModelForm):
-    name = StringField(
-        'name',
-        validators=[
-            DataRequired(),
-            Regexp('^(?!System).+', re.IGNORECASE, message='name cannot start with System')
-        ]
-    )
+    name = StringField('name', validators=[DataRequired()])
     description = StringField('description')
     user_config = StringField('user_config')
 

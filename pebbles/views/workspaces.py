@@ -156,6 +156,9 @@ class WorkspaceList(restful.Resource):
                         " If you wish create more workspaces please contact the support"
             ), 422
         form = WorkspaceForm()
+        if form.name.data.lower().startswith('system'):
+            logging.warning("Workspace name cannot start with System")
+            return dict(message="Workspace name cannot start with 'System'."), 422
         if not form.validate_on_submit():
             logging.warning("validation error on creating workspace")
             return form.errors, 422
@@ -204,6 +207,9 @@ class WorkspaceView(restful.Resource):
         if not form.validate_on_submit():
             logging.warning("validation error on creating workspace")
             return form.errors, 422
+        if form.name.data.lower().startswith('system'):
+            logging.warning("Workspace name cannot start with System")
+            return {'error': 'Workspace name cannot start with "System".'}, 422
         user = g.user
         workspace = Workspace.query.filter_by(id=workspace_id).first()
         if not workspace:
@@ -263,7 +269,7 @@ class WorkspaceView(restful.Resource):
         if workspace.status == Workspace.STATUS_DELETED:
             abort(403)
         # System. can't be changed
-        if workspace.name.startswith('System.'):
+        if workspace.name.lower().startswith('system'):
             logging.warning('Cannot change the status of System workspace')
             return {'error': 'Cannot change the status of System workspace'}, 422
         # you have to be an admin or the owner
