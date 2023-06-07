@@ -5,7 +5,7 @@ import time
 
 from jose import jwt
 
-from pebbles.models import User, Workspace, Application, ApplicationTemplate, ApplicationSession
+from pebbles.models import User, Workspace, Application, ApplicationTemplate, ApplicationSession, PEBBLES_TAINT_KEY
 from pebbles.tests.base import db, BaseTestCase
 
 
@@ -189,3 +189,28 @@ class ModelsTestCase(BaseTestCase):
             res = Workspace.check_membership_expiry_policy(mep)
             if res:
                 self.fail('MEP should be valid: %s, got error %s' % (json.dumps(mep), res))
+
+    def test_user_annotations(self):
+        u1 = User('user-1@example.org', 'user')
+        u1.annotations = [
+            dict(key='a1', value='v1'),
+            dict(key=PEBBLES_TAINT_KEY, value='t1'),
+            dict(key=PEBBLES_TAINT_KEY, value='t2'),
+        ]
+        db.session.add(u1)
+        db.session.commit()
+        u = User.query.filter_by(ext_id=u1.ext_id).first()
+        self.assertEqual(u1.annotations, u.annotations)
+        self.assertEqual(u.taints, ['t1', 't2'])
+
+        # checking empty annotations as None
+        u1.annotations = None
+        db.session.commit()
+        u = User.query.filter_by(ext_id=u1.ext_id).first()
+        self.assertIsNone(u.annotations)
+
+        try:
+            u1.annotations = dict(key='a1', value='v1')
+            self.fail('annotations should fail for a non-list')
+        except RuntimeWarning:
+            pass

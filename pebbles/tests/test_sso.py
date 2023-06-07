@@ -11,7 +11,7 @@ from jose import jwt
 from pyfakefs.fake_filesystem_unittest import Patcher
 
 from pebbles.app import app
-from pebbles.models import User
+from pebbles.models import User, PEBBLES_TAINT_KEY
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.tests.fixtures import primary_test_setup
 
@@ -87,8 +87,15 @@ class ModelsTestCase(BaseTestCase):
                         idClaim='userid username eppn',
                         prefix='ex2',
                         activateNsAccountLock=True,
-                    )
-
+                    ),
+                    dict(
+                        acr='https://example.org/Method_3',
+                        idClaim='userid username eppn',
+                        prefix='ex3',
+                        userAnnotations=[
+                            dict(key=PEBBLES_TAINT_KEY, value='low_trust'),
+                        ],
+                    ),
                 ]
             )
         )
@@ -424,3 +431,19 @@ class ModelsTestCase(BaseTestCase):
             path='/oauth2',
         )
         self.assertEqual(res.status_code, 403)
+
+    @responses.activate
+    def test_user_annotations(self):
+        add_default_responses()
+
+        id_token = create_id_token(
+            claims=dict(acr='https://example.org/Method_3'),
+        )
+        res = self.make_mocked_request(
+            path='/oauth2?agreement_sign=signed',
+            id_token=id_token,
+        )
+        self.assertEqual(res.status_code, 200)
+        u = User.query.filter_by(ext_id='ex3/user-1').first()
+        self.assertIn('LOGIN', res.text)
+        self.assertEqual(u.annotations, self.auth_config['oauth2']['authMethods'][2]['userAnnotations'])

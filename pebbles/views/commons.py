@@ -53,12 +53,14 @@ def create_worker():
     return create_user('worker@pebbles', current_app.config['SECRET_KEY'], is_admin=True, email_id=None)
 
 
-def create_user(ext_id, password, is_admin=False, email_id=None, expiry_ts=None):
+def create_user(ext_id, password, is_admin=False, email_id=None, expiry_ts=None, annotations=None):
     if User.query.filter_by(ext_id=ext_id).first():
         logging.info("user %s already exists" % ext_id)
         return None
 
     user = User(ext_id, password, is_admin=is_admin, email_id=email_id)
+    if annotations:
+        user.annotations = annotations
     if not is_admin:
         add_user_to_default_workspace(user)
     if expiry_ts:

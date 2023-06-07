@@ -174,7 +174,13 @@ def oauth2_login():
         elif args.agreement_sign == 'signed':
             # create user using the highest priority id attribute value that was present in userinfo
             ext_id = prefix + EXT_ID_PREFIX_DELIMITER + id_attribute_values[0][1].lower()
-            user = create_user(ext_id=ext_id, password=uuid.uuid4().hex, email_id=email_id)
+            user = create_user(
+                ext_id=ext_id,
+                password=uuid.uuid4().hex,
+                email_id=email_id,
+                annotations=selected_method.get('userAnnotations')
+            )
+
             user.tc_acceptance_date = datetime.datetime.utcnow()
             logging.info('Created new user with ext_id %s' % ext_id)
             db.session.commit()

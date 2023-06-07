@@ -19,6 +19,8 @@ from sqlalchemy.schema import MetaData
 
 from pebbles.utils import get_application_fields_from_config
 
+PEBBLES_TAINT_KEY = 'pebbles.csc.fi/taint'
+
 MAX_PSEUDONYM_LENGTH = 32
 MAX_PASSWORD_LENGTH = 100
 MAX_EMAIL_LENGTH = 128
@@ -107,6 +109,7 @@ class User(db.Model):
     latest_seen_message_ts = db.Column(db.DateTime)
     workspace_quota = db.Column(db.Integer, default=0)
     tc_acceptance_date = db.Column(db.DateTime)
+    _annotations = db.Column('annotations', db.Text)
     application_sessions = db.relationship('ApplicationSession', backref='user', lazy='dynamic')
     workspace_memberships = db.relationship("WorkspaceMembership", back_populates="user", lazy='dynamic')
 
@@ -201,6 +204,26 @@ class User(db.Model):
     @last_login_ts.setter
     def last_login_ts(self, value):
         self._last_login_ts = datetime.datetime.fromtimestamp(value) if value else None
+
+    @hybrid_property
+    def annotations(self):
+        if self._annotations:
+            return load_column(self._annotations)
+        else:
+            return None
+
+    @annotations.setter
+    def annotations(self, value):
+        if not value:
+            self._annotations = None
+        elif isinstance(value, list):
+            self._annotations = json.dumps(value)
+        else:
+            raise RuntimeWarning('user annotations need to be a list of key value pairs')
+
+    @hybrid_property
+    def taints(self):
+        return [a.get('value') for a in self.annotations if a.get('key') == PEBBLES_TAINT_KEY]
 
     def delete(self):
         if self.is_deleted:
