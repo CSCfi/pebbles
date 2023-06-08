@@ -203,11 +203,12 @@ class ModelsTestCase(BaseTestCase):
         self.assertEqual(u1.annotations, u.annotations)
         self.assertEqual(u.taints, ['t1', 't2'])
 
-        # checking empty annotations as None
+        # empty annotations
         u1.annotations = None
         db.session.commit()
         u = User.query.filter_by(ext_id=u1.ext_id).first()
-        self.assertIsNone(u.annotations)
+        self.assertEqual(u.annotations, [])
+        self.assertEqual(u._annotations, None)
 
         try:
             u1.annotations = dict(key='a1', value='v1')

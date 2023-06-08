@@ -210,7 +210,7 @@ class User(db.Model):
         if self._annotations:
             return load_column(self._annotations)
         else:
-            return None
+            return []
 
     @annotations.setter
     def annotations(self, value):
@@ -346,6 +346,7 @@ class Workspace(db.Model):
     memberships = db.relationship("WorkspaceMembership", back_populates="workspace", lazy='dynamic',
                                   cascade="all, delete-orphan")
     _membership_expiry_policy = db.Column('membership_expiry_policy', db.Text)
+    _membership_join_policy = db.Column('membership_join_policy', db.Text)
     application_quota = db.Column(db.Integer, default=10)
     memory_limit_gib = db.Column(db.Integer, default=50)
     _config = db.Column('config', db.Text)
@@ -434,10 +435,22 @@ class Workspace(db.Model):
         else:
             self._membership_expiry_policy = json.dumps(value)
 
+    @hybrid_property
+    def membership_join_policy(self):
+        return load_column(self._membership_join_policy)
+
+    @membership_join_policy.setter
+    def membership_join_policy(self, value):
+        error = Workspace.check_membership_join_policy(value)
+        if error:
+            raise RuntimeWarning('Invalid membership_expiry_policy: "%s"' % error)
+        else:
+            self._membership_join_policy = json.dumps(value)
+
     @staticmethod
     def check_membership_expiry_policy(mep):
         """ Return validation errors for given membership expiry policy or None if successful """
-        if not type(mep) is dict:
+        if not isinstance(mep, dict):
             return 'membership expiry policy must be a dict'
         kind = mep.get('kind')
         if kind not in Workspace.VALID_MEMBERSHIP_EXPIRY_POLICIES:
@@ -449,6 +462,22 @@ class Workspace(db.Model):
                 return 'Invalid type for "timeout_days": %s, %s' % (timeout_days, type(timeout_days))
             if timeout_days <= 0:
                 return 'Invalid "timeout_days": %s' % timeout_days
+
+        return None
+
+    @staticmethod
+    def check_membership_join_policy(mjp):
+        """ Return validation errors for given membership expiry policy or None if successful """
+        if mjp is None:
+            return None
+        if not isinstance(mjp, dict):
+            return 'policy must be a dict'
+
+        if not set(mjp.keys()).issubset({'tolerations', }):
+            return 'Extra keys in policy %s' % mjp
+        tolerations = mjp.get('tolerations')
+        if tolerations and not isinstance(tolerations, list):
+            return 'tolerations is not a list'
 
         return None
 

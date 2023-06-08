@@ -9,7 +9,7 @@ from dateutil.relativedelta import relativedelta
 
 from pebbles.models import (
     User, Workspace, WorkspaceMembership, ApplicationTemplate, Application,
-    ApplicationSession, ApplicationSessionLog)
+    ApplicationSession, ApplicationSessionLog, PEBBLES_TAINT_KEY)
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.tests.fixtures import primary_test_setup
 
@@ -717,6 +717,53 @@ class FlaskApiTestCase(BaseTestCase):
             path='/api/v1/join_workspace/%s' % self.known_workspace_join_id)
         self.assertStatus(response, 200)
 
+    def test_join_workspace_taint(self):
+        # workspace for low trust tainted users
+        ws = Workspace('Low Trust Workspace')
+        db.session.add(ws)
+
+        # user with low trust taint
+        u = User.query.filter_by(ext_id=self.known_user_ext_id).first()
+        u.annotations = [dict(key=PEBBLES_TAINT_KEY, value='low_trust')]
+        db.session.commit()
+
+        # no tolerations, user cannot join
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/join_workspace/%s' % ws.join_code)
+        self.assertStatus(response, 422)
+
+        # workspace tolerates 'low_trust' taint, joining should work
+        ws.membership_join_policy = dict(tolerations=['low_trust'])
+        db.session.commit()
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/join_workspace/%s' % ws.join_code)
+        self.assertStatus(response, 200)
+
+        # delete membership, assign two taints and a different annotation
+        WorkspaceMembership.query.filter_by(user_id=u.id, workspace_id=ws.id).delete()
+        u.annotations = [
+            dict(key=PEBBLES_TAINT_KEY, value='low_trust'),
+            dict(key=PEBBLES_TAINT_KEY, value='another_taint'),
+            dict(key='some_key', value='some_value'),
+        ]
+        db.session.commit()
+
+        # second taint is not tolerated
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/join_workspace/%s' % ws.join_code)
+        self.assertStatus(response, 422)
+
+        # both taints tolerated
+        ws.membership_join_policy = dict(tolerations=['low_trust', 'another_taint'])
+        db.session.commit()
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/join_workspace/%s' % ws.join_code)
+        self.assertStatus(response, 200)
+
     def test_post_user_access(self):
         userdata = dict(ext_id='user3@example.org', email_id='u3@example.org', lifetime_in_days=5, is_admin=False)
         # Anonymous
@@ -1272,6 +1319,101 @@ class FlaskApiTestCase(BaseTestCase):
         )
         self.assert_200(response)
         self.assertEqual(response.json.get('num_deleted'), 1)
+
+    def test_update_membership_expiry_policy(self):
+        ws = Workspace.query.filter_by(id=self.known_workspace_id).first()
+        valid_mep = dict(kind=Workspace.MEP_PERSISTENT)
+
+        # Anonymous
+        response = self.make_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/membership_expiry_policy' % ws.id,
+            data=json.dumps(valid_mep)
+        )
+        self.assertEqual(response.status_code, 401)
+
+        # Authenticated
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/membership_expiry_policy' % ws.id,
+            data=json.dumps(valid_mep)
+        )
+        self.assertEqual(response.status_code, 403)
+
+        # Authenticated workspace owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/membership_expiry_policy' % ws.id,
+            data=json.dumps(valid_mep)
+        )
+        self.assertEqual(response.status_code, 403)
+
+        # Admin
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/membership_expiry_policy' % ws.id,
+            data=json.dumps(valid_mep)
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # invalid policy
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/membership_expiry_policy' % ws.id,
+            data=json.dumps(dict(kind='NoSuchKind'))
+        )
+        self.assertEqual(response.status_code, 422)
+
+    def test_update_membership_join_policy(self):
+        ws = Workspace.query.filter_by(id=self.known_workspace_id).first()
+        valid_mjp = dict(tolerations=['low_trust'])
+
+        # Anonymous
+        response = self.make_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/membership_join_policy' % ws.id,
+            data=json.dumps(valid_mjp)
+        )
+        self.assertEqual(response.status_code, 401)
+
+        # Authenticated
+        response = self.make_authenticated_user_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/membership_join_policy' % ws.id,
+            data=json.dumps(valid_mjp)
+        )
+        self.assertEqual(response.status_code, 403)
+
+        # Authenticated workspace owner
+        response = self.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/membership_join_policy' % ws.id,
+            data=json.dumps(valid_mjp)
+        )
+        self.assertEqual(response.status_code, 403)
+
+        # Admin
+        response = self.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/membership_join_policy' % ws.id,
+            data=json.dumps(valid_mjp)
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # invalid policies
+        invalid_mjps = [
+            dict(foo='bar'),
+            dict(foo='bar', tolerations=['foo']),
+            dict(tolerations='foo'),
+            dict(tolerations=dict(hello='sailor')),
+        ]
+        for mjp in invalid_mjps:
+            response = self.make_authenticated_admin_request(
+                method='PUT',
+                path='/api/v1/workspaces/%s/membership_join_policy' % ws.id,
+                data=json.dumps(mjp)
+            )
+            self.assertEqual(response.status_code, 422, '%s should be invalid join policy' % mjp)
 
     def test_get_clusters(self):
         # Anonymous

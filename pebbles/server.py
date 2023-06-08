@@ -22,7 +22,7 @@ from pebbles.views.tasks import TaskList, TaskView
 from pebbles.views.users import users, UserList, UserView, UserWorkspaceMembershipList
 from pebbles.views.workspaces import WorkspaceClearMembers, WorkspaceTransferOwnership, join_workspace, \
     WorkspaceAccounting, WorkspaceMemoryLimitGiB, WorkspaceModifyUserFolderSize, WorkspaceModifyCluster, \
-    WorkspaceClearExpiredMembers, WorkspaceModifyMembershipExpiryPolicy
+    WorkspaceClearExpiredMembers, WorkspaceModifyMembershipExpiryPolicy, WorkspaceModifyMembershipJoinPolicy
 from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceMemberList
 from pebbles.views.workspaces import workspaces
 
@@ -50,6 +50,8 @@ api.add_resource(WorkspaceModifyUserFolderSize,
 api.add_resource(WorkspaceModifyCluster, api_root + '/workspaces/<string:workspace_id>/cluster')
 api.add_resource(WorkspaceModifyMembershipExpiryPolicy,
                  api_root + '/workspaces/<string:workspace_id>/membership_expiry_policy')
+api.add_resource(WorkspaceModifyMembershipJoinPolicy,
+                 api_root + '/workspaces/<string:workspace_id>/membership_join_policy')
 api.add_resource(JoinWorkspace, api_root + '/join_workspace/<string:join_code>')
 api.add_resource(MessageList, api_root + '/messages')
 api.add_resource(MessageView, api_root + '/messages/<string:message_id>')

@@ -11,7 +11,7 @@ from jose import jwt
 from pyfakefs.fake_filesystem_unittest import Patcher
 
 from pebbles.app import app
-from pebbles.models import User, PEBBLES_TAINT_KEY
+from pebbles.models import User, PEBBLES_TAINT_KEY, WorkspaceMembership
 from pebbles.tests.base import db, BaseTestCase
 from pebbles.tests.fixtures import primary_test_setup
 
@@ -216,7 +216,9 @@ class ModelsTestCase(BaseTestCase):
         self.assertEqual(res.status_code, 200)
         self.assertIn('LOGIN', res.text)
         self.assertIn('ex1/user-1', res.text)
-        self.assertTrue(User.query.filter_by(ext_id='ex1/user-1').first())
+        u = User.query.filter_by(ext_id='ex1/user-1').first()
+        self.assertTrue(u)
+        self.assertEqual(len(WorkspaceMembership.query.filter_by(user_id=u.id).all()), 1)
 
     @responses.activate
     def test_missing_id_claim(self):
@@ -447,3 +449,6 @@ class ModelsTestCase(BaseTestCase):
         u = User.query.filter_by(ext_id='ex3/user-1').first()
         self.assertIn('LOGIN', res.text)
         self.assertEqual(u.annotations, self.auth_config['oauth2']['authMethods'][2]['userAnnotations'])
+
+        # Because of taints, user should not be a member of System.default workspace
+        self.assertEqual(len(WorkspaceMembership.query.filter_by(user_id=u.id).all()), 0)

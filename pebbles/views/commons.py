@@ -88,8 +88,18 @@ def create_system_workspaces(admin):
     db.session.commit()
 
 
+def can_user_join_workspace(user, ws):
+    if not user.taints:
+        return True
+    tolerations = ws.membership_join_policy.get('tolerations', [])
+    return set(user.taints) <= set(tolerations)
+
+
 def add_user_to_default_workspace(user):
     system_default_workspace = Workspace.query.filter_by(name='System.default').first()
+    if not can_user_join_workspace(user, system_default_workspace):
+        logging.info('User %s could not be added to System.default workspace', user.ext_id)
+        return
     workspace_user_obj = WorkspaceMembership(workspace=system_default_workspace, user=user)
     system_default_workspace.memberships.append(workspace_user_obj)
     db.session.add(system_default_workspace)

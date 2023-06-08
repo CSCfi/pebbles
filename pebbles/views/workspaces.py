@@ -17,7 +17,7 @@ from pebbles.app import app
 from pebbles.forms import WorkspaceForm
 from pebbles.models import db, Workspace, User, WorkspaceMembership, Application, ApplicationSession
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin, load_cluster_config
-from pebbles.views.commons import auth
+from pebbles.views.commons import auth, can_user_join_workspace
 
 workspaces = FlaskBlueprint('workspaces', __name__)
 join_workspace = FlaskBlueprint('join_workspace', __name__)
@@ -35,6 +35,7 @@ workspace_fields_admin = {
     'memory_limit_gib': fields.Integer,
     'membership_type': fields.String(default='admin'),
     'membership_expiry_policy': fields.Raw,
+    'membership_join_policy': fields.Raw,
     'cluster': fields.String,
     'config': fields.Raw,
 }
@@ -385,8 +386,12 @@ class JoinWorkspace(restful.Resource):
             logging.warning('user %s already exists in workspace', user.id)
             return 'User already exists in the workspace', 422
 
-        workspace_user_obj = WorkspaceMembership(user=user, workspace=workspace)
-        workspace.memberships.append(workspace_user_obj)
+        if not can_user_join_workspace(user, workspace):
+            logging.warning('user %s is prohibited from joining workspace %s', user.id, workspace.id)
+            return 'Account properties prohibit joining', 422
+
+        membership = WorkspaceMembership(user=user, workspace=workspace)
+        workspace.memberships.append(membership)
         db.session.add(workspace)
         db.session.commit()
 
@@ -792,3 +797,27 @@ class WorkspaceModifyMembershipExpiryPolicy(restful.Resource):
         db.session.commit()
 
         return workspace.membership_expiry_policy
+
+
+class WorkspaceModifyMembershipJoinPolicy(restful.Resource):
+
+    @auth.login_required
+    @requires_admin
+    def put(self, workspace_id):
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+
+        if not workspace:
+            logging.warning('workspace %s does not exist', workspace_id)
+            return dict(error='The workspace does not exist'), 404
+
+        new_mjp = request.json
+        error = Workspace.check_membership_join_policy(new_mjp)
+        if error:
+            msg = 'membership join policy %s failed validation: %s' % (json.dumps(new_mjp), error)
+            logging.warning(msg)
+            return dict(error=msg), 422
+
+        workspace.membership_join_policy = new_mjp
+        db.session.commit()
+
+        return workspace.membership_join_policy
