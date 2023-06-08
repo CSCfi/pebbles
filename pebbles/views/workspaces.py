@@ -93,7 +93,6 @@ member_fields = dict(
 def marshal_based_on_role(user, workspace):
     if user.is_admin:
         if workspace.name.startswith('System.'):
-            workspace.user_association_type = 'public'
             workspace.membership_type = 'public'
         return restful.marshal(workspace, workspace_fields_admin)
     elif rules.is_user_owner_of_workspace(user, workspace):
