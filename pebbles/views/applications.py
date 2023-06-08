@@ -329,12 +329,12 @@ class ApplicationCopy(restful.Resource):
     @requires_workspace_manager_or_admin
     def put(self, application_id):
         user = g.user
-        application = Application.query.get_or_404(application_id)
+        application = Application.query.filter_by(id=application_id).first_or_404()
         args = self.parser.parse_args()
 
         # Specific target workspace or just cloning in current one?
         if args.get('workspace_id', None):
-            target_workspace = Workspace.query.get(args.get('workspace_id'))
+            target_workspace = Workspace.query.filter_by(id=args.get('workspace_id')).first()
             # check that user has manager rights in the target workspace
             if not (user.is_admin or is_workspace_manager(user, target_workspace)):
                 logging.warning(

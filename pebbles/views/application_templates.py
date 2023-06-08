@@ -105,7 +105,7 @@ class ApplicationTemplateCopy(restful.Resource):
     @auth.login_required
     @requires_admin
     def put(self, template_id):
-        template = ApplicationTemplate.query.get_or_404(template_id)
+        template = ApplicationTemplate.query.filter_by(id=template_id).first_or_404()
 
         db.session.expunge(template)
         make_transient(template)

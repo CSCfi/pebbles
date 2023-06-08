@@ -136,7 +136,7 @@ def get_workspace_application_ids_for_application_sessions(user, only_managed=Fa
         workspace_user_objs = workspace_user_query.filter_by(user_id=user.id).all()
     workspaces = [workspace_user_obj.workspace for workspace_user_obj in workspace_user_objs]
     # loading only id column rest will be deferred
-    workspace_applications = [workspace.applications.options(load_only("id")).all() for workspace in workspaces]
+    workspace_applications = [workspace.applications.options(load_only(Application.id)).all() for workspace in workspaces]
     # merge the list of lists into one list
     workspace_applications_flat = list(itertools.chain.from_iterable(workspace_applications))
     # Get the ids in a list

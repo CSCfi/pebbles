@@ -1,0 +1,54 @@
+#
+# Use 'pip-compile' from pip-tools package to generate requirements.txt from this file.
+# To update the requirements, run 'pip-compile -U'
+
+## Primary requirements
+alembic
+click
+dpath
+Flask
+Flask-Bcrypt
+Flask-HTTPAuth
+Flask-Login
+Flask-Migrate
+Flask-RESTful
+Flask-SQLAlchemy
+Flask-SSO
+Flask-Testing
+Flask-WTF
+itsdangerous
+Jinja2
+MarkupSafe
+names
+python-dateutil
+python-jose[pycryptodome]
+PyYAML
+requests
+SQLAlchemy
+SQLAlchemy-Utils
+Werkzeug
+WTForms
+WTForms-Alchemy
+
+## for drivers
+kubernetes
+openshift
+
+## for s2i builds
+psycopg2-binary
+gunicorn
+
+## for testing
+selenium
+mock
+coverage
+flake8
+responses
+pyfakefs
+
+
+# for hot-reload in development
+inotify
+
+# for generating requirements.txt
+pip-tools

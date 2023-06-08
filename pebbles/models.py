@@ -278,7 +278,7 @@ class User(db.Model):
             logging.warning('Possible hacking attempt "%s" with token "%s"', e, token)
             return None
 
-        user = User.query.get(data['id'])
+        user = User.query.filter_by(id=data['id']).first()
         if user and user.can_login():
             return user
 
@@ -709,7 +709,6 @@ class ApplicationSession(db.Model):
     def __init__(self, application, user):
         self.id = uuid.uuid4().hex
         self.application_id = application.id
-        self.application = application
         self.user_id = user.id
         self._state = ApplicationSession.STATE_QUEUEING
 

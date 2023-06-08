@@ -163,6 +163,7 @@ class ApplicationSessionList(restful.Resource):
 
         # create the application_session and assign provisioning config from current application + template
         application_session = ApplicationSession(application, user)
+        db.session.add(application_session)
         application_session.provisioning_config = utils.get_provisioning_config(application)
 
         # decide on a name that is not used currently
@@ -173,7 +174,7 @@ class ApplicationSessionList(restful.Resource):
             if c_name not in existing_names:
                 application_session.name = c_name
                 break
-        db.session.add(application_session)
+
         db.session.commit()
 
         return marshal(application_session, application_session_fields), 200

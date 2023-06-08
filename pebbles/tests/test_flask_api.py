@@ -523,12 +523,15 @@ class FlaskApiTestCase(BaseTestCase):
         # g.owner_id = self.known_workspace_owner_id
         u1 = User.query.filter_by(id=self.known_user_id).first()
         wsu1_obj = WorkspaceMembership(user=u1, workspace=ws)
+        db.session.add(wsu1_obj)
+        ws.memberships.append(wsu1_obj)
         u2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
         wsu2_obj = WorkspaceMembership(user=u2, workspace=ws)
+        db.session.add(wsu2_obj)
+        ws.memberships.append(wsu2_obj)
         u3 = User.query.filter_by(id=self.known_workspace_owner_id).first()
         wsu3_obj = WorkspaceMembership(user=u3, workspace=ws, is_manager=True, is_owner=True)
-        ws.memberships.append(wsu1_obj)
-        ws.memberships.append(wsu2_obj)
+        db.session.add(wsu3_obj)
         ws.memberships.append(wsu3_obj)
         db.session.add(ws)
         db.session.commit()
@@ -799,9 +802,9 @@ class FlaskApiTestCase(BaseTestCase):
         def check_user_matches_post_data(post_data):
             user = self.make_authenticated_admin_request(path='/api/v1/users/%s' % response.json['id']).json
             for key in [x for x in userdata.keys() if x != 'lifetime_in_days']:
-                self.assertEquals(user[key], post_data[key], key)
+                self.assertEqual(user[key], post_data[key], key)
             if 'lifetime_in_days' in post_data:
-                self.assertEquals(user['expiry_ts'] - user['joining_ts'], post_data['lifetime_in_days'] * 86400)
+                self.assertEqual(user['expiry_ts'] - user['joining_ts'], post_data['lifetime_in_days'] * 86400)
         # Post a user, fetch user from API and check that data matches
         userdata = dict(ext_id='user3@example.org', email_id='u3@example.org', is_admin=False, lifetime_in_days=7)
         response = self.make_authenticated_admin_request(
@@ -896,11 +899,11 @@ class FlaskApiTestCase(BaseTestCase):
         ws.owner_id = self.known_workspace_owner_id_2
         u = User.query.filter_by(id=self.known_user_id).first()
         wsu_obj = WorkspaceMembership(workspace=ws, user=u)
-
+        db.session.add(wsu_obj)
+        ws.memberships.append(wsu_obj)
         u_extra = User.query.filter_by(id=self.known_workspace_owner_id).first()  # extra user
         wsu_extra_obj = WorkspaceMembership(workspace=ws, user=u_extra)
-
-        ws.memberships.append(wsu_obj)
+        db.session.add(wsu_extra_obj)
         ws.memberships.append(wsu_extra_obj)
 
         db.session.add(ws)
@@ -1082,12 +1085,15 @@ class FlaskApiTestCase(BaseTestCase):
 
         u1 = User.query.filter_by(id=self.known_user_id).first()
         wsu1_obj = WorkspaceMembership(user=u1, workspace=ws)
+        db.session.add(wsu1_obj)
+        ws.memberships.append(wsu1_obj)
         u2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
         wsu2_obj = WorkspaceMembership(user=u2, workspace=ws)
+        db.session.add(wsu2_obj)
+        ws.memberships.append(wsu2_obj)
         u3 = User.query.filter_by(id=self.known_workspace_owner_id).first()
         wsu3_obj = WorkspaceMembership(user=u3, workspace=ws, is_manager=True, is_owner=True)
-        ws.memberships.append(wsu1_obj)
-        ws.memberships.append(wsu2_obj)
+        db.session.add(wsu3_obj)
         ws.memberships.append(wsu3_obj)
         db.session.add(ws)
         db.session.commit()
@@ -1145,12 +1151,15 @@ class FlaskApiTestCase(BaseTestCase):
         ws = Workspace(name)
         u1 = User.query.filter_by(id=self.known_user_id).first()
         wsu1_obj = WorkspaceMembership(user=u1, workspace=ws)
+        db.session.add(wsu1_obj)
+        ws.memberships.append(wsu1_obj)
         u2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
         wsu2_obj = WorkspaceMembership(user=u2, workspace=ws, is_manager=True, is_owner=False)
+        db.session.add(wsu2_obj)
+        ws.memberships.append(wsu2_obj)
         u3 = User.query.filter_by(id=self.known_workspace_owner_id).first()
         wsu3_obj = WorkspaceMembership(user=u3, workspace=ws, is_manager=True, is_owner=True)
-        ws.memberships.append(wsu1_obj)
-        ws.memberships.append(wsu2_obj)
+        db.session.add(wsu3_obj)
         ws.memberships.append(wsu3_obj)
         db.session.add(ws)
         db.session.commit()
@@ -1209,12 +1218,15 @@ class FlaskApiTestCase(BaseTestCase):
         ws.membership_expiry_policy = dict(kind=Workspace.MEP_PERSISTENT)
         u1 = User.query.filter_by(id=self.known_user_id).first()
         wsu1_obj = WorkspaceMembership(user=u1, workspace=ws, is_manager=False, is_owner=False)
+        db.session.add(wsu1_obj)
+        ws.memberships.append(wsu1_obj)
         uo2 = User.query.filter_by(id=self.known_workspace_owner_id_2).first()
         wsu2_obj = WorkspaceMembership(user=uo2, workspace=ws, is_manager=True, is_owner=False)
+        db.session.add(wsu2_obj)
+        ws.memberships.append(wsu2_obj)
         uo1 = User.query.filter_by(id=self.known_workspace_owner_id).first()
         wsu3_obj = WorkspaceMembership(user=uo1, workspace=ws, is_manager=True, is_owner=True)
-        ws.memberships.append(wsu1_obj)
-        ws.memberships.append(wsu2_obj)
+        db.session.add(wsu3_obj)
         ws.memberships.append(wsu3_obj)
         db.session.add(ws)
         db.session.commit()
