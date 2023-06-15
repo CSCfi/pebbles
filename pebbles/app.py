@@ -1,16 +1,18 @@
 import os as os
-import sys
 
 from flask import Flask
 from flask_migrate import Migrate
 
-from pebbles.config import BaseConfig, TestConfig
+from pebbles.config import TestConfig, RuntimeConfig
 from pebbles.models import db, bcrypt
 from pebbles.utils import init_logging
 
 app = Flask(__name__, static_url_path='')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# initialize migrations with Alembic
 migrate = Migrate(app, db)
+
 
 if 'REMOTE_DEBUG_SERVER' in os.environ:
     print('trying to connect to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
@@ -64,16 +66,12 @@ def add_headers(r):
     return r
 
 
-# check if we are running as a test process
-test_run = (
-    {'test', 'covtest'}.intersection(set(sys.argv)) or ('UNITTEST' in os.environ.keys() and os.environ['UNITTEST'])
-)
-
-# unit tests need a config with tweaked default values
-if test_run:
+# unit tests need a config with tweaked default values and no environment variable resolving - unit tests can be run
+# in a container that has environment set up for real
+if os.environ.get('UNITTEST') == '1':
     app_config = TestConfig()
 else:
-    app_config = BaseConfig()
+    app_config = RuntimeConfig()
 
 # set up logging
 init_logging(app_config, 'api')
@@ -81,7 +79,7 @@ init_logging(app_config, 'api')
 # configure flask
 app.config.from_object(app_config)
 
-# insert database password from separate source to SQLALCHEMY URL
+# insert database password to SQLALCHEMY_DATABASE_URI from a separate source
 if app.config['DATABASE_PASSWORD']:
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('__PASSWORD__', app.config[
         'DATABASE_PASSWORD'])

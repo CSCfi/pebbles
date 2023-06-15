@@ -1,11 +1,13 @@
-import json
+# Test fixture methods to be called from app context so we can access the db
 import datetime
+import json
+
+from flask.testing import FlaskClient
 
 import pebbles.utils
 from pebbles.maintenance.main import run_workspace_expiry_cleanup, WORKSPACE_EXPIRY_GRACE_PERIOD
 from pebbles.models import Workspace
-from pebbles.tests.base import db, BaseTestCase
-from pebbles.tests.fixtures import primary_test_setup
+from tests.conftest import PrimaryData
 
 
 class MockResponseAdapter:
@@ -21,6 +23,7 @@ class MockResponseAdapter:
 
 class PBClientMock:
     """Mock PBClient to test workspace cleanup"""
+
     def __init__(self, request_api):
         self.request_api = request_api
         self.api_base_url = 'api/v1'
@@ -59,41 +62,35 @@ class PBClientMock:
         return self.do_delete('workspaces/%s' % workspace_id)
 
 
-class ModelsTestCase(BaseTestCase):
-    def setUp(self):
-        db.create_all()
-        primary_test_setup(self)
-        db.session.commit()
+def test_workspace_cleanup(client: FlaskClient, pri_data: PrimaryData):
+    # check that the test set is valid. There should be workspaces that
+    # a) have expired but are within grace period
+    # b) need cleaning
+    current_time = datetime.datetime.utcnow().timestamp()
+    wss = Workspace.query.filter_by(status='active').all()
+    expired_workspaces = [
+        ws for ws in wss
+        if ws.expiry_ts
+        if not ws.name.startswith('System')
+        if ws.expiry_ts < current_time]
+    assert expired_workspaces
+    expired_workspaces_within_grace = [
+        ws for ws in expired_workspaces
+        if ws.expiry_ts + WORKSPACE_EXPIRY_GRACE_PERIOD >= current_time]
+    assert expired_workspaces_within_grace
+    expired_workspaces_beyond_grace = [
+        ws for ws in expired_workspaces
+        if ws.expiry_ts + WORKSPACE_EXPIRY_GRACE_PERIOD < current_time]
+    assert expired_workspaces_beyond_grace
 
-    def test_workspace_cleanup(self):
-        # check that the test set is valid. There should be workspaces that
-        # a) have expired but are within grace period
-        # b) need cleaning
-        current_time = datetime.datetime.utcnow().timestamp()
-        wss = Workspace.query.filter_by(status='active').all()
-        expired_workspaces = [
-            ws for ws in wss
-            if ws.expiry_ts
-            if not ws.name.startswith('System')
-            if ws.expiry_ts < current_time]
-        self.assertTrue(expired_workspaces)
-        expired_workspaces_within_grace = [
-            ws for ws in expired_workspaces
-            if ws.expiry_ts + WORKSPACE_EXPIRY_GRACE_PERIOD >= current_time]
-        self.assertTrue(expired_workspaces_within_grace)
-        expired_workspaces_beyond_grace = [
-            ws for ws in expired_workspaces
-            if ws.expiry_ts + WORKSPACE_EXPIRY_GRACE_PERIOD < current_time]
-        self.assertTrue(expired_workspaces_beyond_grace)
+    pb_client = PBClientMock(client)
+    pb_client.login('admin@example.org', 'admin')
+    run_workspace_expiry_cleanup(pb_client)
 
-        pb_client = PBClientMock(self.client)
-        pb_client.login('admin@example.org', 'admin')
-        run_workspace_expiry_cleanup(pb_client)
-
-        # check that the cleanup left workspaces before grace alone but removed the ones beyond grace
-        wss_after = Workspace.query.filter_by(status='active').all()
-        self.assertEqual(len(wss) - len(expired_workspaces_beyond_grace), len(wss_after))
-        for ws in expired_workspaces_within_grace:
-            self.assertIn(ws.id, [w.id for w in wss_after])
-        for ws in expired_workspaces_beyond_grace:
-            self.assertNotIn(ws.id, [w.id for w in wss_after])
+    # check that the cleanup left workspaces before grace alone but removed the ones beyond grace
+    wss_after = Workspace.query.filter_by(status='active').all()
+    assert len(wss) - len(expired_workspaces_beyond_grace) == len(wss_after)
+    for ws in expired_workspaces_within_grace:
+        assert ws.id in [w.id for w in wss_after]
+    for ws in expired_workspaces_beyond_grace:
+        assert ws.id not in [w.id for w in wss_after]

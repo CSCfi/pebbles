@@ -1,5 +1,7 @@
 import datetime
 import hashlib
+import importlib
+import inspect
 import json
 import logging
 import random
@@ -9,6 +11,7 @@ import time
 import uuid
 
 import names
+import yaml
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from jose import jwt, JWTError, ExpiredSignatureError
@@ -17,6 +20,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.schema import MetaData
 
+import pebbles
 from pebbles.utils import get_application_fields_from_config
 
 PEBBLES_TAINT_KEY = 'pebbles.csc.fi/taint'
@@ -917,3 +921,40 @@ class Task(db.Model):
     @update_ts.setter
     def update_ts(self, value):
         self._update_ts = datetime.datetime.fromtimestamp(value)
+
+
+def load_yaml(yaml_data):
+    """
+    A function to load annotated yaml data into the database.
+    Example can be found in devel_dataset.yaml
+    """
+
+    # callback function for constructing custom objects from yaml
+    def model_object_constructor(loader, node):
+        values = loader.construct_mapping(node, deep=True)
+        # figure out class and use its constructor
+        cls = getattr(
+            importlib.import_module('pebbles.models'),
+            node.tag[1:],
+            None
+        )
+        # we could not find a matching class, return value dict
+        if not cls:
+            return values
+
+        if 'id' in values:
+            id = values.pop('id')
+            obj = cls(**values)
+            obj.id = id
+        else:
+            obj = cls(**values)
+
+        return obj
+
+    # wire custom construction for all pebbles.models classes
+    for class_info in inspect.getmembers(pebbles.models, inspect.isclass):
+        yaml.add_constructor('!' + class_info[0], model_object_constructor)
+
+    data = yaml.unsafe_load(yaml_data)
+
+    return data

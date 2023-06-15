@@ -3,7 +3,7 @@ import logging
 import sys
 
 from pebbles.client import PBClient
-from pebbles.config import BaseConfig
+from pebbles.config import RuntimeConfig
 from pebbles.models import Workspace
 from pebbles.utils import init_logging
 
@@ -66,7 +66,7 @@ def run_membership_expiry_cleanup(pb_client):
 
 
 if __name__ == '__main__':
-    config = BaseConfig()
+    config = RuntimeConfig()
     init_logging(config, 'maintenance')
     logging.info('maintenance starting')
     if len(sys.argv) <= 1:

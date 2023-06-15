@@ -18,8 +18,7 @@ flake8:
   needs: []
   script:
     - pip install flake8
-    - flake8 pebbles
-
+    - flake8 pebbles tests manage.py
 
 pylint:
   stage: analysis and tests

@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 import getpass
 import logging
+import os
 import random
 import string
+import sys
 import time
 from typing import List
 
@@ -10,14 +12,18 @@ import click
 import yaml
 from flask.cli import FlaskGroup
 from sqlalchemy.exc import IntegrityError
-from werkzeug.middleware.profiler import ProfilerMiddleware
 
-import pebbles.tests.fixtures
-from pebbles.config import BaseConfig
-from pebbles.models import db, User, Application, ApplicationTemplate
-from pebbles.server import app
+from pebbles.config import RuntimeConfig
+from pebbles.models import db, User, Application, ApplicationTemplate, load_yaml
 from pebbles.utils import create_password
 from pebbles.views.commons import create_user, create_worker, create_system_workspaces
+
+# ensure UNITTEST environment before importing app
+if {'test', 'coverage'}.intersection(set(sys.argv)):
+    os.environ['UNITTEST'] = '1'
+# set FLASK_APP to point to our app
+os.environ['FLASK_APP'] = 'pebbles.app:app'
+from pebbles.server import app
 
 cli = FlaskGroup()
 
@@ -25,68 +31,18 @@ cli = FlaskGroup()
 @cli.command('configvars')
 def configvars():
     """ Displays the currently used config vars in the system """
-    config_vars = vars(BaseConfig)
-    dynamic_config = BaseConfig()
+    config_vars = vars(RuntimeConfig)
+    dynamic_config = RuntimeConfig()
     for var in config_vars:
         if not var.startswith('__') and var.isupper():
             print("%s : %s" % (var, dynamic_config[var]))
 
 
 @cli.command('test')
-@click.option('-f', 'failfast', is_flag=True)
-@click.option('-p', 'pattern', default='test*.py')
-@click.option('-v', 'verbosity', default=1)
 def test(failfast=False, pattern='test*.py', verbosity=1):
     """Runs the unit tests without coverage."""
-    import unittest
-    verb_level = int(verbosity)
-    tests = unittest.TestLoader().discover('pebbles.tests', pattern=pattern)
-    res = unittest.TextTestRunner(verbosity=verb_level, failfast=failfast).run(tests)
-    if res.wasSuccessful():
-        exit(0)
-    else:
-        exit(1)
-
-
-@cli.command('selenium')
-@click.option('-f', 'failfast', is_flag=True)
-@click.option('-p', 'pattern', default='selenium_test*.py')
-@click.option('-v', 'verbosity', default=1)
-def selenium(failfast=False, pattern='selenium_test*.py', verbosity=1):
-    """Runs the selenium tests."""
-    import unittest
-    verb_level = int(verbosity)
-    tests = unittest.TestLoader().discover('pebbles.tests', pattern=pattern)
-    res = unittest.TextTestRunner(verbosity=verb_level, failfast=failfast).run(tests)
-    if res.wasSuccessful():
-        exit(0)
-    else:
-        exit(1)
-
-
-@cli.command('coverage')
-def coverage():
-    """Runs the unit tests with coverage."""
-    import coverage
-    import unittest
-    cov = coverage.coverage(
-        branch=True,
-        include='pebbles/*'
-    )
-    cov.start()
-    tests = unittest.TestLoader().discover('pebbles.tests')
-    unittest.TextTestRunner(verbosity=2).run(tests)
-    cov.stop()
-    cov.save()
-    print('Coverage Summary:')
-    cov.report()
-
-
-@cli.command('profile')
-def profile():
-    app.config['PROFILE'] = True
-    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[50])
-    app.run(debug=True)
+    import pytest
+    exit(pytest.main('tests'.split()))
 
 
 @cli.command('createuser')
@@ -215,7 +171,7 @@ def load_data(file, update=False):
     Loads an annotated YAML file into database. Use -u/--update to update existing entries instead of skipping.
     """
     with open(file, 'r') as f:
-        data = pebbles.tests.fixtures.load_yaml(f)
+        data = load_yaml(f)
         for obj in data['data']:
             try:
                 db.session.add(obj)
@@ -257,8 +213,8 @@ def check_data(datadir):
     """
     applications_file = datadir + '/applications.yaml'
     templates_file = datadir + '/application_templates.yaml'
-    application_data: List[Application] = pebbles.tests.fixtures.load_yaml(open(applications_file, 'r')).get('data')
-    template_data: List[ApplicationTemplate] = pebbles.tests.fixtures.load_yaml(open(templates_file, 'r')).get('data')
+    application_data: List[Application] = load_yaml(open(applications_file, 'r')).get('data')
+    template_data: List[ApplicationTemplate] = load_yaml(open(templates_file, 'r')).get('data')
 
     # check for duplicate ids
     ids: List[string] = []

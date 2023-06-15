@@ -3,7 +3,7 @@ Pebbles is configured with a number of **variables**.
 
 These variables come, in the order of precedence from
 
-- application variables
+- environment variables, prefixed with PB_
 - a configuration file
 - built-in defaults
 
@@ -18,77 +18,22 @@ and then at start-up time application variables can be set to e.g.
 differentiate workers to run a particular driver.
 
 """
-import os
-import yaml
 import functools
+import os
+
+import yaml
 
 CONFIG_FILE = '/run/configmaps/pebbles/api-configmap/pebbles.yaml'
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
 
-def _parse_env_value(val):
-    """
-    Pars application variables to bool, integer or float or default to string.
-
-    :param val:
-    :return: val coerced into a type if it looks to be of one
-    """
-    if val.lower() == "false":
-        return False
-    elif val.lower() == "true":
-        return True
-    try:
-        return int(val)
-    except ValueError:
-        pass
-    try:
-        return float(val)
-    except ValueError:
-        pass
-    return val
-
-
-def resolve_configuration_value(key, default=None, *args, **kwargs):
-    def get_key_from_config(config_file, key):
-        return yaml.safe_load(open(config_file)).get(key)
-
-    # check application
-    pb_key = 'PB_' + key
-    value = os.getenv(pb_key)
-    if value is not None:
-        return _parse_env_value(value)
-
-    # then finally check system config file and given default
-    if os.path.isfile(CONFIG_FILE):
-        value = get_key_from_config(CONFIG_FILE, key)
-        if value is not None:
-            return value
-
-    if default is not None:
-        return default
-
-
-def fields_to_properties(cls):
-    for k, default in vars(cls).items():
-        if type(default) == tuple and len(default) == 2:
-            default, doc_ = default
-        else:
-            doc_ = ''
-        if not k.startswith('_') and k.isupper():
-            resolvef = functools.partial(resolve_configuration_value, k, default)
-            prop = property(resolvef, doc=doc_)
-            setattr(cls, k, prop)
-    return cls
-
-
 # each config can be documented by making the default value into a (value,
 # docstring) tuple
-@fields_to_properties
-class BaseConfig(object):
+class BaseConfig:
     """ Stores the default key, value pairs for the system configuration.
-        Rendered with a decorator which considers any application variables,
-        then the system level config file and finally the default values,
-        in that order of precedence.
+
+        This is meant to be a base class, use RuntimeConfig or TestConfig
+        for instances.
     """
 
     # Flask config
@@ -117,7 +62,7 @@ class BaseConfig(object):
     # Info about the system for frontend
     INSTALLATION_NAME = 'Pebbles'
     SHORT_DESCRIPTION = 'Easy-to-use applications for working with data and programming.'
-    INSTALLATION_DESCRIPTION = 'Log in to see the catalogue of available applications. ' +\
+    INSTALLATION_DESCRIPTION = 'Log in to see the catalogue of available applications. ' + \
                                'Applications run in the cloud and are accessed with your browser.'
 
     BRAND_IMAGE_URL = 'img/Notebooks_neg300px.png'
@@ -175,7 +120,65 @@ class BaseConfig(object):
         return True
 
 
+def _parse_env_value(val):
+    """
+    Pars application variables to bool, integer or float or default to string.
+
+    :param val:
+    :return: val coerced into a type if it looks to be of one
+    """
+    if val.lower() == "false":
+        return False
+    elif val.lower() == "true":
+        return True
+    try:
+        return int(val)
+    except ValueError:
+        pass
+    try:
+        return float(val)
+    except ValueError:
+        pass
+    return val
+
+
+def resolve_configuration_value(key, default=None, *args, **kwargs):
+    def get_key_from_config(config_file, key):
+        return yaml.safe_load(open(config_file)).get(key)
+
+    # check application
+    pb_key = 'PB_' + key
+    value = os.getenv(pb_key)
+    if value is not None:
+        return _parse_env_value(value)
+
+    # then finally check system config file and given default
+    if os.path.isfile(CONFIG_FILE):
+        value = get_key_from_config(CONFIG_FILE, key)
+        if value is not None:
+            return value
+
+    if default is not None:
+        return default
+
+
+class RuntimeConfig(BaseConfig):
+    """Main config object that resolves values dynamically at runtime."""
+
+    def __init__(self):
+        for k, default in vars(BaseConfig).items():
+            if type(default) == tuple and len(default) == 2:
+                default, doc_ = default
+            else:
+                doc_ = ''
+            if not k.startswith('_') and k.isupper():
+                resolvef = functools.partial(resolve_configuration_value, k, default)
+                prop = property(resolvef, doc=doc_)
+                setattr(RuntimeConfig, k, prop)
+
+
 class TestConfig(BaseConfig):
+    """Unit tests config object"""
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     MAIL_SUPPRESS_SEND = True
     BCRYPT_LOG_ROUNDS = 4

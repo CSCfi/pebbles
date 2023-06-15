@@ -5,7 +5,7 @@ from random import randrange
 from time import sleep
 
 from pebbles.client import PBClient
-from pebbles.config import BaseConfig
+from pebbles.config import RuntimeConfig
 from pebbles.utils import init_logging, load_cluster_config
 from pebbles.worker.controllers import ApplicationSessionController, ClusterController, WorkspaceController
 
@@ -104,7 +104,7 @@ if __name__ == '__main__':
         )
         print('Worker: connected to remote debug server at %s' % os.environ['REMOTE_DEBUG_SERVER'])
 
-    config = BaseConfig()
+    config = RuntimeConfig()
 
     init_logging(config, 'worker')
 

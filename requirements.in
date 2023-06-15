@@ -39,6 +39,7 @@ psycopg2-binary
 gunicorn
 
 ## for testing
+pytest
 selenium
 mock
 coverage

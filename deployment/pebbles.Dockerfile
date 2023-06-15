@@ -20,5 +20,6 @@ RUN mkdir deployment
 COPY deployment/run_gunicorn.bash deployment/.
 RUN chmod 755 deployment/run_gunicorn.bash
 COPY pebbles ./pebbles
+COPY tests ./tests
 
 CMD ["./deployment/run_gunicorn.bash"]
