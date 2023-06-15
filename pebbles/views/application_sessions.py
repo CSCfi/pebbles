@@ -357,7 +357,8 @@ def get_logs_from_db(application_session_id, log_type=None):
 def delete_logs_from_db(application_session_id, log_type=None):
     application_session_logs = get_logs_from_db(application_session_id, log_type)
     if not application_session_logs:
-        logging.warning("There are no log entries to be deleted")
+        logging.debug('There are no application log entries to be deleted')
+        return
 
     for application_session_log in application_session_logs:
         db.session.delete(application_session_log)

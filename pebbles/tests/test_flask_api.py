@@ -6,6 +6,7 @@ import unittest
 import uuid
 
 from dateutil.relativedelta import relativedelta
+from sqlalchemy import select
 
 from pebbles.models import (
     User, Workspace, WorkspaceMembership, ApplicationTemplate, Application,
@@ -187,17 +188,94 @@ class FlaskApiTestCase(BaseTestCase):
         response = self.make_request(
             method='POST',
             path='api/v1/sessions',
-            data=json.dumps({'ext_id': 'expired_user@example.org',
-                             'password': 'expired_user', 'agreement_sign': 'signed'}))
+            data=json.dumps(dict(
+                ext_id='expired_user@example.org',
+                password='expired_user',
+                agreement_sign='signed',
+            ))
+        )
         self.assert_403(response)
 
         # Test user with non-expired credentials can log in
         response = self.make_request(
             method='POST',
             path='api/v1/sessions',
-            data=json.dumps({'ext_id': 'user@example.org',
-                             'password': 'user'}))
+            data=json.dumps(dict(
+                ext_id='user@example.org',
+                password='user',
+                agreement_sign='signed',
+            ))
+        )
         self.assert_200(response)
+        self.assertIsNotNone(response.json.get('token'))
+
+    def test_user_must_accept_toc(self):
+        u = db.session.scalar(select(User).where(User.ext_id == 'user@example.org'))
+        u.tc_acceptance_date = None
+        db.session.commit()
+
+        # Test that we get a reply with no token and terms_agreed set to false
+        response = self.make_request(
+            method='POST',
+            path='api/v1/sessions',
+            data=json.dumps(dict(
+                ext_id='user@example.org',
+                password='user'
+            ))
+        )
+        self.assert_200(response)
+        self.assertIsNone(response.json.get('token'))
+        self.assertEqual(response.json.get('terms_agreed'), False)
+
+        # Same user, agreeing with wrong response
+        response = self.make_request(
+            method='POST',
+            path='api/v1/sessions',
+            data=json.dumps(dict(
+                ext_id='user@example.org',
+                password='user',
+                agreement_sign='allrightokay',
+            ))
+        )
+        self.assert_status(response, 403)
+
+        # Same user, agreeing to ToC
+        response = self.make_request(
+            method='POST',
+            path='api/v1/sessions',
+            data=json.dumps(dict(
+                ext_id='user@example.org',
+                password='user',
+                agreement_sign='signed',
+            ))
+        )
+        self.assert_200(response)
+        self.assertIsNotNone(response.json.get('token'))
+        u = db.session.scalar(select(User).where(User.ext_id == 'user@example.org'))
+        self.assertIsNotNone(u.tc_acceptance_date)
+
+    def test_login_with_ext_id_delimiter(self):
+        # Test user with expired credentials cannot log in
+        response = self.make_request(
+            method='POST',
+            path='api/v1/sessions',
+            data=json.dumps(dict(
+                ext_id='prefix/user@example.org',
+                password='user',
+            ))
+        )
+        self.assert_status(response, 422)
+
+    def test_login_with_invalid_form_data(self):
+        # Test user with expired credentials cannot log in
+        response = self.make_request(
+            method='POST',
+            path='api/v1/sessions',
+            data=json.dumps(dict(
+                ext_id='user@example.org',
+            ))
+        )
+        self.assert_status(response, 422)
 
     def test_delete_user(self):
         ext_id = "test@example.org"

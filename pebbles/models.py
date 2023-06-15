@@ -268,11 +268,13 @@ class User(db.Model):
 
     @staticmethod
     def verify_auth_token(token, app_secret):
+        if not token:
+            return None
         try:
             # explicitly pass the single algorithm for signing to avoid token forging by algorithm tampering
             data = jwt.decode(token, app_secret, algorithms=[JWS_SIGNING_ALG])
         except (ExpiredSignatureError):
-            logging.info('Token has expired "%s"', token)
+            logging.debug('Token has expired "%s"', token)
             return None
         except (JWTError, JWSError, JWTClaimsError) as e:
             logging.warning('Possible hacking attempt "%s" with token "%s"', e, token)

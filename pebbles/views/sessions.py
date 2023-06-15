@@ -2,9 +2,8 @@ import datetime
 import logging
 import time
 
-from flask import abort
-from flask import Blueprint as FlaskBlueprint, current_app
 import flask_restful as restful
+from flask import Blueprint as FlaskBlueprint, current_app
 from flask_restful import fields, marshal, reqparse
 
 from pebbles.forms import SessionCreateForm
@@ -45,16 +44,15 @@ class SessionView(restful.Resource):
                     'user_id': user.id,
                     'terms_agreed': False,
                 }, token_fields)
-
             elif args.agreement_sign == 'signed':
                 user.tc_acceptance_date = datetime.datetime.utcnow()
                 db.session.commit()
             else:
                 logging.warning('Login aborted: User "%s" did not agree to terms, access denied', user.id)
-                abort(403)
+                return 'You need to accept the terms and conditions', 403
         if user and user.has_expired():
-            logging.warning('Login after expiry not permitted')
-            abort(403)
+            logging.warning('Login after expiry not permitted, user %s', user.id)
+            return 'Account has expired', 403
         if user and not user.email_id and user.check_password(form.password.data):
             # Email and ext_id are same because we invite users through email
             # update_email is in commons.py, as in future we could allow
