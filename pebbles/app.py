@@ -1,3 +1,4 @@
+import logging
 import os as os
 
 from flask import Flask
@@ -86,3 +87,9 @@ if app.config['DATABASE_PASSWORD']:
 
 bcrypt.init_app(app)
 db.init_app(app)
+
+# Enable debugging SQLAlchemy queries. Level must be set as an integer, take a look at logging constants for values.
+# https://docs.python.org/3.9/library/logging.html#logging-levels
+# Hint: logging.INFO (=20) gives you SQL output for each query
+if 'SQLALCHEMY_LOGGING_LEVEL' in os.environ:
+    logging.getLogger("sqlalchemy.engine").setLevel(int(os.environ.get('SQLALCHEMY_LOGGING_LEVEL')))

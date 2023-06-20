@@ -6,6 +6,8 @@ import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g, request
 from flask_restful import fields, reqparse
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 
 from pebbles import rules
@@ -113,6 +115,7 @@ class ApplicationList(restful.Resource):
         query = apply_rules_applications(user, args)
         # sort the results based on the workspace name first and then by application name
         query = query.join(Workspace, Application.workspace).order_by(Workspace.name).order_by(Application.name)
+        query = query.options(joinedload(Application.workspace))
         results = []
         for application in query.all():
             application = process_application(application)
@@ -374,9 +377,18 @@ class ApplicationCopy(restful.Resource):
 def process_application(application):
     user = g.user
 
+    # cache application template names in the request context to avoid lookups on every call
+    template_name_cache = g.setdefault('template_name_cache', dict())
+    if application.template_id not in template_name_cache.keys():
+        result = db.session.execute(
+            select(ApplicationTemplate.id, ApplicationTemplate.name)
+        ).all()
+        for row in result:
+            template_name_cache[row[0]] = row[1]
+
     # shortcut properties for UI
-    template = ApplicationTemplate.query.filter_by(id=application.template_id).first()
-    application.template_name = template.name
+    application.template_name = template_name_cache.get(application.template_id)
+
     application.workspace_name = application.workspace.name
     application.workspace_pseudonym = application.workspace.pseudonym
     application.workspace_expiry_ts = application.workspace.expiry_ts
