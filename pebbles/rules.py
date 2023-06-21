@@ -1,10 +1,13 @@
 import itertools
+import logging
 
-from sqlalchemy import or_, and_
+from flask import g
+from sqlalchemy import or_, and_, select
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
 
-from pebbles.models import Application, ApplicationTemplate, ApplicationSession, User, WorkspaceMembership, Workspace
+from pebbles.models import Application, ApplicationTemplate, ApplicationSession, User, WorkspaceMembership, Workspace, \
+    db
 from pebbles.views.commons import is_workspace_manager
 
 
@@ -81,8 +84,8 @@ def apply_rules_application_sessions(user, args=None):
         q1 = q.filter_by(user_id=user.id)
         if is_workspace_manager(user):
             # include also application_sessions of the applications of managed workspaces
-            workspace_applications_id = get_workspace_application_ids_for_application_sessions(user, only_managed=True)
-            q2 = q.filter(ApplicationSession.application_id.in_(workspace_applications_id))
+            managed_application_ids = get_managed_application_ids(user)
+            q2 = q.filter(ApplicationSession.application_id.in_(managed_application_ids))
             q = q1.union(q2)
         else:
             q = q1
@@ -92,6 +95,28 @@ def apply_rules_application_sessions(user, args=None):
         if 'application_session_id' in args:
             q = q.filter_by(id=args.get('application_session_id'))
     return q
+
+
+def append_application_session_filter(appsession_select, user, args=None):
+    res = appsession_select.where(ApplicationSession.state != ApplicationSession.STATE_DELETED)
+    if args:
+        if 'application_session_id' in args:
+            res = res.where(ApplicationSession.id == args.get('application_session_id'))
+
+    if user.is_admin:
+        return res
+    if is_workspace_manager(user):
+        managed_application_ids = get_managed_application_ids(user)
+        res = res.where(
+            or_(
+                ApplicationSession.application_id.in_(managed_application_ids),
+                ApplicationSession.user_id == user.id
+            )
+        )
+    else:
+        res = res.where(ApplicationSession.user_id == user.id)
+
+    return res
 
 
 def apply_rules_workspace_memberships(user, user_id):
@@ -144,9 +169,27 @@ def get_workspace_application_ids_for_application_sessions(user, only_managed=Fa
     return workspace_applications_id
 
 
+def get_managed_application_ids(user):
+    stmt = select(Application.id) \
+        .join(WorkspaceMembership, WorkspaceMembership.workspace_id == Application.workspace_id) \
+        .where(WorkspaceMembership.user_id == user.id, WorkspaceMembership.is_manager)
+    res = db.session.scalars(stmt).all()
+    return res
+
+
 def is_user_owner_of_workspace(user, workspace):
-    return user.id in (wm.user_id for wm in workspace.memberships if wm.is_owner)
+    owner_cache = g.setdefault('owner_cache', dict())
+    key = '%s:%s' % (user.id, workspace.id)
+    if key not in owner_cache.keys():
+        logging.debug('owner cache: adding key %s' % key)
+        owner_cache[key] = user.id in (wm.user_id for wm in workspace.memberships if wm.is_owner)
+    return owner_cache.get(key)
 
 
 def is_user_manager_in_workspace(user, workspace):
-    return user.id in (wm.user_id for wm in workspace.memberships if wm.is_manager)
+    manager_cache = g.setdefault('manager_cache', dict())
+    key = '%s:%s' % (user.id, workspace.id)
+    if key not in manager_cache.keys():
+        logging.debug('manager cache: adding key %s' % key)
+        manager_cache[key] = user.id in (wm.user_id for wm in workspace.memberships if wm.is_manager)
+    return manager_cache.get(key)

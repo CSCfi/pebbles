@@ -6,12 +6,13 @@ import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g, current_app
 from flask_restful import marshal, marshal_with, fields, reqparse
+from sqlalchemy import select
 
 from pebbles import rules, utils
 from pebbles.forms import ApplicationSessionForm
 from pebbles.models import db, Application, ApplicationSession, ApplicationSessionLog, User
 from pebbles.rules import apply_rules_application_sessions
-from pebbles.utils import requires_admin, memoize
+from pebbles.utils import requires_admin
 from pebbles.views.commons import auth, is_workspace_manager
 
 application_sessions = FlaskBlueprint('application_sessions', __name__)
@@ -74,25 +75,18 @@ class ApplicationSessionList(restful.Resource):
     @marshal_with(application_session_fields)
     def get(self):
         user = g.user
-        q = apply_rules_application_sessions(user)
-        q = q.order_by(ApplicationSession.provisioned_at)
-        current_sessions = q.all()
 
-        get_application = memoize(query_application)
-        get_user = memoize(query_user)
-        for application_session in current_sessions:
-            application_session_logs = get_logs_from_db(application_session.id)
-            application_session.logs = marshal(application_session_logs, application_session_log_fields)
+        s = select(ApplicationSession, Application, User).join(Application).join(User)
 
-            user = get_user(application_session.user_id)
-            if user:
-                application_session.username = user.ext_id
+        s = rules.append_application_session_filter(s, user)
 
-            application = get_application(application_session.application_id)
-            if not application:
-                logging.warning(
-                    "application_session %s has a reference to non-existing application" % application_session.id)
-                continue
+        rows = db.session.execute(s).all()
+        current_sessions = []
+        for row in rows:
+            application_session = row.ApplicationSession
+            application = row.Application
+            user = row.User
+            application_session.username = user.ext_id
 
             age = 0
             if application_session.provisioned_at:
@@ -103,6 +97,8 @@ class ApplicationSessionList(restful.Resource):
 
             if application_session.to_be_deleted and application_session.state != ApplicationSession.STATE_DELETED:
                 application_session.state = ApplicationSession.STATE_DELETING
+
+            current_sessions.append(application_session)
 
         return current_sessions
 
