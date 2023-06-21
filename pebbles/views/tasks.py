@@ -21,6 +21,7 @@ task_fields = {
     'create_ts': fields.Integer,
     'complete_ts': fields.Integer,
     'update_ts': fields.Integer,
+    'results': fields.Raw,
 }
 
 
@@ -101,4 +102,35 @@ class TaskView(restful.Resource):
             return task
         except ValueError as ve:
             logging.warning('error patching task: %s', ve)
+            return '%s' % ve, 422
+
+
+class TaskAddResults(restful.Resource):
+    # Admin can add more lines to task results
+    parser = reqparse.RequestParser()
+    parser.add_argument('results', type=str, required=True)
+
+    @auth.login_required
+    @requires_admin
+    def put(self, task_id):
+        args = self.parser.parse_args()
+        task = Task.query.filter_by(id=task_id).first()
+        if not task:
+            logging.warning('Task %s does not exist', task_id)
+            return dict(error='Task does not exist'), 404
+
+        new_results = []
+
+        if type(task.results) is list:
+            new_results = task.results
+
+        new_results.append(args.results)
+
+        task.results = new_results
+
+        try:
+            db.session.commit()
+            return task.results
+        except ValueError as ve:
+            logging.warning('error posting task: %s', ve)
             return '%s' % ve, 422

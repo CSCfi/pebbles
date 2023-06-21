@@ -891,6 +891,14 @@ class Task(db.Model):
             raise ValueError("'%s' is not a valid state for Task" % value)
 
     @hybrid_property
+    def results(self):
+        return load_column(self._results)
+
+    @results.setter
+    def results(self, value):
+        self._results = json.dumps(value)
+
+    @hybrid_property
     def data(self):
         return load_column(self._data)
 

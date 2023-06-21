@@ -18,7 +18,7 @@ from pebbles.views.public_config import variables, PublicConfigList
 from pebbles.views.service_announcements import ServiceAnnouncementList, ServiceAnnouncementListPublic, \
     ServiceAnnouncementListAdmin, ServiceAnnouncementViewAdmin
 from pebbles.views.sessions import sessions, SessionView
-from pebbles.views.tasks import TaskList, TaskView
+from pebbles.views.tasks import TaskList, TaskView, TaskAddResults
 from pebbles.views.users import users, UserList, UserView, UserWorkspaceMembershipList
 from pebbles.views.workspaces import WorkspaceClearMembers, WorkspaceTransferOwnership, join_workspace, \
     WorkspaceAccounting, WorkspaceMemoryLimitGiB, WorkspaceModifyUserFolderSize, WorkspaceModifyCluster, \
@@ -92,6 +92,11 @@ api.add_resource(
     TaskView,
     api_root + '/tasks/<string:task_id>',
     methods=['GET', 'POST', 'PATCH']
+)
+api.add_resource(
+    TaskAddResults,
+    api_root + '/tasks/<string:task_id>/results',
+    methods=['PUT']
 )
 
 app.register_blueprint(application_templates)
