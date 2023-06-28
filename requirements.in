@@ -53,3 +53,6 @@ inotify
 
 # for generating requirements.txt
 pip-tools
+
+# for PyCharm remote debugging
+# pydevd-pycharm
