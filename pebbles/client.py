@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+import argparse
 import json
 import logging
 from time import time
@@ -6,6 +9,7 @@ import requests
 from jose import jwt
 
 import pebbles.utils
+from pebbles.config import RuntimeConfig
 
 
 class PBClient:
@@ -224,3 +228,24 @@ class PBClient:
         url = 'tasks/%s' % task_id
         json_data = dict(state=state)
         return self.do_patch(url, json_data=json_data)
+
+
+if __name__ == '__main__':
+    config = RuntimeConfig()
+
+    pebbles.utils.init_logging(config, 'client')
+
+    parser = argparse.ArgumentParser(description='Pebbles API command line client')
+    parser.add_argument('-a', '--api_base_url', default='http://api:8080/api/v1')
+    subparsers = parser.add_subparsers(help='generate auth token', dest='command')
+    parser_login = subparsers.add_parser('auth')
+    parser_login.add_argument('-e', '--ext_id', help='ext_id')
+    parser_login.add_argument('-p', '--password', help='password')
+    args = parser.parse_args()
+
+    if args.command == 'auth':
+        client = PBClient(None, args.api_base_url)
+        client.login(args.ext_id, args.password)
+        print(client.auth)
+    else:
+        parser.print_help()
