@@ -285,12 +285,12 @@ def test_delete_application_session(rmaker: RequestMaker, pri_data: PrimaryData)
         path='/api/v1/application_sessions/%s' % i5.id
     )
     assert response.status_code == 404
-    # Is just a Normal user of the workspace who didn't spawn the application session
+    # Owner 1 is just a normal user in this workspace who didn't spawn the application session
     response = rmaker.make_authenticated_workspace_owner_request(
         method='DELETE',
         path='/api/v1/application_sessions/%s' % i5.id
     )
-    assert response.status_code == 403
+    assert response.status_code == 404
     # Authenticated Workspace Owner of the workspace
     response = rmaker.make_authenticated_workspace_owner2_request(
         method='DELETE',

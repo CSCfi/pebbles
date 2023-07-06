@@ -1,12 +1,10 @@
 import itertools
 
-from sqlalchemy import or_, and_, select
+from sqlalchemy import or_, select, false
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
 
-from pebbles.models import Application, ApplicationTemplate, ApplicationSession, User, WorkspaceMembership, Workspace, \
-    db
-from pebbles.views.commons import is_workspace_manager
+from pebbles.models import Application, ApplicationTemplate, ApplicationSession, User, WorkspaceMembership, Workspace
 
 
 def apply_rules_application_templates(user, args=None):
@@ -20,101 +18,63 @@ def apply_rules_application_templates(user, args=None):
     return q
 
 
-def apply_rules_applications(user, args=None):
-    q = Application.query
-    if not user.is_admin:
-        workspace_user_objs = WorkspaceMembership.query.filter_by(
-            user_id=user.id, is_manager=False, is_banned=False).all()
-        allowed_workspace_ids = [workspace_user_obj.workspace.id for workspace_user_obj in workspace_user_objs]
-
-        # Start building query expressions based on the condition that :
-        # a workspace manager can see all of his applications and only enabled ones of other workspaces
-        query_exp = Application.is_enabled == true()
-        allowed_workspace_ids_exp = None
-        if allowed_workspace_ids:
-            allowed_workspace_ids_exp = Application.workspace_id.in_(allowed_workspace_ids)
-        query_exp = and_(allowed_workspace_ids_exp, query_exp)
-
-        manager_workspace_ids = get_manager_workspace_ids(user)
-        manager_workspace_ids_exp = None
-        if manager_workspace_ids:
-            manager_workspace_ids_exp = Application.workspace_id.in_(manager_workspace_ids)
-        query_exp = or_(query_exp, manager_workspace_ids_exp)
-        q = q.filter(query_exp).filter_by(status='active')
-    else:
-        # admins can optionally also see archived and deleted applications
-        if args is not None and 'show_all' in args and args.get('show_all'):
-            q = q.filter(
-                or_(
-                    Application.status == Application.STATUS_ACTIVE,
-                    Application.status == Application.STATUS_ARCHIVED,
-                    Application.status == Application.STATUS_DELETED
-                )
-            )
-        else:
-            q = q.filter_by(status=Application.STATUS_ACTIVE)
-
-    if args is not None:
-        if 'application_id' in args:
-            q = q.filter_by(id=args.get('application_id'))
-        elif 'workspace_id' in args and args.get('workspace_id'):
-            q = q.filter_by(workspace_id=args.get('workspace_id'))
-
-    return q
-
-
-def apply_rules_export_applications(user):
-    q = Application.query
-    if not user.is_admin:
-        manager_workspace_ids = get_manager_workspace_ids(user)
-        query_exp = None
-        if manager_workspace_ids:
-            query_exp = Application.workspace_id.in_(manager_workspace_ids)
-        q = q.filter(query_exp)
-    return q
-
-
-def apply_rules_application_sessions(user, args=None):
-    # basic query filter out the deleted application_sessions
-    q = ApplicationSession.query.filter(ApplicationSession.state != ApplicationSession.STATE_DELETED)
-    if not user.is_admin:
-        # user's own application_sessions
-        q1 = q.filter_by(user_id=user.id)
-        if is_workspace_manager(user):
-            # include also application_sessions of the applications of managed workspaces
-            managed_application_ids = get_managed_application_ids(user)
-            q2 = q.filter(ApplicationSession.application_id.in_(managed_application_ids))
-            q = q1.union(q2)
-        else:
-            q = q1
-
-    # additional filtering
-    if args is not None:
-        if 'application_session_id' in args:
-            q = q.filter_by(id=args.get('application_session_id'))
-    return q
-
-
-def append_application_session_filter(appsession_select, user, args=None):
-    res = appsession_select.where(ApplicationSession.state != ApplicationSession.STATE_DELETED)
-    if args:
-        if 'application_session_id' in args:
-            res = res.where(ApplicationSession.id == args.get('application_session_id'))
-
+def generate_application_query(user, args):
+    # handle admins separately
     if user.is_admin:
-        return res
-    if is_workspace_manager(user):
-        managed_application_ids = get_managed_application_ids(user)
-        res = res.where(
+        s = select(Application).join(Application.workspace)
+        # admins can query deleted applications
+        if not args.get('show_all'):
+            s = s.where(Application.status == Application.STATUS_ACTIVE)
+    else:
+        s = select(Application, Workspace, WorkspaceMembership) \
+            .join(Workspace, Workspace.id == Application.workspace_id) \
+            .join(WorkspaceMembership, WorkspaceMembership.workspace_id == Application.workspace_id)
+        s = s.where(WorkspaceMembership.user_id == user.id)
+        s = s.where(WorkspaceMembership.is_banned == false())
+        s = s.where(Application.status == Application.STATUS_ACTIVE)
+        # owner/managers can see draft applications (is_enabled==False)
+        s = s.where(
             or_(
-                ApplicationSession.application_id.in_(managed_application_ids),
-                ApplicationSession.user_id == user.id
+                Application.is_enabled == true(),
+                WorkspaceMembership.is_manager == true()
             )
         )
-    else:
-        res = res.where(ApplicationSession.user_id == user.id)
 
-    return res
+    if args and args.get('workspace_id'):
+        s = s.where(Application.workspace_id == args.get('workspace_id'))
+    if args and args.get('application_id'):
+        s = s.where(Application.id == args.get('application_id'))
+
+    return s
+
+
+def generate_application_session_query(user, args=None):
+    """Generates a query to list application_sessions, applications and users joined on the same row"""
+    s = select(ApplicationSession, Application, User).join(Application).join(User)
+    s = s.where(ApplicationSession.state != ApplicationSession.STATE_DELETED)
+    if args and args.get('application_session_id'):
+        s = s.where(ApplicationSession.id == args.get('application_session_id'))
+
+    if user.is_admin:
+        # no further filtering is needed for admins
+        return s
+
+    # For non-admins, list union of application sessions that
+    # - belong to applications that are managed by the user
+    # - are owned by the user
+    # Use a subquery for finding managed applications
+    managed_application_ids = select(Application.id) \
+        .join(WorkspaceMembership, WorkspaceMembership.workspace_id == Application.workspace_id) \
+        .where(WorkspaceMembership.user_id == user.id) \
+        .where(WorkspaceMembership.is_manager)
+    s = s.where(
+        or_(
+            ApplicationSession.application_id.in_(managed_application_ids),
+            ApplicationSession.user_id == user.id
+        )
+    )
+
+    return s
 
 
 def apply_rules_workspace_memberships(user, user_id):
@@ -146,7 +106,7 @@ def get_manager_workspace_ids(user):
     """Return the workspace ids for the user's managed workspaces"""
     # the result shall contain the owners of the workspaces too as they are managers by default
     workspace_manager_objs = WorkspaceMembership.query.filter_by(user_id=user.id, is_manager=True).all()
-    manager_workspace_ids = [workspace_manager_obj.workspace.id for workspace_manager_obj in workspace_manager_objs]
+    manager_workspace_ids = [workspace_manager_obj.workspace_id for workspace_manager_obj in workspace_manager_objs]
     return manager_workspace_ids
 
 
@@ -160,17 +120,11 @@ def get_workspace_application_ids_for_application_sessions(user, only_managed=Fa
     workspaces = [workspace_user_obj.workspace for workspace_user_obj in workspace_user_objs]
     # loading only id column rest will be deferred
     workspace_applications = [
-        workspace.applications.options(load_only(Application.id)).all() for workspace in workspaces]
+        workspace.applications.options(load_only(Application.id)).all()
+        for workspace in workspaces
+    ]
     # merge the list of lists into one list
     workspace_applications_flat = list(itertools.chain.from_iterable(workspace_applications))
     # Get the ids in a list
     workspace_applications_id = [application_item.id for application_item in workspace_applications_flat]
     return workspace_applications_id
-
-
-def get_managed_application_ids(user):
-    stmt = select(Application.id) \
-        .join(WorkspaceMembership, WorkspaceMembership.workspace_id == Application.workspace_id) \
-        .where(WorkspaceMembership.user_id == user.id, WorkspaceMembership.is_manager)
-    res = db.session.scalars(stmt).all()
-    return res

@@ -6,12 +6,10 @@ import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g, current_app
 from flask_restful import marshal, marshal_with, fields, reqparse
-from sqlalchemy import select
 
 from pebbles import rules, utils
 from pebbles.forms import ApplicationSessionForm
 from pebbles.models import db, Application, ApplicationSession, ApplicationSessionLog, User
-from pebbles.rules import apply_rules_application_sessions
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth, is_workspace_manager
 
@@ -76,18 +74,14 @@ class ApplicationSessionList(restful.Resource):
     def get(self):
         user = g.user
 
-        s = select(ApplicationSession, Application, User).join(Application).join(User)
-
-        s = rules.append_application_session_filter(s, user)
+        s = rules.generate_application_session_query(user)
 
         rows = db.session.execute(s).all()
         current_sessions = []
         for row in rows:
             application_session = row.ApplicationSession
             application = row.Application
-            user = row.User
-            application_session.username = user.ext_id
-
+            application_session.username = row.User.ext_id
             age = 0
             if application_session.provisioned_at:
                 age = (datetime.datetime.utcnow() - application_session.provisioned_at).total_seconds()
@@ -114,7 +108,7 @@ class ApplicationSessionList(restful.Resource):
         application_id = form.application_id.data
 
         # fetch the application using shared access rules
-        application = rules.apply_rules_applications(user, dict(application_id=application_id)).first()
+        application = db.session.scalar(rules.generate_application_query(user, dict(application_id=application_id)))
         if not application:
             logging.warning('application_session creation failed, no application found for id %s', application_id)
             abort(404)
@@ -183,8 +177,7 @@ class ApplicationSessionView(restful.Resource):
     def get(self, application_session_id):
         user = g.user
         args = {'application_session_id': application_session_id}
-        query = apply_rules_application_sessions(user, args)
-        application_session = query.first()
+        application_session = db.session.scalar(rules.generate_application_session_query(user, args))
         if not application_session:
             abort(404)
 
@@ -204,10 +197,8 @@ class ApplicationSessionView(restful.Resource):
     @auth.login_required
     def delete(self, application_session_id):
         user = g.user
-        query = ApplicationSession.query.filter_by(id=application_session_id)
-        if not user.is_admin and not is_workspace_manager(user):
-            query = query.filter_by(user_id=user.id)
-        application_session = query.first()
+        args = {'application_session_id': application_session_id}
+        application_session = db.session.scalar(rules.generate_application_session_query(user, args))
         if not application_session:
             abort(404)
         workspace = application_session.application.workspace
@@ -280,8 +271,8 @@ class ApplicationSessionLogs(restful.Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('log_type', type=str, default=None, required=False, location='args')
         args = parser.parse_args()
-        query = apply_rules_application_sessions(user, dict(application_session_id=application_session_id))
-        application_session = query.first()
+        args['application_session_id'] = application_session_id
+        application_session = db.session.scalar(rules.generate_application_session_query(user, args))
         if not application_session:
             abort(404)
 

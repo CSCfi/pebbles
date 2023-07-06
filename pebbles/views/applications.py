@@ -7,12 +7,11 @@ from flask import Blueprint as FlaskBlueprint
 from flask import abort, g, request
 from flask_restful import fields, reqparse
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 
+from pebbles import rules
 from pebbles.forms import ApplicationForm
 from pebbles.models import db, Application, ApplicationTemplate, Workspace, ApplicationSession
-from pebbles.rules import apply_rules_applications
 from pebbles.utils import requires_workspace_owner_or_admin, requires_admin, check_config_against_attribute_limits, \
     check_attribute_limit_format
 from pebbles.views import commons
@@ -20,108 +19,115 @@ from pebbles.views.commons import auth, requires_workspace_manager_or_admin
 
 applications = FlaskBlueprint('applications', __name__)
 
-application_fields_admin = {
-    'id': fields.String(attribute='id'),
-    'name': fields.String,
-    'description': fields.String,
-    'status': fields.String,
-    'maximum_lifetime': fields.Integer,
-    'labels': fields.List(fields.String),
-    'template_id': fields.String,
-    'template_name': fields.String,
-    'application_type': fields.String,
-    'is_enabled': fields.Boolean,
-    'config': fields.Raw,
-    'attribute_limits': fields.Raw,
-    'workspace_id': fields.String,
-    'workspace_name': fields.String,
-    'workspace_pseudonym': fields.String,
-    'info': {
-        'memory': fields.String,
-        'memory_gib': fields.Float,
-        'shared_folder_enabled': fields.Boolean,
-        'work_folder_enabled': fields.Boolean,
-        'workspace_expiry_ts': fields.Integer,
-        'base_config_image': fields.String,
+application_field_role_map = dict(
+    admin={
+        'id': fields.String(attribute='id'),
+        'name': fields.String,
+        'description': fields.String,
+        'status': fields.String,
+        'maximum_lifetime': fields.Integer,
+        'labels': fields.List(fields.String),
+        'template_id': fields.String,
+        'template_name': fields.String,
+        'application_type': fields.String,
+        'is_enabled': fields.Boolean,
+        'config': fields.Raw,
+        'attribute_limits': fields.Raw,
+        'workspace_id': fields.String,
+        'workspace_name': fields.String,
+        'workspace_pseudonym': fields.String,
+        'info': {
+            'memory': fields.String,
+            'memory_gib': fields.Float,
+            'shared_folder_enabled': fields.Boolean,
+            'work_folder_enabled': fields.Boolean,
+            'workspace_expiry_ts': fields.Integer,
+            'base_config_image': fields.String,
+        },
     },
-}
-
-application_fields_manager = {
-    'id': fields.String(attribute='id'),
-    'name': fields.String,
-    'description': fields.String,
-    'status': fields.String,
-    'maximum_lifetime': fields.Integer,
-    'labels': fields.List(fields.String),
-    'template_id': fields.String,
-    'template_name': fields.String,
-    'application_type': fields.String,
-    'is_enabled': fields.Boolean,
-    'config': fields.Raw,
-    'workspace_id': fields.String,
-    'workspace_name': fields.String,
-    'info': {
-        'memory': fields.String,
-        'memory_gib': fields.Float,
-        'shared_folder_enabled': fields.Boolean,
-        'work_folder_enabled': fields.Boolean,
-        'workspace_expiry_ts': fields.Integer,
-        'base_config_image': fields.String,
+    manager={
+        'id': fields.String(attribute='id'),
+        'name': fields.String,
+        'description': fields.String,
+        'status': fields.String,
+        'maximum_lifetime': fields.Integer,
+        'labels': fields.List(fields.String),
+        'template_id': fields.String,
+        'template_name': fields.String,
+        'application_type': fields.String,
+        'is_enabled': fields.Boolean,
+        'config': fields.Raw,
+        'workspace_id': fields.String,
+        'workspace_name': fields.String,
+        'info': {
+            'memory': fields.String,
+            'memory_gib': fields.Float,
+            'shared_folder_enabled': fields.Boolean,
+            'work_folder_enabled': fields.Boolean,
+            'workspace_expiry_ts': fields.Integer,
+            'base_config_image': fields.String,
+        },
     },
-}
-
-application_fields_user = {
-    'id': fields.String(attribute='id'),
-    'name': fields.String,
-    'description': fields.String,
-    'status': fields.String,
-    'maximum_lifetime': fields.Integer,
-    'labels': fields.List(fields.String),
-    'application_type': fields.String,
-    'is_enabled': fields.Boolean,
-    'workspace_id': fields.String,
-    'workspace_name': fields.String,
-    'info': {
-        'memory': fields.String,
-        'memory_gib': fields.Float,
-        'shared_folder_enabled': fields.Boolean,
-        'work_folder_enabled': fields.Boolean,
-        'workspace_expiry_ts': fields.Integer,
-        'base_config_image': fields.String,
+    user={
+        'id': fields.String(attribute='id'),
+        'name': fields.String,
+        'description': fields.String,
+        'status': fields.String,
+        'maximum_lifetime': fields.Integer,
+        'labels': fields.List(fields.String),
+        'application_type': fields.String,
+        'is_enabled': fields.Boolean,
+        'workspace_id': fields.String,
+        'workspace_name': fields.String,
+        'info': {
+            'memory': fields.String,
+            'memory_gib': fields.Float,
+            'shared_folder_enabled': fields.Boolean,
+            'work_folder_enabled': fields.Boolean,
+            'workspace_expiry_ts': fields.Integer,
+            'base_config_image': fields.String,
+        },
     },
-}
+)
 
 
-def marshal_based_on_role(user, application):
-    workspace = application.workspace
+def extract_role(user, application):
     if user.is_admin:
-        return restful.marshal(application, application_fields_admin)
-    elif commons.is_workspace_manager(user, workspace):
-        return restful.marshal(application, application_fields_manager)
+        return 'admin'
+    elif commons.is_workspace_manager(user, application.workspace):
+        return 'manager'
     else:
-        return restful.marshal(application, application_fields_user)
+        return 'user'
+
+
+def marshal_based_on_role(role, application):
+    application_fields = application_field_role_map.get(role)
+    if not application_fields:
+        raise RuntimeError('Unknown role %s passed to marshalling application' % role)
+    return restful.marshal(application, application_fields)
 
 
 class ApplicationList(restful.Resource):
     get_parser = reqparse.RequestParser()
     get_parser.add_argument('show_all', type=bool, default=False, location='args')
-    get_parser.add_argument('applications_count', type=bool, default=False, location='args')
     get_parser.add_argument('workspace_id', type=str, default=None, required=False, location='args')
 
     @auth.login_required
     def get(self):
         args = self.get_parser.parse_args()
         user = g.user
-        query = apply_rules_applications(user, args)
-        # sort the results based on the workspace name first and then by application name
-        query = query.join(Workspace, Application.workspace).order_by(Workspace.name).order_by(Application.name)
-        query = query.options(joinedload(Application.workspace))
+        s = rules.generate_application_query(user, args)
+        rows = db.session.execute(s).all()
         results = []
-        for application in query.all():
-            application = process_application(application)
-            results.append(marshal_based_on_role(user, application))
-        if args is not None and 'applications_count' in args and args.get('applications_count'):
-            return len(results)
+        for row in rows:
+            application = process_application(row.Application)
+            if user.is_admin:
+                results.append(marshal_based_on_role('admin', application))
+            elif row.WorkspaceMembership.is_manager:
+                results.append(marshal_based_on_role('manager', application))
+            else:
+                results.append(marshal_based_on_role('user', application))
+
         return results
 
     @auth.login_required
@@ -182,7 +188,7 @@ class ApplicationList(restful.Resource):
 
         application.workspace = workspace
         application = process_application(application)
-        return marshal_based_on_role(user, application)
+        return marshal_based_on_role(extract_role(user, application), application)
 
 
 class ApplicationView(restful.Resource):
@@ -193,15 +199,14 @@ class ApplicationView(restful.Resource):
         parser.add_argument('show_all', type=bool, default=False, location='args')
         args = parser.parse_args()
         args['application_id'] = application_id
-        logging.debug('environmentview get args %s', args)
 
-        query = apply_rules_applications(user, args)
-        application = query.first()
+        s = rules.generate_application_query(user, args)
+        application = db.session.scalar(s)
         if not application:
             abort(404)
 
         application = process_application(application)
-        return marshal_based_on_role(user, application)
+        return marshal_based_on_role(extract_role(user, application), application)
 
     @auth.login_required
     @requires_workspace_manager_or_admin
@@ -245,7 +250,7 @@ class ApplicationView(restful.Resource):
 
         db.session.commit()
         application = process_application(application)
-        return marshal_based_on_role(user, application)
+        return marshal_based_on_role(extract_role(user, application), application)
 
     @auth.login_required
     @requires_admin
@@ -266,9 +271,8 @@ class ApplicationView(restful.Resource):
     @requires_workspace_owner_or_admin
     def delete(self, application_id):
         user = g.user
-        query = apply_rules_applications(user, dict(application_id=application_id))
-        application = query.first()
-        application_sessions = ApplicationSession.query.filter_by(application_id=application_id).all()
+        s = rules.generate_application_query(user, dict(application_id=application_id))
+        application = db.session.scalar(s)
         if not application:
             logging.warning("trying to delete non-existing application")
             abort(404)
@@ -277,6 +281,8 @@ class ApplicationView(restful.Resource):
         elif application.status == Application.STATUS_ARCHIVED:
             abort(403)
 
+        # Check if sessions have been created, and we need to preserve the Application in 'DELETED' state for statistics
+        application_sessions = ApplicationSession.query.filter_by(application_id=application_id).all()
         if not application_sessions:
             db.session.delete(application)
             db.session.commit()
@@ -297,7 +303,7 @@ class ApplicationAttributeLimits(restful.Resource):
     @requires_admin
     def put(self, application_id):
         user = g.user
-        application = apply_rules_applications(user, dict(application_id=application_id)).first()
+        application = db.session.scalar(rules.generate_application_query(user, dict(application_id=application_id)))
 
         if not application:
             logging.warning('application %s does not exist', application_id)
@@ -375,8 +381,6 @@ class ApplicationCopy(restful.Resource):
 
 
 def process_application(application):
-    user = g.user
-
     # cache application template names in the request context to avoid lookups on every call
     template_name_cache = g.setdefault('template_name_cache', dict())
     if application.template_id not in template_name_cache.keys():
@@ -404,8 +408,7 @@ def process_application(application):
 
     # rest of the code taken for refactoring from single application GET query
     application.cluster = application.workspace.cluster
-    if user.is_admin or commons.is_workspace_manager(user, application.workspace):
-        application.manager = True
+
     if 'enable_user_work_folder' in application.config and application.config['enable_user_work_folder']:
         application.work_folder_enabled = True
     else:
