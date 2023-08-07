@@ -167,7 +167,7 @@ class RuntimeConfig(BaseConfig):
 
     def __init__(self):
         for k, default in vars(BaseConfig).items():
-            if type(default) == tuple and len(default) == 2:
+            if type(default) is tuple and len(default) == 2:
                 default, doc_ = default
             else:
                 doc_ = ''

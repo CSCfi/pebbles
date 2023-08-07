@@ -306,7 +306,7 @@ class ApplicationAttributeLimits(restful.Resource):
         attribute_limits = request.get_json().get('attribute_limits', None)
         if not attribute_limits:
             return 'request is missing attribute_limits', 422
-        if not type(attribute_limits) == list:
+        if type(attribute_limits) is not list:
             return 'attribute_limits needs to be a list', 422
 
         # check that attribute limits are well-formed
