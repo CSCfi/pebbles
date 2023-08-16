@@ -10,13 +10,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import make_transient
 
-from pebbles import rules
 from pebbles.forms import ApplicationForm
 from pebbles.models import db, Application, ApplicationTemplate, Workspace, ApplicationSession
 from pebbles.rules import apply_rules_applications
 from pebbles.utils import requires_workspace_owner_or_admin, requires_admin, check_config_against_attribute_limits, \
     check_attribute_limit_format
-from pebbles.views.commons import auth, requires_workspace_manager_or_admin, is_workspace_manager
+from pebbles.views import commons
+from pebbles.views.commons import auth, requires_workspace_manager_or_admin
 
 applications = FlaskBlueprint('applications', __name__)
 
@@ -96,7 +96,7 @@ def marshal_based_on_role(user, application):
     workspace = application.workspace
     if user.is_admin:
         return restful.marshal(application, application_fields_admin)
-    elif rules.is_user_manager_in_workspace(user, workspace):
+    elif commons.is_workspace_manager(user, workspace):
         return restful.marshal(application, application_fields_manager)
     else:
         return restful.marshal(application, application_fields_user)
@@ -142,7 +142,7 @@ class ApplicationList(restful.Resource):
         workspace = Workspace.query.filter_by(id=workspace_id).first()
         if not workspace:
             abort(422)
-        if not user.is_admin and not is_workspace_manager(user, workspace):
+        if not user.is_admin and not commons.is_workspace_manager(user, workspace):
             logging.warning("invalid workspace for the user")
             abort(403)
 
@@ -219,7 +219,7 @@ class ApplicationView(restful.Resource):
         if application.status in (Application.STATUS_ARCHIVED, Application.STATUS_DELETED):
             abort(422)
 
-        if not user.is_admin and not is_workspace_manager(user, application.workspace):
+        if not user.is_admin and not commons.is_workspace_manager(user, application.workspace):
             logging.warning("invalid workspace for the user")
             abort(403)
 
@@ -272,7 +272,7 @@ class ApplicationView(restful.Resource):
         if not application:
             logging.warning("trying to delete non-existing application")
             abort(404)
-        elif not (user.is_admin or is_workspace_manager(user, application.workspace)):
+        elif not (user.is_admin or commons.is_workspace_manager(user, application.workspace)):
             abort(403)
         elif application.status == Application.STATUS_ARCHIVED:
             abort(403)
@@ -339,7 +339,7 @@ class ApplicationCopy(restful.Resource):
         if args.get('workspace_id', None):
             target_workspace = Workspace.query.filter_by(id=args.get('workspace_id')).first()
             # check that user has manager rights in the target workspace
-            if not (user.is_admin or is_workspace_manager(user, target_workspace)):
+            if not (user.is_admin or commons.is_workspace_manager(user, target_workspace)):
                 logging.warning(
                     'ApplicationCopy: user {} is not manager in workspace {}'.format(user.id, target_workspace.id))
                 abort(403)
@@ -347,7 +347,7 @@ class ApplicationCopy(restful.Resource):
             target_workspace = application.workspace
 
         # check rights to the source workspace
-        if not (user.is_admin or is_workspace_manager(user, application.workspace)):
+        if not (user.is_admin or commons.is_workspace_manager(user, application.workspace)):
             logging.warning(
                 'ApplicationCopy: user {} is not manager in workspace {}'.format(user.id, target_workspace.id))
             abort(403)
@@ -404,7 +404,7 @@ def process_application(application):
 
     # rest of the code taken for refactoring from single application GET query
     application.cluster = application.workspace.cluster
-    if user.is_admin or is_workspace_manager(user, application.workspace):
+    if user.is_admin or commons.is_workspace_manager(user, application.workspace):
         application.manager = True
     if 'enable_user_work_folder' in application.config and application.config['enable_user_work_folder']:
         application.work_folder_enabled = True

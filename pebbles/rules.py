@@ -1,7 +1,5 @@
 import itertools
-import logging
 
-from flask import g
 from sqlalchemy import or_, and_, select
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
@@ -161,7 +159,8 @@ def get_workspace_application_ids_for_application_sessions(user, only_managed=Fa
         workspace_user_objs = workspace_user_query.filter_by(user_id=user.id).all()
     workspaces = [workspace_user_obj.workspace for workspace_user_obj in workspace_user_objs]
     # loading only id column rest will be deferred
-    workspace_applications = [workspace.applications.options(load_only(Application.id)).all() for workspace in workspaces]
+    workspace_applications = [
+        workspace.applications.options(load_only(Application.id)).all() for workspace in workspaces]
     # merge the list of lists into one list
     workspace_applications_flat = list(itertools.chain.from_iterable(workspace_applications))
     # Get the ids in a list
@@ -175,21 +174,3 @@ def get_managed_application_ids(user):
         .where(WorkspaceMembership.user_id == user.id, WorkspaceMembership.is_manager)
     res = db.session.scalars(stmt).all()
     return res
-
-
-def is_user_owner_of_workspace(user, workspace):
-    owner_cache = g.setdefault('owner_cache', dict())
-    key = '%s:%s' % (user.id, workspace.id)
-    if key not in owner_cache.keys():
-        logging.debug('owner cache: adding key %s' % key)
-        owner_cache[key] = user.id in (wm.user_id for wm in workspace.memberships if wm.is_owner)
-    return owner_cache.get(key)
-
-
-def is_user_manager_in_workspace(user, workspace):
-    manager_cache = g.setdefault('manager_cache', dict())
-    key = '%s:%s' % (user.id, workspace.id)
-    if key not in manager_cache.keys():
-        logging.debug('manager cache: adding key %s' % key)
-        manager_cache[key] = user.id in (wm.user_id for wm in workspace.memberships if wm.is_manager)
-    return manager_cache.get(key)

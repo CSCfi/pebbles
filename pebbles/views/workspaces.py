@@ -12,11 +12,11 @@ from flask import Blueprint as FlaskBlueprint, current_app
 from flask import abort, g, request
 from flask_restful import marshal, marshal_with, reqparse, fields, inputs
 
-from pebbles import rules
 from pebbles.app import app
 from pebbles.forms import WorkspaceForm
 from pebbles.models import db, Workspace, User, WorkspaceMembership, Application, ApplicationSession
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin, load_cluster_config
+from pebbles.views import commons
 from pebbles.views.commons import auth, can_user_join_workspace
 
 workspaces = FlaskBlueprint('workspaces', __name__)
@@ -95,9 +95,9 @@ def marshal_based_on_role(user, workspace):
         if workspace.name.startswith('System.'):
             workspace.membership_type = 'public'
         return restful.marshal(workspace, workspace_fields_admin)
-    elif rules.is_user_owner_of_workspace(user, workspace):
+    elif commons.is_workspace_owner(user, workspace):
         return restful.marshal(workspace, workspace_fields_owner)
-    elif rules.is_user_manager_in_workspace(user, workspace):
+    elif commons.is_workspace_manager(user, workspace):
         return restful.marshal(workspace, workspace_fields_manager)
     else:
         return restful.marshal(workspace, workspace_fields_user)
@@ -273,7 +273,7 @@ class WorkspaceView(restful.Resource):
             logging.warning('Cannot change the status of System workspace')
             return {'error': 'Cannot change the status of System workspace'}, 422
         # you have to be an admin or the owner
-        if not (user.is_admin or rules.is_user_owner_of_workspace(user, workspace)):
+        if not (user.is_admin or commons.is_workspace_owner(user, workspace)):
             abort(403)
 
         # archive
@@ -354,7 +354,7 @@ def workspace_users_add(workspace, user_config, owner, workspace_owner_obj):
             if membership.user.id in managers_set:  # if user is a manager
                 membership.is_manager = True
             elif not membership.is_owner:  # if the user is not an owner then keep all users to non manager status
-                membership.manager = False
+                membership.is_manager = False
             users_final.append(membership)
     workspace.memberships = users_final
 
@@ -413,7 +413,7 @@ class WorkspaceExit(restful.Resource):
             workspace_id=workspace.id,
             user_id=user.id
         )
-        if rules.is_user_owner_of_workspace(user, workspace):
+        if commons.is_workspace_owner(user, workspace):
             logging.warning("cannot exit the owned workspace %s", workspace_id)
             return {"error": "Cannot exit the workspace which is owned by you"}, 422
         user_in_workspace = workspace_user_filtered_query.first()
@@ -438,7 +438,7 @@ class WorkspaceMemberList(restful.Resource):
             logging.warning('workspace %s does not exist', workspace_id)
             abort(404)
 
-        if not (user.is_admin or rules.is_user_manager_in_workspace(user, workspace)):
+        if not (user.is_admin or commons.is_workspace_manager(user, workspace)):
             logging.warning('workspace %s not managed by %s, cannot see users', workspace_id, user.ext_id)
             abort(403)
 
@@ -476,7 +476,7 @@ class WorkspaceMemberList(restful.Resource):
             logging.warning('workspace %s does not exist', workspace_id)
             abort(404)
 
-        if not (user.is_admin or rules.is_user_manager_in_workspace(user, workspace)):
+        if not (user.is_admin or commons.is_workspace_manager(user, workspace)):
             logging.warning('workspace %s not managed by %s, cannot see users', workspace_id, user.ext_id)
             abort(403)
 
@@ -591,7 +591,7 @@ class WorkspaceClearMembers(restful.Resource):
             logging.warning("cannot clear a System workspace")
             return {"error": "Cannot clear a System workspace"}, 422
 
-        if user.is_admin or rules.is_user_owner_of_workspace(user, workspace):
+        if user.is_admin or commons.is_workspace_owner(user, workspace):
             workspace_member_query.filter_by(workspace_id=workspace_id, is_owner=False, is_manager=False).delete()
             db.session.commit()
         else:

@@ -118,15 +118,30 @@ def requires_workspace_manager_or_admin(f):
 
 def is_workspace_manager(user, workspace=None):
     if workspace:
-        # query specific active workspace
-        match = WorkspaceMembership.query \
-            .filter_by(user_id=user.id, workspace_id=workspace.id, is_manager=True) \
-            .join(Workspace) \
-            .filter_by(status='active') \
-            .first()
+        if workspace.status != Workspace.STATUS_ACTIVE:
+            return False
+        manager_cache = g.setdefault('manager_cache', dict())
+        key = '%s:%s' % (user.id, workspace.id)
+        if key not in manager_cache.keys():
+            logging.debug('manager cache: adding key %s' % key)
+            manager_cache[key] = user.id in (wm.user_id for wm in workspace.memberships if wm.is_manager)
+        return manager_cache.get(key)
     else:
         # generic property can be obtained from User
-        match = user.is_workspace_manager
-    if match:
-        return True
-    return False
+        return user.is_workspace_manager
+
+
+def is_workspace_owner(user, workspace=None):
+    if workspace:
+        if workspace.status != Workspace.STATUS_ACTIVE:
+            return False
+
+        owner_cache = g.setdefault('owner_cache', dict())
+        key = '%s:%s' % (user.id, workspace.id)
+        if key not in owner_cache.keys():
+            logging.debug('owner cache: adding key %s' % key)
+            owner_cache[key] = user.id in (wm.user_id for wm in workspace.memberships if wm.is_owner)
+        return owner_cache.get(key)
+    else:
+        # generic property can be obtained from User
+        return user.is_workspace_owner
