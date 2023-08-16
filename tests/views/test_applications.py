@@ -6,9 +6,14 @@ from tests.conftest import PrimaryData, RequestMaker
 
 
 def test_get_applications(rmaker: RequestMaker, pri_data: PrimaryData):
+    # Test listing applications
+    # We test role dependent marshaling logic with checking the presence of 'template_id' and 'workspace_pseudonym'
+    # attributes.
+
     # Anonymous
     response = rmaker.make_request(path='/api/v1/applications')
     assert response.status_code == 401
+
     # Authenticated User for Workspace 1
     response = rmaker.make_authenticated_user_request(path='/api/v1/applications')
     assert response.status_code == 200
@@ -17,24 +22,21 @@ def test_get_applications(rmaker: RequestMaker, pri_data: PrimaryData):
         path='/api/v1/applications?workspace_id=%s' % pri_data.known_workspace_id)
     assert response.status_code == 200
     assert len(response.json) == 3
-    response = rmaker.make_authenticated_user_request(
-        path='/api/v1/applications?workspace_id=%s&applications_count=true' % pri_data.known_workspace_id)
-    assert response.status_code == 200
-    assert response.json == 3
+    assert len([app for app in response.json if app.get('template_id')]) == 0
 
-    # Authenticated Workspace Owner for Workspace 1(with 4 apps) and Normal User for Workspace 2
+    # Authenticated Workspace Owner for Workspace 1(with 4 apps), user is also an unprivileged member for Workspace 2
     response = rmaker.make_authenticated_workspace_owner_request(path='/api/v1/applications')
     assert response.status_code == 200
     assert len(response.json) == 6
+    assert len([app for app in response.json if app.get('template_id')]) == 4
+    assert len([app for app in response.json if app.get('workspace_pseudonym')]) == 0
 
     response = rmaker.make_authenticated_workspace_owner_request(
         path='/api/v1/applications?workspace_id=%s' % pri_data.known_workspace_id)
     assert response.status_code == 200
     assert len(response.json) == 4
-    response = rmaker.make_authenticated_workspace_owner_request(
-        path='/api/v1/applications?workspace_id=%s&applications_count=true' % pri_data.known_workspace_id)
-    assert response.status_code == 200
-    assert response.json == 4
+    assert len([app for app in response.json if app.get('template_id')]) == 4
+    assert len([app for app in response.json if app.get('workspace_pseudonym')]) == 0
 
     # Admin
     response = rmaker.make_authenticated_admin_request(path='/api/v1/applications')
@@ -44,27 +46,47 @@ def test_get_applications(rmaker: RequestMaker, pri_data: PrimaryData):
         path='/api/v1/applications?workspace_id=%s' % pri_data.known_workspace_id)
     assert response.status_code == 200
     assert len(response.json) == 4
-    response = rmaker.make_authenticated_admin_request(
-        path='/api/v1/applications?workspace_id=%s&applications_count=true' % pri_data.known_workspace_id)
-    assert response.status_code == 200
-    assert response.json == 4
+    assert len([app for app in response.json if app.get('workspace_pseudonym')]) == 4
 
     response = rmaker.make_authenticated_admin_request(path='/api/v1/applications?show_all=true')
     assert response.status_code == 200
     assert len(response.json) == 12
+    assert len([app for app in response.json if app.get('workspace_pseudonym')]) == 12
 
 
 def test_get_application(rmaker: RequestMaker, pri_data: PrimaryData):
-    # Existing application
+    # Test getting a single application
+    # We test role dependent marshaling logic with checking the presence of 'template_id' and 'workspace_pseudonym'
+    # attributes.
+
     # Anonymous
     response = rmaker.make_request(path='/api/v1/applications/%s' % pri_data.known_application_id)
     assert response.status_code == 401
+
     # Authenticated
     response = rmaker.make_authenticated_user_request(path='/api/v1/applications/%s' % pri_data.known_application_id)
     assert response.status_code == 200
+    assert response.json.get('id')
+    assert not response.json.get('template_id')
+
+    # Authenticated Workspace Owner for Workspace 1(with 4 apps) and Normal User for Workspace 2
+    response = rmaker.make_authenticated_workspace_owner_request(
+        path='/api/v1/applications/%s' % pri_data.known_application_id
+    )
+    assert response.status_code == 200
+    assert response.json.get('id')
+    assert response.json.get('template_id')
+    response = rmaker.make_authenticated_workspace_owner_request(
+        path='/api/v1/applications/%s' % pri_data.known_application_id_g2
+    )
+    assert response.status_code == 200
+    assert response.json.get('id')
+    assert not response.json.get('template_id')
+
     # Admin
     response = rmaker.make_authenticated_admin_request(path='/api/v1/applications/%s' % pri_data.known_application_id)
     assert response.status_code == 200
+    assert response.json.get('workspace_pseudonym')
 
     # non-existing application
     # Anonymous
@@ -195,6 +217,11 @@ def test_delete_application(rmaker: RequestMaker, pri_data: PrimaryData):
     assert response.status_code == 200
 
     # Admin
+    response = rmaker.make_authenticated_admin_request(
+        method='DELETE',
+        path='/api/v1/applications/%s' % 'idontexist'
+    )
+    assert response.status_code == 404
     response = rmaker.make_authenticated_admin_request(
         method='DELETE',
         path='/api/v1/applications/%s' % pri_data.known_application_id_g2
