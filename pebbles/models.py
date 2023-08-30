@@ -843,12 +843,12 @@ class Task(db.Model):
         STATE_FAILED,
     )
 
-    KIND_WORKSPACE_BACKUP = 'workspace_backup'
-    KIND_WORKSPACE_RESTORE = 'workspace_restore'
+    KIND_WORKSPACE_VOLUME_BACKUP = 'workspace_volume_backup'
+    KIND_WORKSPACE_VOLUME_RESTORE = 'workspace_volume_restore'
 
     VALID_KINDS = (
-        KIND_WORKSPACE_BACKUP,
-        KIND_WORKSPACE_RESTORE,
+        KIND_WORKSPACE_VOLUME_BACKUP,
+        KIND_WORKSPACE_VOLUME_RESTORE,
     )
 
     __tablename__ = 'tasks'
@@ -892,7 +892,9 @@ class Task(db.Model):
 
     @hybrid_property
     def results(self):
-        return load_column(self._results)
+        if self._results:
+            return load_column(self._results)
+        return []
 
     @results.setter
     def results(self, value):

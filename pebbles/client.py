@@ -229,6 +229,11 @@ class PBClient:
         json_data = dict(state=state)
         return self.do_patch(url, json_data=json_data)
 
+    def add_task_results(self, task_id, results):
+        url = 'tasks/%s/results' % task_id
+        json_data = dict(results=results)
+        return self.do_put(url, json_data=json_data)
+
 
 if __name__ == '__main__':
     config = RuntimeConfig()

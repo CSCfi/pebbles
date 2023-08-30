@@ -253,7 +253,7 @@ class WorkspaceController(ControllerBase):
 
     def __init__(self):
         super().__init__()
-        self.max_concurrent_tasks = 1
+        self.max_concurrent_tasks = 20
         self.next_check_ts = 0
 
     def process(self):
@@ -263,19 +263,17 @@ class WorkspaceController(ControllerBase):
         self.next_check_ts = time.time() + randrange(30, 90)
 
         logging.debug('WorkspaceController: checking tasks')
-        tasks = self.client.get_tasks(unfinished=1)
-        logging.debug('got tasks: %s', tasks)
+        unfinished_tasks = self.client.get_tasks(unfinished=1)
 
-        # Wait until all tasks currently in PROCESSING have completed before taking new tasks
-        tasks_in_processing = [t for t in tasks if t.get('state') == Task.STATE_PROCESSING]
-        if tasks_in_processing:
-            tasks = tasks_in_processing
-            logging.debug('processing existing %d tasks, no new tasks taken this time', len(tasks))
-        else:
-            # Taking new tasks, limit concurrency
-            tasks = tasks[:self.max_concurrent_tasks]
+        unfinished_tasks = sorted(
+            unfinished_tasks,
+            key=lambda t: '%d-%s' % (t.get('create_ts'), t.get('id')),
+            reverse=True
+        )
+        tasks = unfinished_tasks[:self.max_concurrent_tasks]
 
         for task in tasks:
+            logging.debug(task)
             # try to obtain a lock. Should we lose the race, the winner takes it, and we move on
             lock = self.client.obtain_lock(task.get('id'), self.worker_id)
             if lock is None:
@@ -283,20 +281,32 @@ class WorkspaceController(ControllerBase):
 
             # process tasks and release the lock
             try:
-                if task.get('kind') == Task.KIND_WORKSPACE_BACKUP:
-                    self.process_backup_task(task)
-                elif task.get('kind') == Task.KIND_WORKSPACE_RESTORE:
-                    self.process_restore_task(task)
+                if task.get('kind') == Task.KIND_WORKSPACE_VOLUME_BACKUP:
+                    self.process_volume_backup_task(task)
+                elif task.get('kind') == Task.KIND_WORKSPACE_VOLUME_RESTORE:
+                    self.process_volume_restore_task(task)
                 else:
                     logging.warning('unknown task kind: %s' % task.kind)
             except Exception as e:
-                logging.debug(traceback.format_exc().splitlines()[-5:])
                 logging.warning('Marking task %s FAILED due to "%s"', task.get('id'), e)
                 self.client.update_task(task.get('id'), state=Task.STATE_FAILED)
+                self.client.add_task_results(
+                    task.get('id'),
+                    results='\n'.join(e.__str__().splitlines()[:4])
+                )
             finally:
                 self.client.release_lock(task.get('id'), self.worker_id)
 
-    def process_backup_task(self, task):
+    @staticmethod
+    def get_volume_name(task_data):
+        if task_data.get('type') == 'shared-data':
+            return 'pvc-ws-vol-1'
+        elif task_data.get('type') == 'user-data':
+            return 'pvc-%s-work' % task_data.get('pseudonym')
+        else:
+            raise RuntimeWarning('Unknown task type "%s" encountered' % task_data.get('type'))
+
+    def process_volume_backup_task(self, task):
         driver = self.get_driver(task.get('data').get('cluster'))
         if not driver:
             raise RuntimeError(
@@ -304,51 +314,62 @@ class WorkspaceController(ControllerBase):
         if task.get('state') == Task.STATE_NEW:
             logging.info('Starting processing of task %s', task.get('id'))
             self.client.update_task(task.get('id'), state=Task.STATE_PROCESSING)
-            driver.create_workspace_backup_jobs(self.client.token, task.get('data').get('workspace_id'))
+
+            driver.create_volume_backup_job(
+                self.client.token,
+                task.get('data').get('workspace_id'),
+                self.get_volume_name(task.get('data')),
+            )
         elif task.get('state') == Task.STATE_PROCESSING:
-            if driver.check_workspace_backup_jobs(self.client.token, task.get('data').get('workspace_id')):
+            if driver.check_volume_backup_job(
+                    self.client.token,
+                    task.get('data').get('workspace_id'),
+                    self.get_volume_name(task.get('data')),
+            ):
                 logging.info('Task %s FINISHED', task.get('id'))
                 self.client.update_task(task.get('id'), state=Task.STATE_FINISHED)
         else:
             logging.warning(
                 'task %s in state %s should not end up in processing', task.get('id'), task.get('state'))
 
-    def process_restore_task(self, task):
-        driver = self.get_driver(task.get('data').get('tgt_cluster'))
+    def process_volume_restore_task(self, task):
+        task_data = task.get('data')
+        driver = self.get_driver(task_data.get('tgt_cluster'))
         if not driver:
             raise RuntimeError(
-                'No driver for tgt_cluster %s in task %s' % (task.get('data').get('tgt_cluster'), task.get('id')))
-        ws_id = task.get('data').get('workspace_id')
+                'No driver for tgt_cluster %s in task %s' % (task_data.get('tgt_cluster'), task.get('id')))
+        ws_id = task_data.get('workspace_id')
         if not ws_id:
             raise RuntimeError('No data.workspace_id in task %s' % task.get('id'))
-        src_cluster = task.get('data').get('src_cluster')
+        src_cluster = task_data.get('src_cluster')
         if not src_cluster:
             raise RuntimeError('No data.src_cluster in task %s' % task.get('id'))
 
         if task.get('state') == Task.STATE_NEW:
             logging.info('Starting processing of task %s', task.get('id'))
+            ws = self.client.get_workspace(ws_id)
             self.client.update_task(task.get('id'), state=Task.STATE_PROCESSING)
 
-            # list current users of the workspace to create a list of restorable volumes
-            wms = self.client.get_workspace_memberships(ws_id)
-            pseudonyms = []
-            for wm in wms:
-                user = self.client.get_user(wm['user_id'])
-                pseudonyms.append(user['pseudonym'])
-
             # figure out right size for user work volume
-            ws = self.client.get_workspace(ws_id)
-            user_work_volume_size_gib = ws.get('config', {}).get('user_work_folder_size_gib', 1)
+            if task_data.get('type') == 'shared-data':
+                volume_size_gib = ws.get('config', {}).get('shared_folder_size_gib', 20)
+                storage_class_name = driver.cluster_config.get('storageClassNameShared')
+            elif task_data.get('type') == 'user-data':
+                volume_size_gib = ws.get('config', {}).get('user_work_folder_size_gib', 1)
+                storage_class_name = driver.cluster_config.get('storageClassNameUser')
+            else:
+                raise RuntimeWarning('Unknown task type "%s" encountered' % task_data.get('type'))
 
-            driver.create_workspace_restore_jobs(
-                self.client.token,
-                ws_id,
-                pseudonyms,
-                user_work_volume_size_gib,
-                src_cluster,
+            driver.create_volume_restore_job(
+                token=self.client.token,
+                workspace_id=ws_id,
+                volume_name=self.get_volume_name(task_data),
+                volume_size_spec='%dGi' % volume_size_gib,
+                storage_class=storage_class_name,
+                src_cluster=src_cluster,
             )
         elif task.get('state') == Task.STATE_PROCESSING:
-            if driver.check_workspace_restore_jobs(self.client.token, ws_id):
+            if driver.check_volume_restore_job(self.client.token, ws_id, self.get_volume_name(task_data)):
                 logging.info('Task %s FINISHED', task.get('id'))
                 self.client.update_task(task.get('id'), state=Task.STATE_FINISHED)
         else:

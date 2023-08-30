@@ -48,7 +48,7 @@ spec:
               BACKUP_FILE_BASE="/tarball-tmp/{{ cluster_name }}__{{ workspace_pseudonym }}__{{ pvc_name }}"
 
               echo "import public key and set trust"
-              echo "$ENCRYPT_PUBLIC_KEY"  | gpg --batch --no-tty --import
+              gpg --batch --no-tty --import < /run/secrets/pebbles/pvc-backup-secret/encrypt-public-key
               echo -e 'trust\n5\ny\n'  | gpg --batch --no-tty --command-fd 0 --edit-key backup
               
               echo "create backup tarball"
@@ -65,12 +65,6 @@ spec:
               # the end
               echo "$(date -Is) backup successful"
 
-          env:
-            - name: ENCRYPT_PUBLIC_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: pvc-backup-secret
-                  key: encrypt-public-key
           resources:
             requests:
               cpu: "100m"
@@ -91,6 +85,6 @@ spec:
             claimName: {{ pvc_name }}
         - name: pvc-backup-secret
           secret:
-            secretName: pvc-backup-secret
+            secretName: pvc-backup-secret-{{ pvc_name }}
         - name: tarball-tmp
           emptyDir: {}

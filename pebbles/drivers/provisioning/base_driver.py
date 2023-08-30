@@ -64,21 +64,22 @@ class ProvisioningDriverBase(object):
             pbclient.clear_running_application_session_logs(application_session_id)
             self.logger.info('deprovisioning done for %s' % application_session.get('name'))
 
-    def create_workspace_backup_jobs(self, token, workspace_id):
+    def create_volume_backup_job(self, token, workspace_id, volume_name):
         """ Subclasses implement and override these """
-        raise RuntimeWarning('create_workspace_backup_jobs() not implemented')
+        raise RuntimeWarning('create_volume_backup_job() not implemented')
 
-    def check_workspace_backup_jobs(self, token, workspace_id):
+    def check_volume_backup_job(self, token, workspace_id, volume_name):
         """ Subclasses implement and override these """
-        raise RuntimeWarning('check_workspace_backup_jobs() not implemented')
+        raise RuntimeWarning('check_volume_backup_job() not implemented')
 
-    def create_workspace_restore_jobs(self, token, workspace_id, pseudonyms, user_work_volume_size, src_cluster):
+    def create_volume_restore_job(self, token, workspace_id, volume_name, volume_size_spec, storage_class,
+                                  src_cluster):
         """ Subclasses implement and override these """
-        raise RuntimeWarning('create_workspace_restore_jobs() not implemented')
+        raise RuntimeWarning('create_workspace_restore_job() not implemented')
 
-    def check_workspace_restore_jobs(self, token, workspace_id):
+    def check_volume_restore_job(self, token, workspace_id, volume_name):
         """ Subclasses implement and override these """
-        raise RuntimeWarning('check_workspace_restore_jobs() not implemented')
+        raise RuntimeWarning('check_volume_restore_job() not implemented')
 
     def provision(self, token, application_session_id):
         self.logger.debug('starting provisioning')

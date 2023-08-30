@@ -96,6 +96,6 @@ spec:
             claimName: {{ pvc_name }}
         - name: pvc-restore-secret
           secret:
-            secretName: pvc-restore-secret
+            secretName: pvc-restore-secret-{{ pvc_name }}
         - name: tarball-tmp
           emptyDir: {}

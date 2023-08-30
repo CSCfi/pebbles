@@ -124,7 +124,7 @@ class TaskAddResults(restful.Resource):
         if type(task.results) is list:
             new_results = task.results
 
-        new_results.append(args.results)
+        new_results.extend(args.results.splitlines())
 
         task.results = new_results
 

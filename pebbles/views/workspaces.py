@@ -14,7 +14,7 @@ from flask_restful import marshal, marshal_with, reqparse, fields, inputs
 
 from pebbles.app import app
 from pebbles.forms import WorkspaceForm
-from pebbles.models import db, Workspace, User, WorkspaceMembership, Application, ApplicationSession
+from pebbles.models import db, Workspace, User, WorkspaceMembership, Application, ApplicationSession, Task
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin, load_cluster_config
 from pebbles.views import commons
 from pebbles.views.commons import auth, can_user_join_workspace
@@ -820,3 +820,65 @@ class WorkspaceModifyMembershipJoinPolicy(restful.Resource):
         db.session.commit()
 
         return workspace.membership_join_policy
+
+
+class WorkspaceCreateVolumeTasks(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('task_kind', type=str, required=True)
+    parser.add_argument('src_cluster', type=str, required=False)
+    parser.add_argument('tgt_cluster', type=str, required=False)
+
+    @auth.login_required
+    @requires_admin
+    def post(self, workspace_id):
+        args = self.parser.parse_args()
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+        if not workspace:
+            logging.warning('workspace %s does not exist', workspace_id)
+            return dict(error='The workspace does not exist'), 404
+
+        task_kind = args.get('task_kind')
+
+        # validate task kind and options
+        if task_kind == Task.KIND_WORKSPACE_VOLUME_BACKUP:
+            cluster_data = dict(cluster=workspace.cluster)
+        elif task_kind == Task.KIND_WORKSPACE_VOLUME_RESTORE:
+            if not (args.get('src_cluster') and args.get('tgt_cluster')):
+                message = 'Kind %s needs src_cluster and tgt_cluster defined' % task_kind
+                logging.warning(message)
+                return dict(error=message), 422
+            cluster_data = dict(src_cluster=args.get('src_cluster'), tgt_cluster=args.get('tgt_cluster'))
+        else:
+            logging.warning('Unsupported task kind %s', task_kind)
+            return dict(error='Unsupported task kind %s' % task_kind), 422
+
+        # task for shared data
+        task = Task(
+            kind=task_kind,
+            state=Task.STATE_NEW,
+            data=dict(
+                workspace_id=workspace_id,
+                type='shared-data'
+            ) | cluster_data,
+        )
+        db.session.add(task)
+
+        # tasks for user data
+        num_tasks = 1
+        for membership in workspace.memberships:
+            task = Task(
+                kind=task_kind,
+                state=Task.STATE_NEW,
+                data=dict(
+                    workspace_id=workspace_id,
+                    type='user-data',
+                    pseudonym=membership.user.pseudonym
+                ) | cluster_data,
+            )
+            db.session.add(task)
+            logging.debug('generated task %s %s', task.kind, task.data)
+            num_tasks += 1
+
+        db.session.commit()
+
+        return dict(message='generated %d %s tasks' % (num_tasks, task_kind))

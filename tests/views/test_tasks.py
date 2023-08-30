@@ -25,11 +25,11 @@ def test_get_tasks_access(rmaker: RequestMaker, pri_data: PrimaryData):
 
 def test_tasks_admin(rmaker: RequestMaker, pri_data: PrimaryData):
     task1 = dict(
-        kind='workspace_backup',
+        kind='workspace_volume_backup',
         data=[dict(some_key='value1')]
     )
     task2 = dict(
-        kind='workspace_backup',
+        kind='workspace_volume_backup',
         data=[dict(some_key='value2')]
     )
 
@@ -53,7 +53,7 @@ def test_tasks_admin(rmaker: RequestMaker, pri_data: PrimaryData):
         path='/api/v1/tasks/%s' % t1_response.json.get('id'),
     )
     assert response.status_code == 200
-    assert response.json['kind'] == 'workspace_backup'
+    assert response.json['kind'] == 'workspace_volume_backup'
     assert response.json['data'][0]['some_key'] == 'value1'
 
     # query list
@@ -129,7 +129,7 @@ def test_tasks_admin(rmaker: RequestMaker, pri_data: PrimaryData):
 
 def test_add_results_to_tasks(rmaker: RequestMaker, pri_data: PrimaryData):
     t1_data = dict(
-        kind='workspace_backup',
+        kind='workspace_volume_backup',
         data=[dict(some_key='value1')]
     )
     # add task 1
@@ -142,7 +142,7 @@ def test_add_results_to_tasks(rmaker: RequestMaker, pri_data: PrimaryData):
     t1_id = response.json.get('id')
 
     t2_data = dict(
-        kind='workspace_backup',
+        kind='workspace_volume_backup',
         data=[dict(some_key='value1')]
     )
     # add task 2
@@ -179,6 +179,29 @@ def test_add_results_to_tasks(rmaker: RequestMaker, pri_data: PrimaryData):
     assert t1.results == results_list_t1
     t2 = db.session.scalar(select(Task).where(Task.id == t2_id))
     assert t2.results == results_list_t2
+
+    # Add a task, append a multiline result string and check that it is there in the database
+    t3_data = dict(
+        kind='workspace_volume_backup',
+        data=[dict(some_key='value1')]
+    )
+    response = rmaker.make_authenticated_admin_request(
+        method='POST',
+        path='/api/v1/tasks',
+        data=json.dumps(t3_data)
+    )
+    assert response.status_code == 200
+    t3_id = response.json.get('id')
+    response = rmaker.make_authenticated_admin_request(
+        method='PUT',
+        path='/api/v1/tasks/%s/results' % t3_id,
+        data=json.dumps(dict(results='\n'.join(['line1', 'line2'])))
+    )
+    assert response.status_code == 200
+    t3 = db.session.scalar(select(Task).where(Task.id == t3_id))
+    assert len(t3.results) == 2
+    assert t3.results[0] == 'line1'
+    assert t3.results[1] == 'line2'
 
     # Query task that does not exist
     response = rmaker.make_authenticated_admin_request(

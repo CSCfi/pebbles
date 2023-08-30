@@ -3,8 +3,9 @@ import json
 import time
 
 from dateutil.relativedelta import relativedelta
+from sqlalchemy import select
 
-from pebbles.models import PEBBLES_TAINT_KEY
+from pebbles.models import PEBBLES_TAINT_KEY, Task
 from pebbles.models import User, Workspace, WorkspaceMembership
 from pebbles.models import db
 from tests.conftest import PrimaryData, RequestMaker
@@ -1202,3 +1203,75 @@ def test_update_workspace_cluster(rmaker: RequestMaker, pri_data: PrimaryData):
         path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
     )
     assert 'dummy_cluster_1' == res.json.get('cluster')
+
+
+def test_create_volume_tasks(rmaker: RequestMaker, pri_data: PrimaryData):
+    # Anonymous
+    response = rmaker.make_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/create_volume_tasks' % pri_data.known_workspace_id,
+        data=json.dumps(dict(task_kind='workspace_backup', cluster='dummy_cluster_1')),
+    )
+    assert response.status_code == 401
+
+    # Authenticated User, not a manager
+    response = rmaker.make_authenticated_user_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/create_volume_tasks' % pri_data.known_workspace_id,
+        data=json.dumps(dict(task_kind='workspace_backup', cluster='dummy_cluster_1')),
+    )
+    assert response.status_code == 403
+
+    # Authenticated workspace owner
+    response = rmaker.make_authenticated_workspace_owner_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/create_volume_tasks' % pri_data.known_workspace_id,
+        data=json.dumps(dict(task_kind='workspace_backup', cluster='dummy_cluster_1')),
+    )
+    assert response.status_code == 403
+
+    # Admin, legal request for backup
+    response = rmaker.make_authenticated_admin_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/create_volume_tasks' % pri_data.known_workspace_id,
+        data=json.dumps(dict(task_kind='workspace_volume_backup', cluster='dummy_cluster_1')),
+    )
+    assert response.status_code == 200
+    tasks = db.session.scalars(select(Task).where(Task.kind == 'workspace_volume_backup')).all()
+    members = db.session.scalars(
+        select(WorkspaceMembership).where(WorkspaceMembership.workspace_id == pri_data.known_workspace_id)
+    ).all()
+    # one task per workspace member plus one for shared folder
+    assert len(tasks) == len(members) + 1
+
+    # Admin, legal request for restore
+    response = rmaker.make_authenticated_admin_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/create_volume_tasks' % pri_data.known_workspace_id,
+        data=json.dumps(
+            dict(task_kind='workspace_volume_restore', src_cluster='dummy_cluster_1', tgt_cluster='dummy_cluster_2')
+        ),
+    )
+    assert response.status_code == 200
+    tasks = db.session.scalars(select(Task).where(Task.kind == 'workspace_volume_restore')).all()
+    members = db.session.scalars(
+        select(WorkspaceMembership).where(WorkspaceMembership.workspace_id == pri_data.known_workspace_id)
+    ).all()
+    # one task per workspace member plus one for shared folder
+    assert len(tasks) == len(members) + 1
+
+    # Admin, invalid requests
+    invalid_data = [
+        dict(task_kind='workspace_backup'),
+        dict(task_kind='workspace_volume_restore'),
+        dict(task_kind='workspace_restore'),
+        dict(task_kind='workspace_volume_restore', cluster='dummy_cluster_2'),
+
+    ]
+    for data in invalid_data:
+        response = rmaker.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/workspaces/%s/create_volume_tasks' % pri_data.known_workspace_id,
+            data=json.dumps(data),
+        )
+        assert response.status_code == 422
