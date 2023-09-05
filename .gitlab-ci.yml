@@ -1,5 +1,5 @@
 ---
-image: python:3.8
+image: python:3.11-bullseye
 
 stages:
   - build image
