@@ -42,6 +42,7 @@ pebbles-4.0.0.dev1-py2.7.egg-info/
 
 # virtual environment installation
 /venv/
+.venv/
 
 # PyTest cache
 /tests/.pytest_cache/
