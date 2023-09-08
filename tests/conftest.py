@@ -394,6 +394,7 @@ class PrimaryData:
         i5.name = 'pb-i5'
         i5.state = ApplicationSession.STATE_RUNNING
         db.session.add(i5)
+        self.known_application_session_id_5 = i5.id
 
         i6 = ApplicationSession(
             Application.query.filter_by(id=a3.id).first(),

@@ -179,7 +179,7 @@ def test_get_application_session(rmaker: RequestMaker, pri_data: PrimaryData):
     assert response.status_code == 200
 
 
-def test_patch_application_session(rmaker: RequestMaker, pri_data: PrimaryData):
+def test_patch_application_session_state(rmaker: RequestMaker, pri_data: PrimaryData):
     # Anonymous
     response = rmaker.make_request(
         method='PATCH',
@@ -223,6 +223,56 @@ def test_patch_application_session(rmaker: RequestMaker, pri_data: PrimaryData):
     assert response.status_code == 200
     assert len(ApplicationSessionLog.query.filter_by(
         application_session_id=pri_data.known_application_session_id_2).all()) == 0
+
+
+def test_patch_application_session_log_fetch_pending(rmaker: RequestMaker, pri_data: PrimaryData):
+    # Anonymous
+    response = rmaker.make_request(
+        method='PATCH',
+        path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id,
+        data=json.dumps(dict(log_fetch_pending=True))
+    )
+    assert response.status_code == 401
+
+    # Authenticated
+    response = rmaker.make_authenticated_user_request(
+        method='PATCH',
+        path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id,
+        data=json.dumps(dict(log_fetch_pending=True))
+    )
+    assert response.status_code == 403
+
+    # Owner, but not manager in this workspace
+    response = rmaker.make_authenticated_workspace_owner_request(
+        method='PATCH',
+        path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id_5,
+        data=json.dumps(dict(log_fetch_pending=True))
+    )
+    assert response.status_code == 404
+
+    # owner2 is manager in this workspace
+    response = rmaker.make_authenticated_workspace_owner2_request(
+        method='PATCH',
+        path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id,
+        data=json.dumps(dict(log_fetch_pending=True))
+    )
+    assert response.status_code == 200
+
+    # Owner
+    response = rmaker.make_authenticated_workspace_owner_request(
+        method='PATCH',
+        path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id,
+        data=json.dumps(dict(log_fetch_pending=True))
+    )
+    assert response.status_code == 200
+
+    # Admin
+    response = rmaker.make_authenticated_admin_request(
+        method='PATCH',
+        path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id,
+        data=json.dumps(dict(log_fetch_pending=True))
+    )
+    assert response.status_code == 200
 
 
 def test_delete_application_session(rmaker: RequestMaker, pri_data: PrimaryData):

@@ -11,7 +11,7 @@ from pebbles import rules, utils
 from pebbles.forms import ApplicationSessionForm
 from pebbles.models import db, Application, ApplicationSession, ApplicationSessionLog, User
 from pebbles.utils import requires_admin
-from pebbles.views.commons import auth, is_workspace_manager
+from pebbles.views.commons import auth, is_workspace_manager, requires_workspace_manager_or_admin
 
 application_sessions = FlaskBlueprint('application_sessions', __name__)
 
@@ -220,12 +220,27 @@ class ApplicationSessionView(restful.Resource):
     patch_parser.add_argument('send_email', type=bool)
 
     @auth.login_required
-    @requires_admin
+    @requires_workspace_manager_or_admin
     def patch(self, application_session_id):
-        args = self.patch_parser.parse_args()
-        application_session = ApplicationSession.query.filter_by(id=application_session_id).first()
+        user = g.user
+
+        # check that the user has rights to access the session
+        opts = dict(application_session_id=application_session_id)
+        application_session = db.session.scalar(rules.generate_application_session_query(user, opts))
         if not application_session:
             abort(404)
+
+        args = self.patch_parser.parse_args()
+
+        # managers can set log fetching
+        if args.get('log_fetch_pending') is not None:
+            application_session.log_fetch_pending = args['log_fetch_pending']
+            db.session.commit()
+            return
+
+        # only admin attributes from this point on
+        if not g.user.is_admin:
+            abort(403)
 
         if args.get('state'):
             state = args.get('state')
@@ -244,10 +259,6 @@ class ApplicationSessionView(restful.Resource):
         if args.get('to_be_deleted'):
             application_session.to_be_deleted = args['to_be_deleted']
             application_session.deprovisioned_at = datetime.datetime.utcnow()
-            db.session.commit()
-
-        if args.get('log_fetch_pending') is not None:
-            application_session.log_fetch_pending = args['log_fetch_pending']
             db.session.commit()
 
         if args.get('error_msg'):
