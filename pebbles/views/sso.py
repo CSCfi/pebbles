@@ -180,8 +180,8 @@ def oauth2_login():
                 email_id=email_id,
                 annotations=selected_method.get('userAnnotations')
             )
-
             user.tc_acceptance_date = datetime.datetime.utcnow()
+            user.workspace_quota = selected_method.get('defaultWorkspaceQuota', 0)
             logging.info('Created new user with ext_id %s' % ext_id)
             db.session.commit()
 
