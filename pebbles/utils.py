@@ -2,7 +2,6 @@ import base64
 import importlib
 import logging
 import random
-
 from functools import wraps
 from logging.handlers import RotatingFileHandler
 
@@ -144,6 +143,18 @@ def get_provisioning_config(application):
     if app_config.get('always_pull_image'):
         provisioning_config['image_pull_policy'] = 'Always'
 
+    # pick custom environment variables
+    if app_config.get('environment_vars'):
+        # tidy up first, input from the user could be malformed
+        app_config_env_dict = env_string_to_dict(app_config.get('environment_vars', ''))
+        provisioning_config_env_dict = env_string_to_dict(provisioning_config.get('environment_vars', ''))
+        # merge custom values to provisioning environments, potentially overriding existing values
+        provisioning_config_env_dict = provisioning_config_env_dict | app_config_env_dict
+        custom_config['environment_vars'] = ' '.join(['%s=%s' % (i[0], i[1]) for i in app_config_env_dict.items()])
+        provisioning_config['environment_vars'] = ' '.join(
+            ['%s=%s' % (i[0], i[1]) for i in provisioning_config_env_dict.items()]
+        )
+
     # enable shared folder for non-public workspaces - this should be refined later
     if application.workspace.name.startswith('System.'):
         custom_config['enable_shared_folder'] = False
@@ -169,6 +180,22 @@ def get_provisioning_config(application):
     provisioning_config['custom_config'] = custom_config
 
     return provisioning_config
+
+
+def env_string_to_dict(keyval_string):
+    """ Extract a dictionary from space separated key=val formatted string """
+    res = dict()
+    for keyval in keyval_string.split():
+        if '=' not in keyval:
+            continue
+        tokens = keyval.split('=')
+        if len(tokens) != 2:
+            continue
+        key, val = tokens
+        if not key:
+            continue
+        res[key] = val
+    return res
 
 
 def get_application_fields_from_config(application, field_name):
