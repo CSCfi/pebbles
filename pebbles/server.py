@@ -23,7 +23,7 @@ from pebbles.views.users import users, UserList, UserView, UserWorkspaceMembersh
 from pebbles.views.workspaces import WorkspaceClearMembers, WorkspaceTransferOwnership, join_workspace, \
     WorkspaceAccounting, WorkspaceMemoryLimitGiB, WorkspaceModifyUserFolderSize, WorkspaceModifyCluster, \
     WorkspaceClearExpiredMembers, WorkspaceModifyMembershipExpiryPolicy, WorkspaceModifyMembershipJoinPolicy, \
-    WorkspaceCreateVolumeTasks
+    WorkspaceCreateVolumeTasks, WorkspaceModifyExpiryTs
 from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceMemberList
 from pebbles.views.workspaces import workspaces
 
@@ -53,6 +53,7 @@ api.add_resource(WorkspaceModifyMembershipExpiryPolicy,
                  api_root + '/workspaces/<string:workspace_id>/membership_expiry_policy')
 api.add_resource(WorkspaceModifyMembershipJoinPolicy,
                  api_root + '/workspaces/<string:workspace_id>/membership_join_policy')
+api.add_resource(WorkspaceModifyExpiryTs, api_root + '/workspaces/<string:workspace_id>/expiry_ts')
 api.add_resource(WorkspaceCreateVolumeTasks,
                  api_root + '/workspaces/<string:workspace_id>/create_volume_tasks')
 api.add_resource(JoinWorkspace, api_root + '/join_workspace/<string:join_code>')

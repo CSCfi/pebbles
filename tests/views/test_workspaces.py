@@ -1205,6 +1205,52 @@ def test_update_workspace_cluster(rmaker: RequestMaker, pri_data: PrimaryData):
     assert 'dummy_cluster_1' == res.json.get('cluster')
 
 
+def test_update_workspace_expiry_ts(rmaker: RequestMaker, pri_data: PrimaryData):
+    future_ts = int(time.time()) + 3600 * 24 * 30 * 6
+    # Anonymous
+    response = rmaker.make_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s/expiry_ts' % pri_data.known_workspace_id,
+        data=json.dumps(dict(new_expiry_ts=future_ts)),
+    )
+    assert response.status_code == 401
+
+    # Authenticated User, not a manager
+    response = rmaker.make_authenticated_user_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s/expiry_ts' % pri_data.known_workspace_id,
+        data=json.dumps(dict(new_expiry_ts=future_ts)),
+    )
+    assert response.status_code == 403
+
+    # Authenticated workspace owner
+    response = rmaker.make_authenticated_workspace_owner_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s/expiry_ts' % pri_data.known_workspace_id,
+        data=json.dumps(dict(new_expiry_ts=future_ts)),
+    )
+    assert response.status_code == 403
+
+    # Admin, legal request
+    response = rmaker.make_authenticated_admin_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s/expiry_ts' % pri_data.known_workspace_id,
+        data=json.dumps(dict(new_expiry_ts=future_ts)),
+    )
+    assert response.status_code == 200
+
+    # Admin, illegal requests.
+    illegal_expiry_inputs = ['', 0, -1, '2029-01-01', int(time.time()) - 3600 * 24 * 30]
+    for illegal_param in illegal_expiry_inputs:
+        response = rmaker.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s/expiry_ts' % pri_data.known_workspace_id,
+            data=json.dumps(dict(new_expiry_ts=illegal_param)),
+        )
+        # some are picked by RequestParser (-> 400), some by our logic (-> 422)
+        assert response.status_code in (400, 422)
+
+
 def test_create_volume_tasks(rmaker: RequestMaker, pri_data: PrimaryData):
     # Anonymous
     response = rmaker.make_request(

@@ -822,6 +822,33 @@ class WorkspaceModifyMembershipJoinPolicy(restful.Resource):
         return workspace.membership_join_policy
 
 
+class WorkspaceModifyExpiryTs(restful.Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('new_expiry_ts', type=int)
+
+    @auth.login_required
+    @requires_admin
+    def put(self, workspace_id):
+        args = self.parser.parse_args()
+
+        workspace = Workspace.query.filter_by(id=workspace_id).first()
+
+        if not workspace:
+            logging.warning('workspace %s does not exist', workspace_id)
+            return dict(error='The workspace does not exist'), 404
+
+        new_expiry_ts = args.new_expiry_ts
+        if new_expiry_ts < 0 or (workspace.create_ts and new_expiry_ts < workspace.create_ts):
+            logging.warning('rejecting illegal new_expiry_ts "%s" for workspace %s', new_expiry_ts, workspace_id)
+            return dict(error='illegal expiry ts %s' % new_expiry_ts), 422
+
+        workspace.expiry_ts = new_expiry_ts
+
+        db.session.commit()
+
+        return new_expiry_ts
+
+
 class WorkspaceCreateVolumeTasks(restful.Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('task_kind', type=str, required=True)
