@@ -7,7 +7,6 @@ import time
 import flask_restful as restful
 import sqlalchemy as sa
 import sqlalchemy.orm
-from dateutil.relativedelta import relativedelta
 from flask import Blueprint as FlaskBlueprint, current_app
 from flask import abort, g, request
 from flask_restful import marshal, marshal_with, reqparse, fields, inputs
@@ -160,7 +159,7 @@ class WorkspaceList(restful.Resource):
             logging.warning("Workspace name cannot start with System")
             return dict(message="Workspace name cannot start with 'System'."), 422
         if not form.validate_on_submit():
-            logging.warning("validation error on creating workspace")
+            logging.warning("validation error on creating workspace, %s", form.errors)
             return form.errors, 422
         workspace = Workspace(form.name.data)
         workspace.description = form.description.data
@@ -169,7 +168,18 @@ class WorkspaceList(restful.Resource):
         workspace.memberships.append(workspace_owner_obj)
 
         workspace.create_ts = datetime.datetime.utcnow().timestamp()
-        workspace.expiry_ts = (datetime.datetime.utcnow() + relativedelta(months=+6)).timestamp()
+        max_expiry_ts = int(workspace.create_ts + 86400 * (30 * 6 + 1))
+        # check if the form includes expiry time
+        if form.expiry_ts.data is not None:
+            expiry_ts = form.expiry_ts.data
+            if datetime.datetime.utcnow().timestamp() < expiry_ts <= max_expiry_ts:
+                workspace.expiry_ts = expiry_ts
+            else:
+                msg = 'Illegal workspace expiry time specified: %s' % datetime.datetime.fromtimestamp(expiry_ts)
+                logging.warning(msg)
+                return dict(message=msg), 422
+        else:
+            workspace.expiry_ts = max_expiry_ts
 
         # If users can later select the clusters, then this should be taken from the form and verified
         workspace.cluster = app.config['DEFAULT_CLUSTER']
@@ -179,6 +189,11 @@ class WorkspaceList(restful.Resource):
 
         db.session.add(workspace)
         db.session.commit()
+
+        logging.info(
+            'created workspace %s with name %s, expiring on %s',
+            workspace.id, workspace.name, datetime.datetime.fromtimestamp(workspace.expiry_ts)
+        )
 
         # marshal based on role
         return marshal_based_on_role(user, workspace)

@@ -58,7 +58,8 @@ def test_create_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
             'users': [{'id': pri_data.known_user_id}],
             'banned_users': [],
             'owners': []
-        }
+        },
+        'expiry_ts': int((datetime.datetime.now() + relativedelta(months=+3)).timestamp()),
     }
     data_2 = {
         'name': 'TestWorkspace2',
@@ -108,8 +109,7 @@ def test_create_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
         data=json.dumps(data))
     assert response.status_code == 200
     # also check expiry time
-    assert int(response.json['expiry_ts']) == \
-           int((datetime.datetime.fromtimestamp(response.json['create_ts']) + relativedelta(months=+6)).timestamp())
+    assert int(response.json['expiry_ts']) == data['expiry_ts']
     # and membership expiry policy kind
     assert response.json['membership_expiry_policy']['kind'] == Workspace.MEP_PERSISTENT
 
@@ -180,6 +180,26 @@ def test_create_workspace_invalid_data(rmaker: RequestMaker, pri_data: PrimaryDa
         path='/api/v1/workspaces',
         data=json.dumps(invalid_system_data_2))
     assert invalid_response.status_code == 422
+
+    invalid_expiry_tss = [
+        0,
+        -1,
+        "foo",
+        int(datetime.datetime.utcnow().timestamp()),
+        int((datetime.datetime.utcnow() + relativedelta(months=+8)).timestamp()),
+    ]
+
+    for invalid_expiry_ts in invalid_expiry_tss:
+        invalid_response = rmaker.make_authenticated_workspace_owner_request(
+            method='POST',
+            path='/api/v1/workspaces',
+            data=json.dumps(dict(
+                name='workspace',
+                description='descr',
+                expiry_ts=invalid_expiry_ts,
+            ))
+        )
+        assert invalid_response.status_code == 422
 
 
 def test_modify_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
