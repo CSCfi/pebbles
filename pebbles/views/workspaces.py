@@ -241,14 +241,6 @@ class WorkspaceView(restful.Resource):
             workspace.join_code = form.name.data
         workspace.description = form.description.data
 
-        user_config = form.user_config.data
-        try:
-            workspace = workspace_users_add(workspace, user_config, owner, workspace_owner_obj)
-        except KeyError:
-            abort(422)
-        except RuntimeError as e:
-            return {"error": "{}".format(e)}, 422
-
         db.session.add(workspace)
         db.session.commit()
 
@@ -319,61 +311,6 @@ class WorkspaceView(restful.Resource):
 
         # marshal based on role
         return marshal_based_on_role(user, workspace)
-
-
-def workspace_users_add(workspace, user_config, owner, workspace_owner_obj):
-    """Validate and add the managers, banned users and normal users in a workspace"""
-    # Generate a 'set' of Workspace Managers
-    managers_list = []
-    managers_list.append(owner)  # Owner is always a manager
-    managers_list.append(g.user)  # always add the user creating/modifying the workspace
-    # add new workspace owner
-    if 'owner' in user_config:
-        new_owner = user_config['owner']
-        for new_owner_item in new_owner:
-            new_owner_id = new_owner_item['id']
-            new_owner = User.query.filter_by(id=new_owner_id).first()
-            if new_owner != owner:
-                workspace_owner_obj.user = new_owner
-                workspace.memberships.append(workspace_owner_obj)
-                managers_list.append(new_owner)
-
-    if 'managers' in user_config:
-        managers = user_config['managers']
-        for manager_item in managers:
-            manager_id = manager_item['id']
-            managers_list.append(manager_id)
-    managers_set = set(managers_list)  # use this set to check if a user was appointed as a manager
-    # Add Banned users
-    banned_users_final = []
-    if 'banned_users' in user_config:
-        banned_users = user_config['banned_users']
-        for banned_user_item in banned_users:
-            banned_user_id = banned_user_item['id']
-            banned_user = User.query.filter_by(id=banned_user_id).first()
-            if not banned_user:
-                logging.warning("user %s does not exist", banned_user_id)
-                raise RuntimeError("User to be banned, does not exist")
-            if banned_user_id in managers_set:
-                logging.warning("user %s is a manager, cannot ban" % banned_user_id)
-                raise RuntimeError("User is a manager, demote to normal status first")
-            banned_users_final.append(banned_user)
-    workspace.banned_users = banned_users_final  # setting a new list adds and also removes relationships
-    # add the users
-    users_final = []
-    if workspace.memberships:
-        for membership in workspace.memberships:
-            if membership.user in banned_users_final:
-                logging.warning("user %s is banned, cannot add", membership.user.id)
-                continue
-            if membership.user.id in managers_set:  # if user is a manager
-                membership.is_manager = True
-            elif not membership.is_owner:  # if the user is not an owner then keep all users to non manager status
-                membership.is_manager = False
-            users_final.append(membership)
-    workspace.memberships = users_final
-
-    return workspace
 
 
 class JoinWorkspace(restful.Resource):

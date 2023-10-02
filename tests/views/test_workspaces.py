@@ -248,36 +248,10 @@ def test_modify_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
 
 
 def test_modify_workspace_invalid_data(rmaker: RequestMaker, pri_data: PrimaryData):
-    invalid_data = {
-        'name': 'TestWorkspace bogus id',
-        'description': 'Workspace Details',
-        'user_config': {
-            'banned_users': [{'id': 'bogusx10'}]
-        }
-    }
-    invalid_data_1 = {
-        'name': 'TestWorkspace manager cannot be banned',
-        'description': 'Workspace Details',
-        'user_config': {
-            'banned_users': [{'id': pri_data.known_user_id}],
-            'managers': [{'id': pri_data.known_user_id}]
-        }
-    }
     invalid_data_system = {
         'name': 'System.TestWorkspaceModify',
         'description': 'Cannot rename to System.*',
     }
-    invalid_response = rmaker.make_authenticated_workspace_owner_request(
-        method='PUT',
-        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
-        data=json.dumps(invalid_data))
-    assert invalid_response.status_code == 422
-
-    invalid_response = rmaker.make_authenticated_workspace_owner_request(
-        method='PUT',
-        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
-        data=json.dumps(invalid_data_1))
-    assert invalid_response.status_code == 422
 
     # should not be able to rename to System.*, even as an admin
     invalid_response = rmaker.make_authenticated_workspace_owner_request(

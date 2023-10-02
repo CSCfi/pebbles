@@ -32,7 +32,6 @@ class UserForm(ModelForm):
 class WorkspaceForm(ModelForm):
     name = StringField('name', validators=[DataRequired()])
     description = StringField('description')
-    user_config = StringField('user_config')
     expiry_ts = IntegerField()
 
 
