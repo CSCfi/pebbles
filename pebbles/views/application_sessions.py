@@ -6,6 +6,7 @@ import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g, current_app
 from flask_restful import marshal, marshal_with, fields, reqparse
+from sqlalchemy import select
 
 from pebbles import rules, utils
 from pebbles.forms import ApplicationSessionForm
@@ -157,13 +158,18 @@ class ApplicationSessionList(restful.Resource):
         application_session.provisioning_config = utils.get_provisioning_config(application)
 
         # decide on a name that is not used currently
-        existing_names = set(x.name for x in ApplicationSession.query.all())
+        existing_names = set(db.session.scalars(select(ApplicationSession.name)).all())
         # Note: the potential race is solved by unique constraint in database
+        retry_count = 0
         while True:
             c_name = ApplicationSession.generate_name(prefix=current_app.config.get('SESSION_NAME_PREFIX'))
             if c_name not in existing_names:
                 application_session.name = c_name
                 break
+            retry_count += 1
+
+        if retry_count > 10:
+            logging.warning('Session name retries: %d, consider expanding the number of permutations', retry_count)
 
         db.session.commit()
 
