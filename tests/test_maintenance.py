@@ -2,7 +2,7 @@
 import datetime
 import json
 
-from flask.testing import FlaskClient
+from flask import Flask
 
 import pebbles.utils
 from pebbles.maintenance.main import run_workspace_expiry_cleanup, WORKSPACE_EXPIRY_GRACE_PERIOD
@@ -62,7 +62,7 @@ class PBClientMock:
         return self.do_delete('workspaces/%s' % workspace_id)
 
 
-def test_workspace_cleanup(client: FlaskClient, pri_data: PrimaryData):
+def test_workspace_cleanup(app: Flask, pri_data: PrimaryData):
     # check that the test set is valid. There should be workspaces that
     # a) have expired but are within grace period
     # b) need cleaning
@@ -83,7 +83,7 @@ def test_workspace_cleanup(client: FlaskClient, pri_data: PrimaryData):
         if ws.expiry_ts + WORKSPACE_EXPIRY_GRACE_PERIOD < current_time]
     assert expired_workspaces_beyond_grace
 
-    pb_client = PBClientMock(client)
+    pb_client = PBClientMock(app.test_client())
     pb_client.login('admin@example.org', 'admin')
     run_workspace_expiry_cleanup(pb_client)
 

@@ -4,12 +4,11 @@ import time
 import uuid
 
 import requests
-from flask import abort
+from flask import abort, current_app
 from flask import render_template, request
 from flask_restful import reqparse
 from jose import jwt
 
-from pebbles.app import app
 from pebbles.models import db, User
 from pebbles.utils import load_auth_config
 from pebbles.views.commons import create_user, is_workspace_manager, EXT_ID_PREFIX_DELIMITER
@@ -18,20 +17,19 @@ from pebbles.views.commons import create_user, is_workspace_manager, EXT_ID_PREF
 def render_terms_and_conditions():
     return render_template(
         'terms.html',
-        title=app.config['AGREEMENT_TITLE'],
-        terms_link=app.config['AGREEMENT_TERMS_PATH'],
-        cookies_link=app.config['AGREEMENT_COOKIES_PATH'],
-        privacy_link=app.config['AGREEMENT_PRIVACY_PATH'],
-        logo_path=app.config['AGREEMENT_LOGO_PATH']
+        title=current_app.config['AGREEMENT_TITLE'],
+        terms_link=current_app.config['AGREEMENT_TERMS_PATH'],
+        cookies_link=current_app.config['AGREEMENT_COOKIES_PATH'],
+        privacy_link=current_app.config['AGREEMENT_PRIVACY_PATH'],
+        logo_path=current_app.config['AGREEMENT_LOGO_PATH']
     )
 
 
-@app.route('/oauth2')
 def oauth2_login():
     parser = reqparse.RequestParser()
     parser.add_argument('agreement_sign', type=str, default=False, location='args')
     args = parser.parse_args()
-    if not app.config['OAUTH2_LOGIN_ENABLED']:
+    if not current_app.config['OAUTH2_LOGIN_ENABLED']:
         logging.warning('Login abort: oauth2 not enabled')
         abort(401)
 
@@ -42,7 +40,7 @@ def oauth2_login():
     #     - acr       matched to acr in the claim
     #     - idClaim   attribute name for obtaining identity. separate multiple attributes with whitespace
     #     - prefix    prepend this + EXT_ID_PREFIX_DELIMITER to identity to generate ext_id
-    auth_config = load_auth_config(app.config['API_AUTH_CONFIG_FILE'])
+    auth_config = load_auth_config(current_app.config['API_AUTH_CONFIG_FILE'])
     oauth2_config = auth_config.get('oauth2') if auth_config else None
     auth_methods = oauth2_config['authMethods'] if oauth2_config else None
     if not (auth_config and oauth2_config and auth_methods):
@@ -210,7 +208,7 @@ def oauth2_login():
     logging.info('new oauth2 session for user "%s"', user.id)
 
     # create a session token
-    session_token = user.generate_auth_token(app.config['SECRET_KEY'])
+    session_token = user.generate_auth_token(current_app.config['SECRET_KEY'])
 
     return render_template(
         'login.html',

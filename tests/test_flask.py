@@ -1,7 +1,9 @@
+from flask import Flask
+
 from tests.conftest import PrimaryData, RequestMaker
 
 
-def test_headers(rmaker: RequestMaker, pri_data: PrimaryData):
+def test_headers(app: Flask, rmaker: RequestMaker, pri_data: PrimaryData):
     """Test that we set headers for content caching and security"""
     response = rmaker.make_request(path='/api/v1/config')
 

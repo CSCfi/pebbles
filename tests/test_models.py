@@ -5,16 +5,16 @@ import logging
 import time
 
 import pytest
+from flask import Flask
 from jose import jwt
 
 from pebbles.models import PEBBLES_TAINT_KEY
 from pebbles.models import User, Workspace, ApplicationTemplate, Application, ApplicationSession
 from pebbles.models import db
-from pebbles.server import app
 
 
 @pytest.fixture()
-def model_data():
+def model_data(app: Flask):
     with app.app_context():
         md = ModelDataFixture()
         yield md

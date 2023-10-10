@@ -4,19 +4,17 @@
 import base64
 import datetime
 import json
-import os
 import time
 
 import pytest
+from flask import Flask
 
+import pebbles.app
+from pebbles.config import TestConfig
 from pebbles.models import (
     User, Workspace, WorkspaceMembership, ApplicationTemplate, Application,
     Message, ServiceAnnouncement, ApplicationSession, ApplicationSessionLog)
 from pebbles.models import db
-
-# set unittesting configuration before initializing Flask
-os.environ['UNITTEST'] = '1'
-from pebbles.server import app
 
 ADMIN_TOKEN = None
 USER_TOKEN = None
@@ -25,8 +23,14 @@ COURSE_OWNER_TOKEN = None
 COURSE_OWNER_TOKEN2 = None
 
 
+@pytest.fixture()
+def app():
+    app = pebbles.app.create_app(TestConfig())
+    yield app
+
+
 @pytest.fixture
-def pri_data():
+def pri_data(app: Flask):
     with app.app_context():
         pd = PrimaryData()
         yield pd
@@ -411,7 +415,7 @@ class PrimaryData:
 
 
 @pytest.fixture
-def client():
+def client(app: Flask):
     return app.test_client()
 
 

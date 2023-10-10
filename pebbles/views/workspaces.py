@@ -11,7 +11,6 @@ from flask import Blueprint as FlaskBlueprint, current_app
 from flask import abort, g, request
 from flask_restful import marshal, marshal_with, reqparse, fields, inputs
 
-from pebbles.app import app
 from pebbles.forms import WorkspaceForm
 from pebbles.models import db, Workspace, User, WorkspaceMembership, Application, ApplicationSession, Task
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin, load_cluster_config
@@ -182,7 +181,7 @@ class WorkspaceList(restful.Resource):
             workspace.expiry_ts = max_expiry_ts
 
         # If users can later select the clusters, then this should be taken from the form and verified
-        workspace.cluster = app.config['DEFAULT_CLUSTER']
+        workspace.cluster = current_app.config['DEFAULT_CLUSTER']
 
         # By default, run sessions on nodes for all users
         workspace.config = dict(scheduler_tolerations=['role=user'])

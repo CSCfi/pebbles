@@ -7,13 +7,13 @@ import time
 import responses
 import yaml
 from Crypto.PublicKey import RSA
+from flask import current_app
 from jose import jwt
 from pyfakefs.fake_filesystem_unittest import Patcher
 
 from pebbles.models import PEBBLES_TAINT_KEY
 from pebbles.models import User, WorkspaceMembership
 from pebbles.models import db
-from pebbles.server import app
 from tests.conftest import PrimaryData
 
 # generate key in module load instead of setUp() to speed things up
@@ -99,16 +99,16 @@ def make_request(method='GET', path='/', headers=None, data=None):
 
     header_tuples = [(x, y) for x, y in headers.items()]
     if method == 'GET':
-        return app.test_client().get(path, headers=header_tuples, data=data, content_type='application/json')
+        return current_app.test_client().get(path, headers=header_tuples, data=data, content_type='application/json')
     elif method == 'POST':
-        return app.test_client().post(path, headers=header_tuples, data=data, content_type='application/json')
+        return current_app.test_client().post(path, headers=header_tuples, data=data, content_type='application/json')
     else:
         raise NotImplementedError('Method %s not implemented' % method)
 
 
 def make_mocked_request(**kwargs):
-    app.config['OAUTH2_LOGIN_ENABLED'] = True
-    app.config['API_AUTH_CONFIG_FILE'] = 'auth-config.yaml'
+    current_app.config['OAUTH2_LOGIN_ENABLED'] = True
+    current_app.config['API_AUTH_CONFIG_FILE'] = 'auth-config.yaml'
 
     if 'id_token' not in kwargs:
         id_token = create_id_token()
@@ -136,7 +136,7 @@ def test_sso_disabled(pri_data: PrimaryData):
 
 def test_sso_no_auth_config(pri_data: PrimaryData):
     add_default_responses()
-    app.config['OAUTH2_LOGIN_ENABLED'] = True
+    current_app.config['OAUTH2_LOGIN_ENABLED'] = True
     res = make_request(path='/oauth2')
     assert res.status_code == 500
 

@@ -1,11 +1,9 @@
 from flask_restful import fields, marshal_with
-from flask import Blueprint as FlaskBlueprint
+from flask import Blueprint as FlaskBlueprint, current_app
 
 import logging
 
 import flask_restful as restful
-
-from pebbles.app import app
 
 variable_fields = {
     'key': fields.String,
@@ -42,7 +40,7 @@ class PublicConfigList(restful.Resource):
         try:
             public_vars = []
             for public_var in PUBLIC_CONFIG_VARIABLES:
-                public_vars.append({'key': public_var, 'value': app.config[public_var]})
+                public_vars.append({'key': public_var, 'value': current_app.config[public_var]})
             return public_vars
 
         except Exception as ex:

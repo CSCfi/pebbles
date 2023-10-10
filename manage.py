@@ -13,8 +13,9 @@ import yaml
 from flask.cli import FlaskGroup
 from sqlalchemy.exc import IntegrityError
 
+from pebbles.app import create_app, db
 from pebbles.config import RuntimeConfig
-from pebbles.models import db, User, Application, ApplicationTemplate, load_yaml
+from pebbles.models import User, Application, ApplicationTemplate, load_yaml
 from pebbles.utils import create_password
 from pebbles.views.commons import create_user, create_worker, create_system_workspaces
 
@@ -22,9 +23,9 @@ from pebbles.views.commons import create_user, create_worker, create_system_work
 if {'test', 'coverage'}.intersection(set(sys.argv)):
     os.environ['UNITTEST'] = '1'
 # set FLASK_APP to point to our app
-os.environ['FLASK_APP'] = 'pebbles.app:app'
-from pebbles.server import app
+os.environ['FLASK_APP'] = 'pebbles.app:create_app()'
 
+app = create_app()
 cli = FlaskGroup()
 
 

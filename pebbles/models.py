@@ -12,8 +12,6 @@ import uuid
 
 import names
 import yaml
-from flask_bcrypt import Bcrypt
-from flask_sqlalchemy import SQLAlchemy
 from jose import jwt, JWTError, ExpiredSignatureError
 from jose.exceptions import JWTClaimsError, JWSError
 from sqlalchemy import func
@@ -21,6 +19,7 @@ from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.schema import MetaData
 
 import pebbles
+from pebbles.app import db, bcrypt
 from pebbles.utils import get_application_fields_from_config
 
 PEBBLES_TAINT_KEY = 'pebbles.csc.fi/taint'
@@ -36,8 +35,6 @@ MAX_SERVICE_ANNOUNCEMENT_SUBJECT_LENGTH = 255
 
 JWS_SIGNING_ALG = 'HS512'
 
-db = SQLAlchemy()
-
 convention = {
     "ix": 'ix_%(column_0_label)s',
     "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -46,8 +43,6 @@ convention = {
 }
 
 db.Model.metadata = MetaData(naming_convention=convention)
-
-bcrypt = Bcrypt()
 
 NAME_ADJECTIVES = (
     'happy',
