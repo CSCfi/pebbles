@@ -18,7 +18,7 @@ from pebbles.models import ApplicationSession
 from pebbles.utils import b64encode_string
 
 # limit for application session startup duration before it is marked as failed
-SESSION_STARTUP_TIME_LIMIT = 10 * 60
+SESSION_STARTUP_TIME_LIMIT = 30 * 60
 
 
 @unique
