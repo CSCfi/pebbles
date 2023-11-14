@@ -21,7 +21,6 @@ spec:
         application: pebbles-restore-pvc
     spec:
       securityContext:
-        allowPrivilegeEscalation: false
         runAsUser: 0
       restartPolicy: Never
       # affinity: only allow one restore job running per eligible node (most cases: just master)
@@ -83,6 +82,8 @@ spec:
             limits:
               cpu: "1"
               memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
           volumeMounts:
             - name: target-pvc
               mountPath: /target-pvc/{{ pvc_name }}
