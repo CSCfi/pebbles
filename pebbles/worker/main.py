@@ -31,12 +31,27 @@ class Worker:
             cluster_config_file=self.config['CLUSTER_CONFIG_FILE'],
             cluster_passwords_file=self.config['CLUSTER_PASSWORDS_FILE']
         )
-        self.application_session_controller = ApplicationSessionController()
-        self.application_session_controller.initialize(self.id, self.config, self.cluster_config, self.client)
-        self.cluster_controller = ClusterController()
-        self.cluster_controller.initialize(self.id, self.config, self.cluster_config, self.client)
-        self.workspace_controller = WorkspaceController()
-        self.workspace_controller.initialize(self.id, self.config, self.cluster_config, self.client)
+        self.application_session_controller = ApplicationSessionController(
+            worker_id=self.id,
+            config=self.config,
+            cluster_config=self.cluster_config,
+            client=self.client,
+            controller_name="SESSION_CONTROLLER"
+        )
+        self.cluster_controller = ClusterController(
+            worker_id=self.id,
+            config=self.config,
+            cluster_config=self.cluster_config,
+            client=self.client,
+            controller_name="CLUSTER_CONTROLLER"
+        )
+        self.workspace_controller = WorkspaceController(
+            worker_id=self.id,
+            config=self.config,
+            cluster_config=self.cluster_config,
+            client=self.client,
+            controller_name="WORKSPACE_CONTROLLER"
+        )
 
     def handle_signals(self, signum, frame):
         """
@@ -81,12 +96,7 @@ class Worker:
             # stop the watchdog
             signal.alarm(0)
 
-            # sleep for a random amount to avoid synchronization between workers
-            # while waiting, check for termination flag every second
-            for i in range(randrange(2, 5)):
-                if self.terminate:
-                    break
-                sleep(1)
+            sleep(1)
 
 
 if __name__ == '__main__':

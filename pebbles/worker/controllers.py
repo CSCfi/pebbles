@@ -13,17 +13,13 @@ DRIVER_CACHE_LIFETIME = 900
 
 
 class ControllerBase:
-    def __init__(self):
-        self.worker_id = None
-        self.config = None
-        self.cluster_config = None
-        self.client = None
-
-    def initialize(self, worker_id, config, cluster_config, client):
+    def __init__(self, worker_id, config, cluster_config, client, controller_name):
         self.worker_id = worker_id
         self.config = config
         self.cluster_config = cluster_config
         self.client = client
+        self.controller_name = controller_name
+        self.next_check_ts = 0
 
     def get_driver(self, cluster_name):
         """Create driver instance for given cluster.
@@ -55,11 +51,33 @@ class ControllerBase:
 
         return driver_instance
 
+    def update_next_check_ts(self, polling_interval_min, polling_interval_max):
+        self.next_check_ts = time.time() + randrange(polling_interval_min, polling_interval_max + 1)
+
+    def get_polling_interval(self, default_min, default_max):
+        """
+        Read the polling interval from worker environment variables, if present. If not present,
+        use given controller specific default values.
+        """
+        polling_interval_min = int(os.getenv(f"{self.controller_name}_POLLING_INTERVAL_SEC_MIN", default_min))
+        polling_interval_max = int(os.getenv(f"{self.controller_name}_POLLING_INTERVAL_SEC_MAX", default_max))
+        logging.info(f"{self.controller_name}_POLLING_INTERVAL_SEC_MIN is set to {polling_interval_min}")
+        logging.info(f"{self.controller_name}_POLLING_INTERVAL_SEC_MAX is set to {polling_interval_max}")
+        if polling_interval_min > polling_interval_max:
+            logging.warning(f"{self.controller_name}_POLLING_INTERVAL_SEC_MIN is larger than "
+                            f"{self.controller_name}_POLLING_INTERVAL_SEC_MAX, using default values instead")
+            return default_min, default_max
+        return polling_interval_min, polling_interval_max
+
 
 class ApplicationSessionController(ControllerBase):
     """
     Controller that takes care of application sessions
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.polling_interval_min, self.polling_interval_max = self.get_polling_interval(2, 5)
 
     def update_application_session(self, application_session):
         logging.debug('updating %s' % application_session)
@@ -89,6 +107,11 @@ class ApplicationSessionController(ControllerBase):
         self.update_application_session(application_session)
 
     def process(self):
+        # process sessions in increased intervals
+        if time.time() < self.next_check_ts:
+            return
+        self.update_next_check_ts(self.polling_interval_min, self.polling_interval_max)
+
         # we query all non-deleted application sessions
         sessions = self.client.get_application_sessions()
 
@@ -149,15 +172,15 @@ class ClusterController(ControllerBase):
     The only task at the moment is to fetch and publish alerts.
     """
 
-    def __init__(self):
-        super().__init__()
-        self.next_check_ts = 0
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.polling_interval_min, self.polling_interval_max = self.get_polling_interval(30, 90)
 
     def process(self):
         # process clusters in increased intervals
         if time.time() < self.next_check_ts:
             return
-        self.next_check_ts = time.time() + randrange(30, 90)
+        self.update_next_check_ts(self.polling_interval_min, self.polling_interval_max)
 
         logging.debug('checking cluster alerts')
 
@@ -251,16 +274,16 @@ class WorkspaceController(ControllerBase):
     Controller that takes care of Workspace tasks
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.polling_interval_min, self.polling_interval_max = self.get_polling_interval(30, 90)
         self.max_concurrent_tasks = 20
-        self.next_check_ts = 0
 
     def process(self):
         # process workspace management in increased intervals
         if time.time() < self.next_check_ts:
             return
-        self.next_check_ts = time.time() + randrange(30, 90)
+        self.update_next_check_ts(self.polling_interval_min, self.polling_interval_max)
 
         logging.debug('WorkspaceController: checking tasks')
         unfinished_tasks = self.client.get_tasks(unfinished=1)
