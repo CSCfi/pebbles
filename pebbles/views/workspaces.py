@@ -11,7 +11,7 @@ from flask import Blueprint as FlaskBlueprint, current_app
 from flask import abort, g, request
 from flask_restful import marshal, marshal_with, reqparse, fields, inputs
 
-from pebbles.forms import WorkspaceForm
+from pebbles.forms import WorkspaceForm, WS_TYPE_LONG_RUNNING
 from pebbles.models import db, Workspace, User, WorkspaceMembership, Application, ApplicationSession, Task
 from pebbles.utils import requires_admin, requires_workspace_owner_or_admin, load_cluster_config
 from pebbles.views import commons
@@ -51,6 +51,9 @@ workspace_fields_owner = {
     'membership_type': fields.String(default='owner'),
     'membership_expiry_policy': fields.Raw,
     'cluster': fields.String,
+    'config': {
+        'allow_expiry_extension': fields.Boolean,
+    },
 }
 
 workspace_fields_manager = {
@@ -148,17 +151,21 @@ class WorkspaceList(restful.Resource):
         num_user_owned_workspaces = [
             w.workspace.status == Workspace.STATUS_ACTIVE for w in user_owned_workspaces].count(True)
         if not user.is_admin and num_user_owned_workspaces >= user.workspace_quota:
-            logging.warning("Maximum workspace quota %s is reached" % user.workspace_quota)
+            logging.warning('Maximum workspace quota %s is reached' % user.workspace_quota)
             return dict(
-                message="You reached maximum number of workspaces that can be created."
-                        " If you wish create more workspaces please contact the support"
+                message='You reached maximum number of workspaces that can be created.'
+                        ' If you wish create more workspaces please contact the support'
             ), 422
         form = WorkspaceForm()
+        if not form.name.data:
+            logging.warning('Workspace name cannot be empty')
+            return dict(message='Workspace name cannot be empty'), 422
+
         if form.name.data.lower().startswith('system'):
-            logging.warning("Workspace name cannot start with System")
-            return dict(message="Workspace name cannot start with 'System'."), 422
+            logging.warning('Workspace name cannot start with System')
+            return dict(message='Workspace name cannot start with \'System\'.'), 422
         if not form.validate_on_submit():
-            logging.warning("validation error on creating workspace, %s", form.errors)
+            logging.warning('validation error on creating workspace, %s', form.errors)
             return form.errors, 422
         workspace = Workspace(form.name.data)
         workspace.description = form.description.data
@@ -167,7 +174,17 @@ class WorkspaceList(restful.Resource):
         workspace.memberships.append(workspace_owner_obj)
 
         workspace.create_ts = datetime.datetime.utcnow().timestamp()
-        max_expiry_ts = int(workspace.create_ts + 86400 * (30 * 6 + 1))
+
+        # owners can ask for a long-running-workspace, that has longer lifetime and
+        # corresponding membership expiry policy
+        workspace_type = form.data.get('workspace_type')
+        if workspace_type == WS_TYPE_LONG_RUNNING:
+            max_expiry_ts = int(workspace.create_ts + 86400 * (31 * 13))
+            workspace.membership_expiry_policy = dict(kind=Workspace.MEP_ACTIVITY_TIMEOUT, timeout_days=90)
+            workspace.config |= dict(allow_expiry_extension=True)
+        else:
+            max_expiry_ts = int(workspace.create_ts + 86400 * (31 * 6))
+
         # check if the form includes expiry time
         if form.expiry_ts.data is not None:
             expiry_ts = form.expiry_ts.data
@@ -184,7 +201,7 @@ class WorkspaceList(restful.Resource):
         workspace.cluster = current_app.config['DEFAULT_CLUSTER']
 
         # By default, run sessions on nodes for all users
-        workspace.config = dict(scheduler_tolerations=['role=user'])
+        workspace.config |= dict(scheduler_tolerations=['role=user'])
 
         db.session.add(workspace)
         db.session.commit()
@@ -219,11 +236,8 @@ class WorkspaceView(restful.Resource):
     def put(self, workspace_id):
         form = WorkspaceForm()
         if not form.validate_on_submit():
-            logging.warning("validation error on creating workspace")
+            logging.warning('validation error on updating workspace')
             return form.errors, 422
-        if form.name.data.lower().startswith('system'):
-            logging.warning("Workspace name cannot start with System")
-            return {'error': 'Workspace name cannot start with "System".'}, 422
         user = g.user
         workspace = Workspace.query.filter_by(id=workspace_id).first()
         if not workspace:
@@ -234,13 +248,42 @@ class WorkspaceView(restful.Resource):
         owner = workspace_owner_obj.user
         if not (user.is_admin or user.id == owner.id):
             abort(403)
-        if workspace.name != form.name.data:
-            workspace.name = form.name.data
-            # assigning to this hybrid property triggers regeneration of join code
-            workspace.join_code = form.name.data
-        workspace.description = form.description.data
 
-        db.session.add(workspace)
+        if form.name.data:
+            if form.name.data.lower().startswith('system'):
+                logging.warning('Workspace name cannot start with "System"')
+                return dict(error='Workspace name cannot start with "System"'), 422
+            if len(form.name.data) > 64:
+                logging.warning('Workspace name cannot exceed 64 characters')
+                return dict(error='Workspace name cannot exceed 64 characters'), 422
+
+            if workspace.name != form.name.data:
+                workspace.name = form.name.data
+                # assigning to this hybrid property triggers regeneration of join code
+                workspace.join_code = form.name.data
+
+        if form.description.data:
+            workspace.description = form.description.data
+
+        # handle extending the expiry date
+        if form.expiry_ts.data:
+            expiry_ts = int(form.expiry_ts.data)
+            if workspace.config.get('allow_expiry_extension'):
+                max_expiry_ts = int(time.time() + 86400 * (31 * 13))
+                msg = None
+                if expiry_ts > max_expiry_ts:
+                    msg = 'workspace %s expiry time cannot be greater than %d' % (workspace_id, max_expiry_ts)
+                if expiry_ts < time.time():
+                    msg = 'workspace %s expiry time cannot be in the past' % workspace_id
+                if msg:
+                    logging.warning(msg)
+                    return dict(error=msg), 422
+                workspace.expiry_ts = expiry_ts
+            else:
+                msg = 'workspace %s does not allow extending the expiry date' % workspace_id
+                logging.warning(msg)
+                return msg, 422
+
         db.session.commit()
 
         # marshal based on role
@@ -342,7 +385,6 @@ class JoinWorkspace(restful.Resource):
 
         membership = WorkspaceMembership(user=user, workspace=workspace)
         workspace.memberships.append(membership)
-        db.session.add(workspace)
         db.session.commit()
 
         # marshal based on role
@@ -372,7 +414,6 @@ class WorkspaceExit(restful.Resource):
             logging.warning("user %s is not a part of the workspace", user.id)
             abort(403)
         workspace.memberships.remove(user_in_workspace)
-        db.session.add(workspace)
         db.session.commit()
 
 

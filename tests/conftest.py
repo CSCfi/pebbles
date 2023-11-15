@@ -105,7 +105,7 @@ class PrimaryData:
         ws0.memberships.append(WorkspaceMembership(user=u7))
         db.session.add(ws0)
 
-        ws1 = Workspace('Workspace1')
+        ws1 = Workspace('Workspace1', 'this is workspace 1')
         ws1.id = 'ws1'
         ws1.cluster = 'dummy_cluster_1'
         ws1.application_quota = 6
@@ -115,14 +115,14 @@ class PrimaryData:
         ws1.memberships.append(WorkspaceMembership(user=u6))
         db.session.add(ws1)
 
-        ws2 = Workspace('Workspace2')
+        ws2 = Workspace('Workspace2', 'this is workspace 2')
         ws2.id = 'ws2'
         ws2.cluster = 'dummy_cluster_1'
         ws2.memberships.append(WorkspaceMembership(user=u3))
         ws2.memberships.append(WorkspaceMembership(user=u4, is_manager=True, is_owner=True))
         db.session.add(ws2)
 
-        ws3 = Workspace('Workspace3')
+        ws3 = Workspace('Workspace3', 'this is workspace 3')
         ws3.id = 'ws3'
         ws3.cluster = 'dummy_cluster_2'
         ws3.memberships.append(WorkspaceMembership(user=u4, is_manager=True, is_owner=True))
@@ -130,21 +130,21 @@ class PrimaryData:
         ws3.memberships.append(WorkspaceMembership(user=u3, is_banned=True))
         db.session.add(ws3)
 
-        ws4 = Workspace('Workspace4')
+        ws4 = Workspace('Workspace4', 'this is workspace 4')
         ws4.id = 'ws4'
         ws4.cluster = 'dummy_cluster_2'
         ws4.memberships.append(WorkspaceMembership(user=u1, is_manager=True, is_owner=True))
         db.session.add(ws4)
 
         # deleted workspace
-        ws5 = Workspace('Workspace5')
+        ws5 = Workspace('Workspace5', 'this is workspace 5')
         ws5.id = 'ws5'
         ws5.cluster = 'dummy_cluster_1'
         ws5.status = 'deleted'
         ws5.memberships.append(WorkspaceMembership(user=u2, is_manager=True, is_owner=True))
         db.session.add(ws5)
 
-        ws6 = Workspace('Workspace6')
+        ws6 = Workspace('Workspace6', 'this is workspace 6')
         ws6.id = 'ws6'
         ws6.description = 'workspace for memory limit testing'
         ws6.cluster = 'dummy_cluster_1'
@@ -153,7 +153,7 @@ class PrimaryData:
         ws6.memberships.append(WorkspaceMembership(user=u6))
         db.session.add(ws6)
 
-        ws7 = Workspace('Workspace7')
+        ws7 = Workspace('Workspace7', 'this is workspace 7')
         ws7.id = 'ws7'
         ws7.description = 'workspace with workspace membership expiry policy'
         ws7.cluster = 'dummy_cluster_1'
@@ -162,7 +162,7 @@ class PrimaryData:
         ws7.expiry_ts = time.time() - 3600 * 24 * 2
         db.session.add(ws7)
 
-        ws8 = Workspace('Workspace8')
+        ws8 = Workspace('Workspace8', 'this is workspace 8')
         ws8.id = 'ws8'
         ws8.description = 'expired workspace beyond grace'
         ws8.cluster = 'dummy_cluster_1'

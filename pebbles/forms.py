@@ -3,7 +3,7 @@ cause gray hair.
 """
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, StringField, IntegerField
-from wtforms.validators import DataRequired, Email, Length
+from wtforms.validators import DataRequired, Email, Length, AnyOf
 from wtforms_alchemy import model_form_factory
 
 from pebbles.models import (
@@ -29,10 +29,19 @@ class UserForm(ModelForm):
     is_admin = BooleanField('is_admin', default=False, false_values=['false', False, ''])
 
 
+WS_TYPE_FIXED_TIME = 'fixed-time-course'
+WS_TYPE_LONG_RUNNING = 'long-running-course'
+VALID_WS_TYPES = [WS_TYPE_LONG_RUNNING, WS_TYPE_LONG_RUNNING]
+
+
 class WorkspaceForm(ModelForm):
-    name = StringField('name', validators=[DataRequired()])
+    name = StringField('name')
     description = StringField('description')
     expiry_ts = IntegerField()
+    workspace_type = StringField(
+        name='workspace_type',
+        validators=[AnyOf(VALID_WS_TYPES + [None, ], message='Unknown workspace_type')],
+    )
 
 
 class MessageForm(ModelForm):

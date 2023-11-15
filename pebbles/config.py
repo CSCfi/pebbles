@@ -74,6 +74,7 @@ class BaseConfig:
     CONTACT_EMAIL = 'support@example.org'
     SERVICE_DOCUMENTATION_URL = 'http://link-to-service-documentation'
     SERVICE_ANNOUNCEMENT = ''
+    PUBLIC_APPLICATION_ACCESS_NOTE = 'Public applications are not available for the current user.'
 
     # Mail settings
     MAIL_SERVER = 'smtp.example.org'

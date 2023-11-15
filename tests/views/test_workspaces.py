@@ -5,6 +5,7 @@ import time
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
 
+from pebbles.forms import WS_TYPE_LONG_RUNNING
 from pebbles.models import PEBBLES_TAINT_KEY, Task
 from pebbles.models import User, Workspace, WorkspaceMembership
 from pebbles.models import db
@@ -54,132 +55,117 @@ def test_create_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
     data = {
         'name': 'TestWorkspace',
         'description': 'Workspace Details',
-        'user_config': {
-            'users': [{'id': pri_data.known_user_id}],
-            'banned_users': [],
-            'owners': []
-        },
         'expiry_ts': int((datetime.datetime.now() + relativedelta(months=+3)).timestamp()),
     }
     data_2 = {
         'name': 'TestWorkspace2',
         'description': 'Workspace Details',
-        'user_config': {
-            'banned_users': [{'id': pri_data.known_user_id}],
-        }
     }
     data_3 = {
         'name': 'TestWorkspace',
         'description': 'Workspace Details',
-        'user_config': {
-        }
+        'workspace_type': WS_TYPE_LONG_RUNNING,
     }
     data_4 = {
         'name': 'TestWorkspace4',
         'description': 'Workspace Details',
-        'user_config': {
-        }
     }
 
     # Anonymous
-    response = rmaker.make_request(
+    resp = rmaker.make_request(
         method='POST',
         path='/api/v1/workspaces',
         data=json.dumps(data))
-    assert response.status_code == 401
+    assert resp.status_code == 401
     # Authenticated User
-    response = rmaker.make_authenticated_user_request(
+    resp = rmaker.make_authenticated_user_request(
         method='POST',
         path='/api/v1/workspaces',
         data=json.dumps(data))
-    assert response.status_code == 403
+    assert resp.status_code == 403
 
     # increase workspace quota to 4 for owner 1
-    response2 = rmaker.make_authenticated_admin_request(
+    resp = rmaker.make_authenticated_admin_request(
         method='PATCH',
         path='/api/v1/users/%s' % pri_data.known_workspace_owner_id,
         data=json.dumps(dict(workspace_quota=4))
     )
-    assert response2.status_code == 200
+    assert resp.status_code == 200
 
     # Workspace Owner
-    response = rmaker.make_authenticated_workspace_owner_request(
+    resp = rmaker.make_authenticated_workspace_owner_request(
         method='POST',
         path='/api/v1/workspaces',
         data=json.dumps(data))
-    assert response.status_code == 200
+    assert resp.status_code == 200
     # also check expiry time
-    assert int(response.json['expiry_ts']) == data['expiry_ts']
+    assert int(resp.json['expiry_ts']) == data['expiry_ts']
     # and membership expiry policy kind
-    assert response.json['membership_expiry_policy']['kind'] == Workspace.MEP_PERSISTENT
+    assert resp.json['membership_expiry_policy']['kind'] == Workspace.MEP_PERSISTENT
 
-    response = rmaker.make_authenticated_workspace_owner_request(
+    resp = rmaker.make_authenticated_workspace_owner_request(
         method='POST',
         path='/api/v1/workspaces',
         data=json.dumps(data_2))
-    assert response.status_code == 200
+    assert resp.status_code == 200
 
-    response = rmaker.make_authenticated_workspace_owner_request(
+    resp = rmaker.make_authenticated_workspace_owner_request(
         method='POST',
         path='/api/v1/workspaces',
         data=json.dumps(data_3))
-    assert response.status_code == 200
+    assert resp.status_code == 200
+    assert resp.json['membership_expiry_policy']['kind'] == Workspace.MEP_ACTIVITY_TIMEOUT
+    assert resp.json['membership_expiry_policy']['timeout_days'] == 90
+    assert resp.json['config']['allow_expiry_extension']
+    assert db.session.scalar(
+        select(Workspace).where(Workspace.id == resp.json['id'])
+    ).config['allow_expiry_extension']
 
-    response = rmaker.make_authenticated_workspace_owner_request(
+    resp = rmaker.make_authenticated_workspace_owner_request(
         method='POST',
         path='/api/v1/workspaces',
         data=json.dumps(data_4))
-    assert response.status_code == 422
+    assert resp.status_code == 422
 
     # Admin
-    response = rmaker.make_authenticated_admin_request(
+    resp = rmaker.make_authenticated_admin_request(
         method='POST',
         path='/api/v1/workspaces',
         data=json.dumps(data))
-    assert response.status_code == 200
+    assert resp.status_code == 200
 
 
 def test_create_workspace_invalid_data(rmaker: RequestMaker, pri_data: PrimaryData):
-    invalid_data = {
-        'name': '',
-        'description': 'Workspace Details',
-    }
+    # Invalid name, description, workspace_type
+    invalid_data = [
+        dict(name='', description='Workspace Details'),
+        dict(name='test', description='Workspace Details', workspace_type='foo'),
+    ]
+    for inv in invalid_data:
+        invalid_response = rmaker.make_authenticated_workspace_owner_request(
+            method='POST',
+            path='/api/v1/workspaces',
+            data=json.dumps(inv))
+        assert invalid_response.status_code == 422
+
     # Try to create system level workspaces
-    invalid_system_data = {
-        'name': 'System.Workspace',
-        'description': 'Workspace Details',
-        'user_config': {
-        }
-    }
-    invalid_system_data_2 = {
-        'name': 'system workspace',
-        'description': 'Workspace Details',
-        'user_config': {
-        }
-    }
-    invalid_response = rmaker.make_authenticated_workspace_owner_request(
-        method='POST',
-        path='/api/v1/workspaces',
-        data=json.dumps(invalid_data))
-    assert invalid_response.status_code == 422
+    invalid_system_data = [
+        dict(name='System.Workspace', description='Workspace Details', ),
+        dict(name='system workspace', description='Workspace Details', ),
+        dict(name='systematic progress', description='Workspace Details', )
+    ]
+    for inv in invalid_system_data:
+        invalid_response = rmaker.make_authenticated_workspace_owner_request(
+            method='POST',
+            path='/api/v1/workspaces',
+            data=json.dumps(inv))
+        assert invalid_response.status_code == 422
 
-    invalid_response = rmaker.make_authenticated_workspace_owner_request(
-        method='POST',
-        path='/api/v1/workspaces',
-        data=json.dumps(invalid_system_data))
-    assert invalid_response.status_code == 422
-
-    invalid_response = rmaker.make_authenticated_admin_request(
-        method='POST',
-        path='/api/v1/workspaces',
-        data=json.dumps(invalid_system_data))
-    assert invalid_response.status_code == 422
-
-    invalid_response = rmaker.make_authenticated_workspace_owner_request(
-        method='POST',
-        path='/api/v1/workspaces',
-        data=json.dumps(invalid_system_data_2))
-    assert invalid_response.status_code == 422
+        invalid_response = rmaker.make_authenticated_admin_request(
+            method='POST',
+            path='/api/v1/workspaces',
+            data=json.dumps(inv))
+        assert invalid_response.status_code == 422
 
     invalid_expiry_tss = [
         0,
@@ -203,67 +189,130 @@ def test_create_workspace_invalid_data(rmaker: RequestMaker, pri_data: PrimaryDa
 
 
 def test_modify_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
-    ws = Workspace('TestWorkspaceModify')
-    # g.owner_id = pri_data.known_workspace_owner_id
-    u1 = User.query.filter_by(id=pri_data.known_user_id).first()
-    wsu1_obj = WorkspaceMembership(user=u1, workspace=ws)
-    db.session.add(wsu1_obj)
-    ws.memberships.append(wsu1_obj)
-    u2 = User.query.filter_by(id=pri_data.known_workspace_owner_id_2).first()
-    wsu2_obj = WorkspaceMembership(user=u2, workspace=ws)
-    db.session.add(wsu2_obj)
-    ws.memberships.append(wsu2_obj)
-    u3 = User.query.filter_by(id=pri_data.known_workspace_owner_id).first()
-    wsu3_obj = WorkspaceMembership(user=u3, workspace=ws, is_manager=True, is_owner=True)
-    db.session.add(wsu3_obj)
-    ws.memberships.append(wsu3_obj)
-    db.session.add(ws)
+    w = db.session.scalar(select(Workspace).where(Workspace.id == pri_data.known_workspace_id))
+    db.session.expunge(w)
+
+    # Anonymous
+    resp = rmaker.make_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(dict(name='namey name', description='descy desc')))
+    assert resp.status_code == 401
+
+    # Authenticated User
+    resp = rmaker.make_authenticated_user_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(dict(name='namey name', description='descy desc')))
+    assert resp.status_code == 403
+
+    # Another owner, manager in this workspace
+    resp = rmaker.make_authenticated_workspace_owner2_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(dict(name='namey name', description='descy desc')))
+    assert resp.status_code == 403
+
+    # Non-existing workspace
+    resp = rmaker.make_authenticated_workspace_owner_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s' % 'foobar',
+        data=json.dumps(dict(name='namey name', description='descy desc')))
+    assert resp.status_code == 404
+
+    # update name and description
+    resp = rmaker.make_authenticated_workspace_owner_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(dict(name='namey name', description='descy desc')))
+    assert resp.status_code == 200
+    assert resp.json.get('name') == 'namey name'
+    assert resp.json.get('description') == 'descy desc'
+
+    # update only name
+    resp = rmaker.make_authenticated_workspace_owner_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(dict(name='test1')))
+    assert resp.status_code == 200
+    assert resp.json.get('name') == 'test1'
+    assert resp.json.get('description') == 'descy desc'
+
+
+def test_modify_workspace_expiry_date(rmaker: RequestMaker, pri_data: PrimaryData):
+    # try to modify expiry date for workspace that does not have 'allow_expiry_extension' set
+    resp = rmaker.make_authenticated_workspace_owner_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(dict(
+            name='test1',
+            expiry_ts=int(time.time()) + 86400 * 365
+        ))
+    )
+    assert resp.status_code == 422
+
+    w = db.session.scalar(select(Workspace).where(Workspace.id == pri_data.known_workspace_id))
+    w.config |= dict(allow_expiry_extension=True)
     db.session.commit()
-
-    data_ban = {
-        'name': 'TestWorkspaceModify',
-        'description': 'Workspace Details',
-        'user_config': {
-            'banned_users': [{'id': u1.id}]
-        }
-    }
-    data_manager = {
-        'name': 'TestWorkspaceModify',
-        'description': 'Workspace Details',
-        'user_config': {
-            'managers': [{'id': u2.id}]
-        }
-    }
-    response_ban = rmaker.make_authenticated_workspace_owner_request(
+    new_expiry_ts = int(time.time()) + 86400 * 365
+    resp = rmaker.make_authenticated_workspace_owner_request(
         method='PUT',
-        path='/api/v1/workspaces/%s' % ws.id,
-        data=json.dumps(data_ban))
-    assert response_ban.status_code == 200
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(dict(
+            name='test1',
+            expiry_ts=new_expiry_ts
+        ))
+    )
+    assert resp.status_code == 200
+    assert resp.json.get('expiry_ts') == new_expiry_ts
 
-    response_manager = rmaker.make_authenticated_workspace_owner_request(
+    invalid_expiry_dates = [
+        -1,
+        int(time.time() - 10),
+        int(time.time() + 86400 * 31 * 14),
+    ]
+    for invalid_expiry_date in invalid_expiry_dates:
+        resp = rmaker.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+            data=json.dumps(dict(expiry_ts=invalid_expiry_date))
+        )
+        assert resp.status_code == 422
+
+
+def test_modify_workspace_rename_to_system(rmaker: RequestMaker, pri_data: PrimaryData):
+    invalid_data_system = dict(name='System.TestWorkspaceModify', description='Cannot rename to System.*')
+
+    # should not be able to rename to System.*, even as an admin
+    resp = rmaker.make_authenticated_workspace_owner_request(
         method='PUT',
-        path='/api/v1/workspaces/%s' % ws.id,
-        data=json.dumps(data_manager))
-    assert response_manager.status_code == 200
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(invalid_data_system))
+    assert resp.status_code == 422
+    resp = rmaker.make_authenticated_admin_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(invalid_data_system))
+    assert resp.status_code == 422
 
 
 def test_modify_workspace_invalid_data(rmaker: RequestMaker, pri_data: PrimaryData):
-    invalid_data_system = {
-        'name': 'System.TestWorkspaceModify',
-        'description': 'Cannot rename to System.*',
-    }
+    invalid_data = [
+        dict(name='x' * 65, description='asdfasdfasdfasdf'),
+        dict(expiry_ts='foo'),
+    ]
 
-    # should not be able to rename to System.*, even as an admin
-    invalid_response = rmaker.make_authenticated_workspace_owner_request(
-        method='PUT',
-        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
-        data=json.dumps(invalid_data_system))
-    assert invalid_response.status_code == 422
-    invalid_response = rmaker.make_authenticated_admin_request(
-        method='PUT',
-        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
-        data=json.dumps(invalid_data_system))
-    assert invalid_response.status_code == 422
+    for data in invalid_data:
+        resp = rmaker.make_authenticated_workspace_owner_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+            data=json.dumps(data))
+        assert resp.status_code == 422
+        resp = rmaker.make_authenticated_admin_request(
+            method='PUT',
+            path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+            data=json.dumps(data))
+        assert resp.status_code == 422
 
 
 def test_archive_workspace(rmaker: RequestMaker, pri_data: PrimaryData):

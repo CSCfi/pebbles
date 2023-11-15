@@ -417,6 +417,10 @@ class Workspace(db.Model):
     def membership_join_policy(self):
         return load_column(self._membership_join_policy)
 
+    @hybrid_property
+    def allow_expiry_extension(self):
+        return self.config.get('allow_expiry_extension', False)
+
     @membership_join_policy.setter
     def membership_join_policy(self, value):
         error = Workspace.check_membership_join_policy(value)
