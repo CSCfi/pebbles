@@ -36,6 +36,7 @@ workspace_fields_admin = {
     'membership_join_policy': fields.Raw,
     'cluster': fields.String,
     'config': fields.Raw,
+    'contact': fields.String
 }
 
 workspace_fields_owner = {
@@ -54,6 +55,7 @@ workspace_fields_owner = {
     'config': {
         'allow_expiry_extension': fields.Boolean,
     },
+    'contact': fields.String
 }
 
 workspace_fields_manager = {
@@ -68,6 +70,7 @@ workspace_fields_manager = {
     'membership_type': fields.String(default='manager'),
     'membership_expiry_policy': fields.Raw,
     'cluster': fields.String,
+    'contact': fields.String
 }
 
 workspace_fields_user = {
@@ -79,6 +82,7 @@ workspace_fields_user = {
     'memory_limit_gib': fields.Integer,
     'membership_type': fields.String(default='member'),
     'membership_expiry_policy': fields.Raw,
+    'contact': fields.String
 }
 
 member_fields = dict(
@@ -198,6 +202,9 @@ class WorkspaceList(restful.Resource):
         else:
             workspace.expiry_ts = max_expiry_ts
 
+        if form.contact.data is not None:
+            workspace.contact = form.contact.data
+
         # If users can later select the clusters, then this should be taken from the form and verified
         workspace.cluster = current_app.config['DEFAULT_CLUSTER']
 
@@ -265,8 +272,13 @@ class WorkspaceView(restful.Resource):
                 # assigning to this hybrid property triggers regeneration of join code
                 workspace.join_code = form.name.data
 
+        # We don't allow empty descriptions
         if form.description.data:
             workspace.description = form.description.data
+
+        # Contact field can be empty
+        if form.contact.data is not None:
+            workspace.contact = form.contact.data
 
         # handle extending the expiry date
         if form.expiry_ts.data:
@@ -287,6 +299,7 @@ class WorkspaceView(restful.Resource):
                 logging.warning(msg)
                 return msg, 422
 
+        db.session.add(workspace)
         db.session.commit()
 
         # marshal based on role

@@ -328,6 +328,7 @@ class Workspace(db.Model):
     application_quota = db.Column(db.Integer, default=10)
     memory_limit_gib = db.Column(db.Integer, default=50)
     _config = db.Column('config', db.Text)
+    contact = db.Column(db.String(64))
 
     applications = db.relationship('Application', backref='workspace', lazy='dynamic')
 

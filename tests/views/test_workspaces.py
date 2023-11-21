@@ -60,6 +60,21 @@ def test_get_workspace_list_vs_view(rmaker: RequestMaker, pri_data: PrimaryData)
         assert w1 == w2
 
 
+def test_workspace_contact(rmaker: RequestMaker, pri_data: PrimaryData):
+    data = {
+        'name': 'TestWorkspace',
+        'description': 'Workspace Details',
+        'contact': 'email@email.com',
+    }
+
+    resp = rmaker.make_authenticated_workspace_owner_request(
+        method='POST',
+        path='/api/v1/workspaces',
+        data=json.dumps(data))
+    assert resp.status_code == 200
+    assert resp.json['contact'] == 'email@email.com'
+
+
 def test_create_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
     data = {
         'name': 'TestWorkspace',
@@ -74,6 +89,8 @@ def test_create_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
         'name': 'TestWorkspace',
         'description': 'Workspace Details',
         'workspace_type': WS_TYPE_LONG_RUNNING,
+        'user_config': {
+        },
     }
     data_4 = {
         'name': 'TestWorkspace4',
@@ -233,10 +250,12 @@ def test_modify_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
     resp = rmaker.make_authenticated_workspace_owner_request(
         method='PUT',
         path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
-        data=json.dumps(dict(name='namey name', description='descy desc')))
+        data=json.dumps(dict(name='namey name', description='descy desc',
+                             contact='email@email.com')))
     assert resp.status_code == 200
     assert resp.json.get('name') == 'namey name'
     assert resp.json.get('description') == 'descy desc'
+    assert resp.json.get('contact') == 'email@email.com'
 
     # update only name
     resp = rmaker.make_authenticated_workspace_owner_request(
@@ -246,6 +265,7 @@ def test_modify_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
     assert resp.status_code == 200
     assert resp.json.get('name') == 'test1'
     assert resp.json.get('description') == 'descy desc'
+    assert resp.json.get('contact') == 'email@email.com'
 
 
 def test_modify_workspace_expiry_date(rmaker: RequestMaker, pri_data: PrimaryData):

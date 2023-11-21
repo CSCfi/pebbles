@@ -42,6 +42,7 @@ class WorkspaceForm(ModelForm):
         name='workspace_type',
         validators=[AnyOf(VALID_WS_TYPES + [None, ], message='Unknown workspace_type')],
     )
+    contact = StringField('contact')
 
 
 class MessageForm(ModelForm):
