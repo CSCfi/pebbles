@@ -319,7 +319,7 @@ class JoinWorkspace(restful.Resource):
         workspace = Workspace.query.filter_by(join_code=join_code).first()
         if not workspace:
             logging.warning('invalid workspace join code %s', join_code)
-            return 'The code entered is invalid. Please recheck and try again', 422
+            return 'The code entered is invalid. Please check and try again', 422
 
         # filter workspaces that have expiry_ts in the past
         if workspace.has_expired():
