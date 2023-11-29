@@ -89,7 +89,7 @@ def create_app(test_config=None):
         # Do not set this in production.
         if 'DISABLE_CORS' in os.environ and os.environ['DISABLE_CORS']:
             r.headers['Access-Control-Allow-Origin'] = '*'
-            r.headers['Access-Control-Allow-Headers'] = '*'
+            r.headers['Access-Control-Allow-Headers'] = '*, Authorization'
             r.headers['Access-Control-Allow-Methods'] = '*'
 
         return r
