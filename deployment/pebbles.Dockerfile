@@ -1,5 +1,5 @@
 # Use official Python image
-FROM docker.io/library/python:3.11-bullseye
+FROM docker.io/library/python:3.11.5-bullseye
 LABEL "io.k8s.display-name"="pebbles"
 USER root
 
