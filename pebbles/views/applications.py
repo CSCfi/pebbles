@@ -57,6 +57,7 @@ application_field_role_map = dict(
         'application_type': fields.String,
         'is_enabled': fields.Boolean,
         'config': fields.Raw,
+        'attribute_limits': fields.Raw,
         'workspace_id': fields.String,
         'workspace_name': fields.String,
         'info': {
