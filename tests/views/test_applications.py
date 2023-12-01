@@ -23,12 +23,14 @@ def test_get_applications(rmaker: RequestMaker, pri_data: PrimaryData):
     assert response.status_code == 200
     assert len(response.json) == 3
     assert len([app for app in response.json if app.get('template_id')]) == 0
+    assert len([app for app in response.json if app.get('attribute_limits')]) == 0
 
     # Authenticated Workspace Owner for Workspace 1(with 4 apps), user is also an unprivileged member for Workspace 2
     response = rmaker.make_authenticated_workspace_owner_request(path='/api/v1/applications')
     assert response.status_code == 200
     assert len(response.json) == 6
     assert len([app for app in response.json if app.get('template_id')]) == 4
+    assert len([app for app in response.json if app.get('attribute_limits')]) == 4
     assert len([app for app in response.json if app.get('workspace_pseudonym')]) == 0
 
     response = rmaker.make_authenticated_workspace_owner_request(
