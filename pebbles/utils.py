@@ -4,6 +4,7 @@ import logging
 import random
 from functools import wraps
 from logging.handlers import RotatingFileHandler
+import re
 
 import yaml
 from flask import abort, g
@@ -295,3 +296,14 @@ def load_auth_config(path):
     except YAMLError as e:
         logging.warning('cannot parse auth-config.yaml, error %s', e)
     return None
+
+
+def read_list_from_text_file(path):
+    """
+    Reads a text file and returns the contents as a list excluding any items that
+    do not begin with an alphabetic character
+    """
+    with open(path, 'r') as f:
+        items = f.read().splitlines()
+    items = [item.strip() for item in items if item.strip() and re.match(r'[a-zA-Z]', item.strip()[0])]
+    return items

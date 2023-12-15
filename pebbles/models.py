@@ -9,8 +9,8 @@ import secrets
 import string
 import time
 import uuid
+from pathlib import Path
 
-import names
 import yaml
 from jose import jwt, JWTError, ExpiredSignatureError
 from jose.exceptions import JWTClaimsError, JWSError
@@ -20,7 +20,7 @@ from sqlalchemy.schema import MetaData
 
 import pebbles
 from pebbles.app import db, bcrypt
-from pebbles.utils import get_application_fields_from_config
+from pebbles.utils import get_application_fields_from_config, read_list_from_text_file
 
 PEBBLES_TAINT_KEY = 'pebbles.csc.fi/taint'
 
@@ -44,35 +44,12 @@ convention = {
 
 db.Model.metadata = MetaData(naming_convention=convention)
 
-NAME_ADJECTIVES = (
-    'happy',
-    'sad',
-    'bright',
-    'dark',
-    'blue',
-    'yellow',
-    'red',
-    'green',
-    'white',
-    'black',
-    'clever',
-    'witty',
-    'smiley',
-    'orange',
-    'purple',
-    'warm',
-    'spirited',
-    'shiny',
-    'swish',
-    'elegant',
-    'glittery',
-    'wild',
-    'cool',
-    'patient',
-    'luminous',
-    'kind',
-    'flaring',
-)
+SESSION_NAME_MODIFIERS = ['dark', 'light', 'deep', 'faint', 'bright', 'beautifully', 'faded', 'vivid', 'pale', 'rich',
+                          'pure', 'gloriously']
+
+SESSION_NAME_COLORS = ['red', 'green', 'blue', 'purple', 'orange', 'yellow', 'black', 'white', 'pink', 'cyan',
+                       'magenta', 'fuchsia', 'turquoise', 'coral', 'emerald', 'mauve', 'indigo', 'ruby', 'brown',
+                       'grey', 'lilac', 'beige', 'crimson', 'teal', 'maroon', 'olive', 'violet', 'silver', 'khaki']
 
 
 class CaseInsensitiveComparator(Comparator):
@@ -742,7 +719,13 @@ class ApplicationSession(db.Model):
 
     @staticmethod
     def generate_name(prefix):
-        return '%s%s-the-%s' % (prefix, names.get_first_name().lower(), random.choice(NAME_ADJECTIVES))
+        plant_names = read_list_from_text_file(f'{Path(__file__).parent}/data/plantnames.txt')
+        return '%s%s-%s-%s' % (
+            prefix,
+            random.choice(SESSION_NAME_MODIFIERS),
+            random.choice(SESSION_NAME_COLORS),
+            random.choice(plant_names)
+        )
 
 
 class ApplicationSessionLog(db.Model):

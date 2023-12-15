@@ -237,3 +237,13 @@ def test_user_annotations(model_data: ModelDataFixture):
         assert False, 'annotations should fail for a non-list'
     except RuntimeWarning:
         pass
+
+
+def test_application_session_name_generation():
+    """
+    Test that application session name generation does not return the same
+    name too often by generating 1000 names and making sure that the result
+    is at least 990 unique names.
+    """
+    names = {ApplicationSession.generate_name("pb") for _ in range(1000)}
+    assert len(names) > 990
