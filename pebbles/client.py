@@ -128,11 +128,13 @@ class PBClient:
             raise RuntimeError('Cannot fetch data for application_sessions, %s' % resp.reason)
         return resp.json()
 
-    def get_application_session(self, application_session_id):
+    def get_application_session(self, application_session_id, suppress_404=False):
         resp = self.do_get('application_sessions/%s' % application_session_id)
         if resp.status_code != 200:
+            if suppress_404 and resp.status_code == 404:
+                return None
             raise RuntimeError(
-                'Cannot fetch data for application_sessions %s, %s' % (application_session_id, resp.reason))
+                'Cannot fetch data for application_session %s, %s' % (application_session_id, resp.reason))
         return resp.json()
 
     def get_application_session_application(self, application_session_id):

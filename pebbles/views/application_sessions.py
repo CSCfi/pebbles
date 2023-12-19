@@ -198,6 +198,9 @@ class ApplicationSessionView(restful.Resource):
         application_session.maximum_lifetime = application.maximum_lifetime
         application_session.cost_multiplier = application.cost_multiplier
 
+        if application_session.to_be_deleted and application_session.state != ApplicationSession.STATE_DELETED:
+            application_session.state = ApplicationSession.STATE_DELETING
+
         return application_session
 
     @auth.login_required

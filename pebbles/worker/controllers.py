@@ -9,6 +9,8 @@ import requests
 from pebbles.models import ApplicationSession, Task
 from pebbles.utils import find_driver_class
 
+WS_CONTROLLER_TASK_LOCK_NAME = 'workspace-controller-tasks'
+
 DRIVER_CACHE_LIFETIME = 900
 
 
@@ -112,8 +114,10 @@ class ApplicationSessionController(ControllerBase):
             return
         self.update_next_check_ts(self.polling_interval_min, self.polling_interval_max)
 
-        # we query all non-deleted application sessions
+        # Query all non-deleted application sessions. This will be a list of candidates, because other
+        # workers could fetch the overlapping sessions as well.
         sessions = self.client.get_application_sessions()
+        logging.debug('got %d sessions', len(sessions))
 
         # extract sessions that need to be processed
         # waiting to be provisioned
@@ -149,21 +153,29 @@ class ApplicationSessionController(ControllerBase):
             for session in processed_sessions:
                 # skip the ones that are already in progress
                 if session['id'] in locked_session_ids:
+                    logging.debug('skipping locked session %s', session['id'])
                     continue
 
                 # try to obtain a lock. Should we lose the race, the winner takes it and we move on
-                lock = self.client.obtain_lock(session.get('id'), self.worker_id)
-                if lock is None:
+                lock_id = self.client.obtain_lock(session.get('id'), self.worker_id)
+                if not lock_id:
+                    logging.debug('failed to acquire lock on session %s, skipping', session['id'])
                     continue
 
                 # process session and release the lock
                 try:
-                    self.process_application_session(session)
+                    # Now we have the lock, and we can fetch the definite state for the session
+                    # If the session has been already deleted by another worker, we'll get None
+                    fresh_session = self.client.get_application_session(session.get('id'), suppress_404=True)
+                    if fresh_session and fresh_session.get('state') == session.get('state'):
+                        self.process_application_session(fresh_session)
+                    else:
+                        logging.info('session %s already processed by another worker', session.get('name'))
                 except Exception as e:
                     logging.warning(e)
                     logging.debug(traceback.format_exc().splitlines()[-5:])
                 finally:
-                    self.client.release_lock(session.get('id'), self.worker_id)
+                    self.client.release_lock(lock_id, self.worker_id)
 
 
 class ClusterController(ControllerBase):
@@ -285,40 +297,43 @@ class WorkspaceController(ControllerBase):
             return
         self.update_next_check_ts(self.polling_interval_min, self.polling_interval_max)
 
-        logging.debug('WorkspaceController: checking tasks')
-        unfinished_tasks = self.client.get_tasks(unfinished=1)
+        # Try to obtain a global lock for WorkspaceTaskProcessing.
+        # Should we lose the race, the winner takes it, and we try next time we are active
+        lock = self.client.obtain_lock(WS_CONTROLLER_TASK_LOCK_NAME, self.worker_id)
+        if lock is None:
+            logging.debug('WorkspaceController did not acquire lock, skipping')
+            return
 
-        unfinished_tasks = sorted(
-            unfinished_tasks,
-            key=lambda t: '%d-%s' % (t.get('create_ts'), t.get('id')),
-            reverse=True
-        )
-        tasks = unfinished_tasks[:self.max_concurrent_tasks]
+        try:
+            logging.debug('WorkspaceController: checking tasks')
+            unfinished_tasks = self.client.get_tasks(unfinished=1)
 
-        for task in tasks:
-            logging.debug(task)
-            # try to obtain a lock. Should we lose the race, the winner takes it, and we move on
-            lock = self.client.obtain_lock(task.get('id'), self.worker_id)
-            if lock is None:
-                continue
+            unfinished_tasks = sorted(
+                unfinished_tasks,
+                key=lambda t: '%d-%s' % (t.get('create_ts'), t.get('id')),
+                reverse=True
+            )
+            tasks = unfinished_tasks[:self.max_concurrent_tasks]
 
-            # process tasks and release the lock
-            try:
-                if task.get('kind') == Task.KIND_WORKSPACE_VOLUME_BACKUP:
-                    self.process_volume_backup_task(task)
-                elif task.get('kind') == Task.KIND_WORKSPACE_VOLUME_RESTORE:
-                    self.process_volume_restore_task(task)
-                else:
-                    logging.warning('unknown task kind: %s' % task.kind)
-            except Exception as e:
-                logging.warning('Marking task %s FAILED due to "%s"', task.get('id'), e)
-                self.client.update_task(task.get('id'), state=Task.STATE_FAILED)
-                self.client.add_task_results(
-                    task.get('id'),
-                    results='\n'.join(e.__str__().splitlines()[:4])
-                )
-            finally:
-                self.client.release_lock(task.get('id'), self.worker_id)
+            for task in tasks:
+                logging.debug(task)
+                # process tasks and release the lock
+                try:
+                    if task.get('kind') == Task.KIND_WORKSPACE_VOLUME_BACKUP:
+                        self.process_volume_backup_task(task)
+                    elif task.get('kind') == Task.KIND_WORKSPACE_VOLUME_RESTORE:
+                        self.process_volume_restore_task(task)
+                    else:
+                        logging.warning('unknown task kind: %s' % task.kind)
+                except Exception as e:
+                    logging.warning('Marking task %s FAILED due to "%s"', task.get('id'), e)
+                    self.client.update_task(task.get('id'), state=Task.STATE_FAILED)
+                    self.client.add_task_results(
+                        task.get('id'),
+                        results='\n'.join(e.__str__().splitlines()[:4])
+                    )
+        finally:
+            self.client.release_lock(WS_CONTROLLER_TASK_LOCK_NAME, self.worker_id)
 
     @staticmethod
     def get_volume_name(task_data):
