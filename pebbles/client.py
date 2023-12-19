@@ -122,8 +122,11 @@ class PBClient:
 
         return resp.json()
 
-    def get_application_sessions(self):
-        resp = self.do_get('application_sessions')
+    def get_application_sessions(self, limit=0):
+        query = 'application_sessions'
+        if limit:
+            query += f'?limit={limit}'
+        resp = self.do_get(query)
         if resp.status_code != 200:
             raise RuntimeError('Cannot fetch data for application_sessions, %s' % resp.reason)
         return resp.json()

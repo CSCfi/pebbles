@@ -11,6 +11,8 @@ from pebbles.utils import find_driver_class
 
 WS_CONTROLLER_TASK_LOCK_NAME = 'workspace-controller-tasks'
 
+SESSION_CONTROLLER_LIMIT_SIZE = 50
+
 DRIVER_CACHE_LIFETIME = 900
 
 
@@ -116,7 +118,7 @@ class ApplicationSessionController(ControllerBase):
 
         # Query all non-deleted application sessions. This will be a list of candidates, because other
         # workers could fetch the overlapping sessions as well.
-        sessions = self.client.get_application_sessions()
+        sessions = self.client.get_application_sessions(limit=SESSION_CONTROLLER_LIMIT_SIZE)
         logging.debug('got %d sessions', len(sessions))
 
         # extract sessions that need to be processed

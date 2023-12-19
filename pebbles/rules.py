@@ -1,6 +1,6 @@
 import itertools
 
-from sqlalchemy import or_, select, false
+from sqlalchemy import or_, select, false, func
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
 
@@ -55,24 +55,36 @@ def generate_application_session_query(user, args=None):
     if args and args.get('application_session_id'):
         s = s.where(ApplicationSession.id == args.get('application_session_id'))
 
-    if user.is_admin:
-        # no further filtering is needed for admins
-        return s
-
-    # For non-admins, list union of application sessions that
-    # - belong to applications that are managed by the user
-    # - are owned by the user
-    # Use a subquery for finding managed applications
-    managed_application_ids = select(Application.id) \
-        .join(WorkspaceMembership, WorkspaceMembership.workspace_id == Application.workspace_id) \
-        .where(WorkspaceMembership.user_id == user.id) \
-        .where(WorkspaceMembership.is_manager)
-    s = s.where(
-        or_(
-            ApplicationSession.application_id.in_(managed_application_ids),
-            ApplicationSession.user_id == user.id
+    if not user.is_admin:
+        # For non-admins, list union of application sessions that
+        # - belong to applications that are managed by the user
+        # - are owned by the user
+        # Use a subquery for finding managed applications
+        managed_application_ids = select(Application.id) \
+            .join(WorkspaceMembership, WorkspaceMembership.workspace_id == Application.workspace_id) \
+            .where(WorkspaceMembership.user_id == user.id) \
+            .where(WorkspaceMembership.is_manager)
+        s = s.where(
+            or_(
+                ApplicationSession.application_id.in_(managed_application_ids),
+                ApplicationSession.user_id == user.id
+            )
         )
-    )
+
+    if args and args.get('limit'):
+        # prioritize to_be_deleted
+        s = s.order_by(ApplicationSession.to_be_deleted == false())
+        # then sessions that are not in static states (failed, running, deleted)
+        s = s.order_by(
+            or_(
+                ApplicationSession.state == ApplicationSession.STATE_FAILED,
+                ApplicationSession.state == ApplicationSession.STATE_RUNNING,
+                ApplicationSession.state == ApplicationSession.STATE_DELETED,
+            )
+        )
+        # finally random order as the last criteria
+        s = s.order_by(func.random())
+        s = s.limit(int(args.get('limit')))
 
     return s
 

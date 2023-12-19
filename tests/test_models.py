@@ -78,9 +78,9 @@ def test_add_duplicate_user_will_fail(model_data: ModelDataFixture):
 
 
 def test_application_session_states(model_data: ModelDataFixture):
-    i1 = ApplicationSession(model_data.known_application, model_data.known_user)
+    s1 = ApplicationSession(model_data.known_application, model_data.known_user)
     for state in ApplicationSession.VALID_STATES:
-        i1.state = state
+        s1.state = state
 
     invalid_states = [x + 'foo' for x in ApplicationSession.VALID_STATES]
     invalid_states.append('')
@@ -88,7 +88,7 @@ def test_application_session_states(model_data: ModelDataFixture):
 
     for state in invalid_states:
         try:
-            i1.state = state
+            s1.state = state
             assert False, 'invalid state %s not detected' % state
         except ValueError:
             pass

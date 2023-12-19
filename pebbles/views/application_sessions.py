@@ -70,13 +70,16 @@ def positive_integer(input_value):
 
 class ApplicationSessionList(restful.Resource):
 
+    list_parser = reqparse.RequestParser()
+    list_parser.add_argument('limit', type=int, location='args')
+
     @auth.login_required
     @marshal_with(application_session_fields)
     def get(self):
         user = g.user
 
-        s = rules.generate_application_session_query(user)
-
+        args = self.list_parser.parse_args()
+        s = rules.generate_application_session_query(user, args)
         rows = db.session.execute(s).all()
         current_sessions = []
         for row in rows:

@@ -1,5 +1,8 @@
+import datetime
 import json
 import time
+
+from sqlalchemy import select
 
 from pebbles.models import User, Application, ApplicationSession, ApplicationSessionLog
 from pebbles.models import db
@@ -152,6 +155,78 @@ def test_get_application_sessions(rmaker: RequestMaker, pri_data: PrimaryData):
     assert len(response.json) == 4
 
 
+def test_get_application_sessions_limit(rmaker: RequestMaker, pri_data: PrimaryData):
+    # First, test_get_application_sessions() duplicated with additional limit=10 parameter
+
+    # Anonymous
+    resp = rmaker.make_request(path='/api/v1/application_sessions?limit=10')
+    assert resp.status_code == 401
+
+    # Authenticated
+    resp = rmaker.make_authenticated_user_request(path='/api/v1/application_sessions?limit=10')
+    assert resp.status_code == 200
+    assert len(resp.json) == 2
+
+    # Workspace Manager (His own session + other sessions from his managed workspaces)
+    resp = rmaker.make_authenticated_workspace_owner_request(path='/api/v1/application_sessions?limit=10')
+    assert resp.status_code == 200
+    assert len(resp.json) == 3
+
+    # Admin
+    resp = rmaker.make_authenticated_admin_request(path='/api/v1/application_sessions?limit=10')
+    assert resp.status_code == 200
+    assert len(resp.json) == 4
+
+    # Then, test actual limits
+
+    # simple limit
+    resp = rmaker.make_authenticated_admin_request(path='/api/v1/application_sessions?limit=3')
+    assert resp.status_code == 200
+    assert len(resp.json) == 3
+
+    # setup one highest priority session (to_be_deleted), check that it is returned as the only one
+    s2 = db.session.scalar(
+        select(ApplicationSession).where(ApplicationSession.id == pri_data.known_application_session_id_2)
+    )
+    s2.to_be_deleted = True
+    db.session.commit()
+    resp = rmaker.make_authenticated_admin_request(path='/api/v1/application_sessions?limit=1')
+    assert resp.status_code == 200
+    assert len(resp.json) == 1
+    assert resp.json[0]['id'] == pri_data.known_application_session_id_2
+
+    # setup second high priority session (to_be_deleted), check that both are first
+    s1 = db.session.scalar(
+        select(ApplicationSession).where(ApplicationSession.id == pri_data.known_application_session_id)
+    )
+    s1.to_be_deleted = True
+    db.session.commit()
+    resp = rmaker.make_authenticated_admin_request(path='/api/v1/application_sessions?limit=3')
+    assert resp.status_code == 200
+    assert len(resp.json) == 3
+    assert set([resp.json[0]['id'], resp.json[1]['id']]) == \
+           set([pri_data.known_application_session_id, pri_data.known_application_session_id_2])
+
+    # QUEUEING, PROVISIONING, STARTING should come right after to_be_deleted
+    s7 = ApplicationSession(
+        Application.query.filter_by(id=pri_data.known_application_id).first(),
+        User.query.filter_by(ext_id="user@example.org").first())
+    s7.name = 'pb-s7'
+    s7.provisioned_at = datetime.datetime.strptime("2023-12-19T13:00:00", "%Y-%m-%dT%H:%M:%S")
+    db.session.add(s7)
+    for state in [
+        ApplicationSession.STATE_QUEUEING, ApplicationSession.STATE_PROVISIONING, ApplicationSession.STATE_STARTING
+    ]:
+        s7.state = state
+        db.session.commit()
+        resp = rmaker.make_authenticated_admin_request(path='/api/v1/application_sessions?limit=5')
+        assert resp.status_code == 200
+        assert len(resp.json) == 5
+        assert set([resp.json[0]['id'], resp.json[1]['id']]) == \
+               set([pri_data.known_application_session_id, pri_data.known_application_session_id_2])
+        assert resp.json[2]['id'] == s7.id, f'state {state} did not get sorted as second priority'
+
+
 def test_get_application_session(rmaker: RequestMaker, pri_data: PrimaryData):
     # Anonymous
     response = rmaker.make_request(path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id)
@@ -278,73 +353,73 @@ def test_patch_application_session_log_fetch_pending(rmaker: RequestMaker, pri_d
 def test_delete_application_session(rmaker: RequestMaker, pri_data: PrimaryData):
     application = Application.query.filter_by(id=pri_data.known_application_id).first()
     user = User.query.filter_by(id=pri_data.known_user_id).first()
-    i1 = ApplicationSession(application, user)
-    db.session.add(i1)
+    s1 = ApplicationSession(application, user)
+    db.session.add(s1)
     db.session.commit()
     # Anonymous
     response = rmaker.make_request(
         method='DELETE',
-        path='/api/v1/application_sessions/%s' % i1.id
+        path='/api/v1/application_sessions/%s' % s1.id
     )
     assert response.status_code == 401
     # Authenticated User of the application session
     response = rmaker.make_authenticated_user_request(
         method='DELETE',
-        path='/api/v1/application_sessions/%s' % i1.id
+        path='/api/v1/application_sessions/%s' % s1.id
     )
     assert response.status_code == 202
 
-    i2 = ApplicationSession(application, user)
-    db.session.add(i2)
+    s2 = ApplicationSession(application, user)
+    db.session.add(s2)
     db.session.commit()
     # Authenticated Workspace Owner of the application session
     response = rmaker.make_authenticated_workspace_owner_request(
         method='DELETE',
-        path='/api/v1/application_sessions/%s' % i2.id
+        path='/api/v1/application_sessions/%s' % s2.id
     )
     assert response.status_code == 202
 
-    i3 = ApplicationSession(application, user)
-    db.session.add(i3)
+    s3 = ApplicationSession(application, user)
+    db.session.add(s3)
     db.session.commit()
     # Authenticated Workspace Manager of the application session
     response = rmaker.make_authenticated_workspace_owner2_request(
         method='DELETE',
-        path='/api/v1/application_sessions/%s' % i3.id
+        path='/api/v1/application_sessions/%s' % s3.id
     )
     assert response.status_code == 202
 
-    i4 = ApplicationSession(application, user)
-    db.session.add(i4)
+    s4 = ApplicationSession(application, user)
+    db.session.add(s4)
     db.session.commit()
     # Admin
     response = rmaker.make_authenticated_admin_request(
         method='DELETE',
-        path='/api/v1/application_sessions/%s' % i4.id
+        path='/api/v1/application_sessions/%s' % s4.id
     )
     assert response.status_code == 202
 
-    environment2 = Application.query.filter_by(id=pri_data.known_application_id_g2).first()
+    application2 = Application.query.filter_by(id=pri_data.known_application_id_g2).first()
     user2 = User.query.filter_by(id=pri_data.known_workspace_owner_id_2).first()
-    i5 = ApplicationSession(environment2, user2)
-    db.session.add(i5)
+    s5 = ApplicationSession(application2, user2)
+    db.session.add(s5)
     db.session.commit()
     # User is not part of the workspace
     response = rmaker.make_authenticated_user_request(
         method='DELETE',
-        path='/api/v1/application_sessions/%s' % i5.id
+        path='/api/v1/application_sessions/%s' % s5.id
     )
     assert response.status_code == 404
     # Owner 1 is just a normal user in this workspace who didn't spawn the application session
     response = rmaker.make_authenticated_workspace_owner_request(
         method='DELETE',
-        path='/api/v1/application_sessions/%s' % i5.id
+        path='/api/v1/application_sessions/%s' % s5.id
     )
     assert response.status_code == 404
     # Authenticated Workspace Owner of the workspace
     response = rmaker.make_authenticated_workspace_owner2_request(
         method='DELETE',
-        path='/api/v1/application_sessions/%s' % i5.id
+        path='/api/v1/application_sessions/%s' % s5.id
     )
     assert response.status_code == 202
 

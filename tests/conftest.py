@@ -356,60 +356,60 @@ class PrimaryData:
         self.known_announcement4_id = an4.id
         db.session.add(an4)
 
-        i1 = ApplicationSession(
+        s1 = ApplicationSession(
             Application.query.filter_by(id=a2.id).first(),
             User.query.filter_by(ext_id="user@example.org").first())
-        i1.name = 'pb-i1'
-        i1.state = ApplicationSession.STATE_RUNNING
-        db.session.add(i1)
-        self.known_application_session_id = i1.id
+        s1.name = 'pb-s1'
+        s1.state = ApplicationSession.STATE_RUNNING
+        db.session.add(s1)
+        self.known_application_session_id = s1.id
 
-        i2 = ApplicationSession(
+        s2 = ApplicationSession(
             Application.query.filter_by(id=a3.id).first(),
             User.query.filter_by(ext_id="user@example.org").first())
-        i2.name = 'pb-i2'
-        i2.state = ApplicationSession.STATE_RUNNING
-        db.session.add(i2)
-        db.session.add(ApplicationSessionLog(i2.id, 'info', 'provisioning', '1000.0', 'provisioning done'))
-        self.known_application_session_id_2 = i2.id
+        s2.name = 'pb-s2'
+        s2.state = ApplicationSession.STATE_RUNNING
+        db.session.add(s2)
+        db.session.add(ApplicationSessionLog(s2.id, 'info', 'provisioning', '1000.0', 'provisioning done'))
+        self.known_application_session_id_2 = s2.id
 
-        i3 = ApplicationSession(
+        s3 = ApplicationSession(
             Application.query.filter_by(id=a3.id).first(),
             User.query.filter_by(ext_id="user@example.org").first())
-        i3.name = 'pb-i3'
-        i3.to_be_deleted = True
-        i3.provisioned_at = datetime.datetime.strptime("2022-06-28T13:00:00", "%Y-%m-%dT%H:%M:%S")
-        i3.deprovisioned_at = datetime.datetime.strptime("2022-06-28T14:00:00", "%Y-%m-%dT%H:%M:%S")
-        i3.provisioning_config = dict(memory_gib=4)
-        i3.state = ApplicationSession.STATE_DELETED
-        db.session.add(i3)
+        s3.name = 'pb-s3'
+        s3.to_be_deleted = True
+        s3.provisioned_at = datetime.datetime.strptime("2022-06-28T13:00:00", "%Y-%m-%dT%H:%M:%S")
+        s3.deprovisioned_at = datetime.datetime.strptime("2022-06-28T14:00:00", "%Y-%m-%dT%H:%M:%S")
+        s3.provisioning_config = dict(memory_gib=4)
+        s3.state = ApplicationSession.STATE_DELETED
+        db.session.add(s3)
 
-        i4 = ApplicationSession(
+        s4 = ApplicationSession(
             Application.query.filter_by(id=a3.id).first(),
             User.query.filter_by(ext_id="workspace_owner@example.org").first())
-        i4.name = 'pb-i4'
-        i4.state = ApplicationSession.STATE_FAILED
-        db.session.add(i4)
-        self.known_application_session_id_4 = i4.id
+        s4.name = 'pb-s4'
+        s4.state = ApplicationSession.STATE_FAILED
+        db.session.add(s4)
+        self.known_application_session_id_4 = s4.id
 
-        i5 = ApplicationSession(
+        s5 = ApplicationSession(
             Application.query.filter_by(id=a4.id).first(),
             User.query.filter_by(ext_id="admin@example.org").first())
-        i5.name = 'pb-i5'
-        i5.state = ApplicationSession.STATE_RUNNING
-        db.session.add(i5)
-        self.known_application_session_id_5 = i5.id
+        s5.name = 'pb-s5'
+        s5.state = ApplicationSession.STATE_RUNNING
+        db.session.add(s5)
+        self.known_application_session_id_5 = s5.id
 
-        i6 = ApplicationSession(
+        s6 = ApplicationSession(
             Application.query.filter_by(id=a3.id).first(),
             User.query.filter_by(ext_id="user@example.org").first())
-        i6.name = 'pb-i6'
-        i6.to_be_deleted = True
-        i6.provisioned_at = datetime.datetime.strptime("2022-06-28T13:00:00", "%Y-%m-%dT%H:%M:%S")
-        i6.deprovisioned_at = datetime.datetime.strptime("2022-06-28T16:00:00", "%Y-%m-%dT%H:%M:%S")
-        i6.provisioning_config = dict(memory_gib=8)
-        i6.state = ApplicationSession.STATE_DELETED
-        db.session.add(i6)
+        s6.name = 'pb-s6'
+        s6.to_be_deleted = True
+        s6.provisioned_at = datetime.datetime.strptime("2022-06-28T13:00:00", "%Y-%m-%dT%H:%M:%S")
+        s6.deprovisioned_at = datetime.datetime.strptime("2022-06-28T16:00:00", "%Y-%m-%dT%H:%M:%S")
+        s6.provisioning_config = dict(memory_gib=8)
+        s6.state = ApplicationSession.STATE_DELETED
+        db.session.add(s6)
 
         db.session.commit()
 
