@@ -51,6 +51,15 @@ def test_get_workspaces(rmaker: RequestMaker, pri_data: PrimaryData):
     assert len(response.json) == 0
 
 
+def test_get_workspace_list_vs_view(rmaker: RequestMaker, pri_data: PrimaryData):
+    response = rmaker.make_authenticated_admin_request(path='/api/v1/workspaces')
+    assert response.status_code == 200
+    # check that individual application fetch matches the list output
+    for w1 in response.json:
+        w2 = rmaker.make_authenticated_admin_request(path=f'/api/v1/workspaces/{w1["id"]}').json
+        assert w1 == w2
+
+
 def test_create_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
     data = {
         'name': 'TestWorkspace',

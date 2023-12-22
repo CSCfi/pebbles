@@ -9,7 +9,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm
 from flask import Blueprint as FlaskBlueprint, current_app
 from flask import abort, g, request
-from flask_restful import marshal, marshal_with, reqparse, fields, inputs
+from flask_restful import marshal, reqparse, fields, inputs
 
 from pebbles.forms import WorkspaceForm, WS_TYPE_LONG_RUNNING
 from pebbles.models import db, Workspace, User, WorkspaceMembership, Application, ApplicationSession, Task
@@ -219,9 +219,8 @@ class WorkspaceList(restful.Resource):
 class WorkspaceView(restful.Resource):
     @auth.login_required
     @requires_admin
-    @marshal_with(workspace_fields_admin)
     def get(self, workspace_id):
-
+        user = g.user
         query = Workspace.query.filter_by(id=workspace_id)
         workspace = query.first()
 
@@ -230,7 +229,10 @@ class WorkspaceView(restful.Resource):
         if workspace.status == Workspace.STATUS_DELETED:
             abort(404)
 
-        return workspace
+        owner = next((wm.user for wm in workspace.memberships if wm.is_owner), None)
+        workspace.owner_ext_id = owner.ext_id if owner else None
+
+        return marshal_based_on_role(user, workspace)
 
     @auth.login_required
     @requires_workspace_owner_or_admin

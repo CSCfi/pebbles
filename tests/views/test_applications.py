@@ -22,23 +22,23 @@ def test_get_applications(rmaker: RequestMaker, pri_data: PrimaryData):
         path='/api/v1/applications?workspace_id=%s' % pri_data.known_workspace_id)
     assert response.status_code == 200
     assert len(response.json) == 3
-    assert len([app for app in response.json if app.get('template_id')]) == 0
-    assert len([app for app in response.json if app.get('attribute_limits')]) == 0
+    assert len([a for a in response.json if a.get('template_id')]) == 0
+    assert len([a for a in response.json if a.get('attribute_limits')]) == 0
 
     # Authenticated Workspace Owner for Workspace 1(with 4 apps), user is also an unprivileged member for Workspace 2
     response = rmaker.make_authenticated_workspace_owner_request(path='/api/v1/applications')
     assert response.status_code == 200
     assert len(response.json) == 6
-    assert len([app for app in response.json if app.get('template_id')]) == 4
-    assert len([app for app in response.json if app.get('attribute_limits')]) == 4
-    assert len([app for app in response.json if app.get('workspace_pseudonym')]) == 0
+    assert len([a for a in response.json if a.get('template_id')]) == 4
+    assert len([a for a in response.json if a.get('attribute_limits')]) == 4
+    assert len([a for a in response.json if a.get('workspace_pseudonym')]) == 0
 
     response = rmaker.make_authenticated_workspace_owner_request(
         path='/api/v1/applications?workspace_id=%s' % pri_data.known_workspace_id)
     assert response.status_code == 200
     assert len(response.json) == 4
-    assert len([app for app in response.json if app.get('template_id')]) == 4
-    assert len([app for app in response.json if app.get('workspace_pseudonym')]) == 0
+    assert len([a for a in response.json if a.get('template_id')]) == 4
+    assert len([a for a in response.json if a.get('workspace_pseudonym')]) == 0
 
     # Admin
     response = rmaker.make_authenticated_admin_request(path='/api/v1/applications')
@@ -48,12 +48,12 @@ def test_get_applications(rmaker: RequestMaker, pri_data: PrimaryData):
         path='/api/v1/applications?workspace_id=%s' % pri_data.known_workspace_id)
     assert response.status_code == 200
     assert len(response.json) == 4
-    assert len([app for app in response.json if app.get('workspace_pseudonym')]) == 4
+    assert len([a for a in response.json if a.get('workspace_pseudonym')]) == 4
 
     response = rmaker.make_authenticated_admin_request(path='/api/v1/applications?show_all=true')
     assert response.status_code == 200
     assert len(response.json) == 12
-    assert len([app for app in response.json if app.get('workspace_pseudonym')]) == 12
+    assert len([a for a in response.json if a.get('workspace_pseudonym')]) == 12
 
 
 def test_get_application(rmaker: RequestMaker, pri_data: PrimaryData):
@@ -122,6 +122,16 @@ def test_get_application_archived(rmaker: RequestMaker, pri_data: PrimaryData):
     response = rmaker.make_authenticated_admin_request(
         path='/api/v1/applications/%s' % pri_data.known_application_id_archived)
     assert response.status_code == 404
+
+
+def test_get_application_list_vs_view(rmaker: RequestMaker, pri_data: PrimaryData):
+    response = rmaker.make_authenticated_admin_request(path='/api/v1/applications')
+    assert response.status_code == 200
+    assert len(response.json) == 10
+    # check that individual application fetch matches the list output
+    for a1 in response.json:
+        a2 = rmaker.make_authenticated_admin_request(path=f'/api/v1/applications/{a1["id"]}').json
+        assert a1 == a2
 
 
 def test_get_application_labels(rmaker: RequestMaker, pri_data: PrimaryData):

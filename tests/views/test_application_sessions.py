@@ -155,6 +155,15 @@ def test_get_application_sessions(rmaker: RequestMaker, pri_data: PrimaryData):
     assert len(response.json) == 4
 
 
+def test_get_application_session_list_vs_view(rmaker: RequestMaker, pri_data: PrimaryData):
+    response = rmaker.make_authenticated_admin_request(path='/api/v1/application_sessions')
+    assert response.status_code == 200
+    # check that individual application fetch matches the list output
+    for s1 in response.json:
+        s2 = rmaker.make_authenticated_admin_request(path=f'/api/v1/application_sessions/{s1["id"]}').json
+        assert s1 == s2
+
+
 def test_get_application_sessions_limit(rmaker: RequestMaker, pri_data: PrimaryData):
     # First, test_get_application_sessions() duplicated with additional limit=10 parameter
 
