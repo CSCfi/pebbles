@@ -267,7 +267,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                     return ts, 'waiting for volumes'
                 if 'eadiness probe' in x.message:
                     return ts, 'starting'
-                if 'reated container pebbles-session' in x.message:
+                if 'reated container' in x.message:
                     return ts, 'starting'
                 for msg in ('ErrImagePull', 'ImagePullBackOff', 'Failed to pull image', 'Back-off pulling image'):
                     if msg in x.message:
