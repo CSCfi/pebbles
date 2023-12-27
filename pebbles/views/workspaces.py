@@ -191,6 +191,7 @@ class WorkspaceList(restful.Resource):
             if datetime.datetime.utcnow().timestamp() < expiry_ts <= max_expiry_ts:
                 workspace.expiry_ts = expiry_ts
             else:
+                db.session.rollback()
                 msg = 'Illegal workspace expiry time specified: %s' % datetime.datetime.fromtimestamp(expiry_ts)
                 logging.warning(msg)
                 return dict(message=msg), 422
