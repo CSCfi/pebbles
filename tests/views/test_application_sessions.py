@@ -88,7 +88,8 @@ def test_create_application_session_memory_limit(rmaker: RequestMaker, pri_data:
         data=json.dumps(data))
     assert response.status_code == 409, 'session launch should be rejected'
 
-    # but we should be able to launch a smaller application
+    # but we should be able to launch a smaller application. This also tests that custom memory_gib set in config
+    # overrides the base_config memory_gib
     data = {'application_id': pri_data.known_application_id_mem_limit_test_3}
     response = rmaker.make_authenticated_user_2_request(
         method='POST',

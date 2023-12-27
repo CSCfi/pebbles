@@ -147,7 +147,7 @@ class ApplicationSessionList(restful.Resource):
             .join(Application) \
             .filter_by(workspace_id=application.workspace_id).all()
         # sum up existing resources + the new session on top
-        ws_consumed_mem = application.base_config.get('memory_gib', 1.0)
+        ws_consumed_mem = application.config.get('memory_gib', application.base_config.get('memory_gib', 1.0))
         for sess in application_sessions_in_ws:
             ws_consumed_mem += sess.provisioning_config.get('memory_gib', 1.0)
 

@@ -318,10 +318,10 @@ class PrimaryData:
         a11.workspace_id = ws6.id
         a11.is_enabled = True
         fill_application_from_template(a11, t2)
-        # we need to modify and assign the full base_config here due to how hybrid properties behave
-        base_config = a11.base_config
-        base_config['memory_gib'] = 1.0
-        a11.base_config = base_config
+        # we need to modify and assign the full config here due to how hybrid properties behave
+        config = a11.config
+        config['memory_gib'] = 1.0
+        a11.config = config
         db.session.add(a11)
         self.known_application_id_mem_limit_test_3 = a11.id
 
