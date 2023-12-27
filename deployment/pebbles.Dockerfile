@@ -1,6 +1,8 @@
 # Use official Python image
 FROM docker.io/library/python:3.11.5-bullseye
 LABEL "io.k8s.display-name"="pebbles"
+ARG EXTRA_PIP_PACKAGES
+
 USER root
 
 # Add inotify for gunicorn hot reload
@@ -9,9 +11,10 @@ RUN apt update && apt install -y inotify-tools && apt clean
 # Use s2i compatible workdir
 WORKDIR /opt/app-root/src
 
-# Install requirements
+# Install requirements from requirements.txt and build argument
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+RUN if [ -n "$EXTRA_PIP_PACKAGES" ]; then pip install --no-cache-dir $EXTRA_PIP_PACKAGES; fi
 
 # Pick the required bits of source code
 COPY manage.py .
