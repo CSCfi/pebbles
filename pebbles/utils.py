@@ -121,10 +121,9 @@ def get_provisioning_config(application):
 
     # application type specific configs
     if application.application_type == 'jupyter':
-        if app_config.get('jupyter_interface') in ('notebook', 'lab'):
-            custom_config['jupyter_interface'] = app_config.get('jupyter_interface')
-        else:
-            custom_config['jupyter_interface'] = 'lab'
+        # since "notebook" type interface does not work anymore, use "lab" by default
+        # this configuration can be removed entirely, once "notebook" type applications no longer exist
+        custom_config['jupyter_interface'] = 'lab'
 
     elif application.application_type == 'rstudio':
         # nothing special required for rstudio yet
