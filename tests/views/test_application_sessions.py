@@ -503,3 +503,23 @@ def test_application_session_logs(rmaker: RequestMaker, pri_data: PrimaryData):
     assert response_get.status_code == 200
     assert len(response_get.json) == 1
     assert 'patched running logs' == response_get.json[0]['message']
+
+
+def test_application_session_provisioning_config(rmaker: RequestMaker, pri_data: PrimaryData):
+    # Authenticated User, should not see provisioning_config
+    response = rmaker.make_authenticated_user_request(
+        method='GET',
+        path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id)
+    assert "provisioning_config" not in response.json
+
+    # Authenticated Owner, should not see provisioning_config
+    response = rmaker.make_authenticated_workspace_owner_request(
+        method='GET',
+        path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id)
+    assert "provisioning_config" not in response.json
+
+    # Authenticated Admin, should see provisioning_config
+    response = rmaker.make_authenticated_admin_request(
+        method='GET',
+        path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id)
+    assert "provisioning_config" in response.json

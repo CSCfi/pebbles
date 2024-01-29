@@ -5,7 +5,7 @@ import logging
 import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g, current_app
-from flask_restful import marshal, marshal_with, fields, reqparse
+from flask_restful import marshal_with, fields, reqparse
 from sqlalchemy import select
 
 from pebbles import rules, utils
@@ -16,7 +16,7 @@ from pebbles.views.commons import auth, is_workspace_manager, requires_workspace
 
 application_sessions = FlaskBlueprint('application_sessions', __name__)
 
-application_session_fields = {
+application_session_fields_admin = {
     'id': fields.String,
     'name': fields.String,
     'created_at': fields.DateTime(dt_format='iso8601'),
@@ -36,6 +36,44 @@ application_session_fields = {
     'session_data': fields.Raw,
 }
 
+application_session_fields_manager = {
+    'id': fields.String,
+    'name': fields.String,
+    'created_at': fields.DateTime(dt_format='iso8601'),
+    'provisioned_at': fields.DateTime(dt_format='iso8601'),
+    'deprovisioned_at': fields.DateTime(dt_format='iso8601'),
+    'lifetime_left': fields.Integer,
+    'maximum_lifetime': fields.Integer,
+    'state': fields.String,
+    'to_be_deleted': fields.Boolean,
+    'log_fetch_pending': fields.Boolean,
+    'error_msg': fields.String,
+    'username': fields.String,
+    'user_id': fields.String,
+    'application': fields.String,
+    'application_id': fields.String,
+    'session_data': fields.Raw,
+}
+
+application_session_fields_user = {
+    'id': fields.String,
+    'name': fields.String,
+    'created_at': fields.DateTime(dt_format='iso8601'),
+    'provisioned_at': fields.DateTime(dt_format='iso8601'),
+    'deprovisioned_at': fields.DateTime(dt_format='iso8601'),
+    'lifetime_left': fields.Integer,
+    'maximum_lifetime': fields.Integer,
+    'state': fields.String,
+    'to_be_deleted': fields.Boolean,
+    'log_fetch_pending': fields.Boolean,
+    'error_msg': fields.String,
+    'username': fields.String,
+    'user_id': fields.String,
+    'application': fields.String,
+    'application_id': fields.String,
+    'session_data': fields.Raw,
+}
+
 application_session_log_fields = {
     'id': fields.String,
     'application_session_id': fields.String,
@@ -46,6 +84,15 @@ application_session_log_fields = {
 }
 
 MAX_APPLICATION_SESSIONS_PER_USER = 2
+
+
+def marshal_based_on_role(user, application_session):
+    if user.is_admin:
+        return restful.marshal(application_session, application_session_fields_admin)
+    elif is_workspace_manager(user):
+        return restful.marshal(application_session, application_session_fields_manager)
+    else:
+        return restful.marshal(application_session, application_session_fields_user)
 
 
 def query_application(application_id):
@@ -74,7 +121,6 @@ class ApplicationSessionList(restful.Resource):
     list_parser.add_argument('limit', type=int, location='args')
 
     @auth.login_required
-    @marshal_with(application_session_fields)
     def get(self):
         user = g.user
 
@@ -96,7 +142,7 @@ class ApplicationSessionList(restful.Resource):
             if application_session.to_be_deleted and application_session.state != ApplicationSession.STATE_DELETED:
                 application_session.state = ApplicationSession.STATE_DELETING
 
-            current_sessions.append(application_session)
+            current_sessions.append(marshal_based_on_role(user, application_session))
 
         return current_sessions
 
@@ -176,13 +222,12 @@ class ApplicationSessionList(restful.Resource):
 
         db.session.commit()
 
-        return marshal(application_session, application_session_fields), 200
+        return marshal_based_on_role(user, application_session), 200
 
 
 class ApplicationSessionView(restful.Resource):
 
     @auth.login_required
-    @marshal_with(application_session_fields)
     def get(self, application_session_id):
         user = g.user
         args = {'application_session_id': application_session_id}
@@ -204,7 +249,7 @@ class ApplicationSessionView(restful.Resource):
         if application_session.to_be_deleted and application_session.state != ApplicationSession.STATE_DELETED:
             application_session.state = ApplicationSession.STATE_DELETING
 
-        return application_session
+        return marshal_based_on_role(user, application_session)
 
     @auth.login_required
     def delete(self, application_session_id):
