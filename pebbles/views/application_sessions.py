@@ -34,6 +34,9 @@ application_session_fields_admin = {
     'application_id': fields.String,
     'provisioning_config': fields.Raw,
     'session_data': fields.Raw,
+    'info': {
+        'container_image': fields.Raw,
+    },
 }
 
 application_session_fields_manager = {
@@ -53,6 +56,9 @@ application_session_fields_manager = {
     'application': fields.String,
     'application_id': fields.String,
     'session_data': fields.Raw,
+    'info': {
+        'container_image': fields.Raw,
+    },
 }
 
 application_session_fields_user = {
@@ -72,6 +78,9 @@ application_session_fields_user = {
     'application': fields.String,
     'application_id': fields.String,
     'session_data': fields.Raw,
+    'info': {
+        'container_image': fields.Raw,
+    },
 }
 
 application_session_log_fields = {
@@ -142,6 +151,9 @@ class ApplicationSessionList(restful.Resource):
             if application_session.to_be_deleted and application_session.state != ApplicationSession.STATE_DELETED:
                 application_session.state = ApplicationSession.STATE_DELETING
 
+            # data for info field
+            application_session.container_image = application_session.provisioning_config.get('image')
+
             current_sessions.append(marshal_based_on_role(user, application_session))
 
         return current_sessions
@@ -206,6 +218,9 @@ class ApplicationSessionList(restful.Resource):
         db.session.add(application_session)
         application_session.provisioning_config = utils.get_provisioning_config(application)
 
+        # data for info field
+        application_session.container_image = application_session.provisioning_config.get('image')
+
         # decide on a name that is not used currently
         existing_names = set(db.session.scalars(select(ApplicationSession.name)).all())
         # Note: the potential race is solved by unique constraint in database
@@ -248,6 +263,9 @@ class ApplicationSessionView(restful.Resource):
 
         if application_session.to_be_deleted and application_session.state != ApplicationSession.STATE_DELETED:
             application_session.state = ApplicationSession.STATE_DELETING
+
+        # data for info field
+        application_session.container_image = application_session.provisioning_config.get('image')
 
         return marshal_based_on_role(user, application_session)
 

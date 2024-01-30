@@ -361,6 +361,7 @@ class PrimaryData:
             User.query.filter_by(ext_id="user@example.org").first())
         s1.name = 'pb-s1'
         s1.state = ApplicationSession.STATE_RUNNING
+        s1.provisioning_config = dict(image='registry.example.org/pebbles/image1')
         db.session.add(s1)
         self.known_application_session_id = s1.id
 
@@ -369,6 +370,7 @@ class PrimaryData:
             User.query.filter_by(ext_id="user@example.org").first())
         s2.name = 'pb-s2'
         s2.state = ApplicationSession.STATE_RUNNING
+        s2.provisioning_config = dict(image='registry.example.org/pebbles/image1')
         db.session.add(s2)
         db.session.add(ApplicationSessionLog(s2.id, 'info', 'provisioning', '1000.0', 'provisioning done'))
         self.known_application_session_id_2 = s2.id
@@ -380,7 +382,7 @@ class PrimaryData:
         s3.to_be_deleted = True
         s3.provisioned_at = datetime.datetime.strptime("2022-06-28T13:00:00", "%Y-%m-%dT%H:%M:%S")
         s3.deprovisioned_at = datetime.datetime.strptime("2022-06-28T14:00:00", "%Y-%m-%dT%H:%M:%S")
-        s3.provisioning_config = dict(memory_gib=4)
+        s3.provisioning_config = dict(memory_gib=4, image='registry.example.org/pebbles/image1')
         s3.state = ApplicationSession.STATE_DELETED
         db.session.add(s3)
 
@@ -389,6 +391,7 @@ class PrimaryData:
             User.query.filter_by(ext_id="workspace_owner@example.org").first())
         s4.name = 'pb-s4'
         s4.state = ApplicationSession.STATE_FAILED
+        s4.provisioning_config = dict(image='registry.example.org/pebbles/image1')
         db.session.add(s4)
         self.known_application_session_id_4 = s4.id
 
@@ -397,6 +400,7 @@ class PrimaryData:
             User.query.filter_by(ext_id="admin@example.org").first())
         s5.name = 'pb-s5'
         s5.state = ApplicationSession.STATE_RUNNING
+        s5.provisioning_config = dict(image='registry.example.org/pebbles/image1')
         db.session.add(s5)
         self.known_application_session_id_5 = s5.id
 
@@ -407,7 +411,7 @@ class PrimaryData:
         s6.to_be_deleted = True
         s6.provisioned_at = datetime.datetime.strptime("2022-06-28T13:00:00", "%Y-%m-%dT%H:%M:%S")
         s6.deprovisioned_at = datetime.datetime.strptime("2022-06-28T16:00:00", "%Y-%m-%dT%H:%M:%S")
-        s6.provisioning_config = dict(memory_gib=8)
+        s6.provisioning_config = dict(memory_gib=8, image='registry.example.org/pebbles/image1')
         s6.state = ApplicationSession.STATE_DELETED
         db.session.add(s6)
 

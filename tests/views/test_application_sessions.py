@@ -523,3 +523,23 @@ def test_application_session_provisioning_config(rmaker: RequestMaker, pri_data:
         method='GET',
         path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id)
     assert "provisioning_config" in response.json
+
+
+def test_application_session_info(rmaker: RequestMaker, pri_data: PrimaryData):
+    # Authenticated User
+    response = rmaker.make_authenticated_user_request(
+        method='GET',
+        path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id)
+    assert response.json.get('info') == dict(container_image='registry.example.org/pebbles/image1')
+
+    # Authenticated Owner
+    response = rmaker.make_authenticated_workspace_owner_request(
+        method='GET',
+        path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id)
+    assert response.json.get('info') == dict(container_image='registry.example.org/pebbles/image1')
+
+    # Authenticated Admin
+    response = rmaker.make_authenticated_admin_request(
+        method='GET',
+        path='/api/v1/application_sessions/%s' % pri_data.known_application_session_id)
+    assert response.json.get('info') == dict(container_image='registry.example.org/pebbles/image1')
