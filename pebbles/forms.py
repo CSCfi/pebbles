@@ -31,7 +31,7 @@ class UserForm(ModelForm):
 
 WS_TYPE_FIXED_TIME = 'fixed-time-course'
 WS_TYPE_LONG_RUNNING = 'long-running-course'
-VALID_WS_TYPES = [WS_TYPE_LONG_RUNNING, WS_TYPE_LONG_RUNNING]
+VALID_WS_TYPES = [WS_TYPE_FIXED_TIME, WS_TYPE_LONG_RUNNING]
 
 
 class WorkspaceForm(ModelForm):

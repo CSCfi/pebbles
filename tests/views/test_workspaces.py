@@ -5,7 +5,7 @@ import time
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
 
-from pebbles.forms import WS_TYPE_LONG_RUNNING
+from pebbles.forms import WS_TYPE_LONG_RUNNING, WS_TYPE_FIXED_TIME
 from pebbles.models import PEBBLES_TAINT_KEY, Task
 from pebbles.models import User, Workspace, WorkspaceMembership
 from pebbles.models import db
@@ -79,6 +79,7 @@ def test_create_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
     data = {
         'name': 'TestWorkspace',
         'description': 'Workspace Details',
+        'workspace_type': WS_TYPE_FIXED_TIME,
         'expiry_ts': int((datetime.datetime.now() + relativedelta(months=+3)).timestamp()),
     }
     data_2 = {
