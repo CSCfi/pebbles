@@ -13,11 +13,11 @@ import yaml
 from flask.cli import FlaskGroup
 from sqlalchemy.exc import IntegrityError
 
+import pebbles.views.commons
 from pebbles.app import create_app, db
 from pebbles.config import RuntimeConfig
 from pebbles.models import User, Application, ApplicationTemplate, load_yaml
 from pebbles.utils import create_password
-from pebbles.views.commons import create_user, create_worker, create_system_workspaces
 
 # ensure UNITTEST environment before importing app
 if {'test', 'coverage'}.intersection(set(sys.argv)):
@@ -59,7 +59,8 @@ def createuser(ext_id=None, password=None, admin=False, lifetime_in_days=0):
         password = getpass.getpass("password: ")
     expiry_ts = time.time() + 3600 * 24 * lifetime_in_days if lifetime_in_days else None
 
-    return create_user(ext_id=ext_id, password=password, is_admin=admin, email_id=ext_id, expiry_ts=expiry_ts)
+    return pebbles.views.commons.create_user(ext_id=ext_id, password=password, is_admin=admin, email_id=ext_id,
+                                             expiry_ts=expiry_ts)
 
 
 @cli.command('create_database')
@@ -73,10 +74,10 @@ def create_database():
 @click.option('-p', 'password')
 def initialize_system(ext_id=None, password=None):
     """Initializes the system using provided admin credentials"""
-    create_database()
-    admin_user = createuser(ext_id=ext_id, password=password, admin=True)
-    create_worker()
-    create_system_workspaces(admin_user)
+    db.create_all()
+    admin_user = pebbles.views.commons.create_user(ext_id=ext_id, password=password, is_admin=True)
+    pebbles.views.commons.create_worker()
+    pebbles.views.commons.create_system_workspaces(admin_user)
 
 
 @cli.command('createuser_bulk')
@@ -110,7 +111,7 @@ def createuser_bulk(user_prefix=None, domain_name=None, count=0, lifetime_in_day
 
             password = create_password(8)
 
-            a = create_user(ext_id, password, expiry_ts=expiry_ts)
+            a = pebbles.views.commons.create_user(ext_id, password, expiry_ts=expiry_ts)
             if a:
                 print('Username: %s\t Password: %s' % (ext_id, password))
                 break
@@ -135,7 +136,7 @@ def createuser_list_samepwd(ext_id_string=None, password=None, lifetime_in_days=
     ext_id_list = [x for x in ext_id_string.split(',')]
     print("List of users to create %s " % ext_id_list)
     for ext_id in ext_id_list:
-        create_user(ext_id, password, expiry_ts=expiry_ts)
+        pebbles.views.commons.create_user(ext_id, password, expiry_ts=expiry_ts)
 
 
 @cli.command('deleteuser_bulk')
@@ -161,7 +162,7 @@ def deleteuser_bulk(ext_id_string=None):
 @cli.command('createworker')
 def createworker():
     """Creates an admin account for worker"""
-    create_worker()
+    pebbles.views.commons.create_worker()
 
 
 @cli.command('load_data')
