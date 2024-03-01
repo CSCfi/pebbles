@@ -7,10 +7,12 @@ from pebbles.views.commons import auth
 
 clusters = FlaskBlueprint('clusters', __name__)
 
+# TODO remove 'url' when all clusters use 'apiUrl'
 cluster_fields = {
     'name': fields.String,
     'driver': fields.String,
     'url': fields.String,
+    'api_url': fields.String,
     'app_domain': fields.String,
     'namespace_prefix': fields.String,
 }
@@ -32,6 +34,8 @@ class ClusterList(restful.Resource):
 
         # convert camel case to snake case. camel cased keys will be ignored in marshalling
         for cluster in cluster_config.get('clusters', []):
+            if 'apiUrl' in cluster.keys():
+                cluster['api_url'] = cluster['apiUrl']
             if 'appDomain' in cluster.keys():
                 cluster['app_domain'] = cluster['appDomain']
             if 'namespacePrefix' in cluster.keys():

@@ -812,8 +812,9 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
 
     def create_kube_client(self):
         try:
+            # TODO: remove fallback to 'url' after all cluster configs have been migrated
             token = self._request_token(
-                base_url=self.cluster_config.get('url'),
+                base_url=self.cluster_config.get('apiUrl', self.cluster_config.get('url')),
                 user=self.cluster_config.get('user'),
                 password=self.cluster_config.get('password')
             )
