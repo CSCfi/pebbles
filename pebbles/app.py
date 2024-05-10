@@ -99,6 +99,7 @@ def create_app(test_config=None):
 
 def init_api(app: Flask):
     from pebbles.views.alerts import AlertList, AlertView, SystemStatus, AlertReset
+    from pebbles.views.app_version import AppVersionList
     from pebbles.views.application_categories import ApplicationCategoryList
     from pebbles.views.application_sessions import ApplicationSessionList, ApplicationSessionView, \
         ApplicationSessionLogs
@@ -183,6 +184,7 @@ def init_api(app: Flask):
         methods=['GET', 'PATCH', 'DELETE'])
     api.add_resource(ClusterList, api_root + '/clusters')
     api.add_resource(PublicConfigList, api_root + '/config')
+    api.add_resource(AppVersionList, api_root + '/version')
     api.add_resource(LockList, api_root + '/locks')
     api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
     api.add_resource(ApplicationCategoryList, api_root + '/application_categories')

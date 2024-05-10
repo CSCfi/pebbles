@@ -2,6 +2,10 @@
 FROM docker.io/library/python:3.11.5-bullseye
 LABEL "io.k8s.display-name"="pebbles"
 ARG EXTRA_PIP_PACKAGES
+ARG PB_APP_VERSION="not-set"
+
+# display app version in build logs
+RUN echo "PB_APP_VERSION: $PB_APP_VERSION"
 
 USER root
 
@@ -24,5 +28,8 @@ COPY deployment/run_gunicorn.bash deployment/.
 RUN chmod 755 deployment/run_gunicorn.bash
 COPY pebbles ./pebbles
 COPY tests ./tests
+
+# stamp with given application version
+RUN echo "{\"appVersion\": \"$PB_APP_VERSION\"}" > app-version.json
 
 CMD ["./deployment/run_gunicorn.bash"]
