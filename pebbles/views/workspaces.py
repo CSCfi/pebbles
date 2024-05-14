@@ -225,11 +225,19 @@ class WorkspaceList(restful.Resource):
 
 class WorkspaceView(restful.Resource):
     @auth.login_required
-    @requires_admin
     def get(self, workspace_id):
         user = g.user
-        query = Workspace.query.filter_by(id=workspace_id)
-        workspace = query.first()
+
+        if user.is_admin:
+            workspace = Workspace.query.filter_by(id=workspace_id).first()
+        else:
+            workspace_user_query = WorkspaceMembership.query
+            workspace_membership = workspace_user_query.filter_by(user_id=user.id,
+                                                                  workspace_id=workspace_id, is_banned=False).first()
+            if not workspace_membership:
+                abort(403)
+
+            workspace = workspace_membership.workspace
 
         if not workspace:
             abort(404)
@@ -238,7 +246,6 @@ class WorkspaceView(restful.Resource):
 
         owner = next((wm.user for wm in workspace.memberships if wm.is_owner), None)
         workspace.owner_ext_id = owner.ext_id if owner else None
-
         return marshal_based_on_role(user, workspace)
 
     @auth.login_required

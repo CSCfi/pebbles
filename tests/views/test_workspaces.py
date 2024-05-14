@@ -22,10 +22,19 @@ def test_get_workspaces(rmaker: RequestMaker, pri_data: PrimaryData):
     assert response.status_code == 200
     assert len(response.json) == 1
 
+    # Authenticated User: get one
+    response = rmaker.make_authenticated_user_request(path='/api/v1/workspaces/%s' % pri_data.known_workspace_id)
+    assert response.status_code == 200
+
     # Authenticated Workspace Owner
     response = rmaker.make_authenticated_workspace_owner_request(path='/api/v1/workspaces')
     assert response.status_code == 200
     assert len(response.json) == 2
+
+    # Authenticated Workspace Owner: get one
+    response = rmaker.make_authenticated_workspace_owner_request(path='/api/v1/workspaces/%s' %
+                                                                      pri_data.known_workspace_id)
+    assert response.status_code == 200
 
     # Admin
     response = rmaker.make_authenticated_admin_request(path='/api/v1/workspaces')
@@ -51,7 +60,48 @@ def test_get_workspaces(rmaker: RequestMaker, pri_data: PrimaryData):
     assert len(response.json) == 0
 
 
+def test_get_workspace_view(rmaker: RequestMaker, pri_data: PrimaryData):
+    # Anonymous
+    response = rmaker.make_request(path='/api/v1/workspaces/%s' % pri_data.known_workspace_id)
+    assert response.status_code == 401
+
+    # Authenticated User, positive
+    response = rmaker.make_authenticated_user_request(path='/api/v1/workspaces/%s' % pri_data.known_workspace_id)
+    assert response.status_code == 200
+
+    # Authenticated User, who does not have access to workspace 2
+    response = rmaker.make_authenticated_user_request(path='/api/v1/workspaces/%s' % pri_data.known_workspace_id_2)
+    assert response.status_code == 403
+
+    # Authenticated Workspace Owner
+    response = rmaker.make_authenticated_workspace_owner_request(path='/api/v1/workspaces/%s' %
+                                                                      pri_data.known_workspace_id)
+    assert response.status_code == 200
+
+    # Admin
+    response = rmaker.make_authenticated_admin_request(path='/api/v1/workspaces/%s' % pri_data.known_workspace_id)
+    assert response.status_code == 200
+
+
 def test_get_workspace_list_vs_view(rmaker: RequestMaker, pri_data: PrimaryData):
+
+    # Authenticated User, positive
+    response = rmaker.make_authenticated_user_request(path='/api/v1/workspaces')
+    assert response.status_code == 200
+    # check that individual application fetch matches the list output
+    for w1 in response.json:
+        w2 = rmaker.make_authenticated_user_request(path=f'/api/v1/workspaces/{w1["id"]}').json
+        assert w1 == w2
+
+    # Authenticated Workspace Owner
+    response = rmaker.make_authenticated_workspace_owner_request(path='/api/v1/workspaces')
+    assert response.status_code == 200
+    # check that individual application fetch matches the list output
+    for w1 in response.json:
+        w2 = rmaker.make_authenticated_workspace_owner_request(path=f'/api/v1/workspaces/{w1["id"]}').json
+        assert w1 == w2
+
+    # Admin
     response = rmaker.make_authenticated_admin_request(path='/api/v1/workspaces')
     assert response.status_code == 200
     # check that individual application fetch matches the list output
