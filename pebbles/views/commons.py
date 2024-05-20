@@ -3,32 +3,8 @@ from functools import wraps
 
 from flask import g, abort, current_app
 from flask_httpauth import HTTPBasicAuth
-from flask_restful import fields
 
 from pebbles.models import db, User, Workspace, WorkspaceMembership
-
-user_fields = {
-    'id': fields.String,
-    'ext_id': fields.String,
-    'email_id': fields.String,
-    'pseudonym': fields.String,
-    'workspace_quota': fields.Integer,
-    'is_active': fields.Boolean,
-    'is_admin': fields.Boolean,
-    'is_deleted': fields.Boolean,
-    'is_blocked': fields.Boolean,
-    'joining_ts': fields.Integer,
-    'expiry_ts': fields.Integer,
-    'last_login_ts': fields.Integer,
-}
-
-workspace_membership_fields = {
-    'workspace_id': fields.String,
-    'user_id': fields.String,
-    'is_owner': fields.Boolean,
-    'is_manager': fields.Boolean,
-    'is_banned': fields.Boolean,
-}
 
 auth = HTTPBasicAuth()
 auth.authenticate_header = lambda: "Authentication Required"

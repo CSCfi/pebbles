@@ -1,6 +1,6 @@
 import json
 
-from pebbles.models import User
+from pebbles.models import User, PEBBLES_TAINT_KEY
 from pebbles.models import db
 from tests.conftest import PrimaryData, RequestMaker
 
@@ -14,6 +14,7 @@ def test_get_user(rmaker: RequestMaker, pri_data: PrimaryData):
     response = rmaker.make_authenticated_user_request(path='/api/v1/users/%s' % pri_data.known_user_id)
     assert response.status_code == 200
     assert pri_data.known_user_ext_id == response.json['ext_id']
+    assert 'annotations' not in response.json
 
     # Authenticated, get user data for another user
     response = rmaker.make_authenticated_user_request(path='/api/v1/users/%s' % pri_data.known_workspace_owner_id)
@@ -27,6 +28,7 @@ def test_get_user(rmaker: RequestMaker, pri_data: PrimaryData):
     response = rmaker.make_authenticated_admin_request(path='/api/v1/users/%s' % pri_data.known_user_id)
     assert response.status_code == 200
     assert pri_data.known_user_ext_id == response.json['ext_id']
+    assert response.json.get('annotations') == []
 
     # Admin, deleted user
     response = rmaker.make_authenticated_admin_request(path='/api/v1/users/%s' % pri_data.known_deleted_user_id)
@@ -35,6 +37,12 @@ def test_get_user(rmaker: RequestMaker, pri_data: PrimaryData):
     # Admin, non-existent id
     response = rmaker.make_authenticated_admin_request(path='/api/v1/users/%s' % 'no-such-id')
     assert response.status_code == 404
+
+    # Admin, user with annotations
+    response = rmaker.make_authenticated_admin_request(path='/api/v1/users/%s' % 'u8')
+    assert response.status_code == 200
+    assert response.json['ext_id'] == 'low-trust-1@example.org'
+    assert response.json.get('annotations') == [dict(key=PEBBLES_TAINT_KEY, value='low_trust')]
 
 
 def test_get_users(rmaker: RequestMaker, pri_data: PrimaryData):
@@ -47,6 +55,16 @@ def test_get_users(rmaker: RequestMaker, pri_data: PrimaryData):
     # Admin
     response = rmaker.make_authenticated_admin_request(path='/api/v1/users')
     assert response.status_code == 200
+    assert len(response.json) == 7
+
+
+def test_get_user_list_vs_view(rmaker: RequestMaker, pri_data: PrimaryData):
+    response = rmaker.make_authenticated_admin_request(path='/api/v1/users')
+    assert response.status_code == 200
+    # check that individual application fetch matches the list output
+    for w1 in response.json:
+        w2 = rmaker.make_authenticated_admin_request(path=f'/api/v1/users/{w1["id"]}').json
+        assert w1 == w2
 
 
 def test_delete_user(rmaker: RequestMaker, pri_data: PrimaryData):

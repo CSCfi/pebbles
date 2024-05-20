@@ -1,18 +1,57 @@
 import logging
-import time
 import re
+import time
 
 import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
-from flask_restful import marshal_with, reqparse, inputs
+from flask_restful import marshal_with, reqparse, inputs, fields
 
 from pebbles.models import db, User
 from pebbles.rules import apply_filter_users, apply_rules_workspace_memberships
 from pebbles.utils import requires_admin, create_password
-from pebbles.views.commons import user_fields, auth, workspace_membership_fields, create_user
+from pebbles.views.commons import auth, create_user
 
 users = FlaskBlueprint('users', __name__)
+
+user_fields_admin = {
+    'id': fields.String,
+    'ext_id': fields.String,
+    'email_id': fields.String,
+    'pseudonym': fields.String,
+    'workspace_quota': fields.Integer,
+    'is_active': fields.Boolean,
+    'is_admin': fields.Boolean,
+    'is_deleted': fields.Boolean,
+    'is_blocked': fields.Boolean,
+    'joining_ts': fields.Integer,
+    'expiry_ts': fields.Integer,
+    'last_login_ts': fields.Integer,
+    'annotations': fields.Raw,
+}
+
+user_fields = {
+    'id': fields.String,
+    'ext_id': fields.String,
+    'email_id': fields.String,
+    'pseudonym': fields.String,
+    'workspace_quota': fields.Integer,
+    'is_active': fields.Boolean,
+    'is_admin': fields.Boolean,
+    'is_deleted': fields.Boolean,
+    'is_blocked': fields.Boolean,
+    'joining_ts': fields.Integer,
+    'expiry_ts': fields.Integer,
+    'last_login_ts': fields.Integer,
+}
+
+workspace_membership_fields = {
+    'workspace_id': fields.String,
+    'user_id': fields.String,
+    'is_owner': fields.Boolean,
+    'is_manager': fields.Boolean,
+    'is_banned': fields.Boolean,
+}
 
 
 class UserList(restful.Resource):
@@ -23,7 +62,7 @@ class UserList(restful.Resource):
 
     @auth.login_required
     @requires_admin
-    @marshal_with(user_fields)
+    @marshal_with(user_fields_admin)
     def get(self):
         return apply_filter_users().order_by(User._joining_ts).all()
 
@@ -56,16 +95,17 @@ class UserList(restful.Resource):
 
 class UserView(restful.Resource):
     @auth.login_required
-    @marshal_with(user_fields)
     def get(self, user_id):
         # only admins can query other users' details
         if not (g.user.is_admin or user_id == g.user.id):
             abort(403)
         result = apply_filter_users().filter_by(id=user_id).first()
-        if result:
-            return result
-        else:
+        if not result:
             abort(404)
+        if g.user.is_admin:
+            return restful.marshal(result, user_fields_admin)
+        else:
+            return restful.marshal(result, user_fields)
 
     @auth.login_required
     @requires_admin
@@ -85,7 +125,7 @@ class UserView(restful.Resource):
 
     @auth.login_required
     @requires_admin
-    @marshal_with(user_fields)
+    @marshal_with(user_fields_admin)
     def patch(self, user_id):
         args = self.parser.parse_args()
 

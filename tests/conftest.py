@@ -13,7 +13,7 @@ import pebbles.app
 from pebbles.config import TestConfig
 from pebbles.models import (
     User, Workspace, WorkspaceMembership, ApplicationTemplate, Application,
-    Message, ServiceAnnouncement, ApplicationSession, ApplicationSessionLog)
+    Message, ServiceAnnouncement, ApplicationSession, ApplicationSessionLog, PEBBLES_TAINT_KEY)
 from pebbles.models import db
 
 ADMIN_TOKEN = None
@@ -63,6 +63,8 @@ class PrimaryData:
         u6 = User(self.known_user_2_ext_id, self.known_user_2_password, is_admin=False)
         u7 = User("expired_user@example.org", "expired_user")
         u7.expiry_ts = 10000000
+        u8 = User('low-trust-1@example.org', 'low-trust-1')
+        u8.annotations = [dict(key=PEBBLES_TAINT_KEY, value='low_trust')]
 
         # Fix user IDs to be the same for all tests, in order to reuse the same token
         # for multiple tests
@@ -78,6 +80,7 @@ class PrimaryData:
         u5.id = 'u5'
         u6.id = 'u6'
         u7.id = 'u7'
+        u8.id = 'u8'
 
         self.known_admin_id = u1.id
         self.known_user_id = u2.id
@@ -93,6 +96,7 @@ class PrimaryData:
         db.session.add(u5)
         db.session.add(u6)
         db.session.add(u7)
+        db.session.add(u8)
 
         ws0 = Workspace('System.default')
         ws0.id = 'ws0'
