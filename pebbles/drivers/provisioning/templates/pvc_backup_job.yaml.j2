@@ -35,7 +35,7 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
         - name: pvc-backup
-          image: docker-registry.rahti.csc.fi/pebbles-public-images/pebbles-deployer:master
+          image: image-registry.apps.2.rahti.csc.fi/pebbles-public-images/pebbles-deployer:main
           imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
