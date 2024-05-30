@@ -332,7 +332,7 @@ class Workspace(db.Model):
 
     applications = db.relationship('Application', backref='workspace', lazy='dynamic')
 
-    def __init__(self, name, description='', cluster=None, memory_limit_gib=50):
+    def __init__(self, name, description='', cluster=None, memory_limit_gib=50, config=None):
         self.id = uuid.uuid4().hex
         # Here we opportunistically create a pseudonym without actually checking the existing workspaces,
         # the probability of collision is low enough. There are 400 pseudonyms for all inhabitants on earth
@@ -342,6 +342,9 @@ class Workspace(db.Model):
         self.description = description
         self.join_code = name
         self.cluster = cluster
+        # invoke the hybrid property accessor to convert provided config dict to json
+        if config:
+            self.config = config
         self.memory_limit_gib = memory_limit_gib
         self._status = Workspace.STATUS_ACTIVE
         self.membership_expiry_policy = dict(kind=Workspace.MEP_PERSISTENT)
