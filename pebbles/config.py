@@ -74,7 +74,6 @@ class BaseConfig:
     CONTACT_EMAIL = 'support@example.org'
     SERVICE_DOCUMENTATION_URL = 'http://link-to-service-documentation'
     SERVICE_ANNOUNCEMENT = ''
-    PUBLIC_APPLICATION_ACCESS_NOTE = 'Public applications are not available for the current user.'
 
     # Mail settings
     MAIL_SERVER = 'smtp.example.org'
@@ -105,6 +104,7 @@ class BaseConfig:
     # API configmap paths
     API_AUTH_CONFIG_FILE = '/run/configmaps/pebbles/api-configmap/auth-config.yaml'
     API_FAQ_FILE = '/run/configmaps/pebbles/api-configmap/faq-content.yaml'
+    API_PUBLIC_STRUCTURED_CONFIG_FILE = '/run/configmaps/pebbles/api-configmap/public-structured-config.yaml'
 
     # enable access by []
     def __getitem__(self, item):

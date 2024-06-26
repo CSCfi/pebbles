@@ -1,9 +1,9 @@
-from flask_restful import fields, marshal_with
-from flask import Blueprint as FlaskBlueprint, current_app
-
 import logging
 
 import flask_restful as restful
+import yaml
+from flask import Blueprint as FlaskBlueprint, current_app
+from flask_restful import fields, marshal_with
 
 variable_fields = {
     'key': fields.String,
@@ -27,7 +27,6 @@ PUBLIC_CONFIG_VARIABLES = (
     'OAUTH2_LOGIN_ENABLED',
     'SERVICE_DOCUMENTATION_URL',
     'SERVICE_ANNOUNCEMENT',
-    'PUBLIC_APPLICATION_ACCESS_NOTE',
 )
 
 
@@ -47,3 +46,24 @@ class PublicConfigList(restful.Resource):
         except Exception as ex:
             logging.error("error in retrieving variables" + str(ex))
             return []
+
+
+class PublicStructuredConfigList(restful.Resource):
+    """Structured, more complex data for the frontend.
+    """
+
+    # cache for structured config to avoid yaml file load calls through public api
+    _structured_config = None
+
+    def get(self):
+        # load config only once
+        if PublicStructuredConfigList._structured_config is None:
+            try:
+                logging.debug('loading structured config')
+                PublicStructuredConfigList._structured_config = yaml.safe_load(
+                    open(current_app.config['API_PUBLIC_STRUCTURED_CONFIG_FILE'])
+                )
+            except Exception as e:
+                logging.warning(e)
+                PublicStructuredConfigList._structured_config = dict()
+        return PublicStructuredConfigList._structured_config

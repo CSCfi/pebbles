@@ -111,7 +111,7 @@ def init_api(app: Flask):
     from pebbles.views.helps import HelpsList
     from pebbles.views.locks import LockView, LockList
     from pebbles.views.messages import MessageList, MessageView
-    from pebbles.views.public_config import PublicConfigList
+    from pebbles.views.public_config import PublicConfigList, PublicStructuredConfigList
     from pebbles.views.service_announcements import ServiceAnnouncementList, ServiceAnnouncementListPublic, \
         ServiceAnnouncementListAdmin, ServiceAnnouncementViewAdmin
     from pebbles.views.sessions import SessionView
@@ -184,6 +184,7 @@ def init_api(app: Flask):
         methods=['GET', 'PATCH', 'DELETE'])
     api.add_resource(ClusterList, api_root + '/clusters')
     api.add_resource(PublicConfigList, api_root + '/config')
+    api.add_resource(PublicStructuredConfigList, api_root + '/structured_config')
     api.add_resource(AppVersionList, api_root + '/version')
     api.add_resource(LockList, api_root + '/locks')
     api.add_resource(LockView, api_root + '/locks/<string:lock_id>')
