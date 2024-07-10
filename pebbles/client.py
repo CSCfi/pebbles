@@ -7,6 +7,7 @@ from time import time
 
 import requests
 from jose import jwt
+from requests.adapters import HTTPAdapter
 
 import pebbles.utils
 from pebbles.config import RuntimeConfig
@@ -18,6 +19,8 @@ class PBClient:
         self.api_base_url = api_base_url
         self.ssl_verify = ssl_verify
         self.auth = pebbles.utils.b64encode_string('%s:%s' % (token, '')).replace('\n', '')
+        self.session = requests.Session()
+        self.session.mount('http://', HTTPAdapter(max_retries=10))
 
     def check_and_refresh_session(self, ext_id, password):
         # renew worker session 15 minutes before expiration
@@ -31,9 +34,10 @@ class PBClient:
             logging.warning(e)
 
     def login(self, ext_id, password):
+        logging.debug(f'login("{ext_id}")')
         auth_url = '%s/sessions' % self.api_base_url
         auth_credentials = dict(ext_id=ext_id, password=password)
-        r = requests.post(auth_url, json=auth_credentials, verify=self.ssl_verify)
+        r = self.session.post(auth_url, json=auth_credentials, verify=self.ssl_verify)
         if r.status_code != 200:
             raise RuntimeError('Login failed, status: %d, ext_id "%s", auth_url "%s"' %
                                (r.status_code, ext_id, auth_url))
@@ -43,17 +47,17 @@ class PBClient:
     def do_get(self, object_url, payload=None):
         headers = {'Accept': 'text/plain', 'Authorization': 'Basic %s' % self.auth}
         url = '%s/%s' % (self.api_base_url, object_url)
-        resp = requests.get(url, data=payload, headers=headers, verify=self.ssl_verify)
+        resp = self.session.get(url, data=payload, headers=headers, verify=self.ssl_verify, timeout=(5, 5))
         return resp
 
-    modify_methods = dict(
-        post=requests.post,
-        put=requests.put,
-        patch=requests.patch,
-        delete=requests.delete
-    )
-
     def do_modify(self, method, object_url, form_data=None, json_data=None):
+        modify_methods = dict(
+            post=self.session.post,
+            put=self.session.put,
+            patch=self.session.patch,
+            delete=self.session.delete
+        )
+
         content_type = 'application/x-www-form-urlencoded' if form_data else 'application/json'
 
         headers = {
@@ -61,7 +65,8 @@ class PBClient:
             'Accept': 'text/plain',
             'Authorization': 'Basic %s' % self.auth}
         url = '%s/%s' % (self.api_base_url, object_url)
-        resp = self.modify_methods[method](url, data=form_data, json=json_data, headers=headers, verify=self.ssl_verify)
+        method_impl = modify_methods[method]
+        resp = method_impl(url, data=form_data, json=json_data, headers=headers, verify=self.ssl_verify, timeout=(5, 5))
         return resp
 
     def do_patch(self, object_url, form_data=None, json_data=None):
