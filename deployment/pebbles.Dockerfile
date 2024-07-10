@@ -1,5 +1,5 @@
 # Use official Python image
-FROM docker.io/library/python:3.11.5-bullseye
+FROM docker.io/library/python:3.12
 LABEL "io.k8s.display-name"="pebbles"
 ARG EXTRA_PIP_PACKAGES
 ARG PB_APP_VERSION="not-set"
@@ -10,7 +10,7 @@ RUN echo "PB_APP_VERSION: $PB_APP_VERSION"
 USER root
 
 # Add inotify for gunicorn hot reload
-RUN apt update && apt install -y inotify-tools && apt clean
+RUN apt-get update && apt-get install -y inotify-tools && apt-get clean
 
 # Use s2i compatible workdir
 WORKDIR /opt/app-root/src
