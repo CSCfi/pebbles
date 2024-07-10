@@ -1,5 +1,5 @@
 ---
-image: python:3.11-bullseye
+image: docker.io/library/python:3.12
 
 stages:
   - build-image
