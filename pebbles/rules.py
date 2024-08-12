@@ -4,7 +4,8 @@ from sqlalchemy import or_, select, false, func
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
 
-from pebbles.models import Application, ApplicationTemplate, ApplicationSession, User, WorkspaceMembership, Workspace
+from pebbles.models import Application, ApplicationTemplate, ApplicationSession, User, WorkspaceMembership, Workspace, \
+    CustomImage
 
 
 def apply_rules_application_templates(user, args=None):
@@ -86,6 +87,54 @@ def generate_application_session_query(user, args=None):
         s = s.order_by(func.random())
         s = s.limit(int(args.get('limit')))
 
+    return s
+
+
+def generate_custom_image_query(user, args=None):
+    if user.is_admin:
+        s = select(CustomImage)
+        s = s.join(Workspace, Workspace.id == CustomImage.workspace_id)
+        s = s.where(Workspace.status != Workspace.STATUS_DELETED)
+    else:
+        s = select(CustomImage)
+        s = s.join(Workspace, Workspace.id == CustomImage.workspace_id)
+        s = s.join(WorkspaceMembership, WorkspaceMembership.workspace_id == Workspace.id)
+        s = s.where(WorkspaceMembership.user_id == user.id)
+        s = s.where(WorkspaceMembership.is_banned == false())
+        s = s.where(WorkspaceMembership.is_manager == true())
+        s = s.where(Workspace.status != Workspace.STATUS_DELETED)
+
+    s = s.where(CustomImage.state != CustomImage.STATE_DELETED)
+
+    if args and args.get('custom_image_id'):
+        s = s.where(CustomImage.id == args.get('custom_image_id'))
+
+    if args and args.get('workspace_id'):
+        s = s.where(Workspace.id == args.get('workspace_id'))
+
+    if args and bool(args.get('unfinished') in ('1', 'true', 'True')):
+        s = s.where(
+            CustomImage.state.in_(
+                [CustomImage.STATE_NEW, CustomImage.STATE_BUILDING]) | CustomImage.to_be_deleted == true()
+        )
+
+    if args and args.get('limit'):
+        # prioritize to_be_deleted
+        s = s.order_by(CustomImage.to_be_deleted == false())
+        # prioritize non-terminal states for worker
+        #  building > new > terminal states
+        # last criteria: oldest first for fair queuing
+        s = s.order_by(CustomImage.state != CustomImage.STATE_BUILDING)
+        s = s.order_by(
+            or_(
+                CustomImage.state == CustomImage.STATE_COMPLETED,
+                CustomImage.state == CustomImage.STATE_FAILED,
+                CustomImage.state == CustomImage.STATE_DELETED,
+            )
+        )
+        s = s.limit(int(args.get('limit')))
+
+    s = s.order_by(CustomImage.created_at)
     return s
 
 

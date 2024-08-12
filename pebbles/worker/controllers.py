@@ -6,12 +6,16 @@ from random import randrange
 
 import requests
 
-from pebbles.models import ApplicationSession, Task
+from pebbles.client import ImagebuilderClient
+from pebbles.models import ApplicationSession, Task, CustomImage
 from pebbles.utils import find_driver_class
 
 WS_CONTROLLER_TASK_LOCK_NAME = 'workspace-controller-tasks'
 
 SESSION_CONTROLLER_LIMIT_SIZE = 50
+
+CUSTOM_IMAGE_CONTROLLER_TASK_LOCK_NAME = 'custom-image-controller-tasks'
+CUSTOM_IMAGE_CONTROLLER_LIMIT_SIZE = 1
 
 DRIVER_CACHE_LIFETIME = 900
 
@@ -415,3 +419,103 @@ class WorkspaceController(ControllerBase):
         else:
             logging.warning(
                 'task %s in state %s should not end up in processing', task.get('id'), task.get('state'))
+
+
+class CustomImageController(ControllerBase):
+    """
+    Controller that takes care of custom images and builds
+    """
+
+    def __init__(self, ib_client: ImagebuilderClient, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.polling_interval_min, self.polling_interval_max = self.get_polling_interval(5, 20)
+        self.ib_client = ib_client
+
+    def process_custom_image(self, image):
+        logging.debug('CustomImageController processing image %s', image.get('id'))
+
+        if image.get('to_be_deleted'):
+            ws = self.client.get_workspace(image.get('workspace_id'))
+            # delete build (usually done when build is completed, but for cancellation we need to do it)
+            if image.get('build_system_id'):
+                self.ib_client.delete_build(image.get('build_system_id'), suppress_404=True)
+            # delete tag from imagestream
+            if image.get('tag'):
+                self.ib_client.delete_tag(ws.get('pseudonym'), image.get('tag'), suppress_404=True)
+            self.client.do_custom_image_patch(
+                image.get('id'),
+                json_data=dict(
+                    state=CustomImage.STATE_DELETED,
+                )
+            )
+        elif image.get('state') in [CustomImage.STATE_NEW]:
+            ws = self.client.get_workspace(image.get('workspace_id'))
+            post_res = self.ib_client.post_build(ws.get('pseudonym'), image.get('dockerfile'))
+            url = f"{post_res.get('registry')}/{post_res.get('repo')}/{post_res.get('name')}:{post_res.get('tag')}"
+            logging.info('CustomImageController created build %s for url %s', post_res.get('buildId'), url)
+            self.client.do_custom_image_patch(
+                image.get('id'),
+                json_data=dict(
+                    state=CustomImage.STATE_BUILDING,
+                    build_system_id=post_res.get('buildId'),
+                    url=url,
+                    tag=post_res.get('tag'),
+                )
+            )
+
+        elif image.get('state') in [CustomImage.STATE_BUILDING]:
+            build = self.ib_client.get_build(image.get('build_system_id'))
+            status = build.get('status')
+            phase = status.get('phase')
+            logging.info('CustomImageController build %s in phase %s', image.get('build_system_id'), phase)
+            if phase == 'Failed':
+                logging.warning(
+                    'CustomImageController build %s failed due to %s',
+                    image.get('build_system_id'),
+                    status.get('message'))
+                self.ib_client.delete_build(image.get('build_system_id'))
+                self.client.do_custom_image_patch(
+                    image.get('id'),
+                    json_data=dict(
+                        state=CustomImage.STATE_FAILED,
+                        build_system_output=f"{status.get('message')}\n{status.get('logSnippet')}",
+                    )
+                )
+            elif phase == 'Complete':
+                self.ib_client.delete_build(image.get('build_system_id'))
+                self.client.do_custom_image_patch(
+                    image.get('id'),
+                    json_data=dict(state=CustomImage.STATE_COMPLETED)
+                )
+
+    def process(self):
+        # process images in increased intervals
+        if time.time() < self.next_check_ts:
+            return
+        self.update_next_check_ts(self.polling_interval_min, self.polling_interval_max)
+
+        # fetch unfinished images to process
+        unfinished_images = self.client.get_custom_images(unfinished=True)
+        # check if we have anything to do
+        if not unfinished_images:
+            return
+        logging.debug('CustomImageController found %d unfinished images', len(unfinished_images))
+
+        # Try to obtain a global lock for CustomImage processing.
+        # Should we lose the race, the winner takes it, and we try next time we are active
+        lock = self.client.obtain_lock(CUSTOM_IMAGE_CONTROLLER_TASK_LOCK_NAME, self.worker_id)
+        if lock is None:
+            logging.debug('CustomImageController did not acquire lock, skipping')
+            return
+        # we now hold exclusive lock for processing, refresh the list to make sure we have the latest committed data
+        try:
+            # fetch prioritized list for processing (building > new > the rest)
+            images = self.client.get_custom_images(limit=CUSTOM_IMAGE_CONTROLLER_LIMIT_SIZE)
+            for image in images:
+                try:
+                    self.process_custom_image(image)
+                except Exception as e:
+                    logging.warning(e)
+                    self.client.do_custom_image_patch(image.get('id'), json_data=dict(state=CustomImage.STATE_FAILED))
+        finally:
+            self.client.release_lock(CUSTOM_IMAGE_CONTROLLER_TASK_LOCK_NAME, self.worker_id)

@@ -13,7 +13,7 @@ import pebbles.app
 from pebbles.config import TestConfig
 from pebbles.models import (
     User, Workspace, WorkspaceMembership, ApplicationTemplate, Application,
-    Message, ServiceAnnouncement, ApplicationSession, ApplicationSessionLog, PEBBLES_TAINT_KEY)
+    Message, ServiceAnnouncement, ApplicationSession, ApplicationSessionLog, PEBBLES_TAINT_KEY, CustomImage)
 from pebbles.models import db
 
 ADMIN_TOKEN = None
@@ -180,7 +180,7 @@ class PrimaryData:
         t1 = ApplicationTemplate()
         t1.name = 'TestTemplate'
         t1.application_type = 'generic'
-        t1.base_config = {}
+        t1.base_config = {'image': 'registry.io/disabled_image:latest'}
         db.session.add(t1)
         self.known_template_id_disabled = t1.id
 
@@ -192,7 +192,8 @@ class PrimaryData:
             'cost_multiplier': '1.0',
             'maximum_lifetime': 3600,
             'memory_gib': 8,
-            'allow_update_client_connectivity': False
+            'allow_update_client_connectivity': False,
+            'image': 'registry.io/image:latest'
         }
         t2.attribute_limits = [
             dict(name='maximum_lifetime', min=0, max=3600 * 12),
@@ -415,6 +416,14 @@ class PrimaryData:
         s6.provisioning_config = dict(memory_gib=8, image='registry.example.org/pebbles/image1')
         s6.state = ApplicationSession.STATE_DELETED
         db.session.add(s6)
+
+        ci1 = CustomImage(id='ci1', workspace_id='ws1', name='ci1', dockerfile='FROM foo:latest\nRUN echo "hello"',)
+        self.known_custom_image_id = ci1.id
+        db.session.add(ci1)
+
+        ci2 = CustomImage(id='ci2', workspace_id='ws2', name='ci2', dockerfile='FROM foo:1.2\nRUN echo "hello"',)
+        self.known_custom_image_id_2 = ci2.id
+        db.session.add(ci2)
 
         db.session.commit()
 

@@ -109,3 +109,9 @@ class VariableForm(ModelForm):
 
 class LockForm(ModelForm):
     owner = StringField('owner')
+
+
+class CustomImageForm(ModelForm):
+    name = StringField('name', validators=[DataRequired()])
+    workspace_id = StringField('workspace_id', validators=[DataRequired()])
+    definition = StringField('image_content', validators=[DataRequired()])

@@ -108,6 +108,7 @@ def init_api(app: Flask):
     from pebbles.views.applications import ApplicationList, ApplicationView, ApplicationCopy, \
         ApplicationAttributeLimits
     from pebbles.views.clusters import ClusterList
+    from pebbles.views.custom_images import CustomImageList, CustomImageView
     from pebbles.views.helps import HelpsList
     from pebbles.views.locks import LockView, LockList
     from pebbles.views.messages import MessageList, MessageView
@@ -206,6 +207,12 @@ def init_api(app: Flask):
         api_root + '/tasks/<string:task_id>/results',
         methods=['PUT']
     )
+    api.add_resource(
+        CustomImageView,
+        api_root + '/custom_images/<string:custom_image_id>',
+        methods=['GET', 'POST', 'PATCH', 'DELETE'],
+    )
+    api.add_resource(CustomImageList, api_root + '/custom_images')
 
     # Setup route for readiness/liveness probe check
     @app.route('/healthz')

@@ -4,10 +4,11 @@ import signal
 from random import randrange
 from time import sleep
 
-from pebbles.client import PBClient
+from pebbles.client import PBClient, ImagebuilderClient
 from pebbles.config import RuntimeConfig
 from pebbles.utils import init_logging, load_cluster_config
-from pebbles.worker.controllers import ApplicationSessionController, ClusterController, WorkspaceController
+from pebbles.worker.controllers import ApplicationSessionController, ClusterController, WorkspaceController, \
+    CustomImageController
 
 
 class Worker:
@@ -53,6 +54,20 @@ class Worker:
             controller_name="WORKSPACE_CONTROLLER"
         )
 
+        self.ib_base_url = os.environ.get('IMAGEBUILDER_BASE_URL')
+        self.ib_client = None
+        self.ib_client = ImagebuilderClient(
+            os.environ.get('IMAGEBUILDER_API_TOKEN'), self.ib_base_url
+        ) if self.ib_base_url else None
+        self.custom_image_controller = CustomImageController(
+            worker_id=self.id,
+            config=self.config,
+            cluster_config=None,
+            client=self.client,
+            ib_client=self.ib_client,
+            controller_name="CUSTOM_IMAGE_CONTROLLER"
+        ) if self.ib_base_url else None
+
     def handle_signals(self, signum, frame):
         """
         Callback function for graceful and emergency shutdown.
@@ -92,6 +107,10 @@ class Worker:
 
             # process workspaces
             self.workspace_controller.process()
+
+            # process custom image builds
+            if self.custom_image_controller:
+                self.custom_image_controller.process()
 
             # stop the watchdog
             signal.alarm(0)

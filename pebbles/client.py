@@ -13,7 +13,7 @@ import pebbles.utils
 from pebbles.config import RuntimeConfig
 
 
-class PBClient:
+class ClientBase:
     def __init__(self, token, api_base_url, ssl_verify=True):
         self.token = token
         self.api_base_url = api_base_url
@@ -21,6 +21,7 @@ class PBClient:
         self.auth = pebbles.utils.b64encode_string('%s:%s' % (token, '')).replace('\n', '')
         self.session = requests.Session()
         self.session.mount('http://', HTTPAdapter(max_retries=10))
+        self.extra_headers = {}
 
     def check_and_refresh_session(self, ext_id, password):
         # renew worker session 15 minutes before expiration
@@ -45,7 +46,7 @@ class PBClient:
         self.auth = pebbles.utils.b64encode_string('%s:%s' % (self.token, '')).replace('\n', '')
 
     def do_get(self, object_url, payload=None):
-        headers = {'Accept': 'text/plain', 'Authorization': 'Basic %s' % self.auth}
+        headers = {'Accept': 'text/plain', 'Authorization': 'Basic %s' % self.auth} | self.extra_headers
         url = '%s/%s' % (self.api_base_url, object_url)
         resp = self.session.get(url, data=payload, headers=headers, verify=self.ssl_verify, timeout=(5, 5))
         return resp
@@ -63,7 +64,8 @@ class PBClient:
         headers = {
             'Content-type': content_type,
             'Accept': 'text/plain',
-            'Authorization': 'Basic %s' % self.auth}
+            'Authorization': 'Basic %s' % self.auth
+        } | self.extra_headers
         url = '%s/%s' % (self.api_base_url, object_url)
         method_impl = modify_methods[method]
         resp = method_impl(url, data=form_data, json=json_data, headers=headers, verify=self.ssl_verify, timeout=(5, 5))
@@ -80,6 +82,11 @@ class PBClient:
 
     def do_delete(self, object_url, form_data=None, json_data=None):
         return self.do_modify(method='delete', object_url=object_url, form_data=form_data, json_data=json_data)
+
+
+class PBClient(ClientBase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def do_application_session_patch(self, application_session_id, form_data=None, json_data=None):
         url = 'application_sessions/%s' % application_session_id
@@ -243,6 +250,107 @@ class PBClient:
         url = 'tasks/%s/results' % task_id
         json_data = dict(results=results)
         return self.do_put(url, json_data=json_data)
+
+    def get_custom_images(self, limit=None, unfinished=None):
+        query = 'custom_images'
+        if limit or unfinished:
+            query += '?'
+            if limit:
+                query += f'limit={limit}&'
+            if unfinished:
+                query += 'unfinished=1&'
+            query = query[:-1]
+        resp = self.do_get(query)
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot fetch data for custom_images, %s' % resp.reason)
+        return resp.json()
+
+    def do_custom_image_patch(self, custom_image_id, form_data=None, json_data=None):
+        url = 'custom_images/%s' % custom_image_id
+        resp = self.do_patch(url, form_data=form_data, json_data=json_data)
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot patch custom image %s, %s' % (custom_image_id, resp.reason))
+        return resp
+
+
+class ImagebuilderClient(ClientBase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.extra_headers = dict(Authorization=f'Basic {args[0]}')
+
+    def get_builds(self, limit=None):
+        query = 'builds'
+        if limit:
+            query += f'?limit={limit}'
+        resp = self.do_get(query)
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot fetch data for custom images, %s' % resp.reason)
+        return resp.json()
+
+    def get_build(self, build_id, suppress_404=False):
+        resp = self.do_get('builds/%s' % build_id)
+        if resp.status_code != 200:
+            if suppress_404 and resp.status_code == 404:
+                return None
+            raise RuntimeError(
+                'Cannot fetch data for build %s, %s' % (build_id, resp.reason))
+        return resp.json()
+
+    def get_imagestreams(self, limit=None):
+        query = 'imagestreams'
+        if limit:
+            query += f'?limit={limit}'
+        resp = self.do_get(query)
+        if resp.status_code != 200:
+            raise RuntimeError('Cannot fetch data for imagestreams, %s' % resp.reason)
+        return resp.json()
+
+    def get_imagestream(self, name, suppress_404=False):
+        resp = self.do_get('imagestreams/%s' % name)
+        if resp.status_code != 200:
+            if suppress_404 and resp.status_code == 404:
+                return None
+            raise RuntimeError(
+                'Cannot fetch data for imagestream %s, %s' % (name, resp.reason))
+        return resp.json()
+
+    def delete_build(self, build_id, suppress_404=False):
+        resp = self.do_delete('builds/%s' % build_id)
+        if resp.status_code != 200:
+            if suppress_404 and resp.status_code == 404:
+                return None
+            raise RuntimeError(
+                'Cannot delete build %s, %s' % (build_id, resp.reason))
+        return resp.json()
+
+    def delete_imagestream(self, name, suppress_404=False):
+        resp = self.do_delete('imagestreams/%s' % name)
+        if resp.status_code != 200:
+            if suppress_404 and resp.status_code == 404:
+                return None
+            raise RuntimeError(
+                'Cannot delete imagestream %s, %s' % (name, resp.reason))
+
+        return resp.json()
+
+    def delete_tag(self, name, tag, suppress_404=False):
+        resp = self.do_delete('imagestreams/%s/%s' % (name, tag))
+        if resp.status_code != 200:
+            if suppress_404 and resp.status_code == 404:
+                return None
+            raise RuntimeError(
+                'Cannot delete tag %s:%s, %s' % (name, tag, resp.reason))
+
+        return resp.json()
+
+    def post_build(self, name, dockerfile):
+        resp = self.do_post(
+            'builds',
+            json_data=dict(name=name, dockerfile=dockerfile)
+        )
+        if resp.status_code == 200:
+            return resp.json()
+        raise RuntimeError('Cannot post build %s, %s' % (name, resp.reason))
 
 
 if __name__ == '__main__':

@@ -943,6 +943,67 @@ class Task(db.Model):
         self._update_ts = datetime.datetime.fromtimestamp(value)
 
 
+class CustomImage(db.Model):
+    STATE_NEW = 'new'
+    STATE_BUILDING = 'building'
+    STATE_COMPLETED = 'completed'
+    STATE_FAILED = 'failed'
+    STATE_DELETED = 'deleted'
+
+    VALID_STATES = (
+        STATE_NEW,
+        STATE_BUILDING,
+        STATE_COMPLETED,
+        STATE_FAILED,
+        STATE_DELETED,
+    )
+
+    __tablename__ = 'custom_images'
+    id = db.Column(db.String(32), primary_key=True)
+    workspace_id = db.Column(db.String(32), db.ForeignKey('workspaces.id'))
+    name = db.Column(db.String(64))
+    tag = db.Column(db.String(64))
+    _definition = db.Column('definition', db.Text)
+    dockerfile = db.Column(db.Text)
+    build_system_id = db.Column(db.String(64))
+    build_system_output = db.Column(db.Text)
+    url = db.Column(db.String(256))
+
+    started_at = db.Column('started_at', db.DateTime)
+    completed_at = db.Column('completed_at', db.DateTime)
+    _state = db.Column('state', db.String(32))
+    to_be_deleted = db.Column(db.Boolean, default=False)
+    created_at = db.Column('created_at', db.DateTime, server_default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime, onupdate=func.now())
+
+    def __init__(self, id=None, workspace_id=None, name=None, tag=None, dockerfile=None, ):
+        self.id = id if id else uuid.uuid4().hex
+        self.workspace_id = workspace_id
+        self.name = name
+        self.tag = tag
+        self.dockerfile = dockerfile
+        self.state = self.STATE_NEW
+
+    @hybrid_property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        if value in CustomImage.VALID_STATES:
+            self._state = value
+        else:
+            raise ValueError("'%s' is not a valid state" % value)
+
+    @hybrid_property
+    def definition(self):
+        return load_column(self._definition)
+
+    @definition.setter
+    def definition(self, value):
+        self._definition = json.dumps(value)
+
+
 def load_yaml(yaml_data):
     """
     A function to load annotated yaml data into the database.
