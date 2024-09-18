@@ -195,6 +195,18 @@ data:
     workspace_id: ws-0
     user_id: u-user-1
 
+
+  #############################################################################
+  ### MOOC user with no workspace memberships
+  - !User
+    id: mooc-user-1
+    ext_id: mooc-user-1@example.org
+    password: mooc-user-1
+    annotations:
+      - key: pebbles.csc.fi/taint
+        value: low_trust
+
+
   #############################################################################
   ### User owner-1 with one Workspace and one manager user
 

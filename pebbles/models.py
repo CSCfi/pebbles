@@ -90,7 +90,7 @@ class User(db.Model):
     workspace_memberships = db.relationship("WorkspaceMembership", back_populates="user", lazy='dynamic')
 
     def __init__(self, ext_id, password=None, is_admin=False, email_id=None, expiry_ts=None, pseudonym=None,
-                 workspace_quota=None):
+                 workspace_quota=None, annotations=None):
         self.id = uuid.uuid4().hex
         self.ext_id = ext_id
         self.is_admin = is_admin
@@ -113,6 +113,8 @@ class User(db.Model):
             self.pseudonym = ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(8))
         if workspace_quota:
             self.workspace_quota = workspace_quota
+        if annotations:
+            self._annotations = json.dumps(annotations)
 
     def __eq__(self, other):
         return self.id == other.id
