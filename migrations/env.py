@@ -1,7 +1,10 @@
-from __future__ import with_statement
+from collections.abc import Iterable
+
 from alembic import context
+from alembic.environment import MigrationContext
+from alembic.operations import MigrationScript
+from flask import current_app
 from sqlalchemy import engine_from_config, pool
-import logging
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -11,10 +14,11 @@ config = context.config
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from flask import current_app
+
 config.set_main_option('sqlalchemy.url',
                        current_app.config.get('SQLALCHEMY_DATABASE_URI'))
 target_metadata = current_app.extensions['migrate'].db.metadata
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -54,27 +58,31 @@ def run_migrations_online():
     # this callback is used to prevent an auto-migration from being generated
     # when there are no changes to the schema
     # see: https://alembic.sqlalchemy.org/en/latest/cookbook.html#don-t-generate-empty-migrations-with-autogenerate
-    def process_revision_directives(context, revision, directives):
-        script = directives[0]
-        if script.upgrade_ops.is_empty():
-            directives[:] = []
-            logging.info('No changes in schema detected.')
+    def process_revision_directives(
+            context: MigrationContext,
+            revision: str | Iterable[str | None] | Iterable[str],
+            directives: list[MigrationScript],
+    ):
+        assert config.cmd_opts is not None
+        if getattr(config.cmd_opts, 'autogenerate', False):
+            script = directives[0]
+            assert script.upgrade_ops is not None
+            if script.upgrade_ops.is_empty():
+                directives[:] = []
 
     engine = engine_from_config(config.get_section(config.config_ini_section),
                                 prefix='sqlalchemy.',
                                 poolclass=pool.NullPool)
 
-    connection = engine.connect()
-    context.configure(connection=connection,
-                      target_metadata=target_metadata,
-                      process_revision_directives=process_revision_directives,
-                      **current_app.extensions['migrate'].configure_args)
+    with engine.connect() as connection:
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            process_revision_directives=process_revision_directives
+        )
 
-    try:
         with context.begin_transaction():
             context.run_migrations()
-    finally:
-        connection.close()
 
 
 if context.is_offline_mode():
