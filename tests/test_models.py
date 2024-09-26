@@ -8,6 +8,7 @@ import pytest
 from flask import Flask
 from jose import jwt
 
+from pebbles import models
 from pebbles.models import PEBBLES_TAINT_KEY
 from pebbles.models import User, Workspace, ApplicationTemplate, Application, ApplicationSession
 from pebbles.models import db
@@ -31,7 +32,7 @@ class ModelDataFixture:
         db.session.add(u)
 
         ws = Workspace('Workspace1')
-        self.known_group = ws
+        self.known_workspace = ws
         db.session.add(ws)
 
         t1 = ApplicationTemplate()
@@ -41,16 +42,16 @@ class ModelDataFixture:
         db.session.add(t1)
         self.known_template_id = t1.id
 
-        b1 = Application()
-        b1.name = "TestApplication"
-        b1.template_id = t1.id
-        b1.workspace_id = ws.id
-        # b1.cost_multiplier = 1.5
-        b1.config = {
+        a1 = Application()
+        a1.name = "TestApplication"
+        a1.template_id = t1.id
+        a1.workspace_id = ws.id
+        # a1.cost_multiplier = 1.5
+        a1.config = {
             'cost_multiplier': '1.5'
         }
-        self.known_application = b1
-        db.session.add(b1)
+        self.known_application = a1
+        db.session.add(a1)
 
         db.session.commit()
 
@@ -247,3 +248,96 @@ def test_application_session_name_generation():
     """
     names = {ApplicationSession.generate_name("pb") for _ in range(1000)}
     assert len(names) > 990
+
+
+def test_list_active_applications(model_data: ModelDataFixture):
+    a2 = Application()
+    a2.name = 'TestApplication 2'
+    a2.template_id = model_data.known_template_id
+    a2.workspace_id = model_data.known_workspace.id
+    a2.base_config = dict(image='example.org/foo/bar:latest', memory_gib=1)
+    a2.config = dict(image_url='example.org/foo/bar:latest', memory_gib=2)
+    db.session.add(a2)
+
+    db.session.commit()
+
+    # two active applications in the database now
+    assert (set([x.id for x in models.list_active_applications()]) == set([a2.id, model_data.known_application.id]))
+
+    # set one deleted
+    a2.status = Application.STATUS_DELETED
+    db.session.commit()
+
+    assert (set([x.id for x in models.list_active_applications()]) == set([model_data.known_application.id]))
+
+    # add another active workspace to play with
+    w2 = Workspace('TestWorkspace 2')
+    db.session.add(w2)
+    # add application to the new workspace
+    a3 = Application()
+    a3.name = 'TestApplication 3'
+    a3.template_id = model_data.known_template_id
+    a3.workspace_id = w2.id
+    a3.base_config = dict(image='example.org/foo/bar:latest', memory_gib=1)
+    a3.config = dict(image_url='example.org/foo/bar:latest', memory_gib=2)
+    db.session.add(a3)
+
+    db.session.commit()
+
+    # two active applications
+    assert (set([x.id for x in models.list_active_applications()]) == set([model_data.known_application.id, a3.id]))
+
+    # archive workspace
+    w2.status = Workspace.STATUS_ARCHIVED
+    assert (set([x.id for x in models.list_active_applications()]) == set([model_data.known_application.id]))
+
+    # set active again
+    w2.status = Workspace.STATUS_ACTIVE
+    assert (set([x.id for x in models.list_active_applications()]) == set([model_data.known_application.id, a3.id]))
+
+    # make the workspace expired
+    w2.expiry_ts = w2.create_ts
+    assert (set([x.id for x in models.list_active_applications()]) == set([model_data.known_application.id]))
+
+
+def test_replace_application_image(model_data: ModelDataFixture):
+    a2 = Application()
+    a2.name = "TestApplication 2"
+    a2.template_id = model_data.known_template_id
+    a2.workspace_id = model_data.known_workspace.id
+    a2.base_config = dict(image='example.org/foo/bar:latest', memory_gib=1)
+    a2.config = dict(image_url='example.org/foo/bar:latest', memory_gib=2)
+    db.session.add(a2)
+
+    # replace both image references, other keys should not be affected
+    a2.replace_application_image('example.org/foo/bar:latest', 'example.org/foo/bar:next')
+    assert a2.base_config == dict(image='example.org/foo/bar:next', memory_gib=1)
+    assert a2.config == dict(image_url='example.org/foo/bar:next', memory_gib=2)
+
+    # only base_config has image defined
+    a2.config = dict(hello='world')
+    a2.base_config = dict(image='example.org/foo/bar:latest')
+    a2.replace_application_image('example.org/foo/bar:latest', 'example.org/foo/bar:next')
+    assert a2.config == dict(hello='world')
+    assert a2.base_config == dict(image='example.org/foo/bar:next')
+
+    # only config matches
+    a2.config = dict(image_url='example.org/foo/bar:latest')
+    a2.base_config = dict(image='example.org/other/image:latest')
+    a2.replace_application_image('example.org/foo/bar:latest', 'example.org/foo/bar:next')
+    assert a2.config == dict(image_url='example.org/foo/bar:next')
+    assert a2.base_config == dict(image='example.org/other/image:latest')
+
+    # no match
+    a2.config = dict(image_url='example.org/foo/bar:stable')
+    a2.base_config = dict(image='example.org/foo/bar:stable')
+    a2.replace_application_image('example.org/foo/bar:latest', 'example.org/foo/bar:next')
+    assert a2.config == dict(image_url='example.org/foo/bar:stable')
+    assert a2.base_config == dict(image='example.org/foo/bar:stable')
+
+    # prefix should not match
+    a2.config = dict(image_url='example.org/foo/bar:stable')
+    a2.base_config = dict(image='example.org/foo/bar:stable')
+    a2.replace_application_image('example.org/foo/bar', 'example.org/foo/bar:next')
+    assert a2.config == dict(image_url='example.org/foo/bar:stable')
+    assert a2.base_config == dict(image='example.org/foo/bar:stable')

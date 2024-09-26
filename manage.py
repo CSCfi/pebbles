@@ -13,10 +13,12 @@ import yaml
 from flask.cli import FlaskGroup
 from sqlalchemy.exc import IntegrityError
 
+import pebbles.models
 import pebbles.views.commons
+from pebbles import models
 from pebbles.app import create_app, db
 from pebbles.config import RuntimeConfig
-from pebbles.models import User, Application, ApplicationTemplate, load_yaml
+from pebbles.models import User, Application, ApplicationTemplate
 from pebbles.utils import create_password
 
 # ensure UNITTEST environment before importing app
@@ -173,7 +175,7 @@ def load_data(file, update=False):
     Loads an annotated YAML file into database. Use -u/--update to update existing entries instead of skipping.
     """
     with open(file, 'r') as f:
-        data = load_yaml(f)
+        data = models.load_yaml(f)
         for obj in data['data']:
             try:
                 db.session.add(obj)
@@ -215,8 +217,8 @@ def check_data(datadir):
     """
     applications_file = datadir + '/applications.yaml'
     templates_file = datadir + '/application_templates.yaml'
-    application_data: List[Application] = load_yaml(open(applications_file, 'r')).get('data')
-    template_data: List[ApplicationTemplate] = load_yaml(open(templates_file, 'r')).get('data')
+    application_data: List[Application] = models.load_yaml(open(applications_file, 'r')).get('data')
+    template_data: List[ApplicationTemplate] = models.load_yaml(open(templates_file, 'r')).get('data')
 
     # check for duplicate ids
     ids: List[string] = []
@@ -260,9 +262,9 @@ def check_data(datadir):
 @cli.command('list_application_images')
 def list_application_images():
     """
-    Lists images used by non-deleted applications
+    Lists images used by active applications
     """
-    applications = Application.query.filter(Application.status != 'deleted').all()
+    applications = models.list_active_applications()
     images = []
     # collect the images per application
     for a in applications:
@@ -276,7 +278,41 @@ def list_application_images():
                 images.append(image)
 
     # filter out strings that are obviously wrong (image_url in config can basically have anything)
-    print(' '.join([image for image in sorted(images) if '/' in image and ' ' not in image]))
+    print('\n'.join([image for image in sorted(images) if '/' in image and ' ' not in image]))
+
+
+@cli.command('replace_application_image')
+@click.argument('old_image')
+@click.argument('new_image')
+@click.option('-d', 'dry_run', is_flag=True, help='dry-run, do not commit changes')
+def replace_application_image(old_image, new_image, dry_run=False):
+    """
+    Changes application image in all active applications in both base_config and config
+    """
+    if dry_run:
+        print('\n*** Dry run: no changes made ***\n')
+
+    print(f'Changing image reference {old_image} to {new_image} in all active applications')
+    applications = models.list_active_applications()
+    print(f'Found total {len(applications)} active applications in active workspaces')
+
+    changed_applications = set()
+    # collect the images per application
+    for a in applications:
+        if a.replace_application_image(old_image, new_image):
+            changed_applications.add(a)
+
+    if changed_applications:
+        print('Updated %d applications:' % len(changed_applications))
+        for a in sorted(changed_applications, key=lambda a: a.id):
+            print('  %32s %s' % (a.id, a.name))
+        if dry_run:
+            print('\n*** Dry run: no changes made ***\n')
+        else:
+            db.session.commit()
+            print('Changes commited')
+    else:
+        print('No changes')
 
 
 if __name__ == '__main__':

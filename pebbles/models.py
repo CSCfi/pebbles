@@ -44,12 +44,16 @@ convention = {
 
 db.Model.metadata = MetaData(naming_convention=convention)
 
-SESSION_NAME_MODIFIERS = ['dark', 'light', 'deep', 'faint', 'bright', 'beautifully', 'faded', 'vivid', 'pale', 'rich',
-                          'pure', 'gloriously']
+SESSION_NAME_MODIFIERS = [
+    'dark', 'light', 'deep', 'faint', 'bright', 'beautifully', 'faded', 'vivid', 'pale', 'rich',
+    'pure', 'gloriously',
+]
 
-SESSION_NAME_COLORS = ['red', 'green', 'blue', 'purple', 'orange', 'yellow', 'black', 'white', 'pink', 'cyan',
-                       'magenta', 'fuchsia', 'turquoise', 'coral', 'emerald', 'mauve', 'indigo', 'ruby', 'brown',
-                       'grey', 'lilac', 'beige', 'crimson', 'teal', 'maroon', 'olive', 'violet', 'silver', 'khaki']
+SESSION_NAME_COLORS = [
+    'red', 'green', 'blue', 'purple', 'orange', 'yellow', 'black', 'white', 'pink', 'cyan',
+    'magenta', 'fuchsia', 'turquoise', 'coral', 'emerald', 'mauve', 'indigo', 'ruby', 'brown',
+    'grey', 'lilac', 'beige', 'crimson', 'teal', 'maroon', 'olive', 'violet', 'silver', 'khaki',
+]
 
 
 class CaseInsensitiveComparator(Comparator):
@@ -655,6 +659,23 @@ class Application(db.Model):
             duration = self.maximum_lifetime
         return self.cost_multiplier * duration / 3600
 
+    def replace_application_image(self, old_image: str, new_image: str) -> bool:
+        """ replace image in both base_config and config """
+        change = False
+        if self.config.get('image_url', '') == old_image:
+            # hybrid property needs to be assigned as a new dict
+            config = self.config
+            config['image_url'] = new_image
+            self.config = config
+            change = True
+        if self.base_config.get('image', '') == old_image:
+            # hybrid property needs to be assigned as a new dict
+            base_config = self.base_config
+            base_config['image'] = new_image
+            self.base_config = base_config
+            change = True
+        return change
+
     def __repr__(self):
         return self.name or "Unnamed application"
 
@@ -956,3 +977,9 @@ def load_yaml(yaml_data):
     data = yaml.unsafe_load(yaml_data)
 
     return data
+
+
+def list_active_applications() -> list[Application]:
+    """List applications in active state in valid workspaces"""
+    applications = Application.query.filter(Application.status != 'deleted').all()
+    return list(filter(lambda a: a.workspace.status == 'active' and not a.workspace.has_expired(), applications))
