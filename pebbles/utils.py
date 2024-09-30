@@ -11,6 +11,7 @@ from flask import abort, g
 from yaml import YAMLError
 
 from pebbles.config import LOG_FORMAT
+from pebbles.custom_handlers import BeatsHandler
 
 # PASSWORD_CHARACTERS created with:
 # re.sub(r'[Ol10]', '', string.ascii_uppercase + string.ascii_lowercase)
@@ -217,7 +218,7 @@ def b64encode_string(content):
     return base64.b64encode(content.encode('utf-8')).decode('utf-8')
 
 
-def init_logging(config, log_name):
+def init_logging(config, log_name) -> None:
     """set up logging"""
     logging.basicConfig(
         level=logging.DEBUG if config.DEBUG else logging.INFO,
@@ -227,6 +228,12 @@ def init_logging(config, log_name):
         logfile = '%s/%s.log' % (config.LOG_DIRECTORY, log_name)
         logging.debug('enabling file logging to %s', logfile)
         handler = RotatingFileHandler(filename=logfile, maxBytes=10 * 1024 * 1024, backupCount=5)
+        handler.setFormatter(logging.Formatter(LOG_FORMAT))
+        logging.getLogger().addHandler(handler)
+    if config.ENABLE_BEATS_LOGGING:
+        beats_config = load_logging_config(config.BEATS_LOGGING_CONFIG_FILE_PATH)
+        logging.debug('enabling beats logging to %s:%d', beats_config['beatsHost'], beats_config['beatsPort'])
+        handler = BeatsHandler(host=beats_config['beatsHost'], port=beats_config['beatsPort'])
         handler.setFormatter(logging.Formatter(LOG_FORMAT))
         logging.getLogger().addHandler(handler)
 
@@ -306,3 +313,14 @@ def read_list_from_text_file(path):
         items = f.read().splitlines()
     items = [item.strip() for item in items if item.strip() and re.match(r'[a-zA-Z]', item.strip()[0])]
     return items
+
+
+def load_logging_config(path: str) -> dict:
+    """
+    Loads a YAML logging config and returns it as a dictionary
+    """
+    try:
+        return yaml.safe_load(open(path, 'r'))
+    except (IOError, ValueError) as e:
+        logging.warning("Unable to parse logging config from path %s", path)
+        raise e

@@ -1,6 +1,7 @@
 # Test fixture methods to be called from app context so we can access the db
-import datetime
+from datetime import datetime, timezone
 import json
+import logging
 
 from flask import Flask
 
@@ -66,7 +67,7 @@ def test_workspace_cleanup(app: Flask, pri_data: PrimaryData):
     # check that the test set is valid. There should be workspaces that
     # a) have expired but are within grace period
     # b) need cleaning
-    current_time = datetime.datetime.utcnow().timestamp()
+    current_time = datetime.now(timezone.utc).timestamp()
     wss = Workspace.query.filter_by(status='active').all()
     expired_workspaces = [
         ws for ws in wss
@@ -85,7 +86,8 @@ def test_workspace_cleanup(app: Flask, pri_data: PrimaryData):
 
     pb_client = PBClientMock(app.test_client())
     pb_client.login('admin@example.org', 'admin')
-    run_workspace_expiry_cleanup(pb_client)
+    logger = logging.getLogger()
+    run_workspace_expiry_cleanup(pb_client, logger)
 
     # check that the cleanup left workspaces before grace alone but removed the ones beyond grace
     wss_after = Workspace.query.filter_by(status='active').all()

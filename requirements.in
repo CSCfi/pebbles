@@ -47,9 +47,11 @@ flake8
 responses
 pyfakefs
 
-
 # for hot-reload in development
 inotify
+
+# for logging
+pylogbeat
 
 # for generating requirements.txt
 pip-tools

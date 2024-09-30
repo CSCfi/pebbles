@@ -94,6 +94,8 @@ class BaseConfig:
     # Logging settings
     LOG_DIRECTORY = '/opt/log'
     ENABLE_FILE_LOGGING = False
+    ENABLE_BEATS_LOGGING = False
+    BEATS_LOGGING_CONFIG_FILE_PATH = '/run/configmaps/pebbles/beats-configmap/logging.yaml'
 
     # Clusters configuration
     CLUSTER_CONFIG_FILE = '/run/secrets/pebbles/cluster-config.yaml'
