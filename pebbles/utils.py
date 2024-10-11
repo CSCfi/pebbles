@@ -2,9 +2,9 @@ import base64
 import importlib
 import logging
 import random
+import re
 from functools import wraps
 from logging.handlers import RotatingFileHandler
-import re
 
 import yaml
 from flask import abort, g
@@ -324,3 +324,12 @@ def load_logging_config(path: str) -> dict:
     except (IOError, ValueError) as e:
         logging.warning("Unable to parse logging config from path %s", path)
         raise e
+
+
+def validate_container_image_url(url: str):
+    """
+    Validates a container image URL, returns error string if invalid
+    """
+    if not re.match(r"^([\w\-_]+[.:])+([\w\-_]+)(/[\w\-_]+)*(/[\w\-_@]+:[\w\-_]+)$", url):
+        return "invalid image url"
+    return None

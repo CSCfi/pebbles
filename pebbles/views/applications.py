@@ -13,7 +13,7 @@ from pebbles import rules
 from pebbles.forms import ApplicationForm
 from pebbles.models import db, Application, ApplicationTemplate, Workspace, ApplicationSession
 from pebbles.utils import requires_workspace_owner_or_admin, requires_admin, check_config_against_attribute_limits, \
-    check_attribute_limit_format
+    check_attribute_limit_format, validate_container_image_url
 from pebbles.views import commons
 from pebbles.views.commons import auth, requires_workspace_manager_or_admin
 
@@ -173,6 +173,12 @@ class ApplicationList(restful.Resource):
 
         # for json lists, we need to use raw_data
         application.labels = form.labels.raw_data
+
+        if "image_url" in form.config.data and form.config.data["image_url"]:
+            error = validate_container_image_url(form.config.data["image_url"])
+            if error:
+                return f'Invalid application config: {error}', 422
+
         application.config = form.config.data
         application.is_enabled = form.is_enabled.data
 
@@ -234,6 +240,12 @@ class ApplicationView(restful.Resource):
 
         # for json lists, we need to use raw_data
         application.labels = form.labels.raw_data
+
+        if "image_url" in form.config.data and form.config.data["image_url"]:
+            error = validate_container_image_url(form.config.data["image_url"])
+            if error:
+                return f'Invalid application config: {error}', 422
+
         application.config = form.config.data
 
         if form.is_enabled.raw_data:

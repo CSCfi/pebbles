@@ -1,5 +1,5 @@
 from pyfakefs.fake_filesystem_unittest import Patcher
-from pebbles.utils import env_string_to_dict, read_list_from_text_file
+from pebbles.utils import env_string_to_dict, read_list_from_text_file, validate_container_image_url
 
 
 def test_parse_env_value():
@@ -38,3 +38,26 @@ def test_read_list_from_text_file():
         patcher.fs.create_file('/foo/test_file.txt', contents=file_contents)
         filtered_contents = read_list_from_text_file('/foo/test_file.txt')
         assert filtered_contents == ['test', 'hello', 'nowhitespace', 'alphabetic', 'Capital']
+
+
+def test_validate_container_image_url():
+    """
+    Test that validate_container_image_url returns an error string if image URL is invalid
+    """
+    valid_container_image_urls = [
+        "docker.io/rocker/rstudio:latest",
+        "registry.2.app.com/repo/image:01-01-2024",
+        "private-registry:5000/repo/image:latest",
+        "docker.io/library/tomcat@sha256:c34ce3c1fcc0c7431e1392cc3abd0dfe2192ffea1898d5250f199d3ac8d8720f",
+    ]
+    for url in valid_container_image_urls:
+        assert not validate_container_image_url(url)
+
+    invalid_container_image_urls = [
+        "foo/bar:latest",
+        "https://docker.io/rocker/rstudio:latest",
+        "/home/user/images/rstudio:latest",
+        r"C:\Documents\images\image:1235",
+    ]
+    for url in invalid_container_image_urls:
+        assert validate_container_image_url(url)
