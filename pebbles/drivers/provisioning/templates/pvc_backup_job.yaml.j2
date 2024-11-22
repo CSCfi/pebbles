@@ -33,6 +33,38 @@ spec:
                   values:
                   - pebbles-backup-pvc
               topologyKey: "kubernetes.io/hostname"
+      initContainers:
+        - name: pvc-tarball-creation
+          image: image-registry.apps.2.rahti.csc.fi/pebbles-public-images/pebbles-deployer:main
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # bail out on any error
+              set -e
+
+              BACKUP_FILE_BASE="/tarball-tmp/{{ cluster_name }}__{{ workspace_pseudonym }}__{{ pvc_name }}"
+
+              echo "$(date -Is) backup tarball creation starting"
+              tar cvfz ${BACKUP_FILE_BASE}.tar.gz -C /source-pvc {{ pvc_name }}
+
+              echo "backup tarball created"
+          volumeMounts:
+            - name: source-pvc
+              mountPath: /source-pvc/{{ pvc_name }}
+            - name: tarball-tmp
+              mountPath: /tarball-tmp
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+
       containers:
         - name: pvc-backup
           image: image-registry.apps.2.rahti.csc.fi/pebbles-public-images/pebbles-deployer:main
@@ -43,8 +75,7 @@ spec:
             - |
               # bail out on any error
               set -e
-              
-              start_ts=$(date +%s)
+
               echo "$(date -Is) backup starting"
               
               BACKUP_FILE_BASE="/tarball-tmp/{{ cluster_name }}__{{ workspace_pseudonym }}__{{ pvc_name }}"
@@ -52,9 +83,6 @@ spec:
               echo "import public key and set trust"
               gpg --batch --no-tty --import < /run/secrets/pebbles/pvc-backup-secret/encrypt-public-key
               echo -e 'trust\n5\ny\n'  | gpg --batch --no-tty --command-fd 0 --edit-key backup
-              
-              echo "create backup tarball"
-              tar cvfz ${BACKUP_FILE_BASE}.tar.gz -C /source-pvc {{ pvc_name }}
 
               echo "encrypt backup tarball"
               gpg --encrypt --batch --no-tty --recipient backup ${BACKUP_FILE_BASE}.tar.gz
@@ -83,6 +111,7 @@ spec:
               mountPath: /tarball-tmp
             - name: pvc-backup-secret
               mountPath: /run/secrets/pebbles/pvc-backup-secret
+
       volumes:
         - name: source-pvc
           persistentVolumeClaim:

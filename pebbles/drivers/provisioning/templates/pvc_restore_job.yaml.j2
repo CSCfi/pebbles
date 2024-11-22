@@ -34,8 +34,8 @@ spec:
                   values:
                   - pebbles-restore-pvc
               topologyKey: "kubernetes.io/hostname"
-      containers:
-        - name: pvc-restore
+      initContainers:
+        - name: pvc-decrypt
           image: image-registry.apps.2.rahti.csc.fi/pebbles-public-images/pebbles-deployer:main
           imagePullPolicy: IfNotPresent
           command:
@@ -44,36 +44,32 @@ spec:
             - |
               # bail out on any error
               set -e
-              
-              start_ts=$(date +%s)
+
               echo "$(date -Is) restore starting"
 
-              BACKUP_FILE="{{ src_cluster }}__{{ workspace_pseudonym }}__{{ pvc_name }}.tar.gz.gpg"
-              S3_URL="s3://{{ workspace_backup_bucket_name }}/{{ src_cluster }}/${BACKUP_FILE}"
+              BACKUP_FILE_BASE="{{ src_cluster }}__{{ workspace_pseudonym }}__{{ pvc_name }}"
+
+              S3_URL="s3://{{ workspace_backup_bucket_name }}/{{ src_cluster }}/${BACKUP_FILE_BASE}.tar.gz.gpg"
 
               echo "checking backup existence"
-              if ! s3cmd -c /run/secrets/pebbles/pvc-restore-secret/s3cfg info ${S3_URL}; then 
+              if ! s3cmd -c /run/secrets/pebbles/pvc-restore-secret/s3cfg info ${S3_URL}; then
                 echo "backup ${S3_URL} does not exist"
                 echo "$(date -Is) restore skipped"
                 exit 0
               fi
-              
+
               echo "download tarball"
               cd /tarball-tmp
               s3cmd -c /run/secrets/pebbles/pvc-restore-secret/s3cfg get ${S3_URL}
-              
+
               echo "import gpg private key"
-              gpg --batch --no-tty --import < /run/secrets/pebbles/pvc-restore-secret/encrypt-private-key              
-              
-              echo "decrypt and untar"
+              gpg --batch --no-tty --import < /run/secrets/pebbles/pvc-restore-secret/encrypt-private-key
+
+              echo "decrypt"
               gpg \
                 --decrypt --pinentry-mode=loopback --batch \
                 --passphrase=$(cat /run/secrets/pebbles/pvc-restore-secret/encrypt-private-key-password) \
-                < ${BACKUP_FILE} \
-              | tar xvz -C /target-pvc
-             
-              # the end
-              echo "$(date -Is) restore successful"
+                < ${BACKUP_FILE_BASE}.tar.gz.gpg > ${BACKUP_FILE_BASE}.tar.gz
 
           resources:
             requests:
@@ -91,6 +87,40 @@ spec:
               mountPath: /tarball-tmp
             - name: pvc-restore-secret
               mountPath: /run/secrets/pebbles/pvc-restore-secret
+
+      containers:
+        - name: pvc-restore
+          image: image-registry.apps.2.rahti.csc.fi/pebbles-public-images/pebbles-deployer:main
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # bail out on any error
+              set -e
+
+              echo "$(date -Is) extracting decrypted backup tarball"
+
+              BACKUP_FILE_BASE="{{ src_cluster }}__{{ workspace_pseudonym }}__{{ pvc_name }}"
+
+              tar xvzf /tarball-tmp/${BACKUP_FILE_BASE}.tar.gz -C /target-pvc
+
+              echo "$(date -Is) restore successful"
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: target-pvc
+              mountPath: /target-pvc/{{ pvc_name }}
+            - name: tarball-tmp
+              mountPath: /tarball-tmp
       volumes:
         - name: target-pvc
           persistentVolumeClaim:
