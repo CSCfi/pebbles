@@ -46,6 +46,7 @@ def test_validate_container_image_url():
     """
     valid_container_image_urls = [
         "docker.io/rocker/rstudio:latest",
+        "docker.io/rocker/rstudio:1.2.3",
         "registry.2.app.com/repo/image:01-01-2024",
         "private-registry:5000/repo/image:latest",
         "docker.io/library/tomcat@sha256:c34ce3c1fcc0c7431e1392cc3abd0dfe2192ffea1898d5250f199d3ac8d8720f",
