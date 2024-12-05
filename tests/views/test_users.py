@@ -292,3 +292,40 @@ def test_user_workspace_quota(rmaker: RequestMaker, pri_data: PrimaryData):
             data=json.dumps(dict(workspace_quota=invalid_input))
         )
         assert (response.status_code in [400, 422])
+
+
+def test_user_deletion_request(rmaker: RequestMaker, pri_data: PrimaryData):
+    # Anonymous
+    response = rmaker.make_request(
+        method='POST',
+        path='/api/v1/users/%s/request_deletion' % pri_data.known_user_id,
+    )
+    assert response.status_code == 401
+
+    # User ID does not match
+    response = rmaker.make_authenticated_user_2_request(
+        method='POST',
+        path='/api/v1/users/%s/request_deletion' % pri_data.known_user_id,
+    )
+    assert response.status_code == 403
+
+    # Authenticated
+    response = rmaker.make_authenticated_user_request(
+        method='POST',
+        path='/api/v1/users/%s/request_deletion' % pri_data.known_user_id,
+    )
+    assert response.status_code == 200
+
+    # Admin cannot request deletion for user
+    response = rmaker.make_authenticated_admin_request(
+        method='POST',
+        path='/api/v1/users/%s/request_deletion' % pri_data.known_user_id,
+    )
+    assert response.status_code == 403
+
+    # Owner cannot request deletion for user
+    response = rmaker.make_authenticated_workspace_owner_request(
+        method='POST',
+        path='/api/v1/users/%s/request_deletion' % pri_data.known_user_id,
+    )
+    assert response.status_code == 403

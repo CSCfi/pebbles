@@ -1,6 +1,7 @@
 import logging
 import re
 import time
+from datetime import datetime, timezone
 
 import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
@@ -28,6 +29,7 @@ user_fields_admin = {
     'expiry_ts': fields.Integer,
     'last_login_ts': fields.Integer,
     'annotations': fields.Raw,
+    'deletion_requested_date': fields.DateTime(dt_format='iso8601'),
 }
 
 user_fields = {
@@ -43,6 +45,7 @@ user_fields = {
     'joining_ts': fields.Integer,
     'expiry_ts': fields.Integer,
     'last_login_ts': fields.Integer,
+    'deletion_requested_date': fields.DateTime(dt_format='iso8601'),
 }
 
 workspace_membership_fields = {
@@ -144,6 +147,23 @@ class UserView(restful.Resource):
             logging.info('setting is_blocked to %s for user %s', is_blocked, user.ext_id)
             user.is_blocked = is_blocked
 
+        db.session.commit()
+        return user
+
+
+class UserRequestDeletion(restful.Resource):
+    @auth.login_required
+    @marshal_with(user_fields)
+    def post(self, user_id):
+        if not user_id == g.user.id:
+            abort(403)
+
+        user = User.query.filter_by(id=user_id, is_deleted=False).first()
+        if not user:
+            logging.warning('trying to modify non-existing user')
+            abort(404)
+
+        user.deletion_requested_date = datetime.now(timezone.utc)
         db.session.commit()
         return user
 

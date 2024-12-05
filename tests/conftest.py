@@ -70,9 +70,6 @@ class PrimaryData:
         # for multiple tests
         u1.id = 'u1'
         u2.id = 'u2'
-        self.known_admin_id = u1.id
-        self.known_admin_id = u1.id
-        self.known_user_id = u2.id
         u3.id = 'u3'
         u3.workspace_quota = 2
         u4.id = 'u4'

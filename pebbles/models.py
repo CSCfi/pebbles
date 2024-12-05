@@ -92,6 +92,7 @@ class User(db.Model):
     _annotations = db.Column('annotations', db.Text)
     application_sessions = db.relationship('ApplicationSession', backref='user', lazy='dynamic')
     workspace_memberships = db.relationship("WorkspaceMembership", back_populates="user", lazy='dynamic')
+    deletion_requested_date = db.Column(db.DateTime, nullable=True)
 
     def __init__(self, ext_id, password=None, is_admin=False, email_id=None, expiry_ts=None, pseudonym=None,
                  workspace_quota=None, annotations=None):

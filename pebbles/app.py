@@ -116,7 +116,7 @@ def init_api(app: Flask):
         ServiceAnnouncementListAdmin, ServiceAnnouncementViewAdmin
     from pebbles.views.sessions import SessionView
     from pebbles.views.tasks import TaskList, TaskView, TaskAddResults
-    from pebbles.views.users import UserList, UserView, UserWorkspaceMembershipList
+    from pebbles.views.users import UserList, UserView, UserRequestDeletion, UserWorkspaceMembershipList
     from pebbles.views.workspaces import (
         WorkspaceClearMembers, WorkspaceTransferOwnership, WorkspaceAccounting,
         WorkspaceMemoryLimitGiB, WorkspaceModifyUserFolderSize,
@@ -132,6 +132,7 @@ def init_api(app: Flask):
     api_root = '/api/v1'
     api.add_resource(UserList, api_root + '/users', methods=['GET', 'POST'])
     api.add_resource(UserView, api_root + '/users/<string:user_id>', methods=['GET', 'DELETE', 'PATCH'])
+    api.add_resource(UserRequestDeletion, api_root + '/users/<string:user_id>/request_deletion', methods=['POST'])
     api.add_resource(UserWorkspaceMembershipList, api_root + '/users/<string:user_id>/workspace_memberships')
     api.add_resource(WorkspaceList, api_root + '/workspaces')
     api.add_resource(WorkspaceView, api_root + '/workspaces/<string:workspace_id>')
