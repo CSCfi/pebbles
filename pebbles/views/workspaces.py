@@ -263,6 +263,7 @@ class WorkspaceView(restful.Resource):
             abort(422)
         workspace_owner_obj = WorkspaceMembership.query.filter_by(workspace_id=workspace.id, is_owner=True).first()
         owner = workspace_owner_obj.user
+        workspace.owner_ext_id = owner.ext_id if owner else None
         if not (user.is_admin or user.id == owner.id):
             abort(403)
 
@@ -347,6 +348,12 @@ class WorkspaceView(restful.Resource):
         # you have to be an admin or the owner
         if not (user.is_admin or commons.is_workspace_owner(user, workspace)):
             abort(403)
+
+        # Set owner_ext_id
+        workspace_owner_obj = WorkspaceMembership.query.filter_by(workspace_id=workspace_id, is_owner=True).first()
+        if workspace_owner_obj:
+            owner = workspace_owner_obj.user
+            workspace.owner_ext_id = owner.ext_id if owner else None
 
         # archive
         if new_status == Workspace.STATUS_ARCHIVED:

@@ -318,6 +318,39 @@ def test_modify_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
     assert resp.json.get('contact') == 'email@email.com'
 
 
+def test_workspace_returns(rmaker: RequestMaker, pri_data: PrimaryData):
+    # Admin: test get returns owner_ext_id right
+    get_response = rmaker.make_authenticated_admin_request(path='/api/v1/workspaces/%s' % pri_data.known_workspace_id)
+    assert get_response.status_code == 200
+    assert get_response.json['owner_ext_id'] == "workspace_owner@example.org"
+
+    # Admin: test PUT returns owner_ext_id right
+    response = rmaker.make_authenticated_admin_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(dict(name='test1')))
+    assert response.status_code == 200
+    assert response.json['owner_ext_id'] == get_response.json['owner_ext_id']
+
+    # Admin: test PATCH returns owner_ext_id right
+    response = rmaker.make_authenticated_admin_request(
+        method='PATCH',
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(dict(status='deleted'))
+    )
+    assert response.status_code == 200
+    assert response.json['owner_ext_id'] == get_response.json['owner_ext_id']
+
+    # Admin: test DELETE returns owner_ext_id right
+    response = rmaker.make_authenticated_admin_request(
+        method='DELETE',
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id_2
+    )
+    assert response.status_code == 200
+    # Test with ws2, ws1 got deleted
+    assert response.json['owner_ext_id'] == "workspace_owner2@example.org"
+
+
 def test_modify_workspace_expiry_date(rmaker: RequestMaker, pri_data: PrimaryData):
     # try to modify expiry date for workspace that does not have 'allow_expiry_extension' set
     resp = rmaker.make_authenticated_workspace_owner_request(
