@@ -111,7 +111,7 @@ itsdangerous==2.2.0
     #   -r requirements.in
     #   flask
     #   flask-wtf
-jinja2==3.1.4
+jinja2==3.1.5
     # via
     #   -r requirements.in
     #   flask
@@ -264,7 +264,7 @@ websocket-client==1.8.0
     # via
     #   kubernetes
     #   selenium
-werkzeug==3.0.3
+werkzeug==3.0.6
     # via
     #   -r requirements.in
     #   flask
