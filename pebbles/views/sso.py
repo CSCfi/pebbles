@@ -1,7 +1,7 @@
-import datetime
 import logging
 import time
 import uuid
+from datetime import timezone, datetime
 
 import requests
 from flask import abort, current_app
@@ -178,7 +178,7 @@ def oauth2_login():
                 email_id=email_id,
                 annotations=selected_method.get('userAnnotations')
             )
-            user.tc_acceptance_date = datetime.datetime.utcnow()
+            user.tc_acceptance_date = datetime.now(timezone.utc)
             user.workspace_quota = selected_method.get('defaultWorkspaceQuota', 0)
             logging.info('Created new user with ext_id %s' % ext_id)
             db.session.commit()
@@ -188,7 +188,7 @@ def oauth2_login():
         if not args.agreement_sign:
             return render_terms_and_conditions()
         elif args.agreement_sign == 'signed':
-            user.tc_acceptance_date = datetime.datetime.utcnow()
+            user.tc_acceptance_date = datetime.now(timezone.utc)
             db.session.commit()
         else:
             logging.warning('Login aborted: User "%s" did not agree to terms, access denied', user.id)

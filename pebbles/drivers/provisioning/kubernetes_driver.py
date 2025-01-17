@@ -1,7 +1,7 @@
-import datetime
 import logging
 import os
 import time
+from datetime import datetime
 from enum import Enum, unique
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
@@ -217,7 +217,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         # if it is long since creation, mark the application session as failed
         # TODO: when we implement queueing, change the reference time
-        create_ts = datetime.datetime.fromisoformat(application_session['created_at']).timestamp()
+        create_ts = datetime.fromisoformat(application_session['created_at']).timestamp()
         if create_ts < time.time() - SESSION_STARTUP_TIME_LIMIT:
             raise RuntimeWarning('application_session %s takes too long to start' % application_session_id)
 
@@ -256,7 +256,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             # turn k8s events into provisioning log entries
             def extract_log_entries(x):
                 event_time = x.firstTimestamp if x.firstTimestamp else x.eventTime
-                ts = datetime.datetime.fromisoformat(event_time[:-1]).timestamp()
+                ts = datetime.fromisoformat(event_time[:-1]).timestamp()
                 if ts < time.time() - 30:
                     return None
                 if 'assigned' in x.message:

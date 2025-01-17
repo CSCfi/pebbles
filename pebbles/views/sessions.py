@@ -1,6 +1,6 @@
-import datetime
 import logging
 import time
+from datetime import timezone, datetime
 
 import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint, current_app
@@ -38,14 +38,15 @@ class SessionView(restful.Resource):
 
         user = User.query.filter_by(ext_id=ext_id).first()
         # Existing users: Check if agreement is accepted. If not send the terms to user.
-        if user and user.check_password(form.password.data) and not user.tc_acceptance_date and user.ext_id != 'worker@pebbles':
+        if user and user.check_password(form.password.data) and not user.tc_acceptance_date \
+                and user.ext_id != 'worker@pebbles':
             if not args.agreement_sign:
                 return marshal({
                     'user_id': user.id,
                     'terms_agreed': False,
                 }, token_fields)
             elif args.agreement_sign == 'signed':
-                user.tc_acceptance_date = datetime.datetime.utcnow()
+                user.tc_acceptance_date = datetime.now(timezone.utc)
                 db.session.commit()
             else:
                 logging.warning('Login aborted: User "%s" did not agree to terms, access denied', user.id)

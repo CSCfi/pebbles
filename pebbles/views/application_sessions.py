@@ -1,6 +1,6 @@
-import datetime
 import json
 import logging
+from datetime import datetime, timezone
 
 import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
@@ -125,7 +125,6 @@ def positive_integer(input_value):
 
 
 class ApplicationSessionList(restful.Resource):
-
     list_parser = reqparse.RequestParser()
     list_parser.add_argument('limit', type=int, location='args')
 
@@ -141,10 +140,9 @@ class ApplicationSessionList(restful.Resource):
             application_session = row.ApplicationSession
             application = row.Application
             application_session.username = row.User.ext_id
-            age = 0
-            if application_session.provisioned_at:
-                age = (datetime.datetime.utcnow() - application_session.provisioned_at).total_seconds()
-            application_session.lifetime_left = max(application.maximum_lifetime - age, 0)
+            application_session.lifetime_left = max(
+                application.maximum_lifetime - application_session.get_age_secs(), 0
+            )
             application_session.maximum_lifetime = application.maximum_lifetime
             application_session.cost_multiplier = application.cost_multiplier
 
@@ -254,10 +252,9 @@ class ApplicationSessionView(restful.Resource):
         application_session.application_id = application.id
         application_session.username = application_session.user
 
-        age = 0
-        if application_session.provisioned_at:
-            age = (datetime.datetime.utcnow() - application_session.provisioned_at).total_seconds()
-        application_session.lifetime_left = max(application.maximum_lifetime - age, 0)
+        application_session.lifetime_left = max(
+            application.maximum_lifetime - application_session.get_age_secs(), 0
+        )
         application_session.maximum_lifetime = application.maximum_lifetime
         application_session.cost_multiplier = application.cost_multiplier
 
@@ -280,7 +277,7 @@ class ApplicationSessionView(restful.Resource):
         if not user.is_admin and not is_workspace_manager(user, workspace) and application_session.user_id != user.id:
             abort(403)
         application_session.to_be_deleted = True
-        application_session.deprovisioned_at = datetime.datetime.utcnow()
+        application_session.deprovisioned_at = datetime.now(timezone.utc)
         db.session.commit()
 
         # Action queued, return 202 Accepted
@@ -324,7 +321,7 @@ class ApplicationSessionView(restful.Resource):
             application_session.state = args['state']
             if application_session.state == ApplicationSession.STATE_RUNNING:
                 if not application_session.provisioned_at:
-                    application_session.provisioned_at = datetime.datetime.utcnow()
+                    application_session.provisioned_at = datetime.now(timezone.utc)
             if application_session.state == ApplicationSession.STATE_FAILED:
                 application_session.errored = True
             if application_session.state == ApplicationSession.STATE_DELETED:
@@ -333,7 +330,7 @@ class ApplicationSessionView(restful.Resource):
 
         if args.get('to_be_deleted'):
             application_session.to_be_deleted = args['to_be_deleted']
-            application_session.deprovisioned_at = datetime.datetime.utcnow()
+            application_session.deprovisioned_at = datetime.now(timezone.utc)
             db.session.commit()
 
         if args.get('error_msg'):

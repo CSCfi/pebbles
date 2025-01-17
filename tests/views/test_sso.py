@@ -1,8 +1,8 @@
 import base64
-import datetime
 import json
 import os
 import time
+from datetime import timezone, datetime
 
 import responses
 import yaml
@@ -337,7 +337,7 @@ def test_existing_user(pri_data: PrimaryData):
     add_default_responses()
 
     u1 = User('ex1/user-1')
-    u1.tc_acceptance_date = datetime.datetime.utcnow()
+    u1.tc_acceptance_date = datetime.now(timezone.utc)
     db.session.add(u1)
     db.session.commit()
 
@@ -381,7 +381,7 @@ def test_existing_user_with_tertiary_id_attribute(pri_data: PrimaryData):
 
     # test that tertiary id attribute picks up existing user created with eppn
     u1 = User('ex2/user-1@example.org')
-    u1.tc_acceptance_date = datetime.datetime.utcnow()
+    u1.tc_acceptance_date = datetime.now(timezone.utc)
     db.session.add(u1)
     db.session.commit()
 
@@ -433,7 +433,7 @@ def test_blocked_user_cannot_log_in(pri_data: PrimaryData):
 
     # Add the default user in advance to the database and mark it blocked. Login should be denied.
     u1 = User('ex1/user-1')
-    u1.tc_acceptance_date = datetime.datetime.utcnow()
+    u1.tc_acceptance_date = datetime.now(timezone.utc)
     u1.is_blocked = True
     db.session.add(u1)
     db.session.commit()

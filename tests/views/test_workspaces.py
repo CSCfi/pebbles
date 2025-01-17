@@ -1,6 +1,6 @@
-import datetime
 import json
 import time
+from datetime import timezone, datetime
 
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
@@ -84,7 +84,6 @@ def test_get_workspace_view(rmaker: RequestMaker, pri_data: PrimaryData):
 
 
 def test_get_workspace_list_vs_view(rmaker: RequestMaker, pri_data: PrimaryData):
-
     # Authenticated User, positive
     response = rmaker.make_authenticated_user_request(path='/api/v1/workspaces')
     assert response.status_code == 200
@@ -130,7 +129,7 @@ def test_create_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
         'name': 'TestWorkspace',
         'description': 'Workspace Details',
         'workspace_type': WS_TYPE_FIXED_TIME,
-        'expiry_ts': int((datetime.datetime.now() + relativedelta(months=+3)).timestamp()),
+        'expiry_ts': int((datetime.now() + relativedelta(months=+3)).timestamp()),
     }
     data_2 = {
         'name': 'TestWorkspace2',
@@ -248,8 +247,8 @@ def test_create_workspace_invalid_data(rmaker: RequestMaker, pri_data: PrimaryDa
         0,
         -1,
         "foo",
-        int(datetime.datetime.utcnow().timestamp()),
-        int((datetime.datetime.utcnow() + relativedelta(months=+8)).timestamp()),
+        int(datetime.now(timezone.utc).timestamp()),
+        int((datetime.now(timezone.utc) + relativedelta(months=+8)).timestamp()),
     ]
 
     for invalid_expiry_ts in invalid_expiry_tss:

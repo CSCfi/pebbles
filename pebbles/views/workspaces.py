@@ -1,8 +1,8 @@
-import datetime
 import json
 import logging
 import re
 import time
+from datetime import timezone, datetime
 
 import flask_restful as restful
 import sqlalchemy as sa
@@ -177,7 +177,7 @@ class WorkspaceList(restful.Resource):
         workspace_owner_obj = WorkspaceMembership(user=user, workspace=workspace, is_manager=True, is_owner=True)
         workspace.memberships.append(workspace_owner_obj)
 
-        workspace.create_ts = datetime.datetime.utcnow().timestamp()
+        workspace.create_ts = datetime.now(timezone.utc).timestamp()
 
         # owners can ask for a long-running-workspace, that has longer lifetime and
         # corresponding membership expiry policy
@@ -192,11 +192,11 @@ class WorkspaceList(restful.Resource):
         # check if the form includes expiry time
         if form.expiry_ts.data is not None:
             expiry_ts = form.expiry_ts.data
-            if datetime.datetime.utcnow().timestamp() < expiry_ts <= max_expiry_ts:
+            if datetime.now(timezone.utc).timestamp() < expiry_ts <= max_expiry_ts:
                 workspace.expiry_ts = expiry_ts
             else:
                 db.session.rollback()
-                msg = 'Illegal workspace expiry time specified: %s' % datetime.datetime.fromtimestamp(expiry_ts)
+                msg = 'Illegal workspace expiry time specified: %s' % datetime.fromtimestamp(expiry_ts)
                 logging.warning(msg)
                 return dict(message=msg), 422
         else:
@@ -216,7 +216,7 @@ class WorkspaceList(restful.Resource):
 
         logging.info(
             'created workspace %s with name %s, expiring on %s',
-            workspace.id, workspace.name, datetime.datetime.fromtimestamp(workspace.expiry_ts)
+            workspace.id, workspace.name, datetime.fromtimestamp(workspace.expiry_ts)
         )
 
         # marshal based on role
@@ -371,7 +371,7 @@ class WorkspaceView(restful.Resource):
                     logging.info('Setting application_session %s to be deleted', application_session.name)
                     application_session.to_be_deleted = True
                     application_session.state = ApplicationSession.STATE_DELETING
-                    application_session.deprovisioned_at = datetime.datetime.utcnow()
+                    application_session.deprovisioned_at = datetime.now(timezone.utc)
             db.session.commit()
 
         # marshal based on role
@@ -638,7 +638,7 @@ class WorkspaceClearExpiredMembers(restful.Resource):
         # - last login older than the policy limit
         # - have never logged in but have been created earlier than the policy limit (guest users)
         timeout_days = workspace.membership_expiry_policy.get('timeout_days')
-        expiry_limit = datetime.datetime.fromtimestamp(time.time() - timeout_days * 24 * 3600)
+        expiry_limit = datetime.fromtimestamp(time.time() - timeout_days * 24 * 3600)
         membership_query = WorkspaceMembership.query \
             .filter_by(workspace_id=workspace_id, is_owner=False, is_manager=False) \
             .join(WorkspaceMembership.user) \

@@ -1,4 +1,3 @@
-import datetime
 import hashlib
 import importlib
 import inspect
@@ -9,6 +8,7 @@ import secrets
 import string
 import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -170,7 +170,7 @@ class User(db.Model):
 
     @joining_ts.setter
     def joining_ts(self, value):
-        self._joining_ts = datetime.datetime.fromtimestamp(value)
+        self._joining_ts = datetime.fromtimestamp(value)
 
     @hybrid_property
     def expiry_ts(self):
@@ -178,7 +178,7 @@ class User(db.Model):
 
     @expiry_ts.setter
     def expiry_ts(self, value):
-        self._expiry_ts = datetime.datetime.fromtimestamp(value) if value else None
+        self._expiry_ts = datetime.fromtimestamp(value) if value else None
 
     @hybrid_property
     def last_login_ts(self):
@@ -186,7 +186,7 @@ class User(db.Model):
 
     @last_login_ts.setter
     def last_login_ts(self, value):
-        self._last_login_ts = datetime.datetime.fromtimestamp(value) if value else None
+        self._last_login_ts = datetime.fromtimestamp(value) if value else None
 
     @hybrid_property
     def annotations(self):
@@ -211,11 +211,11 @@ class User(db.Model):
     def delete(self):
         if self.is_deleted:
             return
-        self.ext_id = self.ext_id + datetime.datetime.utcnow().strftime("-%s")
+        self.ext_id = self.ext_id + datetime.now(timezone.utc).strftime("-%s")
         # Email_id is also renamed to allow users
         # to be deleted and invited again with same email_id
         if self.email_id:
-            self.email_id = self.email_id + datetime.datetime.utcnow().strftime("-%s")
+            self.email_id = self.email_id + datetime.now(timezone.utc).strftime("-%s")
         self.is_deleted = True
         self.is_active = False
 
@@ -290,7 +290,7 @@ class WorkspaceMembership(db.Model):
     is_banned = db.Column(db.Boolean, default=False)
     user = db.relationship("User", back_populates="workspace_memberships")
     workspace = db.relationship("Workspace", back_populates="memberships")
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=func.now())
 
 
 class Workspace(db.Model):
@@ -322,11 +322,11 @@ class Workspace(db.Model):
     cluster = db.Column(db.String(32))
     # status when created is "active". Later there is option to be "archived".
     _status = db.Column('status', db.String(32), default=STATUS_ACTIVE)
-    _create_ts = db.Column('create_ts', db.DateTime, default=datetime.datetime.utcnow)
+    _create_ts = db.Column('create_ts', db.DateTime, default=func.now())
     _expiry_ts = db.Column(
         'expiry_ts',
         db.DateTime,
-        default=lambda: datetime.datetime.fromtimestamp(time.time() + 6 * 30 * 24 * 3600)
+        default=lambda: datetime.fromtimestamp(time.time() + 6 * 30 * 24 * 3600)
     )
     memberships = db.relationship("WorkspaceMembership", back_populates="workspace", lazy='dynamic',
                                   cascade="all, delete-orphan")
@@ -379,7 +379,7 @@ class Workspace(db.Model):
 
     @create_ts.setter
     def create_ts(self, value):
-        self._create_ts = datetime.datetime.fromtimestamp(value)
+        self._create_ts = datetime.fromtimestamp(value)
 
     @hybrid_property
     def expiry_ts(self):
@@ -387,7 +387,7 @@ class Workspace(db.Model):
 
     @expiry_ts.setter
     def expiry_ts(self, value):
-        self._expiry_ts = datetime.datetime.fromtimestamp(value)
+        self._expiry_ts = datetime.fromtimestamp(value)
 
     @hybrid_property
     def status(self):
@@ -482,11 +482,11 @@ class Message(db.Model):
     broadcasted = db.Column(db.DateTime)
     subject = db.Column(db.String(MAX_MESSAGE_SUBJECT_LENGTH))
     message = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=func.now())
 
     def __init__(self, subject, message):
         self.id = uuid.uuid4().hex
-        self.broadcasted = datetime.datetime.utcnow()
+        self.broadcasted = datetime.now(timezone.utc)
         self.subject = subject
         self.message = message
 
@@ -501,7 +501,7 @@ class ServiceAnnouncement(db.Model):
     targets = db.Column(db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     is_public = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=func.now())
 
     def __init__(self, subject, content, level, targets, is_enabled, is_public):
         self.id = uuid.uuid4().hex
@@ -524,7 +524,7 @@ class ApplicationTemplate(db.Model):
     _base_config = db.Column('base_config', db.Text)
     is_enabled = db.Column(db.Boolean, default=False)
     _attribute_limits = db.Column('attribute_limits', db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=func.now())
 
     def __init__(self, name=None, description=None, application_type='generic', attribute_limits=None,
                  base_config=None, is_enabled=False):
@@ -583,7 +583,7 @@ class Application(db.Model):
     application_sessions = db.relationship('ApplicationSession', backref='application', lazy='dynamic')
     # status when created is "active". Later there are options to be "archived" or "deleted".
     _status = db.Column('status', db.String(32), default='active')
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=func.now())
 
     def __init__(self, name=None, description=None, template_id=None, workspace_id=None, labels=None,
                  maximum_lifetime=3600, is_enabled=False, config=None,
@@ -705,7 +705,7 @@ class ApplicationSession(db.Model):
     user_id = db.Column(db.String(32), db.ForeignKey('users.id'))
     application_id = db.Column(db.String(32), db.ForeignKey('applications.id'))
     name = db.Column(db.String(64), unique=True)
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=func.now())
     provisioned_at = db.Column(db.DateTime)
     deprovisioned_at = db.Column(db.DateTime)
     errored = db.Column(db.Boolean, default=False)
@@ -759,6 +759,15 @@ class ApplicationSession(db.Model):
             random.choice(plant_names)
         )
 
+    def get_age_secs(self):
+        if self.provisioned_at:
+            # We still use naive datetime objects in SQLAlchemy due to unit tests running on SQLite, so we have
+            # to construct a naive UTC datetime from datetime.now(timezone.utc) to be able to get deltas
+            utcnow = datetime.now(timezone.utc).replace(tzinfo=None)
+            return (utcnow - self.provisioned_at).total_seconds()
+        else:
+            return 0
+
 
 class ApplicationSessionLog(db.Model):
     __tablename__ = 'application_session_logs'
@@ -789,7 +798,7 @@ class Lock(db.Model):
     def __init__(self, id, owner):
         self.id = id
         self.owner = owner
-        self.acquired_at = datetime.datetime.utcnow()
+        self.acquired_at = datetime.now(timezone.utc)
 
 
 class Alert(db.Model):
@@ -800,8 +809,8 @@ class Alert(db.Model):
     source = db.Column(db.String(64), nullable=False)
     status = db.Column(db.String(64), nullable=False, index=True)
     _data = db.Column('data', db.Text)
-    _first_seen_ts = db.Column('first_seen_ts', db.DateTime, default=datetime.datetime.utcnow)
-    _last_seen_ts = db.Column('last_seen_ts', db.DateTime, default=datetime.datetime.utcnow)
+    _first_seen_ts = db.Column('first_seen_ts', db.DateTime, default=func.now())
+    _last_seen_ts = db.Column('last_seen_ts', db.DateTime, default=func.now())
 
     def __init__(self, id, target, source, status, data):
         self.id = id if id else Alert.generate_alert_id(target, source, data)
@@ -821,7 +830,7 @@ class Alert(db.Model):
 
     @last_seen_ts.setter
     def last_seen_ts(self, value):
-        self._last_seen_ts = datetime.datetime.fromtimestamp(value)
+        self._last_seen_ts = datetime.fromtimestamp(value)
 
     @hybrid_property
     def first_seen_ts(self):
@@ -829,7 +838,7 @@ class Alert(db.Model):
 
     @first_seen_ts.setter
     def first_seen_ts(self, value):
-        self._first_seen_ts = datetime.datetime.fromtimestamp(value)
+        self._first_seen_ts = datetime.fromtimestamp(value)
 
     @hybrid_property
     def data(self):
@@ -867,9 +876,9 @@ class Task(db.Model):
     _kind = db.Column('kind', db.String(32), primary_key=True)
     _state = db.Column('state', db.String(32))
     _data = db.Column('data', db.Text)
-    _create_ts = db.Column('create_ts', db.DateTime, default=datetime.datetime.utcnow)
+    _create_ts = db.Column('create_ts', db.DateTime, default=func.now())
     _complete_ts = db.Column('complete_ts', db.DateTime)
-    _update_ts = db.Column('update_ts', db.DateTime, default=datetime.datetime.utcnow)
+    _update_ts = db.Column('update_ts', db.DateTime, default=func.now())
     _results = db.Column('results', db.Text)
 
     def __init__(self, kind, state, data):
@@ -924,7 +933,7 @@ class Task(db.Model):
 
     @create_ts.setter
     def create_ts(self, value):
-        self._create_ts = datetime.datetime.fromtimestamp(value)
+        self._create_ts = datetime.fromtimestamp(value)
 
     @hybrid_property
     def complete_ts(self):
@@ -932,7 +941,7 @@ class Task(db.Model):
 
     @complete_ts.setter
     def complete_ts(self, value):
-        self._complete_ts = datetime.datetime.fromtimestamp(value)
+        self._complete_ts = datetime.fromtimestamp(value)
 
     @hybrid_property
     def update_ts(self):
@@ -940,7 +949,7 @@ class Task(db.Model):
 
     @update_ts.setter
     def update_ts(self, value):
-        self._update_ts = datetime.datetime.fromtimestamp(value)
+        self._update_ts = datetime.fromtimestamp(value)
 
 
 class CustomImage(db.Model):
@@ -973,7 +982,7 @@ class CustomImage(db.Model):
     completed_at = db.Column('completed_at', db.DateTime)
     _state = db.Column('state', db.String(32))
     to_be_deleted = db.Column(db.Boolean, default=False)
-    created_at = db.Column('created_at', db.DateTime, server_default=func.now())
+    created_at = db.Column('created_at', db.DateTime, default=func.now())
     updated_at = db.Column('updated_at', db.DateTime, onupdate=func.now())
 
     def __init__(self, id=None, workspace_id=None, name=None, tag=None, dockerfile=None, ):

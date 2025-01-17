@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import time
 
 import flask_restful as restful
@@ -43,7 +43,7 @@ class AlertList(restful.Resource):
             q = q.filter(Alert.status != 'archived')
 
         if args.get('since_ts'):
-            q = q.filter(Alert._last_seen_ts > datetime.datetime.fromtimestamp(args.get('since_ts')))
+            q = q.filter(Alert._last_seen_ts > datetime.fromtimestamp(args.get('since_ts')))
 
         alerts = q.order_by(Alert._first_seen_ts).all()
 

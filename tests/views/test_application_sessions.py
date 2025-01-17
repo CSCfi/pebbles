@@ -1,6 +1,6 @@
-import datetime
 import json
 import time
+from datetime import datetime
 
 from sqlalchemy import select
 
@@ -222,7 +222,7 @@ def test_get_application_sessions_limit(rmaker: RequestMaker, pri_data: PrimaryD
         Application.query.filter_by(id=pri_data.known_application_id).first(),
         User.query.filter_by(ext_id="user@example.org").first())
     s7.name = 'pb-s7'
-    s7.provisioned_at = datetime.datetime.strptime("2023-12-19T13:00:00", "%Y-%m-%dT%H:%M:%S")
+    s7.provisioned_at = datetime.strptime("2023-12-19T13:00:00", "%Y-%m-%dT%H:%M:%S")
     db.session.add(s7)
     for state in [
         ApplicationSession.STATE_QUEUEING, ApplicationSession.STATE_PROVISIONING, ApplicationSession.STATE_STARTING

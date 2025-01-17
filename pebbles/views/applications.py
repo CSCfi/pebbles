@@ -1,6 +1,6 @@
-import datetime
 import logging
 import uuid
+from datetime import timezone, datetime
 
 import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
@@ -304,7 +304,7 @@ class ApplicationView(restful.Resource):
                 if application_session.state != ApplicationSession.STATE_DELETED:
                     application_session.to_be_deleted = True
                     application_session.state = ApplicationSession.STATE_DELETING
-                    application_session.deprovisioned_at = datetime.datetime.utcnow()
+                    application_session.deprovisioned_at = datetime.now(timezone.utc)
             application.status = application.STATUS_DELETED
             db.session.commit()
         else:

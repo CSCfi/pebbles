@@ -1,5 +1,5 @@
-import datetime
 import logging
+from datetime import timezone, datetime
 
 import flask_restful as restful
 from flask import Blueprint as FlaskBlueprint
@@ -109,7 +109,7 @@ class MessageView(restful.Resource):
 
         message.subject = form.subject.data
         message.message = form.message.data
-        message.broadcasted = datetime.datetime.utcnow()
+        message.broadcasted = datetime.now(timezone.utc)
 
         db.session.commit()
 
