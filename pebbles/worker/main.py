@@ -39,6 +39,8 @@ class Worker:
             client=self.client,
             controller_name="SESSION_CONTROLLER"
         )
+        logging.info('Application session controller initialized')
+
         self.cluster_controller = ClusterController(
             worker_id=self.id,
             config=self.config,
@@ -46,6 +48,8 @@ class Worker:
             client=self.client,
             controller_name="CLUSTER_CONTROLLER"
         )
+        logging.info('ClusterController initialized')
+
         self.workspace_controller = WorkspaceController(
             worker_id=self.id,
             config=self.config,
@@ -53,20 +57,26 @@ class Worker:
             client=self.client,
             controller_name="WORKSPACE_CONTROLLER"
         )
+        logging.info('WorkspaceController initialized')
 
         self.ib_base_url = os.environ.get('IMAGEBUILDER_BASE_URL')
-        self.ib_client = None
-        self.ib_client = ImagebuilderClient(
-            os.environ.get('IMAGEBUILDER_API_TOKEN'), self.ib_base_url
-        ) if self.ib_base_url else None
-        self.custom_image_controller = CustomImageController(
-            worker_id=self.id,
-            config=self.config,
-            cluster_config=None,
-            client=self.client,
-            ib_client=self.ib_client,
-            controller_name="CUSTOM_IMAGE_CONTROLLER"
-        ) if self.ib_base_url else None
+        if self.ib_base_url:
+            self.ib_client = ImagebuilderClient(
+                os.environ.get('IMAGEBUILDER_API_TOKEN'), self.ib_base_url
+            )
+            self.custom_image_controller = CustomImageController(
+                worker_id=self.id,
+                config=self.config,
+                cluster_config=None,
+                client=self.client,
+                ib_client=self.ib_client,
+                controller_name="CUSTOM_IMAGE_CONTROLLER"
+            )
+            logging.info(f'CustomImageController initialized, IMAGEBUILDER_BASE_URL: {self.ib_base_url}')
+        else:
+            self.ib_client = None
+            self.custom_image_controller = None
+            logging.info('CustomImageController not initialized, IMAGEBUILDER_BASE_URL not set')
 
     def handle_signals(self, signum, frame):
         """
