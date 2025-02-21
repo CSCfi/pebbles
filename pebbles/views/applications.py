@@ -12,7 +12,7 @@ from sqlalchemy.orm.session import make_transient
 from pebbles import rules
 from pebbles.forms import ApplicationForm
 from pebbles.models import db, Application, ApplicationTemplate, Workspace, ApplicationSession
-from pebbles.utils import requires_workspace_owner_or_admin, requires_admin, check_config_against_attribute_limits, \
+from pebbles.utils import requires_admin, check_config_against_attribute_limits, \
     check_attribute_limit_format, validate_container_image_url
 from pebbles.views import commons
 from pebbles.views.commons import auth, requires_workspace_manager_or_admin
@@ -281,7 +281,7 @@ class ApplicationView(restful.Resource):
             db.session.commit()
 
     @auth.login_required
-    @requires_workspace_owner_or_admin
+    @requires_workspace_manager_or_admin
     def delete(self, application_id):
         user = g.user
         s = rules.generate_application_query(user, dict(application_id=application_id))

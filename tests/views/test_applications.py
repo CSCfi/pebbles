@@ -1,7 +1,8 @@
 import json
 import uuid
+from sqlalchemy import select
 
-from pebbles.models import Application
+from pebbles.models import Application, db, WorkspaceMembership
 from tests.conftest import PrimaryData, RequestMaker
 
 
@@ -189,6 +190,27 @@ def test_create_application(rmaker: RequestMaker, pri_data: PrimaryData):
         method='POST',
         path='/api/v1/applications',
         data=json.dumps(data))
+    assert response.status_code == 200
+
+
+def test_manager_to_delete_application(rmaker: RequestMaker, pri_data: PrimaryData):
+    # Change pri_data.known_user_id is_owner to False in all workspace memberships
+    user_memberships = db.session.scalars(
+        select(WorkspaceMembership).where(WorkspaceMembership.user_id == pri_data.known_user_id)
+    ).all()
+
+    for user in user_memberships:
+        user.is_owner = False
+        if user.workspace_id == 'ws1':
+            user.is_manager = True
+
+    db.session.commit()
+
+    # Workspace manager, not owner
+    response = rmaker.make_authenticated_user_request(
+        method='DELETE',
+        path='/api/v1/applications/%s' % pri_data.known_application_id
+    )
     assert response.status_code == 200
 
 
