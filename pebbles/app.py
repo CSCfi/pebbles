@@ -124,7 +124,8 @@ def init_api(app: Flask):
         WorkspaceModifyCluster,
         WorkspaceClearExpiredMembers, WorkspaceModifyMembershipExpiryPolicy,
         WorkspaceModifyMembershipJoinPolicy,
-        WorkspaceCreateVolumeTasks, WorkspaceModifyExpiryTs
+        WorkspaceCreateVolumeTasks, WorkspaceModifyExpiryTs,
+        WorkspaceRegenerateJoinCode
     )
     from pebbles.views.workspaces import WorkspaceList, WorkspaceView, JoinWorkspace, WorkspaceExit, WorkspaceMemberList
     from pebbles.views.sso import oauth2_login
@@ -159,6 +160,7 @@ def init_api(app: Flask):
     api.add_resource(WorkspaceModifyExpiryTs, api_root + '/workspaces/<string:workspace_id>/expiry_ts')
     api.add_resource(WorkspaceCreateVolumeTasks,
                      api_root + '/workspaces/<string:workspace_id>/create_volume_tasks')
+    api.add_resource(WorkspaceRegenerateJoinCode, api_root + '/workspaces/<string:workspace_id>/regenerate_join_code')
     api.add_resource(JoinWorkspace, api_root + '/join_workspace/<string:join_code>')
     api.add_resource(MessageList, api_root + '/messages')
     api.add_resource(MessageView, api_root + '/messages/<string:message_id>')

@@ -317,7 +317,7 @@ class Workspace(db.Model):
     id = db.Column(db.String(32), primary_key=True)
     pseudonym = db.Column(db.String(MAX_PSEUDONYM_LENGTH), unique=True, nullable=False)
     name = db.Column(db.String(64))
-    _join_code = db.Column('join_code', db.String(64))
+    join_code = db.Column('join_code', db.String(64))
     description = db.Column(db.Text)
     cluster = db.Column(db.String(32))
     # status when created is "active". Later there is option to be "archived".
@@ -347,7 +347,7 @@ class Workspace(db.Model):
         self.pseudonym = ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(8))
         self.name = name
         self.description = description
-        self.join_code = name
+        self.regenerate_join_code()
         self.cluster = cluster
         # invoke the hybrid property accessor to convert provided config dict to json
         if config:
@@ -356,22 +356,10 @@ class Workspace(db.Model):
         self._status = Workspace.STATUS_ACTIVE
         self.membership_expiry_policy = dict(kind=Workspace.MEP_PERSISTENT)
 
-    @hybrid_property
-    def join_code(self):
-        return self._join_code
-
-    @join_code.setter
-    def join_code(self, name):
-        # pick a prefix from first characters in name
-        prefix = ''.join(filter(
-            lambda c: c in string.ascii_lowercase, name.lower().encode('ascii', 'ignore').decode()
-        ))[:3]
-        if prefix:
-            prefix += '-'
-
-        # append random characters
-        random_chars = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(8))
-        self._join_code = prefix + random_chars
+    def regenerate_join_code(self):
+        # create join_code from random characters
+        random_chars = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(12))
+        self.join_code = random_chars
 
     @hybrid_property
     def create_ts(self):

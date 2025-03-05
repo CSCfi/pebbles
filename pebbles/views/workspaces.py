@@ -6,6 +6,7 @@ from datetime import timezone, datetime
 
 import flask_restful as restful
 import sqlalchemy as sa
+from sqlalchemy import select
 import sqlalchemy.orm
 from flask import Blueprint as FlaskBlueprint, current_app
 from flask import abort, g, request
@@ -277,8 +278,6 @@ class WorkspaceView(restful.Resource):
 
             if workspace.name != form.name.data:
                 workspace.name = form.name.data
-                # assigning to this hybrid property triggers regeneration of join code
-                workspace.join_code = form.name.data
 
         # We don't allow empty descriptions
         if form.description.data:
@@ -931,3 +930,30 @@ class WorkspaceCreateVolumeTasks(restful.Resource):
         db.session.commit()
 
         return dict(message='generated %d %s tasks' % (num_tasks, task_kind))
+
+
+class WorkspaceRegenerateJoinCode(restful.Resource):
+    @auth.login_required
+    @requires_workspace_owner_or_admin
+    def post(self, workspace_id):
+
+        user = g.user
+        workspace = db.session.scalar(select(Workspace).where(Workspace.id == workspace_id))
+
+        if not workspace:
+            abort(404)
+        if not workspace.status == Workspace.STATUS_ACTIVE:
+            abort(404)
+
+        workspace_owners = [wm.user for wm in workspace.memberships if wm.is_owner]
+        if user.is_admin:
+            pass
+        elif user not in workspace_owners:
+            abort(403)
+
+        workspace.regenerate_join_code()
+
+        db.session.commit()
+
+        # marshal based on role
+        return marshal_based_on_role(user, workspace)

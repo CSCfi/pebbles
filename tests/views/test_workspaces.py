@@ -1476,3 +1476,63 @@ def test_create_volume_tasks(rmaker: RequestMaker, pri_data: PrimaryData):
             data=json.dumps(data),
         )
         assert response.status_code == 422
+
+
+def test_regenerate_workspace_join_code(rmaker: RequestMaker, pri_data: PrimaryData):
+
+    workspace = db.session.scalar(select(Workspace).where(Workspace.id == pri_data.known_workspace_id))
+    original = workspace.join_code
+
+    # Anonymous
+    response = rmaker.make_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/regenerate_join_code' % pri_data.known_workspace_id
+    )
+    assert response.status_code == 401
+
+    # Non-existing workspace
+    resp = rmaker.make_authenticated_workspace_owner_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/regenerate_join_code' % 'foobar'
+    )
+    assert resp.status_code == 404
+
+    # Authenticated User
+    response = rmaker.make_authenticated_user_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/regenerate_join_code' % pri_data.known_workspace_id
+    )
+    assert response.status_code == 403
+
+    # Authenticated workspace manager, but not owner
+    response = rmaker.make_authenticated_workspace_owner2_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/regenerate_join_code' % pri_data.known_workspace_id
+    )
+    assert response.status_code == 403
+
+    # Authenticated Workspace Owner
+    response = rmaker.make_authenticated_workspace_owner_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/regenerate_join_code' % pri_data.known_workspace_id
+    )
+    assert response.status_code == 200
+    owner_set_code = response.json.get('join_code')
+    assert response.json.get('join_code') != original
+
+    # Admin
+    response = rmaker.make_authenticated_admin_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/regenerate_join_code' % pri_data.known_workspace_id
+    )
+    assert response.status_code == 200
+    assert response.json.get('join_code') != original
+    assert response.json.get('join_code') != owner_set_code
+
+    # Test regenerating join_code to non-active workspace
+    workspace.status = Workspace.STATUS_DELETED
+    response = rmaker.make_authenticated_workspace_owner_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/regenerate_join_code' % pri_data.known_workspace_id
+    )
+    assert response.status_code == 404
