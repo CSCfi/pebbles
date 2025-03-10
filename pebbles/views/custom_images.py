@@ -24,6 +24,7 @@ custom_image_fields = {
     'tag': fields.String,
     'definition': fields.Raw,
     'dockerfile': fields.String,
+    'created_at': fields.DateTime(dt_format='iso8601'),
     'started_at': fields.DateTime(dt_format='iso8601'),
     'completed_at': fields.DateTime(dt_format='iso8601'),
     'state': fields.String,
