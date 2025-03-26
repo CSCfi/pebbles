@@ -173,6 +173,14 @@ class WorkspaceList(restful.Resource):
             logging.warning('validation error on creating workspace, %s', form.errors)
             return form.errors, 422
         workspace = Workspace(form.name.data)
+
+        # We don't allow empty or too long descriptions
+        if not form.description.data:
+            logging.warning('Workspace description cannot be empty')
+            return dict(message='Workspace description cannot be empty'), 422
+        if not len(form.description.data) <= 500:
+            logging.warning('Workspace description cannot exceed 500 characters')
+            return dict(error='Workspace description cannot exceed 500 characters'), 422
         workspace.description = form.description.data
 
         workspace_owner_obj = WorkspaceMembership(user=user, workspace=workspace, is_manager=True, is_owner=True)
@@ -279,9 +287,13 @@ class WorkspaceView(restful.Resource):
             if workspace.name != form.name.data:
                 workspace.name = form.name.data
 
-        # We don't allow empty descriptions
         if form.description.data:
-            workspace.description = form.description.data
+            # We don't allow too long descriptions
+            if len(form.description.data) <= 500:
+                workspace.description = form.description.data
+            else:
+                logging.warning('Workspace description cannot exceed 500 characters')
+                return dict(error='Workspace description cannot exceed 500 characters'), 422
 
         # Contact field can be empty
         if form.contact.data is not None:

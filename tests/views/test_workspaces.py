@@ -1,5 +1,7 @@
 import json
 import time
+import string
+import random
 from datetime import timezone, datetime
 
 from dateutil.relativedelta import relativedelta
@@ -122,6 +124,76 @@ def test_workspace_contact(rmaker: RequestMaker, pri_data: PrimaryData):
         data=json.dumps(data))
     assert resp.status_code == 200
     assert resp.json['contact'] == 'email@email.com'
+
+
+def test_workspace_description_length(rmaker: RequestMaker, pri_data: PrimaryData):
+    random_text_501 = ''.join(random.choices(string.ascii_letters, k=501))
+    random_text_500 = ''.join(random.choices(string.ascii_letters, k=500))
+
+    data = {
+        'name': 'TestWorkspace2',
+        'description': random_text_501,
+    }
+
+    data_2 = {
+        'name': 'TestWorkspace2',
+        'description': random_text_500,
+    }
+
+    resp = rmaker.make_authenticated_workspace_owner_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(dict(description=random_text_501)))
+    assert resp.status_code == 422
+
+    resp = rmaker.make_authenticated_workspace_owner_request(
+        method='POST',
+        path='/api/v1/workspaces',
+        data=json.dumps(data))
+    assert resp.status_code == 422
+
+    # Test normal length
+    resp = rmaker.make_authenticated_workspace_owner_request(
+        method='PUT',
+        path='/api/v1/workspaces/%s' % pri_data.known_workspace_id,
+        data=json.dumps(dict(description=random_text_500)))
+    assert resp.status_code == 200
+    assert resp.json['description'] == random_text_500
+
+    resp = rmaker.make_authenticated_workspace_owner_request(
+        method='POST',
+        path='/api/v1/workspaces',
+        data=json.dumps(data_2))
+    assert resp.status_code == 200
+    assert resp.json['description'] == random_text_500
+
+
+def test_empty_workspace_description(rmaker: RequestMaker, pri_data: PrimaryData):
+    data = {
+        'name': 'TestWorkspace2',
+        'description': ''
+    }
+
+    data_2 = {
+        'name': 'TestWorkspace2',
+        'description': None
+    }
+
+    # Test for empty description
+    resp = rmaker.make_authenticated_workspace_owner_request(
+        method='POST',
+        path='/api/v1/workspaces',
+        data=json.dumps(data))
+    assert resp.status_code == 422
+    assert resp.json['message'] == 'Workspace description cannot be empty'
+
+    # Test for empty description
+    resp = rmaker.make_authenticated_workspace_owner_request(
+        method='POST',
+        path='/api/v1/workspaces',
+        data=json.dumps(data_2))
+    assert resp.status_code == 422
+    assert resp.json['message'] == 'Workspace description cannot be empty'
 
 
 def test_create_workspace(rmaker: RequestMaker, pri_data: PrimaryData):
