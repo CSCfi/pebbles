@@ -50,6 +50,7 @@ def test_validate_container_image_url():
         "registry.2.app.com/repo/image:01-01-2024",
         "private-registry:5000/repo/image:latest",
         "docker.io/library/tomcat@sha256:c34ce3c1fcc0c7431e1392cc3abd0dfe2192ffea1898d5250f199d3ac8d8720f",
+        "docker.io/nameyname/spaceyspace.v1.0:latest",
     ]
     for url in valid_container_image_urls:
         assert not validate_container_image_url(url)

@@ -330,6 +330,6 @@ def validate_container_image_url(url: str):
     """
     Validates a container image URL, returns error string if invalid
     """
-    if not re.match(r"^([\w\-_]+[.:])+([\w\-_]+)(/[\w\-_]+)*(/[\w\-_@]+:[\w\-_.]+)$", url):
+    if not re.match(r"^([\w\-_]+[.:])+([\w\-_]+)(/[\w\-_]+)*(/[\w\-_@.]+:[\w\-_.]+)$", url):
         return "invalid image url"
     return None
