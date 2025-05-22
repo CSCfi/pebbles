@@ -6,9 +6,9 @@ from random import randrange
 
 import requests
 
-from pebbles.client import ImagebuilderClient
 from pebbles.models import ApplicationSession, Task, CustomImage
 from pebbles.utils import find_driver_class
+from pebbles.worker.build_client import BuildClient
 
 WS_CONTROLLER_TASK_LOCK_NAME = 'workspace-controller-tasks'
 
@@ -426,10 +426,17 @@ class CustomImageController(ControllerBase):
     Controller that takes care of custom images and builds
     """
 
-    def __init__(self, ib_client: ImagebuilderClient, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.polling_interval_min, self.polling_interval_max = self.get_polling_interval(5, 20)
-        self.ib_client = ib_client
+        self.build_client = BuildClient(
+            build_namespace=os.environ.get('CUSTOM_IMAGE_CONTROLLER_BUILD_NAMESPACE'),
+            registry=os.environ.get('CUSTOM_IMAGE_CONTROLLER_REGISTRY'),
+            repo=os.environ.get('CUSTOM_IMAGE_CONTROLLER_REPO'),
+        )
+        logging.info(f'CustomImageController build_namespace: {self.build_client.build_namespace}')
+        logging.info(f'CustomImageController registry: {self.build_client.registry}')
+        logging.info(f'CustomImageController repo: {self.build_client.repo}')
 
     def process_custom_image(self, image):
         logging.debug('CustomImageController processing image %s', image.get('id'))
@@ -438,33 +445,34 @@ class CustomImageController(ControllerBase):
             ws = self.client.get_workspace(image.get('workspace_id'))
             # delete build (usually done when build is completed, but for cancellation we need to do it)
             if image.get('build_system_id'):
-                self.ib_client.delete_build(image.get('build_system_id'), suppress_404=True)
+                self.build_client.delete_build(image.get('build_system_id'), suppress_404=True)
             # delete tag from imagestream
             if image.get('tag'):
-                self.ib_client.delete_tag(ws.get('pseudonym'), image.get('tag'), suppress_404=True)
+                self.build_client.delete_tag(ws.get('pseudonym'), image.get('tag'), suppress_404=True)
             self.client.do_custom_image_patch(
                 image.get('id'),
                 json_data=dict(
                     state=CustomImage.STATE_DELETED,
                 )
             )
+            logging.info(f'CustomImageController deleted custom image "{image.get('name', '')}"')
         elif image.get('state') in [CustomImage.STATE_NEW]:
             ws = self.client.get_workspace(image.get('workspace_id'))
-            post_res = self.ib_client.post_build(ws.get('pseudonym'), image.get('dockerfile'))
+            post_res = self.build_client.post_build(ws.get('pseudonym'), image.get('dockerfile'))
             url = f"{post_res.get('registry')}/{post_res.get('repo')}/{post_res.get('name')}:{post_res.get('tag')}"
-            logging.info('CustomImageController created build %s for url %s', post_res.get('buildId'), url)
+            logging.info('CustomImageController created build %s for url %s', post_res.get('build_id'), url)
             self.client.do_custom_image_patch(
                 image.get('id'),
                 json_data=dict(
                     state=CustomImage.STATE_BUILDING,
-                    build_system_id=post_res.get('buildId'),
+                    build_system_id=post_res.get('build_id'),
                     url=url,
                     tag=post_res.get('tag'),
                 )
             )
 
         elif image.get('state') in [CustomImage.STATE_BUILDING]:
-            build = self.ib_client.get_build(image.get('build_system_id'))
+            build = self.build_client.get_build(image.get('build_system_id'))
             status = build.get('status')
             phase = status.get('phase')
             logging.info('CustomImageController build %s in phase %s', image.get('build_system_id'), phase)
@@ -473,7 +481,7 @@ class CustomImageController(ControllerBase):
                     'CustomImageController build %s failed due to %s',
                     image.get('build_system_id'),
                     status.get('message'))
-                self.ib_client.delete_build(image.get('build_system_id'))
+                self.build_client.delete_build(image.get('build_system_id'))
                 self.client.do_custom_image_patch(
                     image.get('id'),
                     json_data=dict(
@@ -482,7 +490,7 @@ class CustomImageController(ControllerBase):
                     )
                 )
             elif phase == 'Complete':
-                self.ib_client.delete_build(image.get('build_system_id'))
+                self.build_client.delete_build(image.get('build_system_id'))
                 self.client.do_custom_image_patch(
                     image.get('id'),
                     json_data=dict(state=CustomImage.STATE_COMPLETED)

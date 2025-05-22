@@ -4,7 +4,7 @@ import signal
 from random import randrange
 from time import sleep
 
-from pebbles.client import PBClient, ImagebuilderClient
+from pebbles.client import PBClient
 from pebbles.config import RuntimeConfig
 from pebbles.utils import init_logging, load_cluster_config
 from pebbles.worker.controllers import ApplicationSessionController, ClusterController, WorkspaceController, \
@@ -59,24 +59,18 @@ class Worker:
         )
         logging.info('WorkspaceController initialized')
 
-        self.ib_base_url = os.environ.get('IMAGEBUILDER_BASE_URL')
-        if self.ib_base_url:
-            self.ib_client = ImagebuilderClient(
-                os.environ.get('IMAGEBUILDER_API_TOKEN'), self.ib_base_url
-            )
+        if os.environ.get('CUSTOM_IMAGE_CONTROLLER_BUILD_NAMESPACE'):
             self.custom_image_controller = CustomImageController(
                 worker_id=self.id,
                 config=self.config,
                 cluster_config=None,
                 client=self.client,
-                ib_client=self.ib_client,
                 controller_name="CUSTOM_IMAGE_CONTROLLER"
             )
-            logging.info(f'CustomImageController initialized, IMAGEBUILDER_BASE_URL: {self.ib_base_url}')
+            logging.info('CustomImageController initialized')
         else:
-            self.ib_client = None
             self.custom_image_controller = None
-            logging.info('CustomImageController not initialized, IMAGEBUILDER_BASE_URL not set')
+            logging.info('CUSTOM_IMAGE_CONTROLLER_BUILD_NAMESPACE is not set, custom image controller disabled')
 
     def handle_signals(self, signum, frame):
         """

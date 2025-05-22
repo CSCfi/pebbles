@@ -65,7 +65,8 @@ class ClientBase:
             'Content-type': content_type,
             'Accept': 'text/plain',
             'Authorization': 'Basic %s' % self.auth
-        } | self.extra_headers
+        }
+        headers = headers | self.extra_headers
         url = '%s/%s' % (self.api_base_url, object_url)
         method_impl = modify_methods[method]
         resp = method_impl(url, data=form_data, json=json_data, headers=headers, verify=self.ssl_verify, timeout=(5, 5))
@@ -271,86 +272,6 @@ class PBClient(ClientBase):
         if resp.status_code != 200:
             raise RuntimeError('Cannot patch custom image %s, %s' % (custom_image_id, resp.reason))
         return resp
-
-
-class ImagebuilderClient(ClientBase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.extra_headers = dict(Authorization=f'Basic {args[0]}')
-
-    def get_builds(self, limit=None):
-        query = 'builds'
-        if limit:
-            query += f'?limit={limit}'
-        resp = self.do_get(query)
-        if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for custom images, %s' % resp.reason)
-        return resp.json()
-
-    def get_build(self, build_id, suppress_404=False):
-        resp = self.do_get('builds/%s' % build_id)
-        if resp.status_code != 200:
-            if suppress_404 and resp.status_code == 404:
-                return None
-            raise RuntimeError(
-                'Cannot fetch data for build %s, %s' % (build_id, resp.reason))
-        return resp.json()
-
-    def get_imagestreams(self, limit=None):
-        query = 'imagestreams'
-        if limit:
-            query += f'?limit={limit}'
-        resp = self.do_get(query)
-        if resp.status_code != 200:
-            raise RuntimeError('Cannot fetch data for imagestreams, %s' % resp.reason)
-        return resp.json()
-
-    def get_imagestream(self, name, suppress_404=False):
-        resp = self.do_get('imagestreams/%s' % name)
-        if resp.status_code != 200:
-            if suppress_404 and resp.status_code == 404:
-                return None
-            raise RuntimeError(
-                'Cannot fetch data for imagestream %s, %s' % (name, resp.reason))
-        return resp.json()
-
-    def delete_build(self, build_id, suppress_404=False):
-        resp = self.do_delete('builds/%s' % build_id)
-        if resp.status_code != 200:
-            if suppress_404 and resp.status_code == 404:
-                return None
-            raise RuntimeError(
-                'Cannot delete build %s, %s' % (build_id, resp.reason))
-        return resp.json()
-
-    def delete_imagestream(self, name, suppress_404=False):
-        resp = self.do_delete('imagestreams/%s' % name)
-        if resp.status_code != 200:
-            if suppress_404 and resp.status_code == 404:
-                return None
-            raise RuntimeError(
-                'Cannot delete imagestream %s, %s' % (name, resp.reason))
-
-        return resp.json()
-
-    def delete_tag(self, name, tag, suppress_404=False):
-        resp = self.do_delete('imagestreams/%s/%s' % (name, tag))
-        if resp.status_code != 200:
-            if suppress_404 and resp.status_code == 404:
-                return None
-            raise RuntimeError(
-                'Cannot delete tag %s:%s, %s' % (name, tag, resp.reason))
-
-        return resp.json()
-
-    def post_build(self, name, dockerfile):
-        resp = self.do_post(
-            'builds',
-            json_data=dict(name=name, dockerfile=dockerfile)
-        )
-        if resp.status_code == 200:
-            return resp.json()
-        raise RuntimeError('Cannot post build %s, %s' % (name, resp.reason))
 
 
 if __name__ == '__main__':
