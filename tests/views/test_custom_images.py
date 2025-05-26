@@ -1,7 +1,8 @@
-import pytest
 import json
 import uuid
 from uuid import uuid4
+
+import pytest
 
 from pebbles.models import CustomImage
 from pebbles.views.custom_images import create_dockerfile_from_definition
@@ -433,6 +434,32 @@ def test_post_custom_image_invalid_data(rmaker: RequestMaker, pri_data: PrimaryD
         )
         assert response.status_code == 422
 
+    invalid_definitions = [
+        (dict(
+            base_image='registry.io/image:latest',
+            user='user',
+            image_content=[
+                dict(kind='aptPackages', data='pöppö')
+            ]
+        ), 'invalid apt package'),
+        (dict(
+            base_image='registry.io/image:latest',
+            user='user',
+            image_content=[
+                dict(kind='nosuchkind', data='foo')
+            ]
+        ), 'unknown kind'),
+    ]
+    for invalid_def, resp in invalid_definitions:
+        data = dict(name='test', workspace_id=pri_data.known_workspace_id, definition=invalid_def)
+        response = rmaker.make_authenticated_workspace_owner2_request(
+            method='POST',
+            path='/api/v1/custom_images',
+            data=json.dumps(data),
+        )
+        assert response.status_code == 422
+        assert response.json.get('message').startswith(resp)
+
 
 def test_custom_image_quota(rmaker: RequestMaker, pri_data: PrimaryData):
     """
@@ -518,6 +545,8 @@ def test_create_dockerfile_from_definition(rmaker: RequestMaker, pri_data: Prima
         {"ic": [{"kind": "pipPackages", "data": "torch==${TORCH_VERSION}"}], "expected_error": "invalid pip package"},
         {"ic": [{"kind": "aptPackages", "data": "vim; rm -rf"}], "expected_error": "invalid apt package"},
         {"ic": [{"kind": "aptPackages", "data": "vim&&ls"}], "expected_error": "invalid apt package"},
+        {"ic": [{"kind": "pipPackages", "data": "pöppö"}], "expected_error": "invalid pip package"},
+        {"ic": [{"kind": "aptPackages", "data": "pöppö"}], "expected_error": "invalid apt package"},
     ]
 
     for data in invalid_image_content:

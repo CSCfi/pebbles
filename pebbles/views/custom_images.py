@@ -154,11 +154,13 @@ class CustomImageList(restful.Resource):
             ), 422
 
         custom_image = CustomImage()
-
-        custom_image.name = form.name.data
-        custom_image.workspace_id = workspace_id
-        custom_image.definition = form.definition.data
-        custom_image.dockerfile = create_dockerfile_from_definition(custom_image.definition)
+        try:
+            custom_image.name = form.name.data
+            custom_image.workspace_id = workspace_id
+            custom_image.definition = form.definition.data
+            custom_image.dockerfile = create_dockerfile_from_definition(form.definition.data)
+        except ValueError as e:
+            abort(422, str(e))
 
         db.session.add(custom_image)
         db.session.commit()
@@ -208,7 +210,7 @@ def create_dockerfile_from_definition(definition: dict):
     user = definition.get('user')
     for ic in definition.get('image_content', []):
 
-        if ic['kind'] == 'aptPackages' and ic.get('data'):
+        if ic.get('kind') == 'aptPackages' and ic.get('data'):
             for data in ic.get('data').split(" "):
                 validate_apt_package(data)
 
@@ -218,13 +220,15 @@ def create_dockerfile_from_definition(definition: dict):
             lines.append(f'RUN apt-get update && apt-get install -y {ic["data"]} && apt-get clean')
             lines.append(f'USER {user}')
 
-        if ic['kind'] == 'pipPackages' and ic.get('data'):
+        elif ic.get('kind') == 'pipPackages' and ic.get('data'):
             for data in ic.get('data').split(" "):
                 validate_pip_package(data)
 
             lines.append('')
             lines.append(f'# {ic.get("kind")}')
             lines.append(f'RUN pip --no-cache-dir install --upgrade {ic["data"]}')
+        else:
+            raise ValueError(f'unknown kind in image_content: {ic.get("kind")}')
 
     return '\n'.join(lines)
 
