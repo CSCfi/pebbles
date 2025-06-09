@@ -547,6 +547,22 @@ def test_create_dockerfile_from_definition(rmaker: RequestMaker, pri_data: Prima
         {"ic": [{"kind": "aptPackages", "data": "vim&&ls"}], "expected_error": "invalid apt package"},
         {"ic": [{"kind": "pipPackages", "data": "pöppö"}], "expected_error": "invalid pip package"},
         {"ic": [{"kind": "aptPackages", "data": "pöppö"}], "expected_error": "invalid apt package"},
+        {
+            "ic": [{"kind": "aptPackages"}],
+            "expected_error": 'aptPackages definition must have non-empty "data" field'
+        },
+        {
+            "ic": [{"kind": "pipPackages"}],
+            "expected_error": 'pipPackages definition must have non-empty "data" field'
+        },
+        {
+            "ic": [{"kind": "aptPackages", "data": ""}],
+            "expected_error": 'aptPackages definition must have non-empty "data" field'
+        },
+        {
+            "ic": [{"kind": "pipPackages", "data": ""}],
+            "expected_error": 'pipPackages definition must have non-empty "data" field'
+        },
     ]
 
     for data in invalid_image_content:

@@ -210,7 +210,9 @@ def create_dockerfile_from_definition(definition: dict):
     user = definition.get('user')
     for ic in definition.get('image_content', []):
 
-        if ic.get('kind') == 'aptPackages' and ic.get('data'):
+        if ic.get('kind') == 'aptPackages':
+            if not ic.get('data'):
+                raise ValueError('aptPackages definition must have non-empty "data" field')
             for data in ic.get('data').split(" "):
                 validate_apt_package(data)
 
@@ -220,13 +222,16 @@ def create_dockerfile_from_definition(definition: dict):
             lines.append(f'RUN apt-get update && apt-get install -y {ic["data"]} && apt-get clean')
             lines.append(f'USER {user}')
 
-        elif ic.get('kind') == 'pipPackages' and ic.get('data'):
+        elif ic.get('kind') == 'pipPackages':
+            if not ic.get('data'):
+                raise ValueError('pipPackages definition must have non-empty "data" field')
             for data in ic.get('data').split(" "):
                 validate_pip_package(data)
 
             lines.append('')
             lines.append(f'# {ic.get("kind")}')
             lines.append(f'RUN pip --no-cache-dir install --upgrade {ic["data"]}')
+
         else:
             raise ValueError(f'unknown kind in image_content: {ic.get("kind")}')
 
