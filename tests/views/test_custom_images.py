@@ -519,6 +519,8 @@ def test_create_dockerfile_from_definition(rmaker: RequestMaker, pri_data: Prima
     """
     Test that valid dockerfile definitions do not raise exceptions and invalid ones raise the
     expected exceptions.
+
+    Same implementation is used to validate pip and condaForge package data. If this changes, add separate cases here.
     """
     valid_image_content = [
         [{"kind": "aptPackages", "data": "vim"}, {"kind": "pipPackages", "data": "arrow"}],
@@ -547,23 +549,14 @@ def test_create_dockerfile_from_definition(rmaker: RequestMaker, pri_data: Prima
         {"ic": [{"kind": "aptPackages", "data": "vim&&ls"}], "expected_error": "invalid apt package"},
         {"ic": [{"kind": "pipPackages", "data": "pöppö"}], "expected_error": "invalid pip package"},
         {"ic": [{"kind": "aptPackages", "data": "pöppö"}], "expected_error": "invalid apt package"},
-        {
-            "ic": [{"kind": "aptPackages"}],
-            "expected_error": 'aptPackages definition must have non-empty "data" field'
-        },
-        {
-            "ic": [{"kind": "pipPackages"}],
-            "expected_error": 'pipPackages definition must have non-empty "data" field'
-        },
-        {
-            "ic": [{"kind": "aptPackages", "data": ""}],
-            "expected_error": 'aptPackages definition must have non-empty "data" field'
-        },
-        {
-            "ic": [{"kind": "pipPackages", "data": ""}],
-            "expected_error": 'pipPackages definition must have non-empty "data" field'
-        },
     ]
+    for kind in ('pipPackages', 'aptPackages', 'condaForgePackages'):
+        invalid_image_content.append(
+            dict(
+                ic=[{'kind': kind}],
+                expected_error=f'{kind} definition must have non-empty "data" field'
+            )
+        )
 
     for data in invalid_image_content:
         invalid_definition = {

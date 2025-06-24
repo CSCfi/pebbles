@@ -232,6 +232,17 @@ def create_dockerfile_from_definition(definition: dict):
             lines.append(f'# {ic.get("kind")}')
             lines.append(f'RUN pip --no-cache-dir install --upgrade {ic["data"]}')
 
+        elif ic.get('kind') == 'condaForgePackages':
+            if not ic.get('data'):
+                raise ValueError('condaForgePackages definition must have non-empty "data" field')
+            for data in ic.get('data').split(" "):
+                # pip package validation should work for conda-forge packages as well
+                validate_pip_package(data)
+
+            lines.append('')
+            lines.append(f'# {ic.get("kind")}')
+            lines.append(f'RUN conda install -c conda-forge --yes {ic["data"]}')
+
         else:
             raise ValueError(f'unknown kind in image_content: {ic.get("kind")}')
 
@@ -246,6 +257,7 @@ if __name__ == '__main__':
             image_content=[
                 dict(kind='aptPackages', data='foo'),
                 dict(kind='pipPackages', data='bar'),
+                dict(kind='condaForgePackages', data='foobar'),
             ],
         )
     ))
