@@ -12,6 +12,7 @@ import click
 import yaml
 from flask.cli import FlaskGroup
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 
 import pebbles.models
 import pebbles.views.commons
@@ -80,6 +81,30 @@ def initialize_system(ext_id=None, password=None):
     admin_user = pebbles.views.commons.create_user(ext_id=ext_id, password=password, is_admin=True)
     pebbles.views.commons.create_worker()
     pebbles.views.commons.create_system_workspaces(admin_user)
+
+
+@cli.command('update_password')
+@click.option('--ext-id', required=True, help='ext_id of the user')
+@click.option('--password', required=False, help='new password')
+def update_password(ext_id, password=None):
+    """Update password for an existing user."""
+    stmt = select(User).where(User.ext_id == ext_id)
+    user = db.session.execute(stmt).scalar_one_or_none()
+
+    if not user:
+        print(f"User '{ext_id}' does not exist")
+        sys.exit(1)
+
+    if not password:
+        password = getpass.getpass("Password: ")
+        password_repeat = getpass.getpass("Repeat password for confirmation: ")
+        if password != password_repeat:
+            print("Passwords do not match.")
+            sys.exit(1)
+
+    user.set_password(password)
+    db.session.commit()
+    print(f"Password updated for user '{ext_id}'")
 
 
 @cli.command('createuser_bulk')
