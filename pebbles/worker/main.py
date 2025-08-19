@@ -32,6 +32,8 @@ class Worker:
             cluster_config_file=self.config['CLUSTER_CONFIG_FILE'],
             cluster_passwords_file=self.config['CLUSTER_PASSWORDS_FILE']
         )
+        self.cluster_config['runtime_data'] = dict()
+
         self.application_session_controller = ApplicationSessionController(
             worker_id=self.id,
             config=self.config,
@@ -63,7 +65,7 @@ class Worker:
             self.custom_image_controller = CustomImageController(
                 worker_id=self.id,
                 config=self.config,
-                cluster_config=None,
+                cluster_config=self.cluster_config,
                 client=self.client,
                 controller_name="CUSTOM_IMAGE_CONTROLLER"
             )
@@ -99,6 +101,9 @@ class Worker:
             logging.debug('worker main loop')
             # set watchdog timer
             signal.alarm(60 * 5)
+            # process custom image builds and populate image pull secrets
+            if self.custom_image_controller:
+                self.custom_image_controller.process()
 
             # make sure we have a fresh session
             self.client.check_and_refresh_session('worker@pebbles', self.api_key)
@@ -111,10 +116,6 @@ class Worker:
 
             # process workspaces
             self.workspace_controller.process()
-
-            # process custom image builds
-            if self.custom_image_controller:
-                self.custom_image_controller.process()
 
             # stop the watchdog
             signal.alarm(0)
@@ -131,8 +132,8 @@ if __name__ == '__main__':
         pydevd_pycharm.settrace(
             host=os.environ['REMOTE_DEBUG_SERVER'],
             port=os.environ.get('REMOTE_DEBUG_PORT', 23456),
-            stdoutToServer=True,
-            stderrToServer=True,
+            stdout_to_server=True,
+            stderr_to_server=True,
             suspend=False
         )
         print('Worker: connected to remote debug server at %s' % os.environ['REMOTE_DEBUG_SERVER'])

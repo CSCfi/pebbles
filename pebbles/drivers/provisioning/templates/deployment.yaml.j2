@@ -16,6 +16,10 @@ spec:
       automountServiceAccountToken: false
       # tolerations are set by driver
       tolerations: [ ]
+      {% if pull_secret_name %}
+      imagePullSecrets:
+        - name: "{{pull_secret_name}}"
+      {% endif %}
       initContainers:
         - name: autodownload
           image: "{{image}}"

@@ -1,6 +1,9 @@
 import datetime
+import logging
 import random
 import string
+import base64
+import json
 
 import kubernetes
 import openshift.dynamic
@@ -52,6 +55,50 @@ class BuildClient():
             if e.status == 404 and suppress_404:
                 return None
             raise e
+
+    def create_sa_pull_creds(self, sa_name, duration_seconds=600) -> tuple[str, int]:
+        """
+        Construct dockercfg pull credentials for a given service account in build namespace.
+        Returns a tuple of dockercfg data and expiry timestamp for caching.
+        """
+        logging.debug('BuildClient creating sa_pull_creds')
+
+        # Mimics: oc create token <sa> --duration=60s
+        tr_api = self.osdc.resources.get(api_version='v1', kind='ServiceAccount')
+        body = {
+            'apiVersion': 'authentication.k8s.io/v1',
+            'kind': 'TokenRequest',
+            'spec': {
+                'audiences': ['https://kubernetes.default.svc'],
+                'expirationSeconds': duration_seconds
+            }
+        }
+        try:
+            resp = tr_api.subresources['token'].create(
+                name=sa_name,
+                namespace=self.build_namespace,
+                body=body
+            )
+            token = resp['status']['token']
+        except kubernetes.client.ApiException as e:
+            raise RuntimeWarning(e)
+        # Decode "exp" from JWT payload
+        payload_b64 = token.split('.')[1]
+        payload_b64 += '=' * (-len(payload_b64) % 4)  # fix padding
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+        token_expiry_ts = payload.get('exp', 0)
+        # Build .dockercfg JSON for the registry
+        auth_str = f'serviceaccount:{token}'  # username:password
+        auth_b64 = base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
+        dockercfg = {
+            self.registry: {
+                "auth": auth_b64
+            }
+        }
+        dockercfg_json = json.dumps(dockercfg, separators=(',', ':'))
+        dockercfg_b64 = base64.b64encode(dockercfg_json.encode('utf-8')).decode('utf-8')
+
+        return dockercfg_b64, token_expiry_ts
 
     def delete_build(self, build_id, suppress_404=False):
         bc_api = self.osdc.resources.get(api_version='build.openshift.io/v1', kind='BuildConfig')

@@ -198,7 +198,15 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                                annotations={'pebbles.csc.fi/backup': 'yes'})
 
         # create actual session/application_session objects
-        self.create_deployment(namespace, application_session)
+        # first figure out if we should use pull credentials for the image in question
+        image = application_session['provisioning_config']['image'].strip()
+        pull_secret_name = None
+        for creds in self.cluster_config.get('runtime_data', {}).get('pull_creds', []):
+            if creds.get('prefix') and image.startswith(creds.get('prefix')):
+                pull_secret_name = self.create_custom_image_pull_secret(namespace, application_session, creds)
+                self.logger.debug(f'Configuring custom pull secret for image ${image}')
+                break
+        self.create_deployment(namespace, application_session, pull_secret_name)
         self.create_configmap(namespace, application_session)
         self.create_service(namespace, application_session)
         self.create_ingress(namespace, application_session)
@@ -299,6 +307,15 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             else:
                 raise e
 
+        # remove custom image pull secret
+        try:
+            self.delete_custom_image_pull_secret(namespace, application_session)
+        except ApiException as e:
+            if e.status == 404:
+                self.logger.warning('Pull secret not found, assuming it is already deleted')
+            else:
+                raise e
+
         # remove configmap
         try:
             self.delete_configmap(namespace, application_session)
@@ -362,7 +379,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                 return True
         return False
 
-    def create_deployment(self, namespace, application_session):
+    def create_deployment(self, namespace, application_session, pull_secret_name):
         # get provisioning configuration and extract application specific custom config
         provisioning_config = application_session['provisioning_config']
         custom_config = provisioning_config['custom_config']
@@ -396,6 +413,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             name=application_session['name'],
             image=provisioning_config['image'],
             image_pull_policy=provisioning_config.get('image_pull_policy', 'IfNotPresent'),
+            pull_secret_name=pull_secret_name,
             volume_mount_path=provisioning_config['volume_mount_path'],
             port=int(provisioning_config['port']),
             cpu_limit=provisioning_config.get('cpu_limit', '8'),
@@ -508,6 +526,38 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         self.logger.debug('deleting configmap %s' % application_session.get('name'))
         api_configmap = self.dynamic_client.resources.get(api_version='v1', kind='ConfigMap')
         return api_configmap.delete(namespace=namespace, name=application_session.get('name'))
+
+    def create_custom_image_pull_secret(self, namespace, application_session, pull_credentials):
+        secret_yaml = parse_template('custom_image_pull_secret.yaml.j2', dict(
+            name=application_session['name'],
+            namespace=namespace,
+            dockercfg_b64=pull_credentials['dockercfg']
+        ))
+        self.logger.debug('creating/updating secret\n%s' % secret_yaml)
+
+        api = self.dynamic_client.resources.get(api_version='v1', kind='Secret')
+        api.create(
+            body=yaml.safe_load(secret_yaml),
+            namespace=namespace
+        )
+        return application_session['name']
+
+    def delete_custom_image_pull_secret(self, namespace, application_session):
+        """
+        Delete the pull-secret in the given namespace.
+        """
+        self.logger.debug('deleting secret  %s' % application_session.get('name'))
+        api = self.dynamic_client.resources.get(api_version='v1', kind='Secret')
+        try:
+            api.delete(
+                namespace=namespace,
+                name=application_session.get('name')
+            )
+        except Exception as e:
+            if hasattr(e, 'status') and e.status == 404:
+                self.logger.debug('secret %s not found, nothing to delete' % application_session.get('name'))
+            else:
+                raise e
 
     def create_service(self, namespace, application_session):
         service_yaml = parse_template('service.yaml', dict(

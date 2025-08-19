@@ -6,6 +6,8 @@ from random import randrange
 
 import requests
 
+from pebbles.client import PBClient
+from pebbles.config import BaseConfig
 from pebbles.models import ApplicationSession, Task, CustomImage
 from pebbles.utils import find_driver_class
 from pebbles.worker.build_client import BuildClient
@@ -21,7 +23,8 @@ DRIVER_CACHE_LIFETIME = 900
 
 
 class ControllerBase:
-    def __init__(self, worker_id, config, cluster_config, client, controller_name):
+    def __init__(self, worker_id: str, config: BaseConfig, cluster_config: dict, client: PBClient,
+                 controller_name: str):
         self.worker_id = worker_id
         self.config = config
         self.cluster_config = cluster_config
@@ -56,6 +59,7 @@ class ControllerBase:
         driver_instance = driver_class(logging.getLogger(), self.config, cluster, self.client.token)
         driver_instance.connect()
         cluster['driver_instance'] = driver_instance
+        cluster['runtime_data'] = self.cluster_config.get('runtime_data', {})
 
         return driver_instance
 
@@ -428,6 +432,7 @@ class CustomImageController(ControllerBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.cached_pull_creds: tuple[str, int] = ('', 0)
         self.polling_interval_min, self.polling_interval_max = self.get_polling_interval(5, 20)
         self.build_client = BuildClient(
             build_namespace=os.environ.get('CUSTOM_IMAGE_CONTROLLER_BUILD_NAMESPACE'),
@@ -498,9 +503,27 @@ class CustomImageController(ControllerBase):
 
     def process(self):
         # process images in increased intervals
-        if time.time() < self.next_check_ts:
+        now = int(time.time())
+        if now < self.next_check_ts:
             return
         self.update_next_check_ts(self.polling_interval_min, self.polling_interval_max)
+
+        # renew the custom image pull credentials if necessary, and make them available in cluster_config.runtime_data
+        if self.cached_pull_creds[1] < now + 60 * 5:
+            try:
+                self.cached_pull_creds = self.build_client.create_sa_pull_creds(
+                    'custom-image-puller', duration_seconds=60 * 15)
+                image_prefix = '%s/%s/' % (
+                    os.environ.get('CUSTOM_IMAGE_CONTROLLER_REGISTRY'), os.environ.get('CUSTOM_IMAGE_CONTROLLER_REPO'),
+                )
+                self.cluster_config['runtime_data']['pull_creds'] = [
+                    dict(
+                        prefix=image_prefix,
+                        dockercfg=self.cached_pull_creds[0],
+                    ),
+                ]
+            except RuntimeWarning as e:
+                logging.warning(e)
 
         # fetch unfinished images to process
         unfinished_images = self.client.get_custom_images(unfinished=True)
