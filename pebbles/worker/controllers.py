@@ -439,9 +439,11 @@ class CustomImageController(ControllerBase):
             registry=os.environ.get('CUSTOM_IMAGE_CONTROLLER_REGISTRY'),
             repo=os.environ.get('CUSTOM_IMAGE_CONTROLLER_REPO'),
         )
+        self.build_pod_memory = os.environ.get('CUSTOM_IMAGE_CONTROLLER_BUILD_POD_MEMORY', '4Gi')
         logging.info(f'CustomImageController build_namespace: {self.build_client.build_namespace}')
         logging.info(f'CustomImageController registry: {self.build_client.registry}')
         logging.info(f'CustomImageController repo: {self.build_client.repo}')
+        logging.info(f'CustomImageController build_pod_memory: {self.build_pod_memory}')
 
     def process_custom_image(self, image):
         logging.debug('CustomImageController processing image %s', image.get('id'))
@@ -463,7 +465,11 @@ class CustomImageController(ControllerBase):
             logging.info(f'CustomImageController deleted custom image "{image.get('name', '')}"')
         elif image.get('state') in [CustomImage.STATE_NEW]:
             ws = self.client.get_workspace(image.get('workspace_id'))
-            post_res = self.build_client.post_build(ws.get('pseudonym'), image.get('dockerfile'))
+            post_res = self.build_client.post_build(
+                name=ws.get('pseudonym'),
+                dockerfile=image.get('dockerfile'),
+                build_pod_memory=self.build_pod_memory,
+            )
             url = f"{post_res.get('registry')}/{post_res.get('repo')}/{post_res.get('name')}:{post_res.get('tag')}"
             logging.info('CustomImageController created build %s for url %s', post_res.get('build_id'), url)
             self.client.do_custom_image_patch(

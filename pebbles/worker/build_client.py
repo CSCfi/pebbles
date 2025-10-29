@@ -118,7 +118,7 @@ class BuildClient():
                 return None
             raise e
 
-    def post_build(self, name, dockerfile):
+    def post_build(self, name, dockerfile, build_pod_memory='1Gi'):
         bc_api = self.osdc.resources.get(api_version='build.openshift.io/v1', kind='BuildConfig')
         is_api = self.osdc.resources.get(api_version='image.openshift.io/v1', kind='ImageStream')
 
@@ -160,7 +160,10 @@ class BuildClient():
                 ),
                 source=dict(dockerfile=dockerfile, ),
                 strategy=dict(type='docker', dockerStrategy=dict(), ),
-                resources=dict(limits=dict(cpu='1'), requests=dict(cpu='1'))
+                resources=dict(
+                    limits=dict(cpu='1', memory=build_pod_memory),
+                    requests=dict(cpu='1', memory=build_pod_memory)
+                )
             ),
         )
         bc_api.create(namespace=self.build_namespace, body=bc_spec)
