@@ -957,6 +957,10 @@ class WorkspaceRegenerateJoinCode(restful.Resource):
         if not workspace.status == Workspace.STATUS_ACTIVE:
             abort(404)
 
+        if workspace.expiry_ts < time.time():
+            msg = 'Cannot regenerate join code for an expired workspace.'
+            return dict(error=msg), 403
+
         workspace_owners = [wm.user for wm in workspace.memberships if wm.is_owner]
         if user.is_admin:
             pass

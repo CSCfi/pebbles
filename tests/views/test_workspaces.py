@@ -1608,3 +1608,12 @@ def test_regenerate_workspace_join_code(rmaker: RequestMaker, pri_data: PrimaryD
         path='/api/v1/workspaces/%s/regenerate_join_code' % pri_data.known_workspace_id
     )
     assert response.status_code == 404
+
+    # Test regenerating join_code in expired workspace
+    workspace.status = Workspace.STATUS_ACTIVE
+    workspace.expiry_ts = time.time() - 3600
+    response = rmaker.make_authenticated_workspace_owner_request(
+        method='POST',
+        path='/api/v1/workspaces/%s/regenerate_join_code' % pri_data.known_workspace_id
+    )
+    assert response.status_code == 403
