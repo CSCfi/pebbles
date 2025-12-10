@@ -398,13 +398,17 @@ class WorkspaceController(ControllerBase):
             ws = self.client.get_workspace(ws_id)
             self.client.update_task(task.get('id'), state=Task.STATE_PROCESSING)
 
-            # figure out right size for user work volume
+            # Figure out volume properties.
+            # Volume sizes can be configured in workspace config or cluster_config.
+            # cluster_config value has a size suffix, drop that (assume 'Gi' or fail) and convert to a number.
             if task_data.get('type') == 'shared-data':
-                volume_size_gib = ws.get('config', {}).get('shared_folder_size_gib', 20)
+                volume_size_gib = int(driver.cluster_config.get('volumeSizeShared', '20Gi').replace('Gi', ''))
                 storage_class_name = driver.cluster_config.get('storageClassNameShared')
+                access_mode = 'ReadWriteMany'
             elif task_data.get('type') == 'user-data':
                 volume_size_gib = ws.get('config', {}).get('user_work_folder_size_gib', 1)
                 storage_class_name = driver.cluster_config.get('storageClassNameUser')
+                access_mode = 'ReadWriteOnce'
             else:
                 raise RuntimeWarning('Unknown task type "%s" encountered' % task_data.get('type'))
 
@@ -414,6 +418,7 @@ class WorkspaceController(ControllerBase):
                 volume_name=self.get_volume_name(task_data),
                 volume_size_spec='%dGi' % volume_size_gib,
                 storage_class=storage_class_name,
+                access_mode=access_mode,
                 src_cluster=src_cluster,
             )
         elif task.get('state') == Task.STATE_PROCESSING:

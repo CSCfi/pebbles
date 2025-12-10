@@ -72,8 +72,8 @@ class ProvisioningDriverBase(object):
         """ Subclasses implement and override these """
         raise RuntimeWarning('check_volume_backup_job() not implemented')
 
-    def create_volume_restore_job(self, token, workspace_id, volume_name, volume_size_spec, storage_class,
-                                  src_cluster):
+    def create_volume_restore_job(self, token, workspace_id,
+                                  volume_name, volume_size_spec, storage_class, access_mode, src_cluster):
         """ Subclasses implement and override these """
         raise RuntimeWarning('create_workspace_restore_job() not implemented')
 

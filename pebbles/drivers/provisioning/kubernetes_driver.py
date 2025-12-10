@@ -684,7 +684,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         # check if the namespace exists
         if not self.namespace_exists(namespace):
-            raise RuntimeWarning('Backup: Namespace for workspace %s does not exist', workspace_id)
+            raise RuntimeWarning('Backup: Namespace for workspace "%s" does not exist' % workspace_id)
 
         job_api = self.dynamic_client.resources.get(api_version='batch/v1', kind='Job')
         pod_api = self.dynamic_client.resources.get(api_version='v1', kind='Pod')
@@ -708,7 +708,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         return True
 
-    def create_volume_restore_job(self, token, workspace_id, volume_name, volume_size_spec, storage_class, src_cluster):
+    def create_volume_restore_job(self, token, workspace_id,
+                                  volume_name, volume_size_spec, storage_class, access_mode, src_cluster):
         ws = self.pb_client.get_workspace(workspace_id)
         namespace = self.get_namespace(workspace_id)
         workspace_backup_bucket_name = Path(
@@ -723,7 +724,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             volume_name,
             volume_size_spec,
             storage_class,
-            access_mode='ReadWriteMany',
+            access_mode=access_mode,
             annotations={'pebbles.csc.fi/backup': 'yes'}
         )
 
@@ -753,7 +754,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
         # check if the namespace exists
         if not self.namespace_exists(namespace):
-            raise RuntimeWarning('Backup: Namespace for workspace %s does not exist', workspace_id)
+            raise RuntimeWarning('Restore: Namespace for workspace %s does not exist' % workspace_id)
 
         job_api = self.dynamic_client.resources.get(api_version='batch/v1', kind='Job')
         pod_api = self.dynamic_client.resources.get(api_version='v1', kind='Pod')
