@@ -137,7 +137,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
     def create_namespace(self, namespace):
         self.logger.info('creating namespace %s' % namespace)
-        namespace_yaml = parse_template('namespace.yaml', dict(
+        namespace_yaml = parse_template('namespace.yaml.j2', dict(
             name=namespace,
         ))
         api = self.dynamic_client.resources.get(api_version='v1', kind='Namespace')
@@ -146,7 +146,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         # create a network policy for isolating the pods in the namespace
         # the template blocks traffic to all private ipv4 networks
         self.logger.info('creating default network policy in namespace %s' % namespace)
-        networkpolicy_yaml = parse_template('networkpolicy.yaml', {})
+        networkpolicy_yaml = parse_template('networkpolicy.yaml.j2', {})
         api = self.dynamic_client.resources.get(api_version='networking.k8s.io/v1', kind='NetworkPolicy')
         api.create(body=yaml.safe_load(networkpolicy_yaml), namespace=namespace)
 
@@ -464,7 +464,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
     def create_configmap(self, namespace, application_session):
         provisioning_config = application_session['provisioning_config']
 
-        configmap_yaml = parse_template('configmap.yaml', dict(
+        configmap_yaml = parse_template('configmap.yaml.j2', dict(
             name=application_session['name'],
         ))
         configmap_dict = yaml.safe_load(configmap_yaml)
@@ -560,7 +560,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                 raise e
 
     def create_service(self, namespace, application_session):
-        service_yaml = parse_template('service.yaml', dict(
+        service_yaml = parse_template('service.yaml.j2', dict(
             name=application_session['name'],
             target_port=8080
         ))
@@ -607,7 +607,7 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
 
     def create_volume(self, namespace, volume_name, volume_size, storage_class_name,
                       access_mode='ReadWriteOnce', annotations=None):
-        pvc_yaml = parse_template('pvc.yaml', dict(
+        pvc_yaml = parse_template('pvc.yaml.j2', dict(
             name=volume_name,
             volume_size=volume_size,
             access_mode=access_mode,
@@ -813,7 +813,7 @@ class OpenShiftLocalDriver(KubernetesLocalDriver):
 
     def create_ingress(self, namespace, application_session):
         pod_name = application_session.get('name')
-        route_yaml = parse_template('route.yaml', dict(
+        route_yaml = parse_template('route.yaml.j2', dict(
             name=pod_name,
             host=self.get_application_session_hostname(application_session)
         ))
