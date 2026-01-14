@@ -29,8 +29,8 @@ def create_app(test_config=None):
         pydevd_pycharm.settrace(
             host=os.environ['REMOTE_DEBUG_SERVER'],
             port=os.environ.get('REMOTE_DEBUG_PORT', 12345),
-            stdoutToServer=True,
-            stderrToServer=True,
+            stdout_to_server=True,
+            stderr_to_server=True,
             suspend=False
         )
         print('API: connected to remote debug server at %s ' % os.environ['REMOTE_DEBUG_SERVER'])
