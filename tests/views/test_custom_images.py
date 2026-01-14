@@ -1,10 +1,11 @@
 import json
 import uuid
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
 
-from pebbles.models import CustomImage
+from pebbles.models import CustomImage, db
 from pebbles.views.custom_images import create_dockerfile_from_definition
 from tests.conftest import PrimaryData, RequestMaker
 
@@ -582,3 +583,53 @@ def test_create_dockerfile_from_definition(rmaker: RequestMaker, pri_data: Prima
         }
         with pytest.raises(ValueError, match=base_image_data["expected_error"]):
             create_dockerfile_from_definition(invalid_definition)
+
+
+def test_custom_images_ordering(rmaker: RequestMaker, pri_data: PrimaryData):
+    # Use a workspace that does not have custom images in the primary data
+    ws = pri_data.known_workspace_id_3
+
+    # Create three images with deterministic created_at timestamps
+    base_ts = datetime.now(timezone.utc).replace(microsecond=0) + timedelta(hours=-1)
+    ids = [uuid4().hex for _ in range(3)]
+
+    ci0 = CustomImage(id=ids[0], workspace_id=ws, name='ord-ci-0', dockerfile='FROM foo:latest')
+    ci1 = CustomImage(id=ids[1], workspace_id=ws, name='ord-ci-1', dockerfile='FROM foo:latest')
+    ci2 = CustomImage(id=ids[2], workspace_id=ws, name='ord-ci-2', dockerfile='FROM foo:latest')
+
+    # Set up created_at
+    ci0.created_at = base_ts + timedelta(seconds=1)
+    ci1.created_at = base_ts + timedelta(seconds=2)
+    ci2.created_at = base_ts + timedelta(seconds=3)
+
+    # Set priority flags/states
+    # Highest priority: to_be_deleted
+    ci1.to_be_deleted = True
+    # Next priority: building
+    ci0.state = CustomImage.STATE_BUILDING
+    # Terminal state: completed
+    ci2.state = CustomImage.STATE_COMPLETED
+
+    db.session.add_all([ci0, ci1, ci2])
+    db.session.commit()
+
+    # 1) No limit => created_at ordering only
+    resp = rmaker.make_authenticated_workspace_owner2_request(
+        path='/api/v1/custom_images?workspace_id=%s' % ws
+    )
+    assert resp.status_code == 200
+    got = [img for img in resp.json]
+    assert [img['id'] for img in got] == ids
+
+    # 2) With limit => priority ordering applies
+    resp = rmaker.make_authenticated_workspace_owner2_request(
+        path='/api/v1/custom_images?workspace_id=%s&limit=100' % ws
+    )
+    assert resp.status_code == 200
+    got2 = [img for img in resp.json if img.get('id') in ids]
+    assert len(got2) == 3
+
+    idx_deleting = next(i for i, img in enumerate(got2) if img['id'] == ids[1])
+    idx_building = next(i for i, img in enumerate(got2) if img['id'] == ids[0])
+    idx_completed = next(i for i, img in enumerate(got2) if img['id'] == ids[2])
+    assert idx_deleting < idx_building < idx_completed
