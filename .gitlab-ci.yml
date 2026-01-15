@@ -108,6 +108,83 @@ pip-audit:
       echo "Running pip-audit (environment-based) – applying ${IGNORED_COUNT} ignore(s)"
       pip-audit "${IGNORE_ARGS[@]}"
 
+bandit-scan:
+  tags: ['new-runner']
+  stage: security
+  needs: []
+  variables:
+    PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+    # Example: "ID|expiry-date|reason, ID|expiry-date|reason, ID|expiry-date|reason"
+    # Define this in CI/CD variables
+    CI_BANDIT_ALLOWLIST: ""
+    # include other needed files
+    CI_BANDIT_EXCLUDES: "./migrations,./tests"
+  cache:
+    key: "${CI_COMMIT_REF_SLUG}"
+    paths: [ ".cache/pip" ]
+  script:
+    - pip install --no-cache-dir bandit
+    - |
+      set -euo pipefail
+
+      today="$(date -I)"  # YYYY-MM-DD
+      SKIPS=()
+      IGNORED_COUNT=0
+
+      if [ -n "${CI_BANDIT_ALLOWLIST:-}" ]; then
+        IFS=',' read -ra entries <<< "${CI_BANDIT_ALLOWLIST}"
+        for entry in "${entries[@]}"; do
+          entry="$(echo "$entry" | xargs)"
+          [ -z "$entry" ] && continue
+          IFS='|' read -r id expires reason <<< "$entry"
+          id="$(echo "${id:-}" | xargs | tr '[:lower:]' '[:upper:]')"
+          expires="$(echo "${expires:-}" | xargs)"
+          reason="$(echo "${reason:-}" | xargs)"
+
+          if [ -z "$id" ] || [ -z "$expires" ]; then
+            echo "WARN: malformed allowlist entry: '$entry' (need ID|expiry|reason)"
+            continue
+          fi
+          if ! [[ "$id" =~ ^B[0-9]{3}$ ]]; then
+            echo "WARN: '$id' does not look like a Bandit test id (e.g., B311). Skipping."
+            continue
+          fi
+
+          if [[ "$expires" > "$today" ]]; then
+            SKIPS+=("$id")
+            IGNORED_COUNT=$((IGNORED_COUNT+1))
+            echo "Skipping $id until $expires (${reason:-no reason})"
+          else
+            echo "Allowlist expired for $id on $expires; not skipping."
+          fi
+        done
+      fi
+
+      # Bandit expects a single comma-separated string for -s, like -s "B311,B113".
+      # We join the array into SKIP_CSV using a temporary IFS=,.
+      # If no active skips, we do not add -s.
+      BANDIT_SKIP_OPT=()
+      if [ ${#SKIPS[@]} -gt 0 ]; then
+        SKIP_CSV="$(IFS=, ; echo "${SKIPS[*]}")"
+        BANDIT_SKIP_OPT=(-s "$SKIP_CSV")
+        echo "Bandit will skip: $SKIP_CSV"
+      fi
+
+      # directories to skip
+      BANDIT_EXCLUDE_OPT=()
+      if [ -n "${CI_BANDIT_EXCLUDES:-}" ]; then
+        EX_CSV="$(echo "$CI_BANDIT_EXCLUDES" | sed 's/[[:space:]]//g')"
+        BANDIT_EXCLUDE_OPT=(-x "$EX_CSV")
+        echo "Bandit will exclude: $EX_CSV"
+      fi
+
+      echo "Running Bandit – ${IGNORED_COUNT} active skip(s)"
+      bandit -r . \
+        "${BANDIT_SKIP_OPT[@]}" \
+        "${BANDIT_EXCLUDE_OPT[@]}" \
+        --severity-level "medium"
+
 build-image:
   tags: ['new-runner']
   stage: build-image
