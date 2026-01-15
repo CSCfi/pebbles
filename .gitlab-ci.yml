@@ -4,6 +4,7 @@ image: docker.io/library/python:3.12
 stages:
   - build-image
   - analysis-and-tests
+  - security
   - ci-pipeline
 
 flake8:
@@ -47,6 +48,65 @@ tests:
   script:
     - pip install -r requirements.txt
     - python manage.py test
+
+pip-audit:
+  tags: ['new-runner']
+  stage: security
+  needs: []
+  variables:
+    PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+    # Example: "ID|expiry-date|reason, ID|expiry-date|reason, ID|expiry-date|reason"
+    # ignore specific IDs only, not whole packages
+    # Define this in CI/CD variables
+    CI_PIP_AUDIT_ALLOWLIST: ""
+  cache:
+    key: "${CI_COMMIT_REF_SLUG}"
+    paths: [ ".cache/pip" ]
+  script:
+    - pip install --no-cache-dir pip-audit
+    - |
+      set -euo pipefail
+
+      today="$(date -I)"  # YYYY-MM-DD
+      IGNORE_ARGS=()
+      IGNORED_COUNT=0
+
+      if [ -n "${CI_PIP_AUDIT_ALLOWLIST:-}" ]; then
+        # Split by commas
+        IFS=',' read -ra entries <<< "${CI_PIP_AUDIT_ALLOWLIST}"
+        for entry in "${entries[@]}"; do
+          # Trim spaces
+          entry="$(echo "$entry" | xargs)"
+          # Split by '|'
+          IFS='|' read -r id expires reason <<< "$entry"
+          id="$(echo "$id" | xargs)"
+          expires="$(echo "$expires" | xargs)"
+          reason="$(echo "$reason" | xargs)"
+
+          if [ -z "$id" ] || [ -z "$expires" ]; then
+            echo "WARN: malformed allowlist entry: $entry"
+            continue
+          fi
+
+          if [[ "$expires" > "$today" ]]; then
+            IGNORE_ARGS+=("--ignore-vuln" "$id")
+            IGNORED_COUNT=$((IGNORED_COUNT+1))
+            echo "Ignoring $id until $expires (${reason:-no reason})"
+          else
+            echo "Allowlist expired for $id on $expires; not ignoring."
+          fi
+        done
+      fi
+
+      echo "Running pip-audit (file-based) – applying ${IGNORED_COUNT} ignore(s)"
+      pip-audit -r requirements.txt "${IGNORE_ARGS[@]}"
+
+      echo "Installing dependencies for environment-based audit"
+      pip install -r requirements.txt
+
+      echo "Running pip-audit (environment-based) – applying ${IGNORED_COUNT} ignore(s)"
+      pip-audit "${IGNORE_ARGS[@]}"
 
 build-image:
   tags: ['new-runner']
