@@ -190,7 +190,7 @@ class PBClient(ClientBase):
         headers = {'Accept': 'text/plain', 'Authorization': 'Basic %s' % self.auth}
         url = '%s/application_sessions/%s/logs' % (self.api_base_url, application_session_id)
         params = {'log_type': 'running'}
-        resp = requests.delete(url, params=params, headers=headers, verify=self.ssl_verify)
+        resp = requests.delete(url, params=params, headers=headers, verify=self.ssl_verify, timeout=120)
         if resp.status_code != 200:
             raise RuntimeError(
                 'Unable to delete running logs for application_session %s, %s' % (application_session_id, resp.reason))

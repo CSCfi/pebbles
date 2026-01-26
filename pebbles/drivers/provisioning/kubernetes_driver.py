@@ -848,7 +848,7 @@ class OpenShiftRemoteDriver(OpenShiftLocalDriver):
         }
 
         # get a token
-        resp = requests.get(url, headers=headers, params=params, allow_redirects=False)
+        resp = requests.get(url, headers=headers, params=params, allow_redirects=False, timeout=120)
 
         # the server replies with a redirect, the data is in 'location'
         location = resp.headers.get('location')

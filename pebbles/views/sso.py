@@ -63,7 +63,7 @@ def oauth2_login():
     well_known_config = None
     oidc_jwk = None
     try:
-        resp = requests.get(oauth2_config['openidConfigurationUrl'])
+        resp = requests.get(oauth2_config['openidConfigurationUrl'], timeout=120)
         if resp.status_code != 200:
             logging.warning('Login aborted: error downloading oauth2 configuration: %s', resp.status_code)
             abort(500)
@@ -73,7 +73,7 @@ def oauth2_login():
             logging.warning('Login aborted: provider well-known config could not be fetched')
             abort(500)
 
-        resp = requests.get(well_known_config['jwks_uri'])
+        resp = requests.get(well_known_config['jwks_uri'], timeout=120)
         if resp.status_code != 200:
             logging.warning('Login aborted: error downloading JWKS: %s', resp.status_code)
             abort(500)
@@ -90,7 +90,8 @@ def oauth2_login():
         oidc_userinfo_endpoint = well_known_config['userinfo_endpoint']
         userinfo = requests.get(
             oidc_userinfo_endpoint,
-            headers={'Authorization': 'Bearer %s' % access_token}
+            headers={'Authorization': 'Bearer %s' % access_token},
+            timeout=120
         ).json()
         logging.debug('got userinfo %s', userinfo)
     except requests.exceptions.RequestException as e:
