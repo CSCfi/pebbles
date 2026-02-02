@@ -186,19 +186,24 @@ bandit-scan:
         --severity-level "medium"
 
 build-image:
-  tags: ['new-runner']
+  tags: ['ci-privileged']
   stage: build-image
   needs: []
   image:
-    name: gcr.io/kaniko-project/executor:v1.21.1-debug
-    entrypoint: [""]
+    name: moby/buildkit:rootless
+  variables:
+    DOCKER_CONFIG: /tmp/.docker
   script:
-    - ln -s /run/secrets/runner-job-secrets/docker_config_ci.json /kaniko/.docker/config.json
-    - /kaniko/executor 
-      --context "${CI_PROJECT_DIR}" 
-      --dockerfile "${CI_PROJECT_DIR}/deployment/pebbles.Dockerfile" 
-      --destination "${CI_IMAGE_REPO_CI}/pebbles:${CI_COMMIT_REF_NAME}"
-      ${CI_KANIKO_OPTIONS}
+    - mkdir -p "$DOCKER_CONFIG"
+    - ln -s /run/secrets/runner-job-secrets/docker_config_ci.json "$DOCKER_CONFIG/config.json"
+    - |
+      buildctl-daemonless.sh build \
+        --frontend=dockerfile.v0 \
+        --local context="${CI_PROJECT_DIR}" \
+        --local dockerfile="${CI_PROJECT_DIR}" \
+        --opt filename="deployment/pebbles.Dockerfile" \
+        --output type=image,name="${CI_IMAGE_REPO_CI}/pebbles:${CI_COMMIT_REF_NAME}",push=true \
+        ${CI_BUILDKIT_CACHE_OPTIONS}
 
 # call pipeline project
 ci-pipeline:
