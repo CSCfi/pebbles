@@ -11,9 +11,32 @@ spec:
       labels:
         name: "{{name}}"
         application: pebbles-session
+        userWorkName: "{{pvc_name_user_work}}"
     spec:
       # no default service account token for the pod
       automountServiceAccountToken: false
+      # to support RWO user work directory, try to run all sessions for a single user on the same node
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: userWorkName
+                    operator: In
+                    values:
+                    - "{{pvc_name_user_work}}"
+              topologyKey: "kubernetes.io/hostname"
+      securityContext:
+        fsGroupChangePolicy: OnRootMismatch
+        {% if sec_context_fsgroup %}
+        fsGroup: {{ sec_context_fsgroup }}
+        {% endif %}
+        {% if sec_context_supplemental_groups %}
+        supplementalGroups: [{{ sec_context_supplemental_groups }}]
+        {% endif %}
+      #hostUsers: false
       # tolerations are set by driver
       tolerations: [ ]
       {% if pull_secret_name %}
@@ -54,7 +77,7 @@ spec:
               name: session-data
       containers:
         - name: proxy
-          image: docker.io/bitnamilegacy/nginx:1.19.8
+          image: docker.io/bitnamilegacy/nginx:1.23
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: nginx-config
@@ -87,7 +110,7 @@ spec:
           readinessProbe:
             tcpSocket:
               port: {{port}}
-              periodSeconds: 1
+            periodSeconds: 1
           resources:
             requests:
               cpu: "{{cpu_request}}"

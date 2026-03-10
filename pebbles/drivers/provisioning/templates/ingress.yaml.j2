@@ -2,10 +2,10 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: "{{name}}"
-{% if ingress_class|d() %}
+  {% if ingress_class|d() %}
   annotations:
     kubernetes.io/ingress.class: "{{ingress_class}}"
-{% endif %}
+  {% endif %}
 spec:
   rules:
     - host: "{{host}}"

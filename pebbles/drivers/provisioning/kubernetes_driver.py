@@ -221,7 +221,6 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         if user_volume_name:
             self.ensure_volume(namespace, application_session,
                                user_volume_name, user_volume_size, user_storage_class_name,
-                               access_mode='ReadWriteMany',
                                annotations={'pebbles.csc.fi/backup': 'yes'})
 
         # create actual session/application_session objects
@@ -456,6 +455,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             pvc_name_user_work=get_user_work_volume_name(application_session),
             pvc_name_shared=get_shared_volume_name(application_session),
             shared_data_read_only_mode=shared_data_read_only_mode,
+            sec_context_fsgroup=self.cluster_config.get('secContextFsGroup', ''),
+            sec_context_supplemental_groups=self.cluster_config.get('secContextSupplementalGroups', ''),
         ))
         deployment_dict = yaml.safe_load(deployment_yaml)
 
@@ -587,8 +588,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                 namespace=namespace,
                 name=application_session.get('name')
             )
-        except Exception as e:
-            if hasattr(e, 'status') and e.status == 404:
+        except ApiException as e:
+            if e.status in (403, 404):
                 self.logger.debug('secret %s not found, nothing to delete' % application_session.get('name'))
             else:
                 raise e
