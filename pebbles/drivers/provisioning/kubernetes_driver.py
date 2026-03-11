@@ -3,6 +3,7 @@ import os
 import time
 from datetime import datetime
 from enum import Enum, unique
+from math import isnan
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
@@ -61,6 +62,32 @@ def get_shared_volume_name(application_session):
         return 'pvc-ws-vol-1'
 
     return None
+
+
+def calculate_cpu_request_limit_millicore(provisioning_config, cluster_config) -> tuple[int, int]:
+    default_coeff = 0.165  # roughly 14 cores / 85 GiB RAM
+    min_request = 0.1
+    min_limit = 8.0
+    try:
+        cpu_request_per_gib = float(cluster_config.get('cpuCoresPerGiBRatio', default_coeff))
+    except (ValueError, TypeError):
+        cpu_request_per_gib = 14 / 85
+    try:
+        mem_gib = float(provisioning_config.get('memory_gib', 1.0))
+        if isnan(mem_gib):
+            mem_gib = 1.0
+    except (ValueError, TypeError):
+        mem_gib = 1.0
+
+    # request in millicores
+    req_cores = max(mem_gib * cpu_request_per_gib, min_request)
+    req_m = int(round(req_cores * 1000))
+
+    # Limit in millicores: equal to request but at least 8
+    lim_cores = max(req_cores, min_limit)
+    lim_m = int(round(lim_cores * 1000))
+
+    return req_m, lim_m
 
 
 class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
@@ -396,6 +423,11 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
         memory_bytes = round(float(provisioning_config['memory_gib']) * 1024 * 1024 * 1024)
         env_var_dict['MEM_LIMIT'] = str(memory_bytes)
 
+        # calculate cpu request & limit based on memory and cluster config
+        cpu_request_mc, cpu_limit_mc = calculate_cpu_request_limit_millicore(
+            provisioning_config=application_session.get('provisioning_config', {}),
+            cluster_config=self.cluster_config
+        )
         # set cpu_limit as an env variable, consumed by jupyter-resource-usage
         env_var_dict['CPU_LIMIT'] = str(provisioning_config.get('cpu_limit', '8'))
 
@@ -416,7 +448,9 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             pull_secret_name=pull_secret_name,
             volume_mount_path=provisioning_config['volume_mount_path'],
             port=int(provisioning_config['port']),
-            cpu_limit=provisioning_config.get('cpu_limit', '8'),
+            cpu_request=f'{cpu_request_mc}m',
+            cpu_limit=f'{cpu_limit_mc}m',
+            memory_request=provisioning_config.get('memory_limit', '512Mi'),
             memory_limit=provisioning_config.get('memory_limit', '512Mi'),
             pvc_name_session=get_session_volume_name(application_session),
             pvc_name_user_work=get_user_work_volume_name(application_session),

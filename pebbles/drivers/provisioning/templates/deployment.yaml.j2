@@ -90,8 +90,8 @@ spec:
               periodSeconds: 1
           resources:
             requests:
-              cpu: "100m"
-              memory: "{{memory_limit}}"
+              cpu: "{{cpu_request}}"
+              memory: "{{memory_request}}"
             limits:
               cpu: "{{cpu_limit}}"
               memory: "{{memory_limit}}"
