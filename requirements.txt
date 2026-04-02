@@ -10,7 +10,7 @@ alembic==1.18.4
     #   flask-migrate
 aniso8601==10.0.1
     # via flask-restful
-attrs==25.4.0
+attrs==26.1.0
     # via
     #   outcome
     #   trio
@@ -20,7 +20,7 @@ blinker==1.9.0
     # via
     #   flask
     #   flask-sso
-build==1.4.0
+build==1.4.2
     # via
     #   inotify
     #   pip-tools
@@ -29,20 +29,20 @@ certifi==2026.2.25
     #   kubernetes
     #   requests
     #   selenium
-charset-normalizer==3.4.5
+charset-normalizer==3.4.6
     # via requests
 click==8.3.1
     # via
     #   -r requirements.in
     #   flask
     #   pip-tools
-coverage==7.13.4
+coverage==7.13.5
     # via -r requirements.in
 dpath==2.2.0
     # via -r requirements.in
 durationpy==0.10
     # via kubernetes
-ecdsa==0.19.1
+ecdsa==0.19.2
     # via python-jose
 flake8==7.3.0
     # via -r requirements.in
@@ -60,7 +60,7 @@ flask==3.1.3
     #   flask-wtf
 flask-bcrypt==1.0.1
     # via -r requirements.in
-flask-httpauth==4.8.0
+flask-httpauth==4.8.1
     # via -r requirements.in
 flask-login==0.6.3
     # via -r requirements.in
@@ -78,7 +78,7 @@ flask-testing==0.8.1
     # via -r requirements.in
 flask-wtf==1.2.2
     # via -r requirements.in
-gunicorn==25.1.0
+gunicorn==25.3.0
     # via -r requirements.in
 h11==0.16.0
     # via wsproto
@@ -144,7 +144,7 @@ pluggy==1.6.0
     # via pytest
 psycopg2-binary==2.9.11
     # via -r requirements.in
-pyasn1==0.6.2
+pyasn1==0.6.3
     # via
     #   python-jose
     #   rsa
@@ -152,11 +152,11 @@ pycodestyle==2.14.0
     # via flake8
 pycryptodome==3.23.0
     # via python-jose
-pyfakefs==6.1.4
+pyfakefs==6.1.6
     # via -r requirements.in
 pyflakes==3.4.0
     # via flake8
-pygments==2.19.2
+pygments==2.20.0
     # via pytest
 pylogbeat==2.1.0
     # via -r requirements.in
@@ -183,7 +183,7 @@ pyyaml==6.0.3
     #   -r requirements.in
     #   kubernetes
     #   responses
-requests==2.32.5
+requests==2.33.1
     # via
     #   -r requirements.in
     #   kubernetes
@@ -243,7 +243,7 @@ websocket-client==1.9.0
     # via
     #   kubernetes
     #   selenium
-werkzeug==3.1.6
+werkzeug==3.1.7
     # via
     #   -r requirements.in
     #   flask
