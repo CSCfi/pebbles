@@ -32,7 +32,6 @@ WTForms-Alchemy
 
 ## for drivers
 kubernetes
-openshift
 
 ## for s2i builds
 psycopg2-binary

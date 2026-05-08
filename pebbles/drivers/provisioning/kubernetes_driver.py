@@ -12,7 +12,7 @@ import kubernetes
 import requests
 import yaml
 from kubernetes.client.rest import ApiException
-from openshift.dynamic import DynamicClient
+from kubernetes.dynamic import DynamicClient
 
 from pebbles.drivers.provisioning import base_driver
 from pebbles.models import ApplicationSession

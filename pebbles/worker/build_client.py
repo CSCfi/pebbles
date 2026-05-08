@@ -6,7 +6,7 @@ import base64
 import json
 
 import kubernetes
-import openshift.dynamic
+from kubernetes.dynamic import DynamicClient
 
 """
 BuildClient provides a simplified interface for building custom images on OpenShift/OKD.
@@ -24,7 +24,7 @@ class BuildClient():
         else:
             kubernetes.config.load_incluster_config()
             self.kubernetes_api_client = kubernetes.client.ApiClient()
-        self.osdc = openshift.dynamic.DynamicClient(self.kubernetes_api_client)
+        self.osdc = DynamicClient(self.kubernetes_api_client)
 
     def get_build(self, id, suppress_404=False):
         build_api = self.osdc.resources.get(api_version='build.openshift.io/v1', kind='Build')
