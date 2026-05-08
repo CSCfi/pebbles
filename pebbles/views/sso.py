@@ -3,11 +3,11 @@ import time
 import uuid
 from datetime import timezone, datetime
 
+import jwt
 import requests
-from flask import abort, current_app
-from flask import render_template, request
+from flask import abort, current_app, render_template, request
 from flask_restful import reqparse
-from jose import jwt
+from jwt import PyJWK
 
 from pebbles.models import db, User
 from pebbles.utils import load_auth_config
@@ -100,8 +100,12 @@ def oauth2_login():
 
     # verify idToken with the identity server's public key
     try:
-        options = {'verify_aud': False, 'verify_at_hash': False}
-        claims = jwt.decode(id_token, oidc_jwk, algorithms=['RS256'], options=options)
+        claims = jwt.decode(
+            id_token,
+            oidc_jwk if isinstance(oidc_jwk, str) else PyJWK.from_dict(oidc_jwk).key,
+            algorithms=['RS256'],
+            options={'verify_aud': False},
+        )
         logging.debug('got claims: %s', claims)
     except Exception as e:
         logging.error('Login aborted: JWT error: %s', e)

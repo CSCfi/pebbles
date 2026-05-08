@@ -12,8 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
-from jose import jwt, JWTError, ExpiredSignatureError
-from jose.exceptions import JWTClaimsError, JWSError
+import jwt
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.schema import MetaData
@@ -230,12 +229,12 @@ class User(db.Model):
         ts = int(time.time())
         # construct a token with user id in the claims and issue + expiration times in the header
         token = jwt.encode(
-            claims=dict(
+            dict(
                 id=self.id,
                 iat=ts,
                 exp=ts + expires_in,
             ),
-            key=app_secret,
+            app_secret,
             algorithm=JWS_SIGNING_ALG
         )
         return token
@@ -256,10 +255,10 @@ class User(db.Model):
         try:
             # explicitly pass the single algorithm for signing to avoid token forging by algorithm tampering
             data = jwt.decode(token, app_secret, algorithms=[JWS_SIGNING_ALG])
-        except (ExpiredSignatureError):
+        except jwt.ExpiredSignatureError:
             logging.debug('Token has expired "%s"', token)
             return None
-        except (JWTError, JWSError, JWTClaimsError) as e:
+        except jwt.InvalidTokenError as e:
             logging.warning('Possible hacking attempt "%s" with token "%s"', e, token)
             return None
 

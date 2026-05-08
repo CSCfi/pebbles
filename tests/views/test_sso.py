@@ -4,11 +4,14 @@ import os
 import time
 from datetime import timezone, datetime
 
+import jwt
 import responses
 import yaml
-from Crypto.PublicKey import RSA
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import rsa as rsa_mod
+from cryptography.hazmat.primitives import serialization
 from flask import current_app
-from jose import jwt
+from jwt.algorithms import RSAAlgorithm
 from pyfakefs.fake_filesystem_unittest import Patcher
 
 from pebbles.models import PEBBLES_TAINT_KEY
@@ -17,8 +20,26 @@ from pebbles.models import db
 from tests.conftest import PrimaryData
 
 # generate key in module load instead of setUp() to speed things up
-private_key = RSA.generate(2048)
+private_key = rsa_mod.generate_private_key(
+    public_exponent=65537,
+    key_size=2048,
+    backend=default_backend()
+)
 public_key = private_key.public_key()
+
+private_pem = private_key.private_bytes(
+    encoding=serialization.Encoding.PEM,
+    format=serialization.PrivateFormat.PKCS8,
+    encryption_algorithm=serialization.NoEncryption()
+).decode('UTF-8')
+
+public_pem = public_key.public_bytes(
+    encoding=serialization.Encoding.PEM,
+    format=serialization.PublicFormat.SubjectPublicKeyInfo
+).decode('UTF-8')
+
+# Real OIDC providers return JWK dicts in their JWKS endpoint, not PEM strings.
+public_jwk = json.loads(RSAAlgorithm.to_jwk(public_key))
 
 AUTH_CONFIG = dict(
     oauth2=dict(
@@ -57,11 +78,11 @@ def create_id_token(claims=None, key=None, algorithm='RS256'):
             acr='https://example.org/Method_1',
         )
     if not key:
-        key = private_key.export_key().decode('UTF-8')
+        key = private_pem
 
     return jwt.encode(
-        claims=claims,
-        key=key,
+        claims,
+        key,
         algorithm=algorithm
     )
 
@@ -76,7 +97,7 @@ def add_default_responses():
     responses.add(
         responses.GET,
         'https://example.org/jwks',
-        json=dict(keys=[public_key.export_key().decode('UTF-8')]),
+        json=dict(keys=[public_pem]),
         status=200,
     )
     responses.add(
@@ -222,6 +243,22 @@ def test_sso_success(pri_data: PrimaryData):
 
 
 @responses.activate
+def test_sso_success_jwks_returns_jwk_dict(pri_data: PrimaryData):
+    # Real OIDC providers serve JWKS as a list of JWK dicts, not PEM strings.
+    # Exercises the PyJWK.from_dict(...) branch in pebbles/views/sso.py.
+    add_default_responses()
+    responses.replace(
+        responses.GET,
+        'https://example.org/jwks',
+        json=dict(keys=[public_jwk]),
+        status=200,
+    )
+    res = make_mocked_request(path='/oauth2')
+    assert res.status_code == 200
+    assert 'TERMS' in res.text
+
+
+@responses.activate
 def test_missing_id_claim(pri_data: PrimaryData):
     add_default_responses()
     responses.replace(
@@ -310,9 +347,18 @@ def test_wrong_signature(pri_data: PrimaryData):
     add_default_responses()
 
     # wrong key
+    wrong_key = rsa_mod.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+        backend=default_backend()
+    ).private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    )
     id_token = create_id_token(
         claims=dict(acr='https://example.org/Method_1'),
-        key=RSA.generate(2048).export_key(),
+        key=wrong_key,
     )
     res = make_mocked_request(path='/oauth2', id_token=id_token)
     assert res.status_code == 401

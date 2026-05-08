@@ -6,7 +6,9 @@ import time
 
 import pytest
 from flask import Flask
-from jose import jwt
+import jwt
+
+TEST_SECRET = 'test-secret-for-pebbles-unit-tests-not-for-production-aaaaaaaaaa'
 
 from pebbles import models
 from pebbles.models import PEBBLES_TAINT_KEY
@@ -97,28 +99,28 @@ def test_application_session_states(model_data: ModelDataFixture):
 
 def test_token_generation(model_data: ModelDataFixture):
     u1 = model_data.known_user
-    token = u1.generate_auth_token('test_secret', expires_in=100)
+    token = u1.generate_auth_token(TEST_SECRET, expires_in=100)
     assert token is not None
 
     # check that issued at and expiration times are correct
-    claims = jwt.get_unverified_claims(token)
+    claims = jwt.decode(token, "", options={"verify_signature": False, "verify_exp": False})
     assert int(time.time()) - int(claims['iat']) <= 1
     assert int(claims['exp']) - int(claims['iat']) == 100
 
-    user_res = User.verify_auth_token(token, 'test_secret')
+    user_res = User.verify_auth_token(token, TEST_SECRET)
     assert user_res
     assert user_res.id == model_data.known_user.id
 
 
 def test_token_expiry(model_data: ModelDataFixture):
     u1 = model_data.known_user
-    token = u1.generate_auth_token('test_secret', expires_in=0)
+    token = u1.generate_auth_token(TEST_SECRET, expires_in=0)
     assert token is not None
 
     logging.info('sleeping for a second to wait for expiry')
     time.sleep(1)
 
-    user_res = User.verify_auth_token(token, 'test_secret')
+    user_res = User.verify_auth_token(token, TEST_SECRET)
     assert user_res is None
 
 
@@ -132,13 +134,13 @@ def test_token_forging_tamper_times(model_data: ModelDataFixture):
     )
 
     # valid headers and signature from another token
-    valid_token = model_data.known_user.generate_auth_token('test_secret')
+    valid_token = model_data.known_user.generate_auth_token(TEST_SECRET)
     token = '%s.%s.%s' % (
         valid_token.split('.')[0],
         base64.urlsafe_b64encode(json.dumps(claims).encode('utf-8')).replace(b'=', b'').decode('utf-8'),
         valid_token.split('.')[2],
     )
-    user_res = User.verify_auth_token(token, 'test_secret')
+    user_res = User.verify_auth_token(token, TEST_SECRET)
     assert user_res is None
 
 
@@ -171,13 +173,13 @@ def test_token_forging_algorithm(model_data: ModelDataFixture):
     assert user_res is None
 
     # valid signature from another context
-    valid_token = model_data.known_user.generate_auth_token('test_secret')
+    valid_token = model_data.known_user.generate_auth_token(TEST_SECRET)
     token = '%s.%s.%s' % (
         base64.urlsafe_b64encode(json.dumps(headers).encode('utf-8')).replace(b'=', b'').decode('utf-8'),
         base64.urlsafe_b64encode(json.dumps(claims).encode('utf-8')).replace(b'=', b'').decode('utf-8'),
         valid_token.split('.')[2],
     )
-    user_res = User.verify_auth_token(token, 'test_secret')
+    user_res = User.verify_auth_token(token, TEST_SECRET)
     assert user_res is None
 
 

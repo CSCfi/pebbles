@@ -21,7 +21,8 @@ Jinja2
 MarkupSafe
 names
 python-dateutil
-python-jose[pycryptodome]
+PyJWT
+cryptography
 PyYAML
 requests
 SQLAlchemy

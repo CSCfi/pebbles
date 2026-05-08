@@ -6,7 +6,7 @@ import logging
 from time import time
 
 import requests
-from jose import jwt
+import jwt
 from requests.adapters import HTTPAdapter
 
 import pebbles.utils
@@ -26,7 +26,7 @@ class ClientBase:
     def check_and_refresh_session(self, ext_id, password):
         # renew worker session 15 minutes before expiration
         try:
-            claims = jwt.get_unverified_claims(self.token)
+            claims = jwt.decode(self.token, options={"verify_signature": False, "verify_exp": False})
             remaining_time = claims['exp'] - time()
             if remaining_time < 900:
                 logging.info("Token will expire soon, relogin %s" % ext_id)

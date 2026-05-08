@@ -183,6 +183,7 @@ class RuntimeConfig(BaseConfig):
 class TestConfig(BaseConfig):
     """Unit tests config object"""
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SECRET_KEY = 'pebbles-unit-test-secret-key-not-for-production-aaaaaaaaaaaaaaaa'
     MAIL_SUPPRESS_SEND = True
     BCRYPT_LOG_ROUNDS = 4
     TEST_MODE = True
