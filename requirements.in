@@ -29,7 +29,6 @@ SQLAlchemy
 SQLAlchemy-Utils
 Werkzeug
 WTForms
-WTForms-Alchemy
 
 ## for drivers
 kubernetes

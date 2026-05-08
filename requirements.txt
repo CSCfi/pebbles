@@ -88,14 +88,10 @@ idna==3.14
     # via
     #   requests
     #   trio
-infinity==1.5
-    # via intervals
 iniconfig==2.3.0
     # via pytest
 inotify==0.2.12
     # via -r requirements.in
-intervals==0.9.2
-    # via wtforms-components
 itsdangerous==2.2.0
     # via
     #   -r requirements.in
@@ -117,7 +113,6 @@ markupsafe==3.0.3
     #   mako
     #   werkzeug
     #   wtforms
-    #   wtforms-components
 mccabe==0.7.0
     # via flake8
 mock==5.2.0
@@ -203,11 +198,8 @@ sqlalchemy==2.0.49
     #   alembic
     #   flask-sqlalchemy
     #   sqlalchemy-utils
-    #   wtforms-alchemy
 sqlalchemy-utils==0.42.1
-    # via
-    #   -r requirements.in
-    #   wtforms-alchemy
+    # via -r requirements.in
 trio==0.33.0
     # via
     #   selenium
@@ -225,8 +217,6 @@ urllib3[socks]==2.7.0
     #   requests
     #   responses
     #   selenium
-validators==0.35.0
-    # via wtforms-components
 websocket-client==1.9.0
     # via
     #   kubernetes
@@ -244,12 +234,6 @@ wtforms==3.2.2
     # via
     #   -r requirements.in
     #   flask-wtf
-    #   wtforms-alchemy
-    #   wtforms-components
-wtforms-alchemy==0.19.1
-    # via -r requirements.in
-wtforms-components==0.11.0
-    # via wtforms-alchemy
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
