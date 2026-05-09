@@ -3,9 +3,6 @@
 # To update the requirements, run 'pip-compile -U'
 
 ## Primary requirements
-alembic
-click
-dpath
 Flask
 Flask-Bcrypt
 Flask-HTTPAuth
@@ -13,22 +10,11 @@ Flask-Login
 Flask-Migrate
 Flask-RESTful
 Flask-SQLAlchemy
-Flask-SSO
-Flask-Testing
 Flask-WTF
-itsdangerous
-Jinja2
-MarkupSafe
-names
-python-dateutil
 PyJWT
 cryptography
 PyYAML
 requests
-SQLAlchemy
-SQLAlchemy-Utils
-Werkzeug
-WTForms
 
 ## for drivers
 kubernetes
