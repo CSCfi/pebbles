@@ -2,11 +2,8 @@ import json
 import logging
 
 import flask_restful as restful
-from flask import Blueprint as FlaskBlueprint
 
 from pebbles.views.commons import auth
-
-app_version = FlaskBlueprint('app_version', __name__)
 
 
 class AppVersionList(restful.Resource):

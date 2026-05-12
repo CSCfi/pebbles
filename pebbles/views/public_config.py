@@ -2,7 +2,7 @@ import logging
 
 import flask_restful as restful
 import yaml
-from flask import Blueprint as FlaskBlueprint, current_app
+from flask import current_app
 from flask_restful import fields, marshal_with
 
 variable_fields = {
@@ -10,7 +10,6 @@ variable_fields = {
     'value': fields.Raw,
 }
 
-variables = FlaskBlueprint('variables', __name__)
 PUBLIC_CONFIG_VARIABLES = (
     'INSTALLATION_NAME',
     'INSTALLATION_DESCRIPTION',

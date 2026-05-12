@@ -1,7 +1,4 @@
-import itertools
-
 from sqlalchemy import or_, select, false, func
-from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import true
 
 from pebbles.models import Application, ApplicationTemplate, ApplicationSession, User, WorkspaceMembership, Workspace, \
@@ -156,36 +153,3 @@ def apply_filter_users():
     q = User.query
     q = q.filter_by(is_deleted=False)
     return q
-
-
-###############################################
-# all the helper functions for the rules go here
-###############################################
-
-
-def get_manager_workspace_ids(user):
-    """Return the workspace ids for the user's managed workspaces"""
-    # the result shall contain the owners of the workspaces too as they are managers by default
-    workspace_manager_objs = WorkspaceMembership.query.filter_by(user_id=user.id, is_manager=True).all()
-    manager_workspace_ids = [workspace_manager_obj.workspace_id for workspace_manager_obj in workspace_manager_objs]
-    return manager_workspace_ids
-
-
-def get_workspace_application_ids_for_application_sessions(user, only_managed=False):
-    """Return the valid application ids based on user's workspaces to be used in application_sessions view"""
-    workspace_user_query = WorkspaceMembership.query
-    if only_managed:  # if we require only managed workspaces
-        workspace_user_objs = workspace_user_query.filter_by(user_id=user.id, is_manager=True).all()
-    else:  # get the normal user workspaces
-        workspace_user_objs = workspace_user_query.filter_by(user_id=user.id).all()
-    workspaces = [workspace_user_obj.workspace for workspace_user_obj in workspace_user_objs]
-    # loading only id column rest will be deferred
-    workspace_applications = [
-        workspace.applications.options(load_only(Application.id)).all()
-        for workspace in workspaces
-    ]
-    # merge the list of lists into one list
-    workspace_applications_flat = list(itertools.chain.from_iterable(workspace_applications))
-    # Get the ids in a list
-    workspace_applications_id = [application_item.id for application_item in workspace_applications_flat]
-    return workspace_applications_id

@@ -8,7 +8,7 @@ import flask_restful as restful
 import sqlalchemy as sa
 from sqlalchemy import select
 import sqlalchemy.orm
-from flask import Blueprint as FlaskBlueprint, current_app
+from flask import current_app
 from flask import abort, g, request
 from flask_restful import marshal, reqparse, fields, inputs
 
@@ -18,8 +18,6 @@ from pebbles.utils import requires_admin, requires_workspace_owner_or_admin, loa
 from pebbles.views import commons
 from pebbles.views.commons import auth, can_user_join_workspace
 
-workspaces = FlaskBlueprint('workspaces', __name__)
-join_workspace = FlaskBlueprint('join_workspace', __name__)
 
 workspace_fields_admin = {
     'id': fields.String,

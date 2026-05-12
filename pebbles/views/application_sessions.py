@@ -3,7 +3,6 @@ import logging
 from datetime import datetime, timezone
 
 import flask_restful as restful
-from flask import Blueprint as FlaskBlueprint
 from flask import abort, g, current_app
 from flask_restful import marshal_with, fields, reqparse
 from sqlalchemy import exists
@@ -14,7 +13,6 @@ from pebbles.models import db, Application, ApplicationSession, ApplicationSessi
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth, is_workspace_manager, requires_workspace_manager_or_admin
 
-application_sessions = FlaskBlueprint('application_sessions', __name__)
 
 application_session_fields_admin = {
     'id': fields.String,

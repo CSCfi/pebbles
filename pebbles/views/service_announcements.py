@@ -1,7 +1,6 @@
 import logging
 
 import flask_restful as restful
-from flask import Blueprint as FlaskBlueprint
 from flask import abort
 from flask_restful import reqparse, fields, marshal_with
 
@@ -10,7 +9,6 @@ from pebbles.models import db, ServiceAnnouncement
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth
 
-service_announcements = FlaskBlueprint('service_announcements', __name__)
 
 SERVICE_ANNOUNCEMENT_FIELDS = {
     'id': fields.String,

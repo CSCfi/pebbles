@@ -2,11 +2,9 @@ import logging
 
 import flask_restful as restful
 import yaml
-from flask import Blueprint as FlaskBlueprint, current_app
+from flask import current_app
 
 from pebbles.views.commons import auth
-
-helps = FlaskBlueprint('helps', __name__)
 
 
 class HelpsList(restful.Resource):

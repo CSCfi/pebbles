@@ -2,7 +2,6 @@ import logging
 from datetime import timezone, datetime
 
 import flask_restful as restful
-from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
 from flask_restful import reqparse, fields, marshal_with
 
@@ -11,7 +10,6 @@ from pebbles.models import db, Message, User
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth
 
-messages = FlaskBlueprint('messages', __name__)
 
 MESSAGE_FIELDS = {
     'id': fields.String,

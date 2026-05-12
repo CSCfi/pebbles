@@ -640,11 +640,6 @@ class Application(db.Model):
     def cost_multiplier(self):
         return get_application_fields_from_config(self, 'cost_multiplier')
 
-    def cost(self, duration=None):
-        if not duration:
-            duration = self.maximum_lifetime
-        return self.cost_multiplier * duration / 3600
-
     def replace_application_image(self, old_image: str, new_image: str) -> bool:
         """ replace image in both base_config and config """
         change = False

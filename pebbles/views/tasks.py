@@ -2,7 +2,6 @@ import logging
 import time
 
 import flask_restful as restful
-from flask import Blueprint as FlaskBlueprint
 from flask import abort, request
 from flask_restful import marshal_with, fields, reqparse
 
@@ -11,7 +10,6 @@ from pebbles.models import db
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth
 
-tasks = FlaskBlueprint('tasks', __name__)
 
 task_fields = {
     'id': fields.String,

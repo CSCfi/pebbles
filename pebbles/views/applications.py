@@ -3,7 +3,6 @@ import uuid
 from datetime import timezone, datetime
 
 import flask_restful as restful
-from flask import Blueprint as FlaskBlueprint
 from flask import abort, g, request
 from flask_restful import fields, reqparse
 from sqlalchemy import select
@@ -17,7 +16,6 @@ from pebbles.utils import requires_admin, check_config_against_attribute_limits,
 from pebbles.views import commons
 from pebbles.views.commons import auth, requires_workspace_manager_or_admin
 
-applications = FlaskBlueprint('applications', __name__)
 
 application_field_role_map = dict(
     admin={

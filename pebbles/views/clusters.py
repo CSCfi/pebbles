@@ -1,11 +1,10 @@
 import flask_restful as restful
-from flask import Blueprint as FlaskBlueprint, current_app
+from flask import current_app
 from flask_restful import fields, marshal_with
 
 from pebbles.utils import requires_admin, load_cluster_config
 from pebbles.views.commons import auth
 
-clusters = FlaskBlueprint('clusters', __name__)
 
 # TODO remove 'url' when all clusters use 'apiUrl'
 cluster_fields = {

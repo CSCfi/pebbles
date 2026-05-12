@@ -3,7 +3,6 @@ import logging
 import re
 
 import flask_restful as restful
-from flask import Blueprint as FlaskBlueprint
 from flask import g, abort
 from flask_restful import fields, reqparse, marshal_with
 from sqlalchemy import select
@@ -15,7 +14,6 @@ from pebbles.models import db, CustomImage, Workspace, ApplicationTemplate
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth, is_workspace_manager, requires_workspace_manager_or_admin
 
-custom_images = FlaskBlueprint('custom_images', __name__)
 
 custom_image_fields = {
     'id': fields.String,

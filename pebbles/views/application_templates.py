@@ -2,7 +2,6 @@ import logging
 import uuid
 
 import flask_restful as restful
-from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
 from flask_restful import fields
 from flask_restful import marshal_with, reqparse
@@ -14,7 +13,6 @@ from pebbles.rules import apply_rules_application_templates
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth, requires_workspace_manager_or_admin
 
-application_templates = FlaskBlueprint('application_templates', __name__)
 
 application_template_fields = {
     'id': fields.String(attribute='id'),

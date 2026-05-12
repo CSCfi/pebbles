@@ -4,7 +4,6 @@ import time
 from datetime import datetime, timezone
 
 import flask_restful as restful
-from flask import Blueprint as FlaskBlueprint
 from flask import abort, g
 from flask_restful import marshal_with, reqparse, inputs, fields
 
@@ -13,7 +12,6 @@ from pebbles.rules import apply_filter_users, apply_rules_workspace_memberships
 from pebbles.utils import requires_admin, create_password
 from pebbles.views.commons import auth, create_user
 
-users = FlaskBlueprint('users', __name__)
 
 user_fields_admin = {
     'id': fields.String,

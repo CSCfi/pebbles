@@ -3,14 +3,13 @@ import time
 from datetime import timezone, datetime
 
 import flask_restful as restful
-from flask import Blueprint as FlaskBlueprint, current_app
+from flask import current_app
 from flask_restful import fields, marshal, reqparse
 
 from pebbles.forms import SessionCreateForm
 from pebbles.models import db, User
 from pebbles.views.commons import update_email, EXT_ID_PREFIX_DELIMITER
 
-sessions = FlaskBlueprint('sessions', __name__)
 
 token_fields = {
     'token': fields.String(default=None),

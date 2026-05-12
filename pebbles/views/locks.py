@@ -1,4 +1,3 @@
-from flask import Blueprint as FlaskBlueprint
 from flask import abort
 from flask_restful import marshal_with, fields, reqparse
 
@@ -8,7 +7,6 @@ import flask_restful as restful
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth
 
-locks = FlaskBlueprint('locks', __name__)
 
 lock_fields = {
     'id': fields.String,

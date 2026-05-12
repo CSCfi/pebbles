@@ -43,20 +43,6 @@ def requires_workspace_owner_or_admin(f):
     return decorated
 
 
-def memoize(func):
-    """
-    Generic memoization implementation suitable for decorator use
-    """
-    cache = {}
-
-    def inner(x):
-        if x not in cache:
-            cache[x] = func(x)
-        return cache[x]
-
-    return inner
-
-
 def check_attribute_limit_format(limits):
     """Check attribute limit format. Return None if AOK, error string otherwise"""
     for limit in limits:
@@ -281,17 +267,11 @@ def load_cluster_config(
 
 def find_driver_class(driver_name):
     """tries to find a provisioning driver by name"""
-    driver_class = None
-    for module in 'kubernetes_driver', 'openshift_template_driver':
-        driver_class = getattr(
-            importlib.import_module('pebbles.drivers.provisioning.%s' % module),
-            driver_name,
-            None
-        )
-        if driver_class:
-            break
-
-    return driver_class
+    return getattr(
+        importlib.import_module('pebbles.drivers.provisioning.kubernetes_driver'),
+        driver_name,
+        None
+    )
 
 
 def load_auth_config(path):
