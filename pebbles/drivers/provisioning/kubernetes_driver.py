@@ -444,6 +444,8 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
             name=application_session['name'],
             image=provisioning_config['image'],
             image_pull_policy=provisioning_config.get('image_pull_policy', 'IfNotPresent'),
+            session_proxy_image=self.cluster_config.get('sessionProxyImage',
+                                                        'docker.io/nginxinc/nginx-unprivileged:1.31-alpine'),
             pull_secret_name=pull_secret_name,
             volume_mount_path=provisioning_config['volume_mount_path'],
             port=int(provisioning_config['port']),

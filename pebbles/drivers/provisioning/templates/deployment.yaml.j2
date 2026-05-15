@@ -77,11 +77,11 @@ spec:
               name: session-data
       containers:
         - name: proxy
-          image: docker.io/bitnamilegacy/nginx:1.23
+          image: "{{session_proxy_image}}"
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: nginx-config
-              mountPath: /opt/bitnami/nginx/conf/server_blocks
+              mountPath: /etc/nginx/conf.d
           resources:
             requests:
               cpu: "100m"
