@@ -3,14 +3,14 @@ import logging
 import re
 
 import flask_restful as restful
-from flask import g, abort
+import yaml
+from flask import g, abort, current_app
 from flask_restful import fields, reqparse, marshal_with
 from sqlalchemy import select
-from sqlalchemy.sql.expression import true
 
 from pebbles import rules
 from pebbles.forms import CustomImageForm
-from pebbles.models import db, CustomImage, Workspace, ApplicationTemplate
+from pebbles.models import db, CustomImage, Workspace
 from pebbles.utils import requires_admin
 from pebbles.views.commons import auth, is_workspace_manager, requires_workspace_manager_or_admin
 
@@ -132,7 +132,7 @@ class CustomImageList(restful.Resource):
 
         user = g.user
         workspace_id = form.workspace_id.data
-        workspace = Workspace.query.filter_by(id=workspace_id).first()
+        workspace = db.session.get(Workspace, workspace_id)
         if not workspace:
             abort(422)
         if not user.is_admin and not is_workspace_manager(user, workspace):
@@ -166,6 +166,14 @@ class CustomImageList(restful.Resource):
         return custom_image
 
 
+class CustomImageBaseImageList(restful.Resource):
+
+    @auth.login_required
+    @requires_workspace_manager_or_admin
+    def get(self):
+        return get_base_images()
+
+
 def validate_apt_package(package: str):
     """
     Remove trailing whitespace from apt package name and validate.
@@ -186,18 +194,21 @@ def validate_pip_package(package: str):
         raise ValueError(f'invalid pip package: {package}')
 
 
+def get_base_images():
+    try:
+        with open(current_app.config['API_CUSTOM_IMAGE_BASE_IMAGES_FILE']) as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        logging.warning('failed to load custom image base images config: %s', e)
+        return None
+
+
 def validate_base_image(base_image: str):
-    """
-    Make sure that the base image is from existing application templates.
-    Raise ValueError if not.
-    """
     if not base_image:
         raise ValueError('base_image cannot be empty')
 
-    s = select(ApplicationTemplate).where(ApplicationTemplate.is_enabled == true())
-    enabled_application_templates = db.session.scalars(s).all()
-    base_images = [template.base_config.get("image") for template in list(enabled_application_templates)]
-    if base_image not in base_images:
+    base_images = get_base_images()
+    if not isinstance(base_images, list) or base_image not in base_images:
         raise ValueError(f'invalid base image: {base_image}')
 
 

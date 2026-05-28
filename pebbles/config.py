@@ -107,6 +107,7 @@ class BaseConfig:
     API_AUTH_CONFIG_FILE = '/run/configmaps/pebbles/api-configmap/auth-config.yaml'
     API_FAQ_FILE = '/run/configmaps/pebbles/api-configmap/faq-content.yaml'
     API_PUBLIC_STRUCTURED_CONFIG_FILE = '/run/configmaps/pebbles/api-configmap/public-structured-config.yaml'
+    API_CUSTOM_IMAGE_BASE_IMAGES_FILE = '/run/configmaps/pebbles/api-configmap/custom-image-base-images.yaml'
 
     # enable access by []
     def __getitem__(self, item):
@@ -188,3 +189,4 @@ class TestConfig(BaseConfig):
     BCRYPT_LOG_ROUNDS = 4
     TEST_MODE = True
     INSTALLATION_NAME = 'Pebbles'
+    API_CUSTOM_IMAGE_BASE_IMAGES_FILE = 'tests/fixtures/custom-image-base-images.yaml'

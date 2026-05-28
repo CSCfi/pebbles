@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
+from flask import Flask
 
 from pebbles.models import CustomImage, db
 from pebbles.views.custom_images import create_dockerfile_from_definition
@@ -271,7 +272,7 @@ def test_patch_custom_image_start_and_complete(rmaker: RequestMaker, pri_data: P
         data=json.dumps(dict(
             name='ci-2',
             workspace_id=pri_data.known_workspace_id,
-            definition={'base_image': 'registry.io/image:latest', 'user': 'user', 'image_content': []})
+            definition={'base_image': 'registry.example.org/image:latest', 'user': 'user', 'image_content': []})
         )
     )
     assert response.status_code == 200
@@ -306,7 +307,7 @@ def test_post_custom_image_no_access(rmaker: RequestMaker, pri_data: PrimaryData
     Test that users with no access cannot post custom images
     """
     definition = {
-        'base_image': 'registry.io/image:latest',
+        'base_image': 'registry.example.org/image:latest',
         'user': 'user',
         'image_content': []
     }
@@ -353,7 +354,7 @@ def test_post_and_delete_custom_image(rmaker: RequestMaker, pri_data: PrimaryDat
     Test that posting and deleting custom images work as expected
     """
     definition = {
-        'base_image': 'registry.io/image:latest',
+        'base_image': 'registry.example.org/image:latest',
         'user': 'user',
         'image_content': []
     }
@@ -416,7 +417,7 @@ def test_post_custom_image_invalid_data(rmaker: RequestMaker, pri_data: PrimaryD
     Test that invalid custom image data raises an error
     """
     definition = {
-        'base_image': 'registry.io/image:latest',
+        'base_image': 'registry.example.org/image:latest',
         'user': 'user',
         'image_content': []
     }
@@ -437,19 +438,24 @@ def test_post_custom_image_invalid_data(rmaker: RequestMaker, pri_data: PrimaryD
 
     invalid_definitions = [
         (dict(
-            base_image='registry.io/image:latest',
+            base_image='registry.example.org/image:latest',
             user='user',
             image_content=[
                 dict(kind='aptPackages', data='pöppö')
             ]
         ), 'invalid apt package'),
         (dict(
-            base_image='registry.io/image:latest',
+            base_image='registry.example.org/image:latest',
             user='user',
             image_content=[
                 dict(kind='nosuchkind', data='foo')
             ]
         ), 'unknown kind'),
+        (dict(
+            base_image='registry.example.org/image:not-in-config',
+            user='user',
+            image_content=[]
+        ), 'invalid base image'),
     ]
     for invalid_def, resp in invalid_definitions:
         data = dict(name='test', workspace_id=pri_data.known_workspace_id, definition=invalid_def)
@@ -461,13 +467,26 @@ def test_post_custom_image_invalid_data(rmaker: RequestMaker, pri_data: PrimaryD
         assert response.status_code == 422
         assert response.json.get('message').startswith(resp)
 
+    # every image listed in the base images config must be accepted
+    for base_image in ['registry.example.org/image:latest', 'registry.example.org/image:2.0']:
+        response = rmaker.make_authenticated_workspace_owner2_request(
+            method='POST',
+            path='/api/v1/custom_images',
+            data=json.dumps(dict(
+                name=f'ci-{base_image.split(":")[-1]}',
+                workspace_id=pri_data.known_workspace_id,
+                definition=dict(base_image=base_image, user='user', image_content=[])
+            )),
+        )
+        assert response.status_code == 200, f'base image {base_image!r} should be valid'
+
 
 def test_custom_image_quota(rmaker: RequestMaker, pri_data: PrimaryData):
     """
     Test that only 10 custom images are allowed per workspace
     """
     definition = {
-        'base_image': 'registry.io/image:latest',
+        'base_image': 'registry.example.org/image:latest',
         'user': 'user',
         'image_content': []
     }
@@ -534,7 +553,7 @@ def test_create_dockerfile_from_definition(rmaker: RequestMaker, pri_data: Prima
 
     for ic in valid_image_content:
         valid_definition = {
-            "base_image": "registry.io/image:latest",
+            "base_image": "registry.example.org/image:latest",
             "user": "user",
             "image_content": ic
         }
@@ -561,7 +580,7 @@ def test_create_dockerfile_from_definition(rmaker: RequestMaker, pri_data: Prima
 
     for data in invalid_image_content:
         invalid_definition = {
-            "base_image": "registry.io/image:latest",
+            "base_image": "registry.example.org/image:latest",
             "user": "user",
             "image_content": data["ic"]
         }
@@ -569,10 +588,10 @@ def test_create_dockerfile_from_definition(rmaker: RequestMaker, pri_data: Prima
             create_dockerfile_from_definition(invalid_definition)
 
     invalid_base_image_data = [
-        {"base_image": "registry.io/image:foo", "expected_error": "invalid base image"},
+        {"base_image": "registry.example.org/image:foo", "expected_error": "invalid base image"},
         {"base_image": "", "expected_error": "base_image cannot be empty"},
-        # test that a base image from a disabled application template is not accepted:
-        {"base_image": "registry.io/disabled_image:latest", "expected_error": "invalid base image"},
+        # not in the base images config file:
+        {"base_image": "registry.example.org/disabled_image:latest", "expected_error": "invalid base image"},
     ]
 
     for base_image_data in invalid_base_image_data:
@@ -583,6 +602,37 @@ def test_create_dockerfile_from_definition(rmaker: RequestMaker, pri_data: Prima
         }
         with pytest.raises(ValueError, match=base_image_data["expected_error"]):
             create_dockerfile_from_definition(invalid_definition)
+
+
+def test_get_custom_image_base_images(app: Flask, rmaker: RequestMaker, pri_data: PrimaryData):
+    """
+    Test that listing custom image base images works as expected for different users
+    """
+    # Anonymous
+    response = rmaker.make_request(path='/api/v1/custom_image_base_images')
+    assert response.status_code == 401
+
+    # Regular user
+    response = rmaker.make_authenticated_user_request(path='/api/v1/custom_image_base_images')
+    assert response.status_code == 403
+
+    expected_base_images = ['registry.example.org/image:latest', 'registry.example.org/image:2.0']
+
+    # Workspace owner
+    response = rmaker.make_authenticated_workspace_owner_request(path='/api/v1/custom_image_base_images')
+    assert response.status_code == 200
+    assert response.json == expected_base_images
+
+    # Admin
+    response = rmaker.make_authenticated_admin_request(path='/api/v1/custom_image_base_images')
+    assert response.status_code == 200
+    assert response.json == expected_base_images
+
+    # Missing file — endpoint returns null
+    app.config['API_CUSTOM_IMAGE_BASE_IMAGES_FILE'] = '/nonexistent/path'
+    response = rmaker.make_authenticated_workspace_owner_request(path='/api/v1/custom_image_base_images')
+    assert response.status_code == 200
+    assert response.json is None
 
 
 def test_custom_images_ordering(rmaker: RequestMaker, pri_data: PrimaryData):

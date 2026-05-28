@@ -180,7 +180,7 @@ class PrimaryData:
         t1 = ApplicationTemplate()
         t1.name = 'TestTemplate'
         t1.application_type = 'generic'
-        t1.base_config = {'image': 'registry.io/disabled_image:latest'}
+        t1.base_config = {'image': 'registry.example.org/disabled_image:latest'}
         db.session.add(t1)
         self.known_template_id_disabled = t1.id
 
@@ -193,7 +193,7 @@ class PrimaryData:
             'maximum_lifetime': 3600,
             'memory_gib': 8,
             'allow_update_client_connectivity': False,
-            'image': 'registry.io/image:latest'
+            'image': 'registry.example.org/image:latest'
         }
         t2.attribute_limits = [
             dict(name='maximum_lifetime', min=0, max=3600 * 12),
