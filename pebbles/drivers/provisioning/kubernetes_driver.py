@@ -540,6 +540,9 @@ class KubernetesDriverBase(base_driver.ProvisioningDriverBase):
                     proxy_set_header X-Scheme $scheme;
 
                     proxy_buffering off;
+
+                    # raise size limit for uploads
+                    client_max_body_size 80M;
                   }
                 }
             """
