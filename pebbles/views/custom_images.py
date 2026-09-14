@@ -174,24 +174,33 @@ class CustomImageBaseImageList(restful.Resource):
         return get_base_images()
 
 
+def validate_user(user):
+    """Raise ValueError unless user is a plain lowercase account name."""
+    if not isinstance(user, str) or not re.fullmatch(r'[a-z_][a-z0-9_-]{0,31}', user):
+        raise ValueError(f'invalid user: {user}')
+
+
 def validate_apt_package(package: str):
-    """
-    Remove trailing whitespace from apt package name and validate.
-    Raise ValueError if package name contains invalid characters.
-    """
-    package = package.strip()
-    if not re.match(r'^[a-z][a-z0-9\-+.=~]+$', package):
+    """Raise ValueError if package name contains invalid characters."""
+    if not re.fullmatch(r'[a-z][a-z0-9\-+.=~]+', package):
         raise ValueError(f'invalid apt package: {package}')
 
 
 def validate_pip_package(package: str):
-    """
-    Remove trailing whitespace from pip package name and validate.
-    Raise ValueError if package name contains invalid characters.
-    """
-    package = package.strip()
-    if not re.match(r'^[a-zA-Z0-9\-_.=]+$', package):
+    """Raise ValueError if package name contains invalid characters."""
+    if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9\-_.=]*', package):
         raise ValueError(f'invalid pip package: {package}')
+
+
+def validate_packages(ic: dict, validate_package) -> str:
+    """Validate every package in the image_content data and return them space-joined."""
+    data = ic.get('data')
+    if not data or not isinstance(data, str):
+        raise ValueError(f'{ic.get("kind")} definition must have non-empty "data" field')
+    packages = data.split(' ')
+    for package in packages:
+        validate_package(package)
+    return ' '.join(packages)
 
 
 def get_base_images():
@@ -213,47 +222,38 @@ def validate_base_image(base_image: str):
 
 
 def create_dockerfile_from_definition(definition: dict):
+    # Only validated values are interpolated into the Dockerfile
     validate_base_image(definition.get("base_image"))
+    user = definition.get('user')
+    validate_user(user)
     lines = [f'FROM {definition.get("base_image")}']
 
-    user = definition.get('user')
     for ic in definition.get('image_content', []):
+        kind = ic.get('kind')
 
-        if ic.get('kind') == 'aptPackages':
-            if not ic.get('data'):
-                raise ValueError('aptPackages definition must have non-empty "data" field')
-            for data in ic.get('data').split(" "):
-                validate_apt_package(data)
-
+        if kind == 'aptPackages':
+            packages = validate_packages(ic, validate_apt_package)
             lines.append('')
-            lines.append(f'# {ic.get("kind")}')
+            lines.append('# aptPackages')
             lines.append('USER root')
-            lines.append(f'RUN apt-get update && apt-get install -y {ic["data"]} && apt-get clean')
+            lines.append(f'RUN apt-get update && apt-get install -y {packages} && apt-get clean')
             lines.append(f'USER {user}')
 
-        elif ic.get('kind') == 'pipPackages':
-            if not ic.get('data'):
-                raise ValueError('pipPackages definition must have non-empty "data" field')
-            for data in ic.get('data').split(" "):
-                validate_pip_package(data)
-
+        elif kind == 'pipPackages':
+            packages = validate_packages(ic, validate_pip_package)
             lines.append('')
-            lines.append(f'# {ic.get("kind")}')
-            lines.append(f'RUN pip --no-cache-dir install --upgrade {ic["data"]}')
+            lines.append('# pipPackages')
+            lines.append(f'RUN pip --no-cache-dir install --upgrade {packages}')
 
-        elif ic.get('kind') == 'condaForgePackages':
-            if not ic.get('data'):
-                raise ValueError('condaForgePackages definition must have non-empty "data" field')
-            for data in ic.get('data').split(" "):
-                # pip package validation should work for conda-forge packages as well
-                validate_pip_package(data)
-
+        elif kind == 'condaForgePackages':
+            # pip package validation works for conda-forge packages as well
+            packages = validate_packages(ic, validate_pip_package)
             lines.append('')
-            lines.append(f'# {ic.get("kind")}')
-            lines.append(f'RUN conda install -c conda-forge --yes {ic["data"]}')
+            lines.append('# condaForgePackages')
+            lines.append(f'RUN conda install -c conda-forge --yes {packages}')
 
         else:
-            raise ValueError(f'unknown kind in image_content: {ic.get("kind")}')
+            raise ValueError(f'unknown kind in image_content: {kind}')
 
     return '\n'.join(lines)
 

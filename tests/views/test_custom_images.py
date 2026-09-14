@@ -456,6 +456,11 @@ def test_post_custom_image_invalid_data(rmaker: RequestMaker, pri_data: PrimaryD
             user='user',
             image_content=[]
         ), 'invalid base image'),
+        (dict(
+            base_image='registry.example.org/image:latest',
+            user='user\nother',
+            image_content=[]
+        ), 'invalid user'),
     ]
     for invalid_def, resp in invalid_definitions:
         data = dict(name='test', workspace_id=pri_data.known_workspace_id, definition=invalid_def)
@@ -569,6 +574,12 @@ def test_create_dockerfile_from_definition(rmaker: RequestMaker, pri_data: Prima
         {"ic": [{"kind": "aptPackages", "data": "vim&&ls"}], "expected_error": "invalid apt package"},
         {"ic": [{"kind": "pipPackages", "data": "pöppö"}], "expected_error": "invalid pip package"},
         {"ic": [{"kind": "aptPackages", "data": "pöppö"}], "expected_error": "invalid apt package"},
+        {"ic": [{"kind": "pipPackages", "data": "arrow\nnltk"}], "expected_error": "invalid pip package"},
+        {"ic": [{"kind": "aptPackages", "data": "vim\nnano"}], "expected_error": "invalid apt package"},
+        {"ic": [{"kind": "aptPackages", "data": "vim\tnano"}], "expected_error": "invalid apt package"},
+        {"ic": [{"kind": "condaForgePackages", "data": "arrow\n"}], "expected_error": "invalid pip package"},
+        {"ic": [{"kind": "pipPackages", "data": "--pre arrow"}], "expected_error": "invalid pip package"},
+        {"ic": [{"kind": "pipPackages", "data": ["arrow"]}], "expected_error": 'must have non-empty "data" field'},
     ]
     for kind in ('pipPackages', 'aptPackages', 'condaForgePackages'):
         invalid_image_content.append(
@@ -602,6 +613,32 @@ def test_create_dockerfile_from_definition(rmaker: RequestMaker, pri_data: Prima
         }
         with pytest.raises(ValueError, match=base_image_data["expected_error"]):
             create_dockerfile_from_definition(invalid_definition)
+
+    invalid_users = [
+        None,
+        '',
+        'user\nother',
+        'user extra',
+        'User',
+        'user.name',
+        'a' * 33,
+    ]
+    for user in invalid_users:
+        invalid_definition = {
+            "base_image": "registry.example.org/image:latest",
+            "user": user,
+            "image_content": []
+        }
+        with pytest.raises(ValueError, match='invalid user'):
+            create_dockerfile_from_definition(invalid_definition)
+
+    for user in ('user', 'jovyan', '_svc-1'):
+        dockerfile = create_dockerfile_from_definition({
+            "base_image": "registry.example.org/image:latest",
+            "user": user,
+            "image_content": [{"kind": "aptPackages", "data": "vim"}]
+        })
+        assert dockerfile.endswith(f'USER {user}')
 
 
 def test_get_custom_image_base_images(app: Flask, rmaker: RequestMaker, pri_data: PrimaryData):
