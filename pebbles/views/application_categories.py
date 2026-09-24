@@ -24,8 +24,8 @@ class ApplicationCategoryList(restful.Resource):
                 labels=['analytics', 'statistics']
             ),
             dict(
-                name='Quantum Computing',
-                labels=['quantum computing']
+                name='Geoinformatics',
+                labels=['gis', 'geospatial', 'geoinformatics']
             ),
         ]
         return categories
