@@ -7,6 +7,14 @@ stages:
   - security
   - ci-pipeline
 
+# Branch pipelines only; pip-audit's rules would otherwise also spawn a
+# merge request pipeline for the same push.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - when: always
+
 flake8:
   tags: ['new-runner']
   stage: analysis-and-tests
@@ -53,6 +61,12 @@ pip-audit:
   tags: ['new-runner']
   stage: security
   needs: []
+  rules:
+    # the nightly schedule (CI/CD > Schedules) is the enforcing run
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    # everywhere else findings only warn
+    - when: on_success
+      allow_failure: true
   variables:
     PIP_DISABLE_PIP_VERSION_CHECK: "1"
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
