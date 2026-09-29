@@ -1,6 +1,7 @@
 #
 # Use 'pip-compile' from pip-tools package to generate requirements.txt from this file.
-# To update the requirements, run 'pip-compile -U'
+# To update: pip-compile -U --pip-args "--uploaded-prior-to <cutoff 7+ days ago>",
+# then recompile requirements-ci.txt, which is constrained to this lock.
 
 ## Primary requirements
 Flask
@@ -28,7 +29,6 @@ pytest
 selenium
 mock
 coverage
-flake8
 responses
 pyfakefs
 
