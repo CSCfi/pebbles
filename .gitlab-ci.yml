@@ -1,7 +1,6 @@
 ---
 default:
-  # Job images are pinned by digest; bump only to tags pushed over a week ago.
-  image: docker.io/library/python:3.12.14@sha256:4d1caded1f729ae443eb803f26ffde7b61e696aeaef62f099abb6dd6b14257c7
+  image: docker.io/library/python:3.14
   tags: ['new-runner']
 
 stages:

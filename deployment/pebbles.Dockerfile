@@ -1,5 +1,5 @@
 # Use official Python image
-FROM docker.io/library/python:3.12
+FROM docker.io/library/python:3.14
 LABEL "io.k8s.display-name"="pebbles"
 ARG EXTRA_PIP_PACKAGES
 ARG PB_APP_VERSION="not-set"
