@@ -1,6 +1,6 @@
 # CI-only tools, constrained to requirements.txt so both install into one env;
-# CI points PIP_CONSTRAINT at the compiled file. Regenerate under the cooldown:
-#   pip-compile -U --strip-extras --pip-args "--uploaded-prior-to <cutoff>" requirements-ci.in
+# CI points PIP_CONSTRAINT at the compiled file.
+# Regenerated together with requirements.txt by ./compile_requirements.sh
 -c requirements.txt
 
 flake8

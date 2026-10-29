@@ -17,7 +17,8 @@ WORKDIR /opt/app-root/src
 
 # Install requirements from requirements.txt and build argument
 COPY requirements.txt ./
-RUN pip install --root-user-action=ignore --no-cache-dir -r requirements.txt
+RUN pip install --root-user-action=ignore --no-cache-dir --require-hashes -r requirements.txt
+# not hash-checked: development only
 RUN if [ -n "$EXTRA_PIP_PACKAGES" ]; then pip install --root-user-action=ignore --no-cache-dir $EXTRA_PIP_PACKAGES; fi
 
 # Pick the required bits of source code

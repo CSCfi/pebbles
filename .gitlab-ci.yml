@@ -24,6 +24,7 @@ workflow:
   - when: on_success
 
 # base for the Python jobs; every pip install obeys requirements-ci.txt's pins
+# and is hash-checked, so nothing outside the two lock files can be installed
 .python-job:
   needs: []
   rules: *not_on_schedule
@@ -31,6 +32,7 @@ workflow:
     PIP_DISABLE_PIP_VERSION_CHECK: "1"
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
     PIP_CONSTRAINT: "$CI_PROJECT_DIR/requirements-ci.txt"
+    PIP_REQUIRE_HASHES: "1"
   cache:
     key:
       files:
@@ -140,7 +142,7 @@ pip-audit:
       fi
 
       echo "Running pip-audit (file-based) – applying ${IGNORED_COUNT} ignore(s)"
-      pip-audit --no-deps --disable-pip -r requirements.txt "${IGNORE_ARGS[@]}"
+      pip-audit --require-hashes --disable-pip -r requirements.txt "${IGNORE_ARGS[@]}"
 
       echo "Running pip-audit (environment-based) – applying ${IGNORED_COUNT} ignore(s)"
       pip-audit "${IGNORE_ARGS[@]}"

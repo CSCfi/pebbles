@@ -1,7 +1,6 @@
 #
-# Use 'pip-compile' from pip-tools package to generate requirements.txt from this file.
-# To update: pip-compile -U --pip-args "--uploaded-prior-to <cutoff 7+ days ago>",
-# then recompile requirements-ci.txt, which is constrained to this lock.
+# requirements.txt is generated from this file by ./compile_requirements.sh.
+# Don't edit pins by hand: pip checks every download against the hashes.
 
 ## Primary requirements
 Flask
